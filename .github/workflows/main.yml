@@ -1,0 +1,26 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  detectonly:
+    name: Detect use of fdescribe and fit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Detect use of fdescribe,fit
+        run: |
+          grep -rq --include '*.spec.js' \fit\( . && echo 'You have fit() in your tests!' && exit 1
+          grep -rq --include '*.spec.js' \fdescribe\( . && echo 'You have fdescribe() in your tests!' && exit 1
+          exit 0
+  chromeheadless:
+    name: Chrome headless
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Chrome headless
+        run: |
+          yarn install
+          yarn test

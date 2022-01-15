@@ -1,0 +1,141 @@
+let stdout;
+let stderr;
+let captureOutput = false;
+const currentRepoRootDir = 'nearearningsdata';
+
+let accessToken = 'ANONYMOUS';
+XMLHttpRequest.prototype._open = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+  this._open(method, url, async, user, password);
+  this.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+}
+
+self.Module = {
+  'locateFile': function (s) {
+    return 'https://unpkg.com/wasm-git@0.0.8/' + s;
+  },
+  'print': function (text) {
+    if (captureOutput) {
+      stdout += text + '\n';
+    }
+    console.log(text);
+  },
+  'printErr': function (text) {
+    if (captureOutput) {
+      stderr += text + '\n';
+    }
+    console.error(text);
+  }
+};
+
+importScripts('https://unpkg.com/wasm-git@0.0.8/lg2.js');
+
+const lgPromise = new Promise(resolve => {
+  Module.onRuntimeInitialized = () => {
+    FS.mkdir(`/${currentRepoRootDir}`);
+    FS.mount(IDBFS, {}, `/${currentRepoRootDir}`);
+    FS.chdir(`/${currentRepoRootDir}`);
+
+    FS.syncfs(true, () => {
+      resolve(Module);
+    });
+  }
+});
+
+async function storeChanges() {
+  await new Promise(resolve => FS.syncfs(false, resolve));
+};
+
+self.onmessage = async (msg) => {
+  const lg2 = await lgPromise;
+  try {
+    let result;
+    const params = msg.data;
+    switch (params.command) {
+      case 'configureuser':
+        accessToken = params.accessToken;
+        callMain(['config','user.name',params.username]);
+        callMain(['config','user.email',params.useremail]);
+  
+        result = { accessTokenConfigured: true };
+      case 'writeFile':
+        FS.writeFile(params.filename, params.content);
+        await storeChanges();
+        break;
+      case 'readTextFile':
+        result = FS.readFile(params.filename, { encoding: 'utf8' });
+        break;
+      case 'exists':
+        result = FS.analyzePath(params.path).exists;
+        break;
+      case 'mkdir':
+        FS.mkdir(params.path);
+        break;
+      case 'readdir':
+        result = FS.readdir(params.path);
+        break;
+      case 'git':
+        captureOutput = true;
+        callMain(params);
+        captureOutput = false;
+        if (['init', 'commit', 'add', 'revert', 'pull', 'fetch', 'merge', 'clone'].indexOf(params[0]) > -1) {
+          await storeChanges();
+        }
+        result = { stdout, stderr };
+        break;
+      case 'getremote':
+        captureOutput = true;
+        callMain(['remote','show', '-v']);
+        captureOutput = false;
+        result = stdout;
+        break;
+      case 'setremote':
+        callMain(['remote', 'remove', 'origin']);
+        callMain(['remote', 'add', 'origin', params.remoteurl]);
+        await storeChanges();
+        break;
+      case 'sync':
+        captureOutput = true;
+        callMain(['fetch', 'origin']);
+        callMain(['merge', 'origin/master']);
+        callMain(['push']);
+        captureOutput = false;
+        if (stderr) {
+          throw stderr;
+        }
+        result = stdout;
+        await storeChanges();
+        break;
+      case 'commitall':
+        captureOutput = true;
+        callMain(['status']);
+        captureOutput = false;
+        const outlines = stdout.split('\n');
+        outlines.filter(l => l.indexOf('#	modified:') == 0).map(l => l.substr('#	modified:'.length).trim())
+          .forEach(f => callMain(['add', f]));
+        const unTrackedIndex = outlines.indexOf('# Untracked files:');
+
+        if (unTrackedIndex > -1) {
+          let filesToAdd = outlines.slice(unTrackedIndex + 3).map(ln => ln.substr('#\t'.length));
+          filesToAdd = filesToAdd.slice(0, filesToAdd.length - 1);
+          if (filesToAdd.length > 0) {
+            filesToAdd.forEach(f => callMain(['add', f]));            
+          }
+        }
+
+        captureOutput = true;
+        callMain(['status']);
+        captureOutput = false;
+        
+        if (stdout.indexOf('Changes to be committed:') > -1) {      
+          callMain(['commit', '-m', 'add all untracked data files']);
+          await storeChanges();
+        } else {
+          console.log('nothing to commit');
+        }
+    }
+    postMessage({ result });
+  } catch (error) {
+    postMessage({ error: error.toString() })
+  }
+};
