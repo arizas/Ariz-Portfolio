@@ -7,7 +7,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "test:watch": "karma start",
+    "test:watch": "karma start --browsers Chrome",
     "test": "karma start --single-run --browsers ChromeHeadless",
     "serve": "http-server -p 8081 public_html/",
     "bundle": "rm -Rf dist && rollup -c rollup.config.js",

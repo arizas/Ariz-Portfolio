@@ -29,6 +29,10 @@
         inset-block-end: 0;
         bottom: 0;
     }
+
+    tr.inforow td {
+        font-size: 12px;   
+    }
 </style>
 <div class="card">
     <div class="card-header">Year report ( all accounts )</div>
@@ -53,16 +57,16 @@
                 <td class="dailybalancerow_profit numeric"></td>
                 <td class="dailybalancerow_loss numeric"></td>
             </tr>
-            <tr class="inforow">
-                <td colspan="12">
-                    <table class="table table-sm">
+            <tr class="inforow bg-info">
+                <td colspan="12" >
+                    <table class="table table-sm table-borderless">
                         <thead>
                             <tr>
-                                <th>acquisition date</th>
-                                <th>acquired amount</th>
-                                <th>acquisition price</th>
-                                <th>realized amount</th>
-                                <th>realization price</th>
+                                <th scope="col">acquisition date</th>
+                                <th scope="col">acquired amount</th>
+                                <th scope="col">acquisition price</th>
+                                <th scope="col">realized amount</th>
+                                <th scope="col">realization price</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
