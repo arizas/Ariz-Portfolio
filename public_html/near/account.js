@@ -61,7 +61,9 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
                 && historyLine.block_hash == t.block_hash && t.action_kind == historyLine.action_kind
                 && t.signer_id == historyLine.signer_id)) {
                 historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash));
-
+                if (historyLine.args) {
+                    delete historyLine.args.args_base64;
+                }
                 transactions.splice(insertIndex++, 0, historyLine);
                 offset_timestamp = parseInt(historyLine.block_timestamp) + 1;
                 newTransactionsAdded++;

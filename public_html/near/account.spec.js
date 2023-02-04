@@ -10,6 +10,8 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         expect(transactions[16].block_timestamp).toBe('1621757638772495934');
         expect(transactions[17].block_timestamp).toBe('1621757638772495934');
         expect(transactions[18].block_timestamp).toBe('1621757638772495934');
+
+        expect(transactions.filter(t => t.args?.args_base64 != undefined)).toEqual([]);
     }, 10000);
     it('should get transactions new transactions on the next date', async () => {
         transactions = await getTransactionsToDate(account, new Date('2021-05-25').getTime() * 1_000_000, transactions, 5);
