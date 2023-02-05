@@ -57,6 +57,7 @@ customElements.define('earnings-report-config',
         }
 
         setAccounts(accountsArray) {
+            this.accountsTable.replaceChildren([]);
             accountsArray.forEach(accountname => this.addAccountRow(accountname));
         }
 
