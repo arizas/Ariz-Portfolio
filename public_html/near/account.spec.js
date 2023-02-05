@@ -40,7 +40,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         
         expect(Number(balanceAfterLastTx)/1e+24).toBeCloseTo(Number(balanceAfterFirstTx - BigInt(chainedTx[1].args.deposit) + BigInt(chainedTx[0].args.deposit))/1e+24,1);
         expect(BigInt(chainedTx[0].balance)).toBe(balanceAfterLastTx);
-    }, 60000);
+    }, 120000);
 });
 describe('nearaccount transactions psalomo.near', function () {
     let transactions = [];
@@ -48,5 +48,5 @@ describe('nearaccount transactions psalomo.near', function () {
     it('should get transactions for psalomo.near', async () => {
         transactions = await getTransactionsToDate('psalomo.near', new Date('2021-04-01').getTime() * 1_000_000, [], 20);
         expect(transactions.find(t => t.args.method_name == 'buy_token' && t.block_timestamp == '1615409039200091358')).toBeTruthy();
-    }, 50000);
+    }, 150000);
 });

@@ -32,7 +32,7 @@ describe('stakingpool', () => {
                 stakingBalanceEntry.withdrawal
             );
         }
-    }, 120000);
+    }, 180000);
 
     it('it should identity staking pool accounts in transactions', async () => {
         const transactions = await getTransactionsToDate('psalomo.near', new Date('2021-05-01').getTime() * 1_000_000);
