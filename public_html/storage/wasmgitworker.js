@@ -50,6 +50,8 @@ self.onmessage = async (msg) => {
   const lg2 = await lgPromise;
   try {
     let result;
+    stderr = '';
+    stdout = '';
     const params = msg.data;
     switch (params.command) {
       case 'configureuser':
@@ -58,6 +60,7 @@ self.onmessage = async (msg) => {
         callMain(['config','user.email',params.useremail]);
   
         result = { accessTokenConfigured: true };
+        break;
       case 'writeFile':
         FS.writeFile(params.filename, params.content);
         await storeChanges();
@@ -105,6 +108,12 @@ self.onmessage = async (msg) => {
         }
         result = stdout;
         await storeChanges();
+        break;
+      case 'deletelocal':
+        FS.unmount(`/${currentRepoRootDir}`);
+        console.log('deleting database', currentRepoRootDir);
+        self.indexedDB.deleteDatabase('/' + currentRepoRootDir);
+        result = {deleted: currentRepoRootDir };
         break;
       case 'commitall':
         captureOutput = true;

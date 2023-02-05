@@ -1,6 +1,8 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
+import configComponentHtml from './config.component.html.js';
+import { modalAlert } from '../ui/modal.js';
 
 customElements.define('earnings-report-config',
     class extends HTMLElement {
@@ -11,22 +13,28 @@ customElements.define('earnings-report-config',
         }
 
         async loadHTML() {
-            this.shadowRoot.innerHTML = await fetch(new URL('config.component.html', import.meta.url)).then(r => r.text());
+            this.shadowRoot.innerHTML = configComponentHtml;
             this.accountsTable = this.shadowRoot.querySelector('#accountsTable');
-            
+
             this.shadowRoot.querySelector('#addAccountButton').onclick = () => this.addAccountRow();
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
             this.shadowRoot.getElementById('loaddatabutton').addEventListener('click', async () => {
                 setProgressbarValue(0);
-                for (const account of this.getAccounts()) {
-                    const transactions = await fetchTransactionsForAccount(account);
-                    const stakingAccounts = await findStakingPoolsInTransactions(transactions);
-                    for (const stakingAccount of stakingAccounts) {
-                        await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
+                try {
+                    for (const account of this.getAccounts()) {
+                        const transactions = await fetchTransactionsForAccount(account);
+                        const stakingAccounts = await findStakingPoolsInTransactions(transactions);
+                        for (const stakingAccount of stakingAccounts) {
+                            await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
+                        }
                     }
+                    setProgressbarValue(null);
+                } catch (e) {
+                    setProgressbarValue(null);
+                    modalAlert('Error fetching data', e.message);
                 }
-                setProgressbarValue(null);
+
                 this.dispatchChangeEvent();
             });
             return this.shadowRoot;
@@ -49,7 +57,7 @@ customElements.define('earnings-report-config',
         }
 
         setAccounts(accountsArray) {
-            accountsArray.forEach(accountname => this.addAccountRow(accountname));            
+            accountsArray.forEach(accountname => this.addAccountRow(accountname));
         }
 
         getAccounts() {

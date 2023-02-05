@@ -1,4 +1,4 @@
-export async function retry(func, max_retries = 5, pause_millis = 5000) {
+export async function retry(func, max_retries = 10, pause_millis = 30000) {
     let err;
     for (let n = 0;n<max_retries;n++) {
         try {

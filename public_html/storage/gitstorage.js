@@ -5,10 +5,14 @@ const workerCommand = async (command, params) => {
     while (currentCommandInProgress) {
         await currentCommandInProgress;
     }
-    currentCommandInProgress = new Promise(resolve => {
+    currentCommandInProgress = new Promise((resolve, reject) => {
         worker.onmessage = (msg) => {
             currentCommandInProgress = null;
-            resolve(msg.data);
+            if (msg.data.error) {
+                reject(msg.data.error);
+            } else {
+                resolve(msg.data);
+            }
         }
         worker.postMessage(Object.assign(params, { command }));
     });
@@ -66,4 +70,8 @@ export async function get_remote() {
 
 export async function sync() {
     await workerCommand('sync', []);
+}
+
+export async function delete_local() {
+    await workerCommand('deletelocal', []);
 }

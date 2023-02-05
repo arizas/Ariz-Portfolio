@@ -1,4 +1,4 @@
-<template id="accountRowTemplate">
+export default /*html*/ `<template id="accountRowTemplate">
     <div class="input-group">
         <input type="text" class="accountname form-control"></td>
         <button class="btn btn-danger removeAccountButton"><i class="bi bi-trash"></i></button>
@@ -15,4 +15,4 @@
         <button type="button" class="btn btn-primary" id="loaddatabutton">load data</button>
     </div>
 </div>
-
+`;
