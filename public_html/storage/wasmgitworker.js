@@ -18,6 +18,7 @@ self.Module = {
     if (captureOutput) {
       stdout += text + '\n';
     }
+    postMessage({ progress: text });
     console.log(text);
   },
   'printErr': function (text) {

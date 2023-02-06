@@ -1,3 +1,5 @@
+import { setProgressbarValue } from "../ui/progress-bar.js";
+
 const worker = new Worker(new URL('wasmgitworker.js', import.meta.url));
 
 let currentCommandInProgress;
@@ -10,7 +12,10 @@ const workerCommand = async (command, params) => {
             currentCommandInProgress = null;
             if (msg.data.error) {
                 reject(msg.data.error);
+            } else if(msg.data.progress) {
+                setProgressbarValue('indeterminate', msg.data.progress);
             } else {
+                setProgressbarValue(null);
                 resolve(msg.data);
             }
         }

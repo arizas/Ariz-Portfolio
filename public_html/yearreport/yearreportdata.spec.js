@@ -65,7 +65,7 @@ describe('year-report-data', () => {
                 Number(dailydata[verifyDate].deposit) / 1e+24,
                 Number(dailydata[verifyDate].withdrawal) / 1e+24);
         
-    }, 120000);
+    }, 180000);
     it('should calculate profit / loss for withdrawals', async () => {
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);

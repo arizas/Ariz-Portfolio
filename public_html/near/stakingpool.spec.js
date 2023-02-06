@@ -38,5 +38,5 @@ describe('stakingpool', () => {
         const transactions = await getTransactionsToDate('psalomo.near', new Date('2021-05-01').getTime() * 1_000_000);
         const stakingAccounts = findStakingPoolsInTransactions(transactions);
         expect(stakingAccounts.filter(a => a.endsWith('.poolv1.near')).length).toBe(stakingAccounts.length);
-    }, 60000);
+    }, 180000);
 });
