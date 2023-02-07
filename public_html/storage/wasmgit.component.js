@@ -1,5 +1,7 @@
 import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js';
-import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all } from './gitstorage.js';
+import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local } from './gitstorage.js';
+import wasmgitComponentHtml from './wasmgit.component.html.js';
+import { modalAlert } from '../ui/modal.js';
 
 const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
@@ -48,13 +50,31 @@ customElements.define('wasm-git-config',
         }
 
         async loadHTML() {
-            this.shadowRoot.innerHTML = await fetch(new URL('wasmgit.component.html', import.meta.url)).then(r => r.text());
+            this.shadowRoot.innerHTML = wasmgitComponentHtml;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
             this.loginbutton = this.shadowRoot.querySelector('#loginbutton');
+            this.logoutbutton = this.shadowRoot.querySelector('#logoutbutton');
+
+            this.deletelocaldatabutton = this.shadowRoot.querySelector('#deletelocaldatabutton');
+
+            this.deletelocaldatabutton.addEventListener('click', async () => {
+                console.log('delete local data');
+                this.deletelocaldatabutton.disabled = true;
+                await delete_local();
+                location.reload();
+            });
+
             if ((await walletConnectionPromise).getAccountId()) {
                 this.loadAccountData();
+                this.logoutbutton.addEventListener('click', async () => {
+                    (await walletConnectionPromise).signOut();
+                    console.log('logged out');
+                    this.loginbutton.style.display = 'block';
+                    this.logoutbutton.style.display = 'none';
+                });
             } else {
                 console.log('no loggedin user');
+                this.logoutbutton.style.display = 'none';
                 this.loginbutton.addEventListener('click', async () => {
                     await (await walletConnectionPromise).requestSignIn(
                         nearconfig.contractName,
@@ -77,19 +97,25 @@ customElements.define('wasm-git-config',
                     this.syncbutton.disabled = true;
                     if (!(await exists('.git'))) {
                         if (this.remoteRepoInput.value) {
-                            await git_clone(this.remoteRepoInput.value);                            
+                            await git_clone(this.remoteRepoInput.value);
                         } else {
                             await git_init();
                         }
                     }
                     await commit_all();
-                    await sync();                    
+                    await sync();
+                    this.dispatchSyncEvent();
                 } catch (e) {
                     console.error(e);
+                    modalAlert('Error syncing with remote', e);
                 }
                 this.syncbutton.disabled = false;
             });
             return this.shadowRoot;
+        }
+
+        dispatchSyncEvent() {
+            this.dispatchEvent(new Event('sync'));
         }
 
         async loadAccountData() {
@@ -100,8 +126,9 @@ customElements.define('wasm-git-config',
             this.loginbutton.style.display = 'none';
             this.shadowRoot.querySelector('#currentuserspan').innerHTML = `Logged in as ${currentUser.accountId}`;
 
+            const accessToken = await createAccessToken();
             configure_user({
-                accessToken: await createAccessToken(),
+                accessToken,
                 useremail: currentUser.accountId,
                 username: currentUser.accountId
             });

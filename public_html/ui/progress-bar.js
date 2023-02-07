@@ -1,4 +1,4 @@
-const progressbarhtml = `
+const progressbarhtml = /*html*/`
 <style type="text/css">
 :host {
     position: fixed;
@@ -38,6 +38,16 @@ const progressbarhtml = `
 .progress-fill {
     background-color: rgba(0,255,0, 0.7);
     height: 50px;    
+    animation-name: indeterminate;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+}
+@keyframes indeterminate {
+    0% { margin-left: 0%; width: 10%;}
+    25% { width: 20%; }
+    50% { margin-left: 90%; width: 10%; }
+    75% { width: 20%; }
+    100% { margin-left: 0%; width: 10%; }
 }
 </style>
 <div id="main-progress-bar" class="progress-border">
@@ -56,8 +66,15 @@ customElements.define('progress-bar', class ProgressBar extends HTMLElement {
     }
 
     setValue(val, extratext) {
-        this.shadowRoot.querySelector('.progress-text').innerHTML = `${(val * 100).toFixed(0)}%${extratext ? `<br />${extratext}` : ''}`;
-        this.shadowRoot.querySelector('.progress-fill').style.width = `${(val * 100).toFixed(2)}%`;
+        if (val == 'indeterminate') {
+            this.shadowRoot.querySelector('.progress-text').innerHTML = `<div style="margin-top: 10px">${extratext}</div>`;
+            this.shadowRoot.querySelector('.progress-fill').style.width = `10%`;
+            this.shadowRoot.querySelector('.progress-fill').style.animationName = 'indeterminate';
+        } else {
+            this.shadowRoot.querySelector('.progress-fill').style.animationName = 'none';
+            this.shadowRoot.querySelector('.progress-text').innerHTML = `${(val * 100).toFixed(0)}%${extratext ? `<br />${extratext}` : ''}`;
+            this.shadowRoot.querySelector('.progress-fill').style.width = `${(val * 100).toFixed(2)}%`;
+        }
     }
 });
 

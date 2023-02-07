@@ -12,6 +12,8 @@ const config = document.getElementById('earnings-report-config');
 const transactionsview = document.getElementById('transactions-view');
 const stakingView = document.getElementById('staking-view');
 const yearReport = document.getElementById('year-report');
+const wasmgit = document.getElementById('wasm-git-config');
+
 const numDecimals = 2;
 
 (async () => {
@@ -47,6 +49,11 @@ const numDecimals = 2;
         await setAccounts(config.getAccounts());
         viewSettingsChange();
     });
-    
+    wasmgit.addEventListener('sync', async () => {
+        if (await exists(accountsconfigfile)) {
+            config.setAccounts(await getAccounts());
+        }
+        viewSettingsChange();
+    });
     yearReport.updateView(currencyselect.value, numDecimals);
 })();
