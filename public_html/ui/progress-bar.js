@@ -90,3 +90,7 @@ export function setProgressbarValue(val, extratext) {
         progressbar = null;
     }
 }
+
+export function isProgressBarVisible() {
+    return progressbar ? true : false;
+}

@@ -2,6 +2,7 @@ import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js'
 import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local } from './gitstorage.js';
 import wasmgitComponentHtml from './wasmgit.component.html.js';
 import { modalAlert } from '../ui/modal.js';
+import { setProgressbarValue } from '../ui/progress-bar.js';
 
 const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
@@ -93,6 +94,7 @@ customElements.define('wasm-git-config',
             this.remoteRepoInput.value = await get_remote();
             this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
             this.syncbutton.addEventListener('click', async () => {
+                setProgressbarValue('indeterminate', 'syncing with remote');
                 try {
                     this.syncbutton.disabled = true;
                     if (!(await exists('.git'))) {
@@ -109,6 +111,7 @@ customElements.define('wasm-git-config',
                     console.error(e);
                     modalAlert('Error syncing with remote', e);
                 }
+                setProgressbarValue(null);
                 this.syncbutton.disabled = false;
             });
             return this.shadowRoot;
