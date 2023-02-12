@@ -1,4 +1,4 @@
-import { setProgressbarValue } from "../ui/progress-bar.js";
+import { isProgressBarVisible, setProgressbarValue } from "../ui/progress-bar.js";
 
 const worker = new Worker(new URL('wasmgitworker.js', import.meta.url));
 
@@ -8,6 +8,7 @@ const workerCommand = async (command, params) => {
         await currentCommandInProgress;
     }
     currentCommandInProgress = new Promise((resolve, reject) => {
+        const progressBarWasAlreadyVisible = isProgressBarVisible();
         worker.onmessage = (msg) => {
             currentCommandInProgress = null;
             if (msg.data.error) {
@@ -15,7 +16,9 @@ const workerCommand = async (command, params) => {
             } else if(msg.data.progress) {
                 setProgressbarValue('indeterminate', msg.data.progress);
             } else {
-                setProgressbarValue(null);
+                if (!progressBarWasAlreadyVisible) {
+                    setProgressbarValue(null);
+                }
                 resolve(msg.data);
             }
         }
