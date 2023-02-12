@@ -77,6 +77,9 @@ export async function calculateYearReportData() {
             if (transactionsObj.stakingBalances[datestring]) {
                 dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[datestring].totalStakingBalance;
                 dailyBalances[datestring].stakingEarnings += transactionsObj.stakingBalances[datestring].totalEarnings;
+            } else if (prevDateString && transactionsObj.stakingBalances[prevDateString]) {
+                dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[prevDateString].totalStakingBalance;
+                dailyBalances[datestring].stakingEarnings += transactionsObj.stakingBalances[prevDateString].totalEarnings;
             }
         });
         if (transactionsByDate[datestring]) {

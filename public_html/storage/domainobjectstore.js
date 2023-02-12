@@ -22,7 +22,7 @@ export async function getTransactionsForAccount(account) {
     }
 }
 
-export async function fetchTransactionsForAccount(account, max_timestamp = new Date().getTime() * 1_000_000) {
+async function makeAccountDataDirs(account) {
     if (!await exists(accountdatadir)) {
         await mkdir(accountdatadir);
     }
@@ -31,12 +31,19 @@ export async function fetchTransactionsForAccount(account, max_timestamp = new D
     if (!await exists(accountdir)) {
         await mkdir(accountdir);
     }
+}
 
+export async function fetchTransactionsForAccount(account, max_timestamp = new Date().getTime() * 1_000_000) {    
     let transactions = await getTransactionsForAccount(account);
     transactions = await getTransactionsToDate(account, max_timestamp, transactions);
 
-    await writeFile(`${accountdatadir}/${account}/transactions.json`, JSON.stringify(transactions, null, 1));
+    await makeAccountDataDirs(account);
+    await writeTransactions(account, transactions);
     return transactions;
+}
+
+export async function writeTransactions(account, transactions) {
+    await writeFile(`${accountdatadir}/${account}/transactions.json`, JSON.stringify(transactions, null, 1));
 }
 
 function getStakingDataDir(account) {
@@ -57,13 +64,18 @@ export async function getStakingRewardsForAccountAndPool(account, stakingpool_id
 }
 
 export async function fetchStakingRewardsForAccountAndPool(account, stakingpool_id) {
+    const currentStakingEarnings = await getStakingRewardsForAccountAndPool(account, stakingpool_id);
+    const updatedStakingEarnings = await fetchAllStakingEarnings(stakingpool_id, account, currentStakingEarnings);
+    
+    await writeStakingData(account, stakingpool_id, updatedStakingEarnings);
+}
+
+export async function writeStakingData(account, stakingpool_id, stakingData) {
+    await makeAccountDataDirs(account);
     const stakingDataDir = getStakingDataDir(account);
     if (!(await exists(stakingDataDir))) {
         await mkdir(stakingDataDir);
     }
-    const currentStakingEarnings = await getStakingRewardsForAccountAndPool(account, stakingpool_id);
-    const updatedStakingEarnings = await fetchAllStakingEarnings(stakingpool_id, account, currentStakingEarnings);
-    
     const stakingDataPath = getStakingDataPath(account, stakingpool_id);
-    await writeFile(stakingDataPath,JSON.stringify(updatedStakingEarnings, null, 1));
+    await writeFile(stakingDataPath,JSON.stringify(stakingData, null, 1));
 }
