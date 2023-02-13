@@ -205,5 +205,7 @@ describe('year-report-data', () => {
         expect(dailydata['2022-09-14'].stakingBalance).toBe(1.5110166536686937e+26);
         expect(dailydata['2022-09-16'].stakingBalance).toBe(1.5116177505287145e+26);
         expect(dailydata['2022-09-15'].stakingBalance).toBe(1.5110166536686937e+26);
+        expect(dailydata['2022-09-16'].stakingEarnings).toBe(dailydata['2022-09-16'].stakingBalance - dailydata['2022-09-15'].stakingBalance);
+        expect(dailydata['2022-09-15'].stakingEarnings).toBe(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
     }, 60000);
 });
