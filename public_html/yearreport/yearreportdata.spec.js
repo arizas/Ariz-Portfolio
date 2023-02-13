@@ -135,6 +135,7 @@ describe('year-report-data', () => {
     it('should use previous epoch staking balance for days with no epoch', async () => {
         const account = 'lala.near';
         const stakingPool = 'abcd.poolv1.near';
+
         await setAccounts([account]);
 
         const stakingBalances = [{
@@ -188,15 +189,16 @@ describe('year-report-data', () => {
                 "receiver_id": stakingPool,
                 "action_kind": "FUNCTION_CALL",
                 "args": {
-                 "gas": 125000000000000,
-                 "deposit": "150000000000000000000000000",
-                 "args_json": {},
-                 "args_base64": "e30=",
-                 "method_name": "deposit_and_stake"
+                    "gas": 125000000000000,
+                    "deposit": "150000000000000000000000000",
+                    "args_json": {},
+                    "args_base64": "e30=",
+                    "method_name": "deposit_and_stake"
                 },
                 "balance": "193319504748993944327549190"
-               }
+            }
         ];
+
         await writeTransactions(account, transactions);
         await writeStakingData(account, stakingPool, stakingBalances);
         const dailydata = await calculateYearReportData();
