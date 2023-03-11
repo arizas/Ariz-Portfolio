@@ -1,9 +1,9 @@
-import { getEODPrice } from '../pricedata/pricedata.js';
+import { getCurrencyList, getEODPrice } from '../pricedata/pricedata.js';
 import { getStakingAccounts } from '../near/stakingpool.js';
 
-import { getStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
-
-customElements.define('staking-view',
+import { getAccounts, getStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
+import html from './staking-page.component.html.js';
+customElements.define('staking-page',
     class extends HTMLElement {
         constructor() {
             super();
@@ -12,9 +12,35 @@ customElements.define('staking-view',
         }
 
         async loadHTML() {
-            this.shadowRoot.innerHTML = await fetch(new URL('stakingview.component.html', import.meta.url)).then(r => r.text());
+            this.shadowRoot.innerHTML = html;
             this.stakingRewardsTable = this.shadowRoot.getElementById('stakingrewardstable');
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            const accountselect = this.shadowRoot.querySelector('#accountselect');
+            await Promise.all((await getAccounts()).map(async account => {
+                const accountoption = document.createElement('option');
+                accountoption.value = account;
+                accountoption.text = account;
+                accountselect.appendChild(accountoption);
+            }));
+
+            const numDecimals = 2;
+            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
+            (await getCurrencyList()).forEach(currency => {
+                const currencyoption = document.createElement('option');
+                currencyoption.value = currency;
+                currencyoption.text = currency.toUpperCase();
+                currencyselect.appendChild(currencyoption);
+            });
+
+            const viewSettingsChange = () => {
+                const account = accountselect.value;
+                const currency = currencyselect.value;
+                this.updateView(account, currency, numDecimals);
+            };
+            accountselect.addEventListener('change', viewSettingsChange);
+            currencyselect.addEventListener('change', viewSettingsChange);
+
             return this.shadowRoot;
         }
 

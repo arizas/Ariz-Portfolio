@@ -34,7 +34,20 @@ export default /*html*/ `<style>
         text-overflow: ellipsis;
     }
 </style>
-
+<h3>Transactions</h3>
+<div class="row">
+<div class="col-md-6">
+    <label for="accountselect" class="form-label">Account</label>
+    <select class="form-select" aria-label="Select account" id="accountselect">
+        <option disabled selected value>Select account</option>
+    </select>
+</div>
+<div class="col-md-6">
+    <label for="currencyselect" class="form-label">Currency</label>
+    <select class="form-select" aria-label="Select currency" id="currencyselect">
+        <option value="near">NEAR</option>
+    </select>
+</div>
 <template id="transactionrowtemplate">
     <tr>
         <td class="transactionrow_datetime"></td>

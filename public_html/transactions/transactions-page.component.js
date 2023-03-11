@@ -1,6 +1,6 @@
 import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js';
-import { getEODPrice } from '../pricedata/pricedata.js';
-import { getTransactionsForAccount } from '../storage/domainobjectstore.js';
+import { getCurrencyList, getEODPrice } from '../pricedata/pricedata.js';
+import { getAccounts, getTransactionsForAccount } from '../storage/domainobjectstore.js';
 import html from './transactions-page.component.html.js';
 
 customElements.define('transactions-page',
@@ -15,6 +15,32 @@ customElements.define('transactions-page',
             this.shadowRoot.innerHTML = html;
             this.transactionsTable = this.shadowRoot.getElementById('transactionstable');
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            const accountselect = this.shadowRoot.querySelector('#accountselect');
+            await Promise.all((await getAccounts()).map(async account => {
+                const accountoption = document.createElement('option');
+                accountoption.value = account;
+                accountoption.text = account;
+                accountselect.appendChild(accountoption);
+            }));
+
+            const numDecimals = 2;
+            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
+            (await getCurrencyList()).forEach(currency => {
+                const currencyoption = document.createElement('option');
+                currencyoption.value = currency;
+                currencyoption.text = currency.toUpperCase();
+                currencyselect.appendChild(currencyoption);
+            });
+
+            const viewSettingsChange = () => {
+                const account = accountselect.value;
+                const currency = currencyselect.value;
+                this.updateView(account, currency, numDecimals);
+            };
+            accountselect.addEventListener('change', viewSettingsChange);
+            currencyselect.addEventListener('change', viewSettingsChange);
+
             return this.shadowRoot;
         }
 
