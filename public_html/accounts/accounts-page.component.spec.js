@@ -1,6 +1,6 @@
 import './config.component.js';
 
-describe('config.component', () => {
+describe('accounts-page.component', () => {
     let configComponent;
     let shadowRoot;
     beforeAll(async () => {

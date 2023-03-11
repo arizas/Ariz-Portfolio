@@ -1,8 +1,9 @@
 import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js';
 import { getEODPrice } from '../pricedata/pricedata.js';
 import { getTransactionsForAccount } from '../storage/domainobjectstore.js';
+import html from './transactions-page.component.html.js';
 
-customElements.define('transactions-view',
+customElements.define('transactions-page',
     class extends HTMLElement {
         constructor() {
             super();
@@ -11,7 +12,7 @@ customElements.define('transactions-view',
         }
 
         async loadHTML() {
-            this.shadowRoot.innerHTML = await fetch(new URL('transactionsview.component.html', import.meta.url)).then(r => r.text());
+            this.shadowRoot.innerHTML = html;
             this.transactionsTable = this.shadowRoot.getElementById('transactionstable');
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
             return this.shadowRoot;

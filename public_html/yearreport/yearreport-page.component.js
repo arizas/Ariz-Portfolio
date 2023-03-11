@@ -1,7 +1,9 @@
 import { getEODPrice } from '../pricedata/pricedata.js';
 import { calculateYearReportData, calculateProfitLoss } from './yearreportdata.js';
+import { getCurrencyList } from '../pricedata/pricedata.js';
+import html from './yearreport-page.component.html.js';
 
-customElements.define('year-report',
+customElements.define('year-report-page',
     class extends HTMLElement {
         constructor() {
             super();
@@ -10,7 +12,7 @@ customElements.define('year-report',
         }
 
         async loadHTML() {
-            this.shadowRoot.innerHTML = await fetch(new URL('yearreport.component.html', import.meta.url)).then(r => r.text());
+            this.shadowRoot.innerHTML = html;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
             this.year = new Date().getFullYear();
             this.yearSelect = this.shadowRoot.querySelector('#yearselect');
@@ -27,6 +29,18 @@ customElements.define('year-report',
                 this.year = parseInt(this.yearSelect.value);
                 this.refreshView()
             });
+
+            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
+            (await getCurrencyList()).forEach(currency => {
+                const currencyoption = document.createElement('option');
+                currencyoption.value = currency;
+                currencyoption.text = currency.toUpperCase();
+                currencyselect.appendChild(currencyoption);
+            });
+            
+            const numDecimals = 2;
+            currencyselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals));
+            this.updateView(currencyselect.value, numDecimals);
             return this.shadowRoot;
         }
 

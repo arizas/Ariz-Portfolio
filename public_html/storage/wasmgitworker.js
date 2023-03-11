@@ -12,7 +12,7 @@ XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
 
 self.Module = {
   'locateFile': function (s) {
-    return 'https://unpkg.com/wasm-git@0.0.8/' + s;
+    return 'https://unpkg.com/wasm-git@0.0.10/' + s;
   },
   'print': function (text) {
     if (captureOutput) {
@@ -29,7 +29,7 @@ self.Module = {
   }
 };
 
-importScripts('https://unpkg.com/wasm-git@0.0.8/lg2.js');
+importScripts('https://unpkg.com/wasm-git@0.0.10/lg2.js');
 
 const lgPromise = new Promise(resolve => {
   Module.onRuntimeInitialized = () => {

@@ -1,10 +1,12 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
-import configComponentHtml from './config.component.html.js';
+import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
+import { accountsconfigfile, getAccounts } from '../storage/domainobjectstore.js';
+import { exists } from '../storage/gitstorage.js';
 
-customElements.define('earnings-report-config',
+customElements.define('accounts-page',
     class extends HTMLElement {
         constructor() {
             super();
@@ -13,7 +15,7 @@ customElements.define('earnings-report-config',
         }
 
         async loadHTML() {
-            this.shadowRoot.innerHTML = configComponentHtml;
+            this.shadowRoot.innerHTML = accountsPageComponentHtml;
             this.accountsTable = this.shadowRoot.querySelector('#accountsTable');
 
             this.shadowRoot.querySelector('#addAccountButton').onclick = () => this.addAccountRow();
@@ -37,6 +39,9 @@ customElements.define('earnings-report-config',
 
                 this.dispatchChangeEvent();
             });
+            if (await exists(accountsconfigfile)) {
+                this.setAccounts(await getAccounts());
+            }
             return this.shadowRoot;
         }
 

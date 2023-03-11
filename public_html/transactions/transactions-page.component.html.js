@@ -1,4 +1,4 @@
-<style>
+export default /*html*/ `<style>
     .numeric {
         text-align: right;
     }
@@ -76,3 +76,4 @@
         </tbody>
     </table>
 </div>
+`;
