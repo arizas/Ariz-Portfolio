@@ -37,9 +37,8 @@ export default /*html*/ `<style>
 <h3>Year report ( all accounts )</h3>
 <div class="row">
     <div class="col-md-6">
-        <label for="yearselect">Select year</label>   
-        <select id="yearselect" class="form-select">
-        </select>        
+        <label for="yearselect" class="form-label">Select year</label>   
+        <select id="yearselect" class="form-select"></select>        
     </div>
     <div class="col-md-6">
         <label for="currencyselect" class="form-label">Currency</label>
