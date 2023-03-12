@@ -1,10 +1,10 @@
-import './config.component.js';
+import './accounts-page.component.js';
 
 describe('accounts-page.component', () => {
     let configComponent;
     let shadowRoot;
     beforeAll(async () => {
-        configComponent = document.createElement('earnings-report-config');
+        configComponent = document.createElement('accounts-page');
         document.documentElement.appendChild(configComponent);
         shadowRoot = await configComponent.readyPromise;    
     });
