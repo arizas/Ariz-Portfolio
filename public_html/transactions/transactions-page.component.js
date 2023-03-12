@@ -78,5 +78,8 @@ customElements.define('transactions-page',
                 transactionRow.querySelector('.transactionrow_receiver').innerHTML = transaction.receiver_id;
                 transactionRow.querySelector('.transactionrow_hash').innerHTML = transaction.hash;
             }
+
+            const tableElement = this.shadowRoot.querySelector('.table-responsive');
+            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
         }
     });

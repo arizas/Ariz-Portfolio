@@ -93,5 +93,7 @@ customElements.define('staking-page',
                 stakingPoolSelect.appendChild(option);
             });
 
+            const tableElement = this.shadowRoot.querySelector('.table-responsive');
+            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
         }
     });

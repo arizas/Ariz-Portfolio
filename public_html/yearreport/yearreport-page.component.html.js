@@ -12,7 +12,7 @@ export default /*html*/ `<style>
     }
 
     .table-responsive {
-        max-height: 500px;
+        max-height: 100%;
     }
 
     table thead,

@@ -12,7 +12,7 @@ export default /*html*/ `<style>
     }
 
     .table-responsive {
-        max-height: 300px;
+        max-height: 100%;
     }
 
     table thead,
@@ -35,14 +35,19 @@ export default /*html*/ `<style>
     <label class="btn btn-outline-success"></label>
 </template>
 <h3>Staking balance and rewards</h3>
-<label for="accountselect" class="form-label">Account</label>
-<select class="form-select" aria-label="Select account" id="accountselect">
-    <option disabled selected value>Select account</option>
-</select>
-<label for="currencyselect" class="form-label">Currency</label>
-<select class="form-select" aria-label="Select currency" id="currencyselect">
-    <option value="near">NEAR</option>
-</select>
+<div class="row">
+<div class="col-md-6">
+    <label for="accountselect" class="form-label">Account</label>
+    <select class="form-select" aria-label="Select account" id="accountselect">
+        <option disabled selected value>Select account</option>
+    </select>
+</div>
+<div class="col-md-6">
+    <label for="currencyselect" class="form-label">Currency</label>
+    <select class="form-select" aria-label="Select currency" id="currencyselect">
+        <option value="near">NEAR</option>
+    </select>
+</div>
 <div id="stakingpoolselect">
 
 </div>

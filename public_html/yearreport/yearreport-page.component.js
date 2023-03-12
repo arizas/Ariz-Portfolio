@@ -14,6 +14,7 @@ customElements.define('year-report-page',
         async loadHTML() {
             this.shadowRoot.innerHTML = html;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
             this.year = new Date().getFullYear();
             this.yearSelect = this.shadowRoot.querySelector('#yearselect');
             for (let year = this.year; year >= 2020; year--) {
@@ -123,5 +124,8 @@ customElements.define('year-report-page',
             this.shadowRoot.querySelector('#totalwithdrawal').innerHTML = totalWithdrawal.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalprofit').innerHTML = totalProfit.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalloss').innerHTML = totalLoss.toFixed(this.numDecimals);
+
+            const tableElement = this.shadowRoot.querySelector('.table-responsive');
+            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
         }
     });

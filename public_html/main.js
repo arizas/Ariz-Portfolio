@@ -16,14 +16,9 @@ class AppNearNumbersComponent extends HTMLElement {
         this.shadowRoot.innerHTML = html;
         document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
-        const transactionsview = this.shadowRoot.getElementById('transactions-view');
-        const stakingView = this.shadowRoot.getElementById('staking-view');
-        const yearReport = this.shadowRoot.getElementById('year-report');
-        const wasmgit = this.shadowRoot.getElementById('wasm-git-config');
-
+        const mainContainer = this.shadowRoot.querySelector('#mainContainer');
         const numDecimals = 2;
 
-        const mainContainer = this.shadowRoot.querySelector('#mainContainer')
         window.goToPage = (page) => {
             const pageElement = document.createElement(`${page}-page`);
             const path = `/${page}`;

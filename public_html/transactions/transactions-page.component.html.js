@@ -8,7 +8,7 @@ export default /*html*/ `<style>
     }
 
     .table-responsive {
-        max-height: 300px;
+        max-height: 100%;
     }
 
     table thead,
@@ -26,12 +26,10 @@ export default /*html*/ `<style>
         bottom: 0;
     }
     .transactionrow_signer {
-        max-width: 100px;
-        text-overflow: ellipsis;
+        text-overflow: clip;
     }
     .transactionrow_receiver {
-        max-width: 100px;
-        text-overflow: ellipsis;
+        text-overflow: clip;
     }
 </style>
 <h3>Transactions</h3>
