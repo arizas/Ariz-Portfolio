@@ -3,7 +3,7 @@ import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool } fro
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
-import { accountsconfigfile, getAccounts } from '../storage/domainobjectstore.js';
+import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domainobjectstore.js';
 import { exists } from '../storage/gitstorage.js';
 
 customElements.define('accounts-page',
@@ -18,7 +18,10 @@ customElements.define('accounts-page',
             this.shadowRoot.innerHTML = accountsPageComponentHtml;
             this.accountsTable = this.shadowRoot.querySelector('#accountsTable');
 
-            this.shadowRoot.querySelector('#addAccountButton').onclick = () => this.addAccountRow();
+            this.shadowRoot.querySelector('#addAccountButton').onclick = async () => {
+                this.addAccountRow();
+                await this.storeAccounts();
+            }
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
             this.shadowRoot.getElementById('loaddatabutton').addEventListener('click', async () => {
@@ -58,7 +61,10 @@ customElements.define('accounts-page',
                 accountNameInput.value = accountname;
             }
             accountNameInput.addEventListener('change', (e) => this.dispatchChangeEvent());
-            accountsRow.querySelector('.removeAccountButton').onclick = () => accountsRow.remove();
+            accountsRow.querySelector('.removeAccountButton').onclick = async () => {
+                accountsRow.remove();
+                await this.storeAccounts();
+            };
         }
 
         setAccounts(accountsArray) {
@@ -68,5 +74,9 @@ customElements.define('accounts-page',
 
         getAccounts() {
             return Array.from(this.accountsTable.querySelectorAll('.accountname')).map(e => e.value);
+        }
+
+        async storeAccounts() {
+            await setAccounts(this.getAccounts());
         }
     });
