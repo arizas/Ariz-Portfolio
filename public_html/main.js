@@ -9,6 +9,12 @@ import { getCurrencyList } from './pricedata/pricedata.js';
 import { accountsconfigfile, getAccounts, setAccounts } from './storage/domainobjectstore.js';
 import html from './app.html.js';
 
+
+const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
+const baseelement = document.createElement('base');
+baseelement.href = baseurl;
+document.getElementsByTagName('head')[0].appendChild(baseelement);
+
 class AppNearNumbersComponent extends HTMLElement {
     constructor() {
         super();
@@ -27,8 +33,9 @@ class AppNearNumbersComponent extends HTMLElement {
             }
             mainContainer.replaceChildren(pageElement);
         }
-        if (location.pathname.length > 1) {
-            goToPage(location.pathname.substring(1));
+
+        if (location.href != baseurl) {
+            goToPage(location.href.substring(baseurl.length));
         }
 
         const init = (async () => {
@@ -70,7 +77,7 @@ class AppNearNumbersComponent extends HTMLElement {
                 }
                 viewSettingsChange();
             });
-            
+
         });
     }
 }
@@ -79,11 +86,9 @@ customElements.define('app-near-numbers', AppNearNumbersComponent);
 
 const registerServiceWorker = async () => {
     if ("serviceWorker" in navigator) {
-        const serviceworkerscope = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
-        console.log('serviceworkerscope', serviceworkerscope);
         try {
             const registration = await navigator.serviceWorker.register("/serviceworker.js", {
-                scope: serviceworkerscope,
+                scope: baseurl,
             });
             registration.onupdatefound = () => {
                 console.log('update available');
