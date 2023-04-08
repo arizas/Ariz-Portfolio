@@ -1,10 +1,12 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
-import configComponentHtml from './config.component.html.js';
+import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
+import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domainobjectstore.js';
+import { exists } from '../storage/gitstorage.js';
 
-customElements.define('earnings-report-config',
+customElements.define('accounts-page',
     class extends HTMLElement {
         constructor() {
             super();
@@ -13,10 +15,13 @@ customElements.define('earnings-report-config',
         }
 
         async loadHTML() {
-            this.shadowRoot.innerHTML = configComponentHtml;
+            this.shadowRoot.innerHTML = accountsPageComponentHtml;
             this.accountsTable = this.shadowRoot.querySelector('#accountsTable');
 
-            this.shadowRoot.querySelector('#addAccountButton').onclick = () => this.addAccountRow();
+            this.shadowRoot.querySelector('#addAccountButton').onclick = async () => {
+                this.addAccountRow();
+                await this.storeAccounts();
+            }
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
             this.shadowRoot.getElementById('loaddatabutton').addEventListener('click', async () => {
@@ -37,6 +42,9 @@ customElements.define('earnings-report-config',
 
                 this.dispatchChangeEvent();
             });
+            if (await exists(accountsconfigfile)) {
+                this.setAccounts(await getAccounts());
+            }
             return this.shadowRoot;
         }
 
@@ -53,7 +61,10 @@ customElements.define('earnings-report-config',
                 accountNameInput.value = accountname;
             }
             accountNameInput.addEventListener('change', (e) => this.dispatchChangeEvent());
-            accountsRow.querySelector('.removeAccountButton').onclick = () => accountsRow.remove();
+            accountsRow.querySelector('.removeAccountButton').onclick = async () => {
+                accountsRow.remove();
+                await this.storeAccounts();
+            };
         }
 
         setAccounts(accountsArray) {
@@ -63,5 +74,9 @@ customElements.define('earnings-report-config',
 
         getAccounts() {
             return Array.from(this.accountsTable.querySelectorAll('.accountname')).map(e => e.value);
+        }
+
+        async storeAccounts() {
+            await setAccounts(this.getAccounts());
         }
     });

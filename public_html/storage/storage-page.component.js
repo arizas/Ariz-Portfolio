@@ -1,6 +1,6 @@
 import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js';
 import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local } from './gitstorage.js';
-import wasmgitComponentHtml from './wasmgit.component.html.js';
+import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 
@@ -42,7 +42,7 @@ export async function login() {
     await loadAccountData();
 }
 
-customElements.define('wasm-git-config',
+customElements.define('storage-page',
     class extends HTMLElement {
         constructor() {
             super();

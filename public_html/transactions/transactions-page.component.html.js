@@ -1,4 +1,4 @@
-<style>
+export default /*html*/ `<style>
     .numeric {
         text-align: right;
     }
@@ -8,7 +8,7 @@
     }
 
     .table-responsive {
-        max-height: 300px;
+        max-height: 100%;
     }
 
     table thead,
@@ -26,15 +26,26 @@
         bottom: 0;
     }
     .transactionrow_signer {
-        max-width: 100px;
-        text-overflow: ellipsis;
+        text-overflow: clip;
     }
     .transactionrow_receiver {
-        max-width: 100px;
-        text-overflow: ellipsis;
+        text-overflow: clip;
     }
 </style>
-
+<h3>Transactions</h3>
+<div class="row">
+<div class="col-md-6">
+    <label for="accountselect" class="form-label">Account</label>
+    <select class="form-select" aria-label="Select account" id="accountselect">
+        <option disabled selected value>Select account</option>
+    </select>
+</div>
+<div class="col-md-6">
+    <label for="currencyselect" class="form-label">Currency</label>
+    <select class="form-select" aria-label="Select currency" id="currencyselect">
+        <option value="near">NEAR</option>
+    </select>
+</div>
 <template id="transactionrowtemplate">
     <tr>
         <td class="transactionrow_datetime"></td>
@@ -76,3 +87,4 @@
         </tbody>
     </table>
 </div>
+`;

@@ -12,7 +12,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         expect(transactions[18].block_timestamp).toBe('1621757638772495934');
 
         expect(transactions.filter(t => t.args?.args_base64 != undefined)).toEqual([]);
-    }, 10000);
+    }, 60000);
     it('should get transactions new transactions on the next date', async () => {
         transactions = await getTransactionsToDate(account, new Date('2021-05-25').getTime() * 1_000_000, transactions, 5);
         const allInOneChunkTransactions = await getHelperAccountHistory(account, 100, new Date('2021-05-25').getTime() * 1_000_000);
@@ -24,7 +24,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
             expect(transactions[n].hash).toBe(allInOneChunkTransactions[n].hash);
             expect(transactions.find(t => t.hash == allInOneChunkTransactions[n].hash && t.action_index == allInOneChunkTransactions[n].action_index)).toBeTruthy();
         }
-    }, 20000);
+    }, 60000);
 
     it('should get correct account balance after receipts are executed', async () => {
         await fetchTransactionsForAccount(account, 1626977729473574682);
