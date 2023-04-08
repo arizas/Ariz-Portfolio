@@ -9,11 +9,11 @@ import { getCurrencyList } from './pricedata/pricedata.js';
 import { accountsconfigfile, getAccounts, setAccounts } from './storage/domainobjectstore.js';
 import html from './app.html.js';
 
-
 const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
-const baseelement = document.createElement('base');
-baseelement.href = baseurl;
-document.getElementsByTagName('head')[0].appendChild(baseelement);
+const basepath = baseurl.substring(location.origin.length);
+Array.from(document.getElementsByClassName('nav-link')).forEach(navLink => {
+    navLink.href = basepath + navLink.href.substring(location.origin.length + 1);
+});
 
 class AppNearNumbersComponent extends HTMLElement {
     constructor() {
@@ -27,7 +27,7 @@ class AppNearNumbersComponent extends HTMLElement {
 
         window.goToPage = (page) => {
             const pageElement = document.createElement(`${page}-page`);
-            const path = `/${page}`;
+            const path = `${basepath}${page}`;
             if (location.pathname != path || location.search.indexOf('?account_id') == 0) {
                 history.pushState({}, null, path);
             }
@@ -87,7 +87,7 @@ customElements.define('app-near-numbers', AppNearNumbersComponent);
 const registerServiceWorker = async () => {
     if ("serviceWorker" in navigator) {
         try {
-            const registration = await navigator.serviceWorker.register("/serviceworker.js", {
+            const registration = await navigator.serviceWorker.register(baseurl + "serviceworker.js", {
                 scope: baseurl,
             });
             registration.onupdatefound = () => {
