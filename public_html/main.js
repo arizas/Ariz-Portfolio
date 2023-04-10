@@ -12,7 +12,12 @@ import html from './app.html.js';
 const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
 const basepath = baseurl.substring(location.origin.length);
 Array.from(document.getElementsByClassName('nav-link')).forEach(navLink => {
-    navLink.href = basepath + navLink.href.substring(location.origin.length + 1);
+    const targetPage = navLink.href.substring(location.origin.length + 1);
+    navLink.href = basepath + targetPage;
+    navLink.onclick = () => {
+        goToPage(targetPage);
+        return false;
+    }
 });
 
 class AppNearNumbersComponent extends HTMLElement {
@@ -28,7 +33,7 @@ class AppNearNumbersComponent extends HTMLElement {
         window.goToPage = (page) => {
             const pageElement = document.createElement(`${page}-page`);
             const path = `${basepath}${page}`;
-            if (location.pathname != path || location.search.indexOf('?account_id') == 0) {
+            if ((window.top == window) && (location.pathname != path || location.search.indexOf('?account_id') == 0)) {
                 history.pushState({}, null, path);
             }
             mainContainer.replaceChildren(pageElement);
@@ -84,27 +89,29 @@ class AppNearNumbersComponent extends HTMLElement {
 
 customElements.define('app-near-numbers', AppNearNumbersComponent);
 
-const registerServiceWorker = async () => {
-    if ("serviceWorker" in navigator) {
-        try {
-            const registration = await navigator.serviceWorker.register(baseurl + "serviceworker.js", {
-                scope: baseurl,
-            });
-            registration.onupdatefound = () => {
-                console.log('update available');
-            };
-            if (registration.installing) {
-                console.log("Service worker installing");
-            } else if (registration.waiting) {
-                console.log("Service worker installed");
-            } else if (registration.active) {
-                console.log("Service worker active");
-                await registration.update();
-            }
+if (window.top == window) {
+    const registerServiceWorker = async () => {
+        if ("serviceWorker" in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register(baseurl + "serviceworker.js", {
+                    scope: baseurl,
+                });
+                registration.onupdatefound = () => {
+                    console.log('update available');
+                };
+                if (registration.installing) {
+                    console.log("Service worker installing");
+                } else if (registration.waiting) {
+                    console.log("Service worker installed");
+                } else if (registration.active) {
+                    console.log("Service worker active");
+                    await registration.update();
+                }
 
-        } catch (error) {
-            console.error(`Registration failed with ${error}`);
+            } catch (error) {
+                console.error(`Registration failed with ${error}`);
+            }
         }
-    }
-};
-registerServiceWorker();
+    };
+    registerServiceWorker();
+}

@@ -28,4 +28,1967 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
-<script type="module" src="./main.js"></script></body></html>
+<script type="module">import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js';
+
+const progressbarhtml = /*html*/`
+<style type="text/css">
+:host {
+    position: fixed;
+    top:0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+    font-family: monospace;
+    margin: auto;
+    z-index: 1000;
+    background-color: rgba(100, 100, 100, 0.5);
+}
+
+.progress-border {
+    position: fixed;
+    top:0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+  	
+    margin: auto;
+
+    border: green solid 1px;
+    height: 50px;
+    width: 100%;
+}
+
+.progress-text {
+    position: absolute;
+    color: white;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    font-size: 22px;
+}
+
+.progress-fill {
+    background-color: rgba(0,255,0, 0.7);
+    height: 50px;    
+    animation-name: indeterminate;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+}
+@keyframes indeterminate {
+    0% { margin-left: 0%; width: 10%;}
+    25% { width: 20%; }
+    50% { margin-left: 90%; width: 10%; }
+    75% { width: 20%; }
+    100% { margin-left: 0%; width: 10%; }
+}
+</style>
+<div id="main-progress-bar" class="progress-border">
+<div class="progress-text">50%</div>
+<div class="progress-fill" style="width:20%"></div>
+</div>
+`;
+
+let progressbar;
+
+customElements.define('progress-bar', class ProgressBar extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = progressbarhtml;
+    }
+
+    setValue(val, extratext) {
+        if (val == 'indeterminate') {
+            this.shadowRoot.querySelector('.progress-text').innerHTML = `<div style="margin-top: 10px">${extratext}</div>`;
+            this.shadowRoot.querySelector('.progress-fill').style.width = `10%`;
+            this.shadowRoot.querySelector('.progress-fill').style.animationName = 'indeterminate';
+        } else {
+            this.shadowRoot.querySelector('.progress-fill').style.animationName = 'none';
+            this.shadowRoot.querySelector('.progress-text').innerHTML = `${(val * 100).toFixed(0)}%${extratext ? `<br />${extratext}` : ''}`;
+            this.shadowRoot.querySelector('.progress-fill').style.width = `${(val * 100).toFixed(2)}%`;
+        }
+    }
+});
+
+function setProgressbarValue(val, extratext) {
+    if (val !== null) {
+        if (!progressbar) {
+            progressbar = document.createElement('progress-bar');
+            document.documentElement.appendChild(progressbar);
+        }
+        progressbar.setValue(val, extratext);
+    } else if (progressbar) {
+        progressbar.remove();
+        progressbar = null;
+    }
+}
+
+function isProgressBarVisible() {
+    return progressbar ? true : false;
+}
+
+const worker = new Worker(URL.createObjectURL(new Blob([
+                            (() => {
+                                function jsFunc() {let stdout;
+let stderr;
+let captureOutput = false;
+const currentRepoRootDir = 'nearearningsdata';
+
+let accessToken = 'ANONYMOUS';
+XMLHttpRequest.prototype._open = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+  this._open(method, url, async, user, password);
+  this.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+};
+
+self.Module = {
+  'locateFile': function (s) {
+    return 'https://unpkg.com/wasm-git@0.0.10/' + s;
+  },
+  'print': function (text) {
+    if (captureOutput) {
+      stdout += text + '\n';
+    }
+    postMessage({ progress: text });
+    console.log(text);
+  },
+  'printErr': function (text) {
+    if (captureOutput) {
+      stderr += text + '\n';
+    }
+    console.error(text);
+  }
+};
+
+importScripts('https://unpkg.com/wasm-git@0.0.10/lg2.js');
+
+const lgPromise = new Promise(resolve => {
+  Module.onRuntimeInitialized = () => {
+    FS.mkdir(`/${currentRepoRootDir}`);
+    FS.mount(self.origin == 'null' ? MEMFS : IDBFS, {}, `/${currentRepoRootDir}`);
+    FS.chdir(`/${currentRepoRootDir}`);
+
+    FS.syncfs(true, () => {
+      resolve(Module);
+    });
+  };
+});
+
+async function storeChanges() {
+  await new Promise(resolve => FS.syncfs(false, resolve));
+}
+self.onmessage = async (msg) => {
+  await lgPromise;
+  try {
+    let result;
+    stderr = '';
+    stdout = '';
+    const params = msg.data;
+    switch (params.command) {
+      case 'configureuser':
+        accessToken = params.accessToken;
+        callMain(['config','user.name',params.username]);
+        callMain(['config','user.email',params.useremail]);
+  
+        result = { accessTokenConfigured: true };
+        break;
+      case 'writeFile':
+        FS.writeFile(params.filename, params.content);
+        await storeChanges();
+        break;
+      case 'readTextFile':
+        result = FS.readFile(params.filename, { encoding: 'utf8' });
+        break;
+      case 'exists':
+        result = FS.analyzePath(params.path).exists;
+        break;
+      case 'mkdir':
+        FS.mkdir(params.path);
+        break;
+      case 'readdir':
+        result = FS.readdir(params.path);
+        break;
+      case 'git':
+        captureOutput = true;
+        callMain(params);
+        captureOutput = false;
+        if (['init', 'commit', 'add', 'revert', 'pull', 'fetch', 'merge', 'clone'].indexOf(params[0]) > -1) {
+          await storeChanges();
+        }
+        result = { stdout, stderr };
+        break;
+      case 'getremote':
+        captureOutput = true;
+        callMain(['remote','show', '-v']);
+        captureOutput = false;
+        result = stdout;
+        break;
+      case 'setremote':
+        callMain(['remote', 'remove', 'origin']);
+        callMain(['remote', 'add', 'origin', params.remoteurl]);
+        await storeChanges();
+        break;
+      case 'sync':
+        captureOutput = true;
+        callMain(['fetch', 'origin']);
+        callMain(['merge', 'origin/master']);
+        callMain(['push']);
+        captureOutput = false;
+        if (stderr) {
+          throw stderr;
+        }
+        result = stdout;
+        await storeChanges();
+        break;
+      case 'deletelocal':
+        FS.unmount(`/${currentRepoRootDir}`);
+        console.log('deleting database', currentRepoRootDir);
+        self.indexedDB.deleteDatabase('/' + currentRepoRootDir);
+        result = {deleted: currentRepoRootDir };
+        break;
+      case 'commitall':
+        captureOutput = true;
+        callMain(['status']);
+        captureOutput = false;
+        const outlines = stdout.split('\n');
+        outlines.filter(l => l.indexOf('#	modified:') == 0).map(l => l.substr('#	modified:'.length).trim())
+          .forEach(f => callMain(['add', f]));
+        const unTrackedIndex = outlines.indexOf('# Untracked files:');
+
+        if (unTrackedIndex > -1) {
+          let filesToAdd = outlines.slice(unTrackedIndex + 3).map(ln => ln.substr('#\t'.length));
+          filesToAdd = filesToAdd.slice(0, filesToAdd.length - 1);
+          if (filesToAdd.length > 0) {
+            filesToAdd.forEach(f => callMain(['add', f]));            
+          }
+        }
+
+        captureOutput = true;
+        callMain(['status']);
+        captureOutput = false;
+        
+        if (stdout.indexOf('Changes to be committed:') > -1) {      
+          callMain(['commit', '-m', 'add all untracked data files']);
+          await storeChanges();
+        } else {
+          console.log('nothing to commit');
+        }
+    }
+    postMessage({ result });
+  } catch (error) {
+    postMessage({ error: error.toString() });
+  }
+};}
+                                const jsFuncSource = jsFunc.toString();
+                                return jsFuncSource.substring( jsFuncSource.indexOf('{') + 1,  jsFuncSource.lastIndexOf('}'));
+                            })()
+                        ], { type: 'text/javascript' })));
+
+let currentCommandInProgress;
+const workerCommand = async (command, params) => {
+    while (currentCommandInProgress) {
+        await currentCommandInProgress;
+    }
+    currentCommandInProgress = new Promise((resolve, reject) => {
+        const progressBarWasAlreadyVisible = isProgressBarVisible();
+        worker.onmessage = (msg) => {
+            currentCommandInProgress = null;
+            if (msg.data.error) {
+                reject(msg.data.error);
+            } else if(msg.data.progress) {
+                setProgressbarValue('indeterminate', msg.data.progress);
+            } else {
+                if (!progressBarWasAlreadyVisible) {
+                    setProgressbarValue(null);
+                }
+                resolve(msg.data);
+            }
+        };
+        worker.postMessage(Object.assign(params, { command }));
+    });
+    return currentCommandInProgress;
+};
+
+async function writeFile(filename, content) {
+    return await workerCommand('writeFile', { filename, content });
+}
+
+async function readTextFile(filename) {
+    return (await workerCommand('readTextFile', { filename })).result;
+}
+
+async function exists(path) {
+    return (await workerCommand('exists', { path })).result;
+}
+
+async function mkdir(path) {
+    await workerCommand('mkdir', { path });
+}
+
+async function git_init() {
+    return (await workerCommand('git', ['init', '.'])).result;
+}
+
+async function git_clone(remoteurl) {
+    return (await workerCommand('git', ['clone', remoteurl, '.'])).result;
+}
+
+async function commit_all() {
+    return (await workerCommand('commitall', [])).result;
+}
+
+async function configure_user(params) {
+    return (await workerCommand('configureuser', params)).result;
+}
+
+async function set_remote(remoteurl) {
+    return (await workerCommand('setremote', {remoteurl})).result;
+}
+
+async function get_remote() {
+    const remote = (await workerCommand('getremote', [])).result;
+    if (remote) {
+        return remote.split('\n')[0].split(/\s+/)[1];
+    } else {
+        return null;
+    }
+}
+
+async function sync() {
+    await workerCommand('sync', []);
+}
+
+async function delete_local() {
+    await workerCommand('deletelocal', []);
+}
+
+//let archiveNodeUrl = ' https://archival-rpc.testnet.near.org';
+//let helperNodeUrl = 'https://helper.testnet.near.org'
+
+let archiveNodeUrl = ' https://archival-rpc.mainnet.near.org';
+let helperNodeUrl = 'https://api.kitwallet.app';
+
+function getArchiveNodeUrl() {
+    return archiveNodeUrl;
+}
+
+function getHelperNodeUrl() {
+    return helperNodeUrl;
+}
+
+async function retry(func, max_retries = 10, pause_millis = 30000) {
+    let err;
+    for (let n = 0;n<max_retries;n++) {
+        try {
+            return await func();
+        } catch(e) {
+            err = e;
+            console.error('error', e, 'retrying in ', pause_millis, 'milliseconds');
+            setProgressbarValue('indeterminate', `error ${e} retrying in ${(pause_millis / 1000).toFixed(0)} seconds`);
+            await new Promise(r => setTimeout(r, pause_millis));
+        }
+    }
+    setProgressbarValue(null);
+    console.error('max retries reached');
+    throw (err);
+}
+
+async function viewAccount(block_id, account_id) {
+    return (await fetch(getArchiveNodeUrl(), {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            "jsonrpc": "2.0",
+            "id": "dontcare",
+            "method": "query",
+            "params": {
+                "request_type": "view_account",
+                "account_id": account_id,
+                "block_id": block_id === 'final' ? undefined : block_id,
+                "finality": block_id === 'final' ? block_id : undefined
+            }
+        }
+        )
+    }).then(r => r.json())).result;
+}
+
+async function getHelperAccountHistory(account_id, maxentries = 100, offset_timestamp = new Date().getTime() * 1_000_000) {
+    return await fetch(`${getHelperNodeUrl()}/account/${account_id}/activity?offset=${offset_timestamp}&limit=${maxentries}`).then(r => r.json());
+}
+
+
+async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 100) {
+    let accountHistory = await getHelperAccountHistory(account, CHUNK_SIZE, offset_timestamp);
+    let insertIndex = 0;
+
+    while (true) {
+        let newTransactionsAdded = 0;
+        for (let n = 0; n < accountHistory.length; n++) {
+            const historyLine = accountHistory[n];
+            if (!transactions.find(t => t.hash == historyLine.hash && t.action_index == historyLine.action_index
+                && historyLine.block_hash == t.block_hash && t.action_kind == historyLine.action_kind
+                && t.signer_id == historyLine.signer_id)) {
+                historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash));
+                if (historyLine.args) {
+                    delete historyLine.args.args_base64;
+                }
+                transactions.splice(insertIndex++, 0, historyLine);
+                offset_timestamp = parseInt(historyLine.block_timestamp) + 1;
+                newTransactionsAdded++;
+            }
+            setProgressbarValue(n / accountHistory.length, `${account} ${new Date(historyLine.block_timestamp / 1_000_000).toDateString()}`);
+        }
+        if (newTransactionsAdded == 0) {
+            break;
+        }
+        accountHistory = await getHelperAccountHistory(account, CHUNK_SIZE, offset_timestamp);
+    }
+    return transactions;
+}
+
+async function getTransactionStatus(txhash, account_id) {
+    return (await fetch(getArchiveNodeUrl(), {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            "jsonrpc": "2.0",
+            "id": "dontcare",
+            "method": "tx",
+            "params": [txhash, account_id]
+        }
+        )
+    }).then(r => r.json())).result;
+}
+
+async function getAccountBalanceAfterTransaction(account_id, txhash) {
+    const executionBlockIds = (await getTransactionStatus(txhash, account_id)).receipts_outcome.map(outcome => outcome.block_hash);
+    const executionBlocksAccountStatus = await Promise.all(executionBlockIds.map(block_hash => viewAccount(block_hash, account_id)));
+    executionBlocksAccountStatus.sort((a, b) => b.block_height - a.block_height);
+    return executionBlocksAccountStatus[0].amount;
+}
+
+const accountdatadir = 'accountdata';
+const accountsconfigfile = 'accounts.json';
+
+async function getAccounts() {
+    return JSON.parse(await readTextFile(accountsconfigfile));
+}
+async function setAccounts(accounts) {
+    await writeFile(accountsconfigfile, JSON.stringify(accounts));
+}
+
+async function getTransactionsForAccount(account) {
+    const accountdatapath = `${accountdatadir}/${account}/transactions.json`;
+    if (await exists(accountdatapath)) {
+        return JSON.parse(await readTextFile(accountdatapath));
+    } else {
+        return [];
+    }
+}
+
+async function makeAccountDataDirs(account) {
+    if (!await exists(accountdatadir)) {
+        await mkdir(accountdatadir);
+    }
+
+    const accountdir = `${accountdatadir}/${account}`;
+    if (!await exists(accountdir)) {
+        await mkdir(accountdir);
+    }
+}
+
+async function fetchTransactionsForAccount(account, max_timestamp = new Date().getTime() * 1_000_000) {
+    let transactions = await getTransactionsForAccount(account);
+    transactions = await getTransactionsToDate(account, max_timestamp, transactions);
+
+    await writeTransactions(account, transactions);
+    return transactions;
+}
+
+async function writeTransactions(account, transactions) {
+    await makeAccountDataDirs(account);
+    await writeFile(`${accountdatadir}/${account}/transactions.json`, JSON.stringify(transactions, null, 1));
+}
+
+function getStakingDataDir(account) {
+    return `${accountdatadir}/${account}/stakingpools`;
+}
+
+function getStakingDataPath(account, stakingpool_id) {
+    return `${getStakingDataDir(account)}/${stakingpool_id}.json`;
+}
+
+async function getStakingRewardsForAccountAndPool(account, stakingpool_id) {
+    const stakingDataPath = getStakingDataPath(account, stakingpool_id);
+    if ((await exists(stakingDataPath))) {
+        return JSON.parse(await readTextFile(stakingDataPath));
+    } else {
+        return [];
+    }
+}
+
+async function fetchStakingRewardsForAccountAndPool(account, stakingpool_id) {
+    const currentStakingEarnings = await getStakingRewardsForAccountAndPool(account, stakingpool_id);
+    const updatedStakingEarnings = await fetchAllStakingEarnings(stakingpool_id, account, currentStakingEarnings);
+
+    await writeStakingData(account, stakingpool_id, updatedStakingEarnings);
+}
+
+async function writeStakingData(account, stakingpool_id, stakingData) {
+    await makeAccountDataDirs(account);
+    const stakingDataDir = getStakingDataDir(account);
+    if (!(await exists(stakingDataDir))) {
+        await mkdir(stakingDataDir);
+    }
+    const stakingDataPath = getStakingDataPath(account, stakingpool_id);
+    await writeFile(stakingDataPath, JSON.stringify(stakingData, null, 1));
+}
+
+async function getBlockInfo(block_id) {
+    return (await fetch('https://archival-rpc.mainnet.near.org', {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            "jsonrpc": "2.0",
+            "id": "dontcare",
+            "method": "block",
+            "params": {
+                "block_id": block_id === 'final' ? undefined : block_id,
+                "finality": block_id === 'final' ? block_id : undefined
+            }
+        }
+        )
+    }).then(r => r.json())).result;
+}
+
+async function getAccountBalance(stakingpool_id, account_id, block_id) {
+    return await fetch('https://archival-rpc.mainnet.near.org', {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            'jsonrpc': '2.0',
+            'id': 'dontcare',
+            'method': 'query',
+            'params': {
+                request_type: 'call_function',
+                //finality: 'final',
+                block_id: block_id,
+                account_id: stakingpool_id,
+                method_name: 'get_account_total_balance',
+                args_base64: btoa(JSON.stringify({
+                    account_id: account_id
+                }))
+            }
+        })
+    }).then(r => r.json()).then(r =>
+        parseInt(r.result.result.map(c => String.fromCharCode(c)).join('').replace(/\"/g, ''))
+    );
+}
+
+async function getStakingAccounts(account) {
+    const transactions = await getTransactionsForAccount(account);
+    const stakingTransactions = transactions.filter(t => t.action_kind == 'FUNCTION_CALL' && t.args.method_name == 'deposit_and_stake');
+    const stakingAccounts = [];
+    stakingTransactions.forEach(t => {
+        if (!stakingAccounts.find(a => a == t.receiver_id)) {
+            stakingAccounts.push(t.receiver_id);
+        }
+    });
+    return stakingAccounts;
+}
+
+async function fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalanceEntries, maxStartBlock = 'final') {
+    let block = await getBlockInfo(maxStartBlock);
+
+    const stakingTransactions = (await getTransactionsForAccount(account_id))
+        .filter(t => (t.receiver_id === stakingpool_id || t.signer_id === stakingpool_id)
+            && t.block_timestamp < block.header.timestamp);
+
+    const firstStakingTransaction = stakingTransactions[stakingTransactions.length - 1];
+    const firstStakingTransactionTimeStamp = parseInt(firstStakingTransaction.block_timestamp);
+
+    const maxBlockTimeStamp = block.header.timestamp;
+
+    let latestBalance = await getAccountBalance(stakingpool_id, account_id, block.header.height);
+    if (latestBalance == 0) {
+        block = await getBlockInfo(stakingTransactions[0].block_hash);
+        latestBalance = await getAccountBalance(stakingpool_id, account_id, block.header.height);
+    }
+    let currentlatestEpochId = stakingBalanceEntries.length > 0 ? stakingBalanceEntries[0].epoch_id : null;
+
+    let insertIndex = 0;
+
+    while (true) {
+        setProgressbarValue(1 - ((block.header.timestamp - firstStakingTransactionTimeStamp) / (maxBlockTimeStamp - firstStakingTransactionTimeStamp)),
+            `${account_id} / ${stakingpool_id} ${new Date(block.header.timestamp / 1_000_000).toDateString()}`);
+
+        if (block.header.epoch_id == currentlatestEpochId ||
+            block.header.timestamp < firstStakingTransactionTimeStamp) {
+            break;
+        }
+        const previousBalance = await retry(() => getAccountBalance(stakingpool_id, account_id, block.header.next_epoch_id));
+
+        const stakingBalanceEntry = {
+            timestamp: new Date(block.header.timestamp / 1_000_000),
+            balance: latestBalance,
+            block_height: block.header.height,
+            epoch_id: block.header.epoch_id,
+            next_epoch_id: block.header.next_epoch_id,
+            deposit: 0,
+            withdrawal: 0
+        };
+
+        stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
+
+        latestBalance = previousBalance;
+        block = await retry(() => getBlockInfo(block.header.next_epoch_id));
+    }
+
+    for (let stakingTransaction of stakingTransactions) {
+        if (!stakingBalanceEntries.find(sbe => sbe.hash === stakingTransaction.hash)) {
+            block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
+            const stakingBalance = await retry(() => getAccountBalance(stakingpool_id, account_id, stakingTransaction.block_hash));
+            stakingBalanceEntries.push({
+                timestamp: new Date(stakingTransaction.block_timestamp / 1_000_000),
+                balance: stakingBalance,
+                hash: stakingTransaction.hash,
+                block_height: block.header.height,
+                epoch_id: block.header.epoch_id,
+                next_epoch_id: block.header.next_epoch_id,
+                deposit: stakingTransaction.signer_id == account_id ? parseInt(stakingTransaction.args.deposit) : 0,
+                withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
+            });
+        }
+    }
+
+    stakingBalanceEntries.sort((a, b) => b.block_height - a.block_height);
+    for (let n = 0; n < stakingBalanceEntries.length - 1; n++) {
+        const stakingBalanceEntry = stakingBalanceEntries[n];
+        if (!stakingBalanceEntry.deposit) {
+            stakingBalanceEntry.deposit = 0;
+        }
+        if (!stakingBalanceEntry.withdrawal) {
+            stakingBalanceEntry.withdrawal = 0;
+        }
+        stakingBalanceEntry.earnings = stakingBalanceEntry.balance - stakingBalanceEntries[n + 1].balance -
+            stakingBalanceEntry.deposit + stakingBalanceEntry.withdrawal;
+    }
+    stakingBalanceEntries[stakingBalanceEntries.length - 1].earnings = 0;
+    return stakingBalanceEntries;
+}
+
+function findStakingPoolsInTransactions(transactions) {
+    return [...new Set(transactions.filter(tx => tx.action_kind === 'FUNCTION_CALL' && tx.args.method_name === 'deposit_and_stake').map(tx => tx.receiver_id))];
+}
+
+var accountsPageComponentHtml = /*html*/ `<template id="accountRowTemplate">
+    <div class="input-group">
+        <input type="text" class="accountname form-control"></td>
+        <button class="btn btn-danger removeAccountButton"><i class="bi bi-trash"></i></button>
+    </div>
+</template>
+
+<div class="card">
+    <div class="card-header">Accounts</div>
+    <div class="card-body">
+        <div id="accountsTable"></div>
+    </div>
+    <div class="card-footer">
+        <button id="addAccountButton" class="btn btn-primary">Add account</button>
+        <button type="button" class="btn btn-primary" id="loaddatabutton">load data</button>
+    </div>
+</div>
+`;
+
+const modalTemplate = (modalcontent) => /*html*/ `<style>
+    :host {
+        position: fixed;
+        display: flex;
+        top:0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: auto;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.7);
+    }
+    .modaldiv {
+        margin: auto;
+        text-align: center;
+        padding: 20px;
+        background-color: rgba(0, 0, 0, 0.8);
+        border: #4a4 solid 5px;
+        color: #4a4;
+        font-family: monospace;
+        font-size: 20px;
+        max-width: 800px;
+        border-radius: 50px;
+    }
+    button, textarea, select {
+        font-family: monospace;
+        background-color: #cfc;
+        border-color: #4a4;
+        border-width: 1px;
+        color:#050;
+        padding: 10px;
+        font-size: 20px;
+        
+        border-radius: 4px;
+        white-space: nowrap;
+        
+        margin: 2px;
+        user-select: none;
+    }
+    textarea {
+        width: 80%;
+        height: 80px;
+    }
+</style>
+<div class="modaldiv">
+    ${modalcontent}
+</div>`;
+
+customElements.define('common-modal',
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this.attachShadow({mode: 'open'});
+            this.resultPromise = new Promise(resolve => this.shadowRoot.result = resolve);
+        }
+    });
+
+async function modal(modalContent) {
+    const modalElement = document.createElement('common-modal');
+    modalElement.shadowRoot.innerHTML = modalTemplate(modalContent);
+    document.documentElement.appendChild(modalElement);
+    const result = await modalElement.resultPromise;
+    document.documentElement.removeChild(modalElement);
+    return result;
+}
+
+async function modalAlert(title, content) {
+    return modal(`
+    <h3>${title}</h3>
+    <p>${content}</p>
+    <p>
+        <button onclick="getRootNode().result(true)">Dismiss</button>
+    </p>`);
+}
+
+customElements.define('accounts-page',
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.readyPromise = this.loadHTML();
+        }
+
+        async loadHTML() {
+            this.shadowRoot.innerHTML = accountsPageComponentHtml;
+            this.accountsTable = this.shadowRoot.querySelector('#accountsTable');
+
+            this.shadowRoot.querySelector('#addAccountButton').onclick = async () => {
+                this.addAccountRow();
+                await this.storeAccounts();
+            };
+            document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            this.shadowRoot.getElementById('loaddatabutton').addEventListener('click', async () => {
+                setProgressbarValue(0);
+                try {
+                    for (const account of this.getAccounts()) {
+                        const transactions = await fetchTransactionsForAccount(account);
+                        const stakingAccounts = await findStakingPoolsInTransactions(transactions);
+                        for (const stakingAccount of stakingAccounts) {
+                            await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
+                        }
+                    }
+                    setProgressbarValue(null);
+                } catch (e) {
+                    setProgressbarValue(null);
+                    modalAlert('Error fetching data', e.message);
+                }
+
+                this.dispatchChangeEvent();
+            });
+            if (await exists(accountsconfigfile)) {
+                this.setAccounts(await getAccounts());
+            }
+            return this.shadowRoot;
+        }
+
+        dispatchChangeEvent() {
+            this.dispatchEvent(new Event('change'));
+        }
+
+        addAccountRow(accountname) {
+            const accountRowTemplate = this.shadowRoot.querySelector('#accountRowTemplate');
+            this.accountsTable.appendChild(accountRowTemplate.content.cloneNode(true));
+            const accountsRow = this.accountsTable.lastElementChild;
+            const accountNameInput = accountsRow.querySelector('.accountname');
+            if (accountname) {
+                accountNameInput.value = accountname;
+            }
+            accountNameInput.addEventListener('change', (e) => this.dispatchChangeEvent());
+            accountsRow.querySelector('.removeAccountButton').onclick = async () => {
+                accountsRow.remove();
+                await this.storeAccounts();
+            };
+        }
+
+        setAccounts(accountsArray) {
+            this.accountsTable.replaceChildren([]);
+            accountsArray.forEach(accountname => this.addAccountRow(accountname));
+        }
+
+        getAccounts() {
+            return Array.from(this.accountsTable.querySelectorAll('.accountname')).map(e => e.value);
+        }
+
+        async storeAccounts() {
+            await setAccounts(this.getAccounts());
+        }
+    });
+
+const cachedPricesPerCurrency = {};
+
+async function getCurrencyList() {
+    const current_prices = (await (await fetch('https://api.coingecko.com/api/v3/coins/near')).json()).market_data.current_price;
+    return Object.keys(current_prices);
+}
+async function getHistoricalPrices(currency) {
+    if (!cachedPricesPerCurrency[currency]) {
+        cachedPricesPerCurrency[currency] = (await fetch(`https://api.coingecko.com/api/v3/coins/near/market_chart/range?vs_currency=${currency}&from=0&to=${new Date().getTime() / 1000}`).then(r => r.json())).prices;
+    }
+    return cachedPricesPerCurrency[currency];
+}
+
+async function getEODPrice(currency, datestring) {
+    const timestamp = new Date(datestring).getTime();
+    const pricehistory = (await getHistoricalPrices(currency));
+    const priceforday = pricehistory.find(entry => entry[0] === timestamp);
+    if (priceforday) {
+        return priceforday[1];
+    } else {
+        return null;
+    }
+}
+
+var html$3 = /*html*/ `<style>
+    .numeric {
+        text-align: right;
+    }
+
+    .transactionrow_datetime {
+        white-space: nowrap;
+    }
+
+    .table-responsive {
+        max-height: 100%;
+    }
+
+    table thead,
+    table tfoot {
+        position: sticky;
+    }
+
+    table thead {
+        inset-block-start: 0;
+        top: 0;
+    }
+
+    table tfoot {
+        inset-block-end: 0;
+        bottom: 0;
+    }
+    .transactionrow_signer {
+        text-overflow: clip;
+    }
+    .transactionrow_receiver {
+        text-overflow: clip;
+    }
+</style>
+<h3>Transactions</h3>
+<div class="row">
+<div class="col-md-6">
+    <label for="accountselect" class="form-label">Account</label>
+    <select class="form-select" aria-label="Select account" id="accountselect">
+        <option disabled selected value>Select account</option>
+    </select>
+</div>
+<div class="col-md-6">
+    <label for="currencyselect" class="form-label">Currency</label>
+    <select class="form-select" aria-label="Select currency" id="currencyselect">
+        <option value="near">NEAR</option>
+    </select>
+</div>
+<template id="transactionrowtemplate">
+    <tr>
+        <td class="transactionrow_datetime"></td>
+        <td class="transactionrow_kind"></td>
+        <td class="transactionrow_balance numeric"></td>
+        <td class="transactionrow_change numeric"></td>
+        <td class="transactionrow_signer"></td>
+        <td class="transactionrow_receiver"></td>
+        <td class="transactionrow_hash"></td>
+    </tr>
+</template>
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead class="table-dark">
+            <th scope="col">
+                date
+            </th>
+            <th scope="col">
+                kind
+            </th>
+            <th scope="col">
+                balance
+            </th>
+            <th scope="col">
+                change
+            </th>
+            <th scope="col">
+                signer
+            </th>
+            <th scope="col">
+                receiver
+            </th>
+            <th scope="col">
+                hash
+            </th>
+        </thead>
+        <tbody id="transactionstable">
+
+        </tbody>
+    </table>
+</div>
+`;
+
+customElements.define('transactions-page',
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.readyPromise = this.loadHTML();
+        }
+
+        async loadHTML() {
+            this.shadowRoot.innerHTML = html$3;
+            this.transactionsTable = this.shadowRoot.getElementById('transactionstable');
+            document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            const accountselect = this.shadowRoot.querySelector('#accountselect');
+            await Promise.all((await getAccounts()).map(async account => {
+                const accountoption = document.createElement('option');
+                accountoption.value = account;
+                accountoption.text = account;
+                accountselect.appendChild(accountoption);
+            }));
+
+            const numDecimals = 2;
+            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
+            (await getCurrencyList()).forEach(currency => {
+                const currencyoption = document.createElement('option');
+                currencyoption.value = currency;
+                currencyoption.text = currency.toUpperCase();
+                currencyselect.appendChild(currencyoption);
+            });
+
+            const viewSettingsChange = () => {
+                const account = accountselect.value;
+                const currency = currencyselect.value;
+                this.updateView(account, currency, numDecimals);
+            };
+            accountselect.addEventListener('change', viewSettingsChange);
+            currencyselect.addEventListener('change', viewSettingsChange);
+
+            return this.shadowRoot;
+        }
+
+        async updateView(account, convertToCurrency, numDecimals) {
+            const accountHistory = await getTransactionsForAccount(account);
+            const transactionRowTemplate = this.shadowRoot.querySelector('#transactionrowtemplate');
+            while( this.transactionsTable.lastElementChild) {
+                this.transactionsTable.removeChild(this.transactionsTable.lastElementChild);
+            }
+
+            for (let n = 0; n < accountHistory.length; n++) {
+                this.transactionsTable.appendChild(transactionRowTemplate.content.cloneNode(true));
+                const transactionRow = this.transactionsTable.lastElementChild;
+                const transaction = accountHistory[n];
+                const previousbalance = n < (accountHistory.length - 1) ? accountHistory[n + 1].balance : 0;
+                const changedBalance = ((transaction.balance - previousbalance) / 1e+24);
+
+                const transactionDateString = new Date(transaction.block_timestamp / 1_000_000).toJSON().substring(0, 'yyyy-MM-dd'.length);
+                const conversionRate = convertToCurrency == 'near' ? 1 : await getEODPrice(convertToCurrency, transactionDateString);
+
+                transactionRow.querySelector('.transactionrow_datetime').innerHTML = transactionDateString;
+                transactionRow.querySelector('.transactionrow_kind').innerHTML = `${transaction.action_kind}${(transaction.action_kind == 'FUNCTION_CALL' ? `(${transaction.args.method_name})`: '')}`;
+
+                transactionRow.querySelector('.transactionrow_balance').innerHTML = (conversionRate *
+                        (parseInt(transaction.balance) / 1e+24)
+                    ).toFixed(numDecimals);
+
+
+                const fiatChangedBalance = (conversionRate * changedBalance);
+                transactionRow.querySelector('.transactionrow_change').innerHTML = fiatChangedBalance.toFixed(numDecimals);
+
+                transactionRow.querySelector('.transactionrow_signer').innerHTML = transaction.signer_id;
+                transactionRow.querySelector('.transactionrow_receiver').innerHTML = transaction.receiver_id;
+                transactionRow.querySelector('.transactionrow_hash').innerHTML = transaction.hash;
+            }
+
+            const tableElement = this.shadowRoot.querySelector('.table-responsive');
+            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+        }
+    });
+
+var html$2 = /*html*/ `<style>
+    .numeric {
+        text-align: right;
+    }
+
+    .stakingrewardrow_datetime {
+        white-space: nowrap;
+    }
+
+    .stakingrewardrow_balance {
+        white-space: nowrap;
+    }
+
+    .table-responsive {
+        max-height: 100%;
+    }
+
+    table thead,
+    table tfoot {
+        position: sticky;
+    }
+
+    table thead {
+        inset-block-start: 0;
+        top: 0;
+    }
+
+    table tfoot {
+        inset-block-end: 0;
+        bottom: 0;
+    }
+</style>
+<template id="stakingpoolselectoption">
+    <input type="radio" class="btn-check" name="stakingpoolselectoptions" autocomplete="off" checked>
+    <label class="btn btn-outline-success"></label>
+</template>
+<h3>Staking balance and rewards</h3>
+<div class="row">
+<div class="col-md-6">
+    <label for="accountselect" class="form-label">Account</label>
+    <select class="form-select" aria-label="Select account" id="accountselect">
+        <option disabled selected value>Select account</option>
+    </select>
+</div>
+<div class="col-md-6">
+    <label for="currencyselect" class="form-label">Currency</label>
+    <select class="form-select" aria-label="Select currency" id="currencyselect">
+        <option value="near">NEAR</option>
+    </select>
+</div>
+<div id="stakingpoolselect">
+
+</div>
+<template id="stakingrewardrowtemplate">
+    <tr>
+        <td class="stakingrewardrow_datetime"></td>
+        <td class="stakingrewardrow_balance numeric"></td>
+        <td class="stakingrewardrow_earnings numeric"></td>
+        <td class="stakingrewardrow_deposit numeric"></td>
+        <td class="stakingrewardrow_withdrawal numeric"></td>
+    </tr>
+</template>
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead class="table-dark">
+            <th scope="col">
+                date
+            </th>
+            <th scope="col">
+                balance
+            </th>
+            <th scope="col">
+                earnings
+            </th>
+            <th scope="col">
+                deposits
+            </th>
+            <th scope="col">
+                withdrawals
+            </th>
+        </thead>
+        <tbody id="stakingrewardstable">
+
+        </tbody>
+        <tfoot class="table-dark">
+            <th scope="col">
+                
+            </th>
+            <th scope="col">
+                
+            </th>
+            <th scope="col" id="totalEarnings" class="numeric">
+                
+            </th>
+            <th scope="col" class="numeric">
+                
+            </th>
+            <th scope="col" class="numeric">
+                
+            </th>
+        </tfoot>
+    </table>
+</div>
+
+</div>
+`;
+
+customElements.define('staking-page',
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.readyPromise = this.loadHTML();
+        }
+
+        async loadHTML() {
+            this.shadowRoot.innerHTML = html$2;
+            this.stakingRewardsTable = this.shadowRoot.getElementById('stakingrewardstable');
+            document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            const accountselect = this.shadowRoot.querySelector('#accountselect');
+            await Promise.all((await getAccounts()).map(async account => {
+                const accountoption = document.createElement('option');
+                accountoption.value = account;
+                accountoption.text = account;
+                accountselect.appendChild(accountoption);
+            }));
+
+            const numDecimals = 2;
+            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
+            (await getCurrencyList()).forEach(currency => {
+                const currencyoption = document.createElement('option');
+                currencyoption.value = currency;
+                currencyoption.text = currency.toUpperCase();
+                currencyselect.appendChild(currencyoption);
+            });
+
+            const viewSettingsChange = () => {
+                const account = accountselect.value;
+                const currency = currencyselect.value;
+                this.updateView(account, currency, numDecimals);
+            };
+            accountselect.addEventListener('change', viewSettingsChange);
+            currencyselect.addEventListener('change', viewSettingsChange);
+
+            return this.shadowRoot;
+        }
+
+        async updateView(account, convertToCurrency, numDecimals) {
+            const stakingAccounts = await getStakingAccounts(account);
+            const stakingPoolOptionTemplate = this.shadowRoot.getElementById('stakingpoolselectoption');
+            const stakingPoolSelect = this.shadowRoot.getElementById('stakingpoolselect');
+            while (stakingPoolSelect.lastElementChild) {
+                stakingPoolSelect.removeChild(stakingPoolSelect.lastElementChild);
+            }
+            stakingAccounts.forEach(async stakingAccount => {
+                const option = stakingPoolOptionTemplate.cloneNode(true).content;
+                option.querySelector('input').id = stakingAccount;
+                option.querySelector('label').htmlFor = stakingAccount;
+                option.querySelector('label').innerHTML = stakingAccount;
+                option.querySelector('input').addEventListener('click', async () => {
+                    const rewards = await getStakingRewardsForAccountAndPool(account, stakingAccount);
+
+                    const stakingRewardRowTemplate = this.shadowRoot.querySelector('#stakingrewardrowtemplate');
+                    let totalEarnings = 0;
+
+                    while (this.stakingRewardsTable.lastElementChild) {
+                        this.stakingRewardsTable.removeChild(this.stakingRewardsTable.lastElementChild);
+                    }
+
+                    for (let n = 0; n < rewards.length; n++) {
+                        const stakingRewardRow = stakingRewardRowTemplate.cloneNode(true).content;
+                        const rewardData = rewards[n];
+
+                        const transactionDateString = rewardData.timestamp.substring(0, 'yyyy-MM-dd'.length);
+                        const conversionRate = convertToCurrency == 'near' ? 1 : await getEODPrice(convertToCurrency, transactionDateString);
+                        const convertedEarnings = conversionRate * (rewardData.earnings) / 1e+24;
+                        totalEarnings += convertedEarnings;
+                        const convertedDeposit = conversionRate * (rewardData.deposit) / 1e+24;
+                        const convertedWithdrawal = conversionRate * (rewardData.withdrawal) / 1e+24;
+
+                        stakingRewardRow.querySelector('.stakingrewardrow_datetime').innerHTML = transactionDateString;
+
+                        stakingRewardRow.querySelector('.stakingrewardrow_balance').innerHTML = (conversionRate *
+                            (rewardData.balance / 1e+24)
+                        ).toFixed(numDecimals);
+                        stakingRewardRow.querySelector('.stakingrewardrow_earnings').innerHTML = convertedEarnings.toFixed(numDecimals);
+                        stakingRewardRow.querySelector('.stakingrewardrow_deposit').innerHTML = convertedDeposit.toFixed(numDecimals);
+                        stakingRewardRow.querySelector('.stakingrewardrow_withdrawal').innerHTML = convertedWithdrawal.toFixed(numDecimals);
+                        this.stakingRewardsTable.appendChild(stakingRewardRow);
+                    }
+                    this.shadowRoot.querySelector('#totalEarnings').innerHTML = totalEarnings.toFixed(numDecimals);
+
+                });
+                stakingPoolSelect.appendChild(option);
+            });
+
+            const tableElement = this.shadowRoot.querySelector('.table-responsive');
+            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+        }
+    });
+
+var wasmgitComponentHtml = /*html*/ `<div class="card">
+    <div class="card-header">Store data on a git server</div>
+    <div class="card-body">
+        <p>You may store a remote copy of your data in a git server, which you can then use to synchronize with other browsers and devices</p>
+        <p>Create a git repostiory at <a target="_blank" href="https://wasm-git.petersalomonsen.com">wasm-git.petersalomonsen.com</a> and then
+        log in and synchronize it here.</p>
+
+        <p>
+            <span id="currentuserspan"></span>
+            <button class="btn btn-primary" id="loginbutton">Login</button>
+            <button class="btn btn-warning" id="logoutbutton">Logout</button>
+        </p>
+        <p>
+        <label for="remoterepo" class="form-label">URL to git repository</label>
+        <input type="text" class="form-control" id="remoterepo" placeholder="https://wasm-git.petersalomonsen.com/YOUR_ACCOUNT-nearsight">
+        </p>
+        <button class="btn btn-primary" id="syncbutton">Synchronize</button>
+        <button class="btn btn-primary" id="deletelocaldatabutton">Delete local data</button>
+    </div>
+</div>`;
+
+const nearconfig = {
+    nodeUrl: 'https://rpc.mainnet.near.org',
+    walletUrl: 'https://wallet.near.org',
+    helperUrl: 'https://helper.mainnet.near.org',
+    contractName: 'wasmgit.near',
+    deps: {}
+};
+
+const walletConnectionPromise = new Promise(async resolve => {
+    if (window.top == window) {
+        nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
+        const near = await nearApi.connect(nearconfig);
+        const wc = new nearApi.WalletConnection(near);
+
+        resolve(wc);
+    } else {
+        console.log('wallet connection not supported in inframe');
+        resolve(null);
+    }
+});
+
+
+async function createAccessToken() {
+    const walletConnection = await walletConnectionPromise;
+    const accountId = walletConnection.getAccountId();
+    const tokenMessage = btoa(JSON.stringify({ accountId: accountId, iat: new Date().getTime() }));
+    const signature = await walletConnection.account()
+        .connection.signer
+        .signMessage(new TextEncoder().encode(tokenMessage), accountId);
+    return tokenMessage + '.' + btoa(String.fromCharCode(...signature.signature));
+}
+
+customElements.define('storage-page',
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.readyPromise = this.loadHTML();
+        }
+
+        async loadHTML() {
+            this.shadowRoot.innerHTML = wasmgitComponentHtml;
+            document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+            this.loginbutton = this.shadowRoot.querySelector('#loginbutton');
+            this.logoutbutton = this.shadowRoot.querySelector('#logoutbutton');
+
+            this.deletelocaldatabutton = this.shadowRoot.querySelector('#deletelocaldatabutton');
+
+            this.deletelocaldatabutton.addEventListener('click', async () => {
+                console.log('delete local data');
+                this.deletelocaldatabutton.disabled = true;
+                await delete_local();
+                location.reload();
+            });
+
+            if (window.top == window) {
+                if ((await walletConnectionPromise).getAccountId()) {
+                    this.loadAccountData();
+                    this.logoutbutton.addEventListener('click', async () => {
+                        (await walletConnectionPromise).signOut();
+                        console.log('logged out');
+                        this.loginbutton.style.display = 'block';
+                        this.logoutbutton.style.display = 'none';
+                    });
+                } else {
+                    console.log('no loggedin user');
+                    this.logoutbutton.style.display = 'none';
+                    this.loginbutton.addEventListener('click', async () => {
+                        await (await walletConnectionPromise).requestSignIn(
+                            nearconfig.contractName,
+                            'wasm-git'
+                        );
+                        this.loadAccountData();
+                    });
+                    return;
+                }
+
+                this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
+                this.remoteRepoInput.addEventListener('change', async () => {
+                    await set_remote(this.remoteRepoInput.value);
+                });
+
+                this.remoteRepoInput.value = await get_remote();
+                this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
+                this.syncbutton.addEventListener('click', async () => {
+                    setProgressbarValue('indeterminate', 'syncing with remote');
+                    try {
+                        this.syncbutton.disabled = true;
+                        if (!(await exists('.git'))) {
+                            if (this.remoteRepoInput.value) {
+                                await git_clone(this.remoteRepoInput.value);
+                            } else {
+                                await git_init();
+                            }
+                        }
+                        await commit_all();
+                        await sync();
+                        this.dispatchSyncEvent();
+                    } catch (e) {
+                        console.error(e);
+                        modalAlert('Error syncing with remote', e);
+                    }
+                    setProgressbarValue(null);
+                    this.syncbutton.disabled = false;
+                });
+            }
+            return this.shadowRoot;
+        }
+
+        dispatchSyncEvent() {
+            this.dispatchEvent(new Event('sync'));
+        }
+
+        async loadAccountData() {
+            const walletConnection = await walletConnectionPromise;
+            let currentUser = {
+                accountId: walletConnection.getAccountId()
+            };
+            this.loginbutton.style.display = 'none';
+            this.shadowRoot.querySelector('#currentuserspan').innerHTML = `Logged in as ${currentUser.accountId}`;
+
+            const accessToken = await createAccessToken();
+            configure_user({
+                accessToken,
+                useremail: currentUser.accountId,
+                username: currentUser.accountId
+            });
+        }
+    });
+
+async function calculateYearReportData() {
+    const accounts = await getAccounts();
+    const accountTransactions = {};
+    const transactionsByHash = {};
+    const transactionsByDate = {};
+    const allStakingAccounts = {};
+
+    for (let account of accounts) {
+        const transactions = await getTransactionsForAccount(account);
+        for (let n = 0; n < transactions.length; n++) {
+            const tx = transactions[n];
+            tx.account = account;
+            tx.changedBalance = BigInt(tx.balance) - (
+                n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : BigInt(tx.balance)
+            );
+            if (!transactionsByHash[tx.hash]) {
+                transactionsByHash[tx.hash] = [];
+            }
+            transactionsByHash[tx.hash].push(tx);
+
+            const datestring = new Date(tx.block_timestamp / 1_000_000).toJSON().substring(0, 'yyyy-MM-dd'.length);
+            if (!transactionsByDate[datestring]) {
+                transactionsByDate[datestring] = [];
+            }
+            transactionsByDate[datestring].unshift(tx);
+        }
+
+        const stakingAccounts = await getStakingAccounts(account);
+
+        accountTransactions[account] = {
+            arr: transactions,
+            stakingAccounts: stakingAccounts,
+            stakingBalances: {},
+        };
+
+        for (let stakingAccount of stakingAccounts) {
+            allStakingAccounts[stakingAccount] = true;
+            const stakingRewards = await getStakingRewardsForAccountAndPool(account, stakingAccount);
+            for (let stakingReward of stakingRewards) {
+                const ts = stakingReward.timestamp.substr(0, 'yyyy-MM-dd'.length);
+                const stakingBalances = accountTransactions[account].stakingBalances;
+                if (!stakingBalances[ts]) {
+                    stakingBalances[ts] = { totalStakingBalance: 0, totalEarnings: 0 };
+                }
+                if (stakingBalances[ts][stakingAccount] == undefined) {
+                    stakingBalances[ts][stakingAccount] = stakingReward.balance;
+                    stakingBalances[ts].totalStakingBalance += stakingReward.balance;
+                }
+
+                stakingBalances[ts].totalEarnings += stakingReward.earnings;
+            }
+        }
+    }
+
+    const dailyBalances = {};
+    let prevDateString;
+    let currentDate = new Date(2020, 0, 1);
+    const endDate = new Date();
+    const accountDailyBalances = {};
+    while (currentDate.getTime() < endDate) {
+        const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+        dailyBalances[datestring] = {
+            totalBalance: 0,
+            accountBalance: 0,
+            stakingBalance: 0,
+            stakingEarnings: 0,
+            deposit: 0,
+            withdrawal: 0
+        };
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
+        accounts.forEach(account => {
+            const transactionsObj = accountTransactions[account];
+            if (transactionsObj.stakingBalances[datestring]) {
+                dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[datestring].totalStakingBalance;
+                dailyBalances[datestring].stakingEarnings += transactionsObj.stakingBalances[datestring].totalEarnings;
+            } else if (prevDateString && transactionsObj.stakingBalances[prevDateString]) {
+                dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[prevDateString].totalStakingBalance;
+            }
+        });
+        if (transactionsByDate[datestring]) {
+            transactionsByDate[datestring].forEach(tx => {
+                let changedBalanceForHashAllAccounts = BigInt(0);
+                const allTxEntriesForHash = transactionsByHash[tx.hash];
+                allTxEntriesForHash.forEach(t => {
+                    changedBalanceForHashAllAccounts += t.changedBalance;
+                    t.changedBalance = BigInt(0);
+                });
+                if (!allStakingAccounts[tx.signer_id] && !allStakingAccounts[tx.receiver_id]) {
+                    if (changedBalanceForHashAllAccounts >= BigInt(0)) {
+                        dailyBalances[datestring].deposit += Number(changedBalanceForHashAllAccounts);
+                    } else {
+                        dailyBalances[datestring].withdrawal += -Number(changedBalanceForHashAllAccounts);
+                    }
+                }
+                accountDailyBalances[tx.account] = BigInt(tx.balance);
+            });
+        }
+        dailyBalances[datestring].accountBalance = Object.values(accountDailyBalances).reduce((p, c) => p + c, BigInt(0));
+        dailyBalances[datestring].totalBalance = dailyBalances[datestring].stakingBalance + Number(dailyBalances[datestring].accountBalance);
+        dailyBalances[datestring].accounts = Object.assign({}, accountDailyBalances);
+        if (prevDateString) {
+            const totalChange = dailyBalances[datestring].totalBalance - dailyBalances[prevDateString].totalBalance;
+            const accountChange = dailyBalances[datestring].accountBalance - dailyBalances[prevDateString].accountBalance;
+            const stakingChange = dailyBalances[datestring].stakingBalance - dailyBalances[prevDateString].stakingBalance;
+            const stakingRewards = dailyBalances[datestring].stakingEarnings;
+
+            Object.assign(
+                dailyBalances[datestring],
+                {
+                    totalChange: totalChange,
+                    accountChange: accountChange,
+                    stakingChange: stakingChange,
+                    stakingRewards: stakingRewards
+                });
+        }
+        prevDateString = datestring;
+    }
+
+    return dailyBalances;
+}
+
+async function calculateProfitLoss(dailyBalances, targetCurrency = 'near') {
+    if (targetCurrency == 'near') {
+        return { dailyBalances };
+    }
+    const openPositions = [];
+    const closedPositions = [];
+
+    for (const datestring in dailyBalances) {
+        const dailyEntry = dailyBalances[datestring];
+        let dayProfit = 0;
+        let dayLoss = 0;
+        if (dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
+            const amount = dailyEntry.deposit ?? 0 + dailyEntry.reward ?? 0;
+            const conversionRate = await getEODPrice(targetCurrency, datestring);
+            openPositions.push({
+                date: datestring,
+                initialAmount: amount,
+                remainingAmount: amount,
+                convertedValue: conversionRate * (amount / 1e+24),
+                conversionRate: conversionRate,
+                realizations: []
+            });
+        }
+
+        if (dailyEntry.withdrawal > 0) {
+            let dayRealizedAmount = 0;
+
+            dailyEntry.realizations = [];
+            const conversionRate = await getEODPrice(targetCurrency, datestring);
+            while (openPositions.length > 0 && dayRealizedAmount < dailyEntry.withdrawal) {
+                const position = openPositions[0];
+                if ((dayRealizedAmount + position.remainingAmount) > dailyEntry.withdrawal) {
+                    const partlyRealizedPositionAmount = (dailyEntry.withdrawal - dayRealizedAmount);
+                    const partlyRealizedPositionInitialConvertedValue = position.convertedValue * (partlyRealizedPositionAmount / position.initialAmount);
+                    const partlyRealizedPositionRealizedConvertedValue = (partlyRealizedPositionAmount / 1e+24) * conversionRate;
+                    position.remainingAmount -= partlyRealizedPositionAmount;
+                    dayRealizedAmount = dailyEntry.withdrawal;
+
+                    const profitLoss = partlyRealizedPositionRealizedConvertedValue - partlyRealizedPositionInitialConvertedValue;
+                    if (profitLoss >= 0) {
+                        dayProfit += profitLoss;
+                    } else {
+                        dayLoss += -profitLoss;
+                    }
+                    const realizationEntry = {
+                        date: datestring,
+                        amount: partlyRealizedPositionAmount,
+                        convertedValue: partlyRealizedPositionRealizedConvertedValue,
+                        profit: profitLoss >= 0 ? profitLoss : 0,
+                        conversionRate: conversionRate,
+                        loss: profitLoss < 0 ? -profitLoss : 0,
+                    };
+                    position.realizations.push(realizationEntry);
+                    dailyEntry.realizations.push(
+                        Object.assign({}, realizationEntry, {
+                            position: Object.assign({}, position, { realizations: undefined })
+                        })
+                    );
+                } else {
+                    dayRealizedAmount += position.remainingAmount;
+
+                    const convertedValue = conversionRate * (position.remainingAmount / 1e+24);
+                    const profitLoss = convertedValue - position.convertedValue * (position.remainingAmount / position.initialAmount);
+                    if (profitLoss >= 0) {
+                        dayProfit += profitLoss;
+                    } else {
+                        dayLoss += -profitLoss;
+                    }
+                    const realizationEntry = {
+                        date: datestring,
+                        amount: position.remainingAmount,
+                        convertedValue: convertedValue,
+                        conversionRate: conversionRate,
+                        profit: profitLoss >= 0 ? profitLoss : 0,
+                        loss: profitLoss < 0 ? -profitLoss : 0,
+                    };
+                    position.realizations.push(realizationEntry);
+                    dailyEntry.realizations.push(
+                        Object.assign({}, realizationEntry, {
+                            position: Object.assign({}, position, { realizations: undefined })
+                        })
+                    );
+                    position.remainingAmount = 0;
+                    closedPositions.push(position);
+                    openPositions.shift();
+                }
+            }
+
+            dailyEntry.profit = dayProfit;
+            dailyEntry.loss = dayLoss;
+            if (dayRealizedAmount < dailyEntry.withdrawal) {
+                console.error(`should not happen: withdrawn amount larger than available positions. wanted to withdraw: ${dailyEntry.withdrawal}, available: ${dayRealizedAmount}`);
+            }
+        }
+    }
+    return { openPositions, closedPositions, dailyBalances };
+}
+
+var html$1 = /*html*/ `<style>
+    .numeric {
+        text-align: right;
+    }
+
+    .dailybalancerow_datetime {
+        white-space: nowrap;
+    }
+
+    .dailybalancerow_balance {
+        white-space: nowrap;
+    }
+
+    .table-responsive {
+        max-height: 100%;
+    }
+
+    table thead,
+    table tfoot {
+        position: sticky;
+    }
+
+    table thead {
+        inset-block-start: 0;
+        top: 0;
+    }
+
+    table tfoot {
+        inset-block-end: 0;
+        bottom: 0;
+    }
+
+    tr.inforow td {
+        font-size: 12px;   
+    }
+</style>
+<h3>Year report ( all accounts )</h3>
+<div class="row">
+    <div class="col-md-6">
+        <label for="yearselect" class="form-label">Select year</label>   
+        <select id="yearselect" class="form-select"></select>        
+    </div>
+    <div class="col-md-6">
+        <label for="currencyselect" class="form-label">Currency</label>
+        <select class="form-select" aria-label="Select currency" id="currencyselect">
+            <option value="near">NEAR</option>
+        </select>        
+    </div>
+</div>
+<template id="dailybalancerowtemplate">
+    <tr>
+        <td class="dailybalancerow_datetime"></td>
+        <td class="dailybalancerow_totalbalance numeric"></td>
+        <td class="dailybalancerow_change numeric"></td>
+        <td class="dailybalancerow_accountbalance numeric"></td>
+        <td class="dailybalancerow_accountchange numeric"></td>
+        <td class="dailybalancerow_stakingbalance numeric"></td>
+        <td class="dailybalancerow_stakingchange numeric"></td>
+        <td class="dailybalancerow_stakingreward numeric"></td>
+        <td class="dailybalancerow_deposit numeric"></td>
+        <td class="dailybalancerow_withdrawal numeric"></td>
+        <td class="dailybalancerow_profit numeric"></td>
+        <td class="dailybalancerow_loss numeric"></td>
+    </tr>
+    <tr class="inforow bg-info">
+        <td colspan="12" >
+            <table class="table table-sm table-borderless">
+                <thead>
+                    <tr>
+                        <th scope="col">acquisition date</th>
+                        <th scope="col">acquired amount</th>
+                        <th scope="col">acquisition price</th>
+                        <th scope="col">realized amount</th>
+                        <th scope="col">realization price</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </td>
+    </tr>
+</template>
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead class="table-dark">
+            <th scope="col">
+                date
+            </th>
+            <th scope="col">
+                total balance
+            </th>
+            <th scope="col">
+                change
+            </th>
+            <th scope="col">
+                account balance
+            </th>
+            <th scope="col">
+                change
+            </th>
+            <th scope="col">
+                staking balance
+            </th>
+            <th scope="col">
+                change
+            </th>
+            <th scope="col">
+                reward
+            </th>
+            <th scope="col">
+                deposit
+            </th>
+            <th scope="col">
+                withdrawals
+            </th>
+            <th scope="col">
+                profit
+            </th>
+            <th scope="col">
+                loss
+            </th>
+            <th>
+                &nbsp;
+            </th>
+        </thead>
+        <tbody id="dailybalancestable">
+
+        </tbody>
+        <tfoot class="table-dark">
+            <th scope="col">
+
+            </th>
+            <th scope="col">
+
+            </th>
+            <th scope="col">
+
+            </th>
+            <th scope="col">
+
+            </th>
+            <th scope="col">
+
+            </th>
+            <th scope="col">
+
+            </th>
+            <th scope="col">
+
+            </th>
+            <th scope="col" class="numeric" id="totalreward">
+
+            </th>
+            <th scope="col" class="numeric" id="totaldeposit">
+
+            </th>
+            <th scope="col" class="numeric" id="totalwithdrawal">
+
+            </th>
+            <th scope="col" class="numeric" id="totalprofit">
+
+            </th>
+            <th scope="col" class="numeric" id="totalloss">
+
+            </th>
+            <th></th>
+        </tfoot>
+    </table>
+</div>
+`;
+
+customElements.define('year-report-page',
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.readyPromise = this.loadHTML();
+        }
+
+        async loadHTML() {
+            this.shadowRoot.innerHTML = html$1;
+            document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            this.year = new Date().getFullYear();
+            this.yearSelect = this.shadowRoot.querySelector('#yearselect');
+            for (let year = this.year; year >= 2020; year--) {
+                const yearOption = document.createElement('option');
+                yearOption.value = year;
+                yearOption.innerHTML = `${year}`;
+                if (year === this.year) {
+                    yearOption.selected = true;
+                }
+                this.yearSelect.appendChild(yearOption);
+            }
+            this.yearSelect.addEventListener('change', () => {
+                this.year = parseInt(this.yearSelect.value);
+                this.refreshView();
+            });
+
+            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
+            (await getCurrencyList()).forEach(currency => {
+                const currencyoption = document.createElement('option');
+                currencyoption.value = currency;
+                currencyoption.text = currency.toUpperCase();
+                currencyselect.appendChild(currencyoption);
+            });
+            
+            const numDecimals = 2;
+            currencyselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals));
+            this.updateView(currencyselect.value, numDecimals);
+            return this.shadowRoot;
+        }
+
+        async updateView(convertToCurrency, numDecimals) {
+            this.convertToCurrency = convertToCurrency;
+            this.numDecimals = numDecimals;
+            await this.refreshView();
+        }
+
+        async refreshView() {        
+            const {dailyBalances, closedPositions, openPositions} = await calculateProfitLoss(await calculateYearReportData(), this.convertToCurrency);
+            const yearReportData = dailyBalances;
+            const yearReportTable = this.shadowRoot.querySelector('#dailybalancestable');
+            
+            while( yearReportTable.lastElementChild) {
+                yearReportTable.removeChild(yearReportTable.lastElementChild);
+            }
+
+            const rowTemplate = this.shadowRoot.querySelector('#dailybalancerowtemplate');
+            
+            let currentDate = new Date().getFullYear() === this.year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${this.year}-12-31`);
+            const endDate = new Date(`${this.year}-01-01`);
+
+            let totalStakingReward = 0;
+            let totalDeposit = 0;
+            let totalWithdrawal = 0;
+            let totalProfit = 0;
+            let totalLoss = 0;
+
+            while (currentDate.getTime() >= endDate) {
+                const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+
+                const row = rowTemplate.cloneNode(true).content;
+                const rowdata = yearReportData[datestring];
+                const conversionRate = this.convertToCurrency == 'near' ? 1 : await getEODPrice(this.convertToCurrency, datestring);
+                
+                const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
+                const deposit = (conversionRate * (rowdata.deposit / 1e+24));
+                const withdrawal = (conversionRate * (rowdata.withdrawal / 1e+24));
+
+                totalStakingReward += stakingReward;
+                totalDeposit += deposit;
+                totalWithdrawal += withdrawal;
+                totalProfit += rowdata.profit ?? 0;
+                totalLoss += rowdata.loss ?? 0;
+
+                row.querySelector('.dailybalancerow_datetime').innerHTML = datestring;
+                row.querySelector('.dailybalancerow_totalbalance').innerHTML = (conversionRate * (rowdata.totalBalance / 1e+24)).toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_accountbalance').innerHTML = (conversionRate * (Number(rowdata.accountBalance) / 1e+24)).toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_stakingbalance').innerHTML = (conversionRate * (rowdata.stakingBalance / 1e+24)).toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_change').innerHTML = (conversionRate * (rowdata.totalChange / 1e+24)).toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_accountchange').innerHTML = (conversionRate * (Number(rowdata.accountChange) / 1e+24)).toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_stakingchange').innerHTML = (conversionRate * (rowdata.stakingChange / 1e+24)).toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_stakingreward').innerHTML = stakingReward.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_deposit').innerHTML = deposit.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_withdrawal').innerHTML = withdrawal.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_profit').innerHTML = rowdata.profit?.toFixed(this.numDecimals) ?? '';
+                row.querySelector('.dailybalancerow_loss').innerHTML = rowdata.loss?.toFixed(this.numDecimals) ?? '';
+                if (rowdata.realizations) {
+                    const detailInfoElement = row.querySelector('.inforow td table tbody');
+                    detailInfoElement.innerHTML = rowdata.realizations.map(r => `
+                        <tr>
+                            <td>${r.position.date}</td>
+                            <td>${(r.position.initialAmount / 1e+24).toFixed(this.numDecimals)}</td>
+                            <td>${r.position.conversionRate.toFixed(this.numDecimals)}</td>
+                            <td>${(r.amount / 1e+24).toFixed(this.numDecimals)}</td>
+                            <td>${r.conversionRate.toFixed(this.numDecimals)}</td>
+                        </tr>
+                    `).join('\n');
+                } else {
+                    row.querySelector('.inforow').remove();
+                }
+                yearReportTable.appendChild(row);
+
+                currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
+            }
+
+            this.shadowRoot.querySelector('#totalreward').innerHTML = totalStakingReward.toFixed(this.numDecimals);
+            this.shadowRoot.querySelector('#totaldeposit').innerHTML = totalDeposit.toFixed(this.numDecimals);
+            this.shadowRoot.querySelector('#totalwithdrawal').innerHTML = totalWithdrawal.toFixed(this.numDecimals);
+            this.shadowRoot.querySelector('#totalprofit').innerHTML = totalProfit.toFixed(this.numDecimals);
+            this.shadowRoot.querySelector('#totalloss').innerHTML = totalLoss.toFixed(this.numDecimals);
+
+            const tableElement = this.shadowRoot.querySelector('.table-responsive');
+            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+        }
+    });
+
+var html = /*html*/ `
+<div class="container" id="mainContainer">
+    Get an overview of your NEAR accounts. See your transactions, staking rewards,
+    and get an annual report calculating profit and loss for each of your transactions.
+</div>
+`;
+
+const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
+const basepath = baseurl.substring(location.origin.length);
+Array.from(document.getElementsByClassName('nav-link')).forEach(navLink => {
+    const targetPage = navLink.href.substring(location.origin.length + 1);
+    navLink.href = basepath + targetPage;
+    navLink.onclick = () => {
+        goToPage(targetPage);
+        return false;
+    };
+});
+
+class AppNearNumbersComponent extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = html;
+        document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+        const mainContainer = this.shadowRoot.querySelector('#mainContainer');
+
+        window.goToPage = (page) => {
+            const pageElement = document.createElement(`${page}-page`);
+            const path = `${basepath}${page}`;
+            if ((window.top == window) && (location.pathname != path || location.search.indexOf('?account_id') == 0)) {
+                history.pushState({}, null, path);
+            }
+            mainContainer.replaceChildren(pageElement);
+        };
+
+        if (location.href != baseurl) {
+            goToPage(location.href.substring(baseurl.length));
+        }
+    }
+}
+
+customElements.define('app-near-numbers', AppNearNumbersComponent);
+
+if (window.top == window) {
+    const registerServiceWorker = async () => {
+        if ("serviceWorker" in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register(baseurl + "serviceworker.js", {
+                    scope: baseurl,
+                });
+                registration.onupdatefound = () => {
+                    console.log('update available');
+                };
+                if (registration.installing) {
+                    console.log("Service worker installing");
+                } else if (registration.waiting) {
+                    console.log("Service worker installed");
+                } else if (registration.active) {
+                    console.log("Service worker active");
+                    await registration.update();
+                }
+
+            } catch (error) {
+                console.error(`Registration failed with ${error}`);
+            }
+        }
+    };
+    registerServiceWorker();
+}
+</script></body></html>

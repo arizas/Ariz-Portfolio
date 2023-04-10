@@ -34,7 +34,7 @@ importScripts('https://unpkg.com/wasm-git@0.0.10/lg2.js');
 const lgPromise = new Promise(resolve => {
   Module.onRuntimeInitialized = () => {
     FS.mkdir(`/${currentRepoRootDir}`);
-    FS.mount(IDBFS, {}, `/${currentRepoRootDir}`);
+    FS.mount(self.origin == 'null' ? MEMFS : IDBFS, {}, `/${currentRepoRootDir}`);
     FS.chdir(`/${currentRepoRootDir}`);
 
     FS.syncfs(true, () => {
