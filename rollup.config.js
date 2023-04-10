@@ -33,16 +33,22 @@ export default {
                 }
             }
         }))(),
-        //terser(),
+        terser(),
         {
             name: 'inline-js',
             closeBundle: () => {
-              const js = readFileSync('dist/main.js').toString();
-              const html = readFileSync('dist/index.html').toString()
+                const js = readFileSync('dist/main.js').toString();
+                const html = readFileSync('dist/index.html').toString()
                     .replace(`<script type="module" src="./main.js"></script>`,
-                             `<script type="module">${js}</script>`);
-              writeFileSync('dist/index.html', html);
-              unlinkSync(`dist/main.js`);
+                        `<script type="module">${js}</script>`);
+                writeFileSync('dist/index.html', html);
+                unlinkSync(`dist/main.js`);
+                const dataUri = `data:text/html;base64,${Buffer.from(html).toString('base64')}`;
+                writeFileSync(`dist/nearbos.jsx`, `return <>
+    <div class="container">
+        <iframe class="w-100 h-100" src="${dataUri}"></iframe>
+    </div>
+</>;`)
             }
         },
         copy({

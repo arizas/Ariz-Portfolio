@@ -12,8 +12,8 @@ import html from './app.html.js';
 const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
 const basepath = baseurl.substring(location.origin.length);
 Array.from(document.getElementsByClassName('nav-link')).forEach(navLink => {
-    const targetPage = navLink.href.substring(location.origin.length + 1);
-    navLink.href = basepath + targetPage;
+    const targetPage = navLink.dataset.page;
+
     navLink.onclick = () => {
         goToPage(targetPage);
         return false;
