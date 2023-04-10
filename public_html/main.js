@@ -11,11 +11,17 @@ import html from './app.html.js';
 
 const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
 const basepath = baseurl.substring(location.origin.length);
+
+const navbarmenu = document.querySelector('#navbarNavAltMarkup');
 Array.from(document.getElementsByClassName('nav-link')).forEach(navLink => {
     const targetPage = navLink.dataset.page;
 
     navLink.onclick = () => {
         goToPage(targetPage);
+        if (navbarmenu.classList.contains('navbar-collapse')) {
+            const collapse = new bootstrap.Collapse(navbarmenu);
+            collapse.hide();
+        }
         return false;
     }
 });
