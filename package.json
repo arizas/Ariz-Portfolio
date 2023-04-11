@@ -9,7 +9,7 @@
   "scripts": {
     "test:watch": "karma start --browsers Chrome",
     "test": "karma start --single-run --browsers ChromeHeadless",
-    "serve": "http-server -p 8081 public_html/",
+    "serve": "http-server --cors -p 8081 public_html/",
     "dist": "rm -Rf dist && rollup -c rollup.config.js",
     "serve:dist": "http-server -p 8081 dist/"
   },

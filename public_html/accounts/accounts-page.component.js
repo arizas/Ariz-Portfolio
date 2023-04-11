@@ -60,7 +60,10 @@ customElements.define('accounts-page',
             if (accountname) {
                 accountNameInput.value = accountname;
             }
-            accountNameInput.addEventListener('change', (e) => this.dispatchChangeEvent());
+            accountNameInput.addEventListener('change', async (e) => {
+                await this.storeAccounts();
+                this.dispatchChangeEvent()
+            });
             accountsRow.querySelector('.removeAccountButton').onclick = async () => {
                 accountsRow.remove();
                 await this.storeAccounts();

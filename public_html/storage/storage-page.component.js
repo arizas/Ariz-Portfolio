@@ -9,17 +9,20 @@ const nearconfig = {
     walletUrl: 'https://wallet.near.org',
     helperUrl: 'https://helper.mainnet.near.org',
     contractName: 'wasmgit.near',
-    deps: {
-        keyStore: new nearApi.keyStores.BrowserLocalStorageKeyStore()
-    }
+    deps: {}
 };
 
 export const walletConnectionPromise = new Promise(async resolve => {
-    nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
-    const near = await nearApi.connect(nearconfig);
-    const wc = new nearApi.WalletConnection(near);
+    if (window.top == window) {
+        nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
+        const near = await nearApi.connect(nearconfig);
+        const wc = new nearApi.WalletConnection(near);
 
-    resolve(wc);
+        resolve(wc);
+    } else {
+        console.log('wallet connection not supported in inframe');
+        resolve(null);
+    }
 });
 
 
@@ -65,55 +68,57 @@ customElements.define('storage-page',
                 location.reload();
             });
 
-            if ((await walletConnectionPromise).getAccountId()) {
-                this.loadAccountData();
-                this.logoutbutton.addEventListener('click', async () => {
-                    (await walletConnectionPromise).signOut();
-                    console.log('logged out');
-                    this.loginbutton.style.display = 'block';
-                    this.logoutbutton.style.display = 'none';
-                });
-            } else {
-                console.log('no loggedin user');
-                this.logoutbutton.style.display = 'none';
-                this.loginbutton.addEventListener('click', async () => {
-                    await (await walletConnectionPromise).requestSignIn(
-                        nearconfig.contractName,
-                        'wasm-git'
-                    );
+            if (window.top == window) {
+                if ((await walletConnectionPromise).getAccountId()) {
                     this.loadAccountData();
-                });
-                return;
-            }
-
-            this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
-            this.remoteRepoInput.addEventListener('change', async () => {
-                await set_remote(this.remoteRepoInput.value);
-            });
-
-            this.remoteRepoInput.value = await get_remote();
-            this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
-            this.syncbutton.addEventListener('click', async () => {
-                setProgressbarValue('indeterminate', 'syncing with remote');
-                try {
-                    this.syncbutton.disabled = true;
-                    if (!(await exists('.git'))) {
-                        if (this.remoteRepoInput.value) {
-                            await git_clone(this.remoteRepoInput.value);
-                        } else {
-                            await git_init();
-                        }
-                    }
-                    await commit_all();
-                    await sync();
-                    this.dispatchSyncEvent();
-                } catch (e) {
-                    console.error(e);
-                    modalAlert('Error syncing with remote', e);
+                    this.logoutbutton.addEventListener('click', async () => {
+                        (await walletConnectionPromise).signOut();
+                        console.log('logged out');
+                        this.loginbutton.style.display = 'block';
+                        this.logoutbutton.style.display = 'none';
+                    });
+                } else {
+                    console.log('no loggedin user');
+                    this.logoutbutton.style.display = 'none';
+                    this.loginbutton.addEventListener('click', async () => {
+                        await (await walletConnectionPromise).requestSignIn(
+                            nearconfig.contractName,
+                            'wasm-git'
+                        );
+                        this.loadAccountData();
+                    });
+                    return;
                 }
-                setProgressbarValue(null);
-                this.syncbutton.disabled = false;
-            });
+
+                this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
+                this.remoteRepoInput.addEventListener('change', async () => {
+                    await set_remote(this.remoteRepoInput.value);
+                });
+
+                this.remoteRepoInput.value = await get_remote();
+                this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
+                this.syncbutton.addEventListener('click', async () => {
+                    setProgressbarValue('indeterminate', 'syncing with remote');
+                    try {
+                        this.syncbutton.disabled = true;
+                        if (!(await exists('.git'))) {
+                            if (this.remoteRepoInput.value) {
+                                await git_clone(this.remoteRepoInput.value);
+                            } else {
+                                await git_init();
+                            }
+                        }
+                        await commit_all();
+                        await sync();
+                        this.dispatchSyncEvent();
+                    } catch (e) {
+                        console.error(e);
+                        modalAlert('Error syncing with remote', e);
+                    }
+                    setProgressbarValue(null);
+                    this.syncbutton.disabled = false;
+                });
+            }
             return this.shadowRoot;
         }
 
