@@ -1,4 +1,4 @@
-import { getNetConversions } from "../storage/domainobjectstore.js";
+import { getNetConversions, setNetConversions } from "../storage/domainobjectstore.js";
 
 const cachedPricesPerCurrency = {};
 
@@ -33,4 +33,26 @@ export async function getNetWithdrawalPrice(currency, datestring) {
 export async function getNetDepositPrice(currency, datestring) {
     const netConversions = await getNetConversions();
     return netConversions[currency]?.[datestring]?.deposit ?? await getEODPrice(currency, datestring);
+}
+
+export async function setNetWithdrawalPrice(currency, datestring, quantity, totalAmount) {
+    const withdrawalPrice = totalAmount / (quantity / 1e+24);
+
+    const netConversions = await getNetConversions();
+    if (!netConversions[currency]) {
+        netConversions[currency] = {};
+    }
+    netConversions[currency][datestring] = { withdrawal: withdrawalPrice, withdrawalQuantity: quantity };
+    await setNetConversions(netConversions);
+}
+
+export async function setNetDepositPrice(currency, datestring, quantity, totalAmount) {
+    const depositPrice = totalAmount / (quantity / 1e+24);
+
+    const netConversions = await getNetConversions();
+    if (!netConversions[currency]) {
+        netConversions[currency] = {};
+    }
+    netConversions[currency][datestring] = { deposit: depositPrice, depositQuantiy: quantity };
+    await setNetConversions(netConversions);
 }

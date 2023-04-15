@@ -1,6 +1,7 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
 import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
+import { setNetWithdrawalPrice } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
     it('should get daily account balance report for psalomo.near', async () => {
@@ -217,6 +218,7 @@ describe('year-report-data', () => {
         await setAccounts([account]);
         await writeTransactions(account, transactionsWithDeposits);
 
+        await setNetWithdrawalPrice('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
         const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
         const yearReportData = dailyBalances;
 
@@ -240,7 +242,9 @@ describe('year-report-data', () => {
             totalProfit += rowdata.profit ?? 0;
             totalLoss += rowdata.loss ?? 0;
 
-            console.log(datestring, withdrawal);
+            if (withdrawal > 0) {
+                console.log(datestring, withdrawal, rowdata.withdrawal);
+            }
             currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
         }
         console.log(totalWithdrawal, totalProfit, totalLoss);

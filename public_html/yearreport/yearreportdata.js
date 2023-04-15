@@ -228,7 +228,6 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
     const depositConversionRate = await getNetDepositPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
     const withdrawalConversionRate = await getNetWithdrawalPrice(convertToCurrency, datestring);
-
     const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal / 1e+24));
 
     return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
