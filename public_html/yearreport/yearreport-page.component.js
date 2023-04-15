@@ -1,5 +1,5 @@
-import { getEODPrice } from '../pricedata/pricedata.js';
-import { calculateYearReportData, calculateProfitLoss } from './yearreportdata.js';
+import { getEODPrice, getNetWithdrawalPrice } from '../pricedata/pricedata.js';
+import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay } from './yearreportdata.js';
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
 
@@ -38,7 +38,7 @@ customElements.define('year-report-page',
                 currencyoption.text = currency.toUpperCase();
                 currencyselect.appendChild(currencyoption);
             });
-            
+
             const numDecimals = 2;
             currencyselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals));
             this.updateView(currencyselect.value, numDecimals);
@@ -51,17 +51,17 @@ customElements.define('year-report-page',
             await this.refreshView();
         }
 
-        async refreshView() {        
-            const {dailyBalances, closedPositions, openPositions} = await calculateProfitLoss(await calculateYearReportData(), this.convertToCurrency)
+        async refreshView() {
+            const { dailyBalances, closedPositions, openPositions } = await calculateProfitLoss(await calculateYearReportData(), this.convertToCurrency)
             const yearReportData = dailyBalances;
             const yearReportTable = this.shadowRoot.querySelector('#dailybalancestable');
-            
-            while( yearReportTable.lastElementChild) {
+
+            while (yearReportTable.lastElementChild) {
                 yearReportTable.removeChild(yearReportTable.lastElementChild);
             }
 
             const rowTemplate = this.shadowRoot.querySelector('#dailybalancerowtemplate');
-            
+
             let currentDate = new Date().getFullYear() === this.year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${this.year}-12-31`);
             const endDate = new Date(`${this.year}-01-01`);
 
@@ -76,11 +76,8 @@ customElements.define('year-report-page',
 
                 const row = rowTemplate.cloneNode(true).content;
                 const rowdata = yearReportData[datestring];
-                const conversionRate = this.convertToCurrency == 'near' ? 1 : await getEODPrice(this.convertToCurrency, datestring);
-                
-                const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
-                const deposit = (conversionRate * (rowdata.deposit / 1e+24));
-                const withdrawal = (conversionRate * (rowdata.withdrawal / 1e+24));
+
+                const { stakingReward, deposit, withdrawal, conversionRate } = await getConvertedValuesForDay(rowdata, this.convertToCurrency, datestring);
 
                 totalStakingReward += stakingReward;
                 totalDeposit += deposit;

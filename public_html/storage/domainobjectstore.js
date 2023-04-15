@@ -5,6 +5,7 @@ import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
+export const netconversionsfile = 'netconversions.json';
 
 export async function getAccounts() {
     return JSON.parse(await readTextFile(accountsconfigfile));
@@ -78,4 +79,16 @@ export async function writeStakingData(account, stakingpool_id, stakingData) {
     }
     const stakingDataPath = getStakingDataPath(account, stakingpool_id);
     await writeFile(stakingDataPath, JSON.stringify(stakingData, null, 1));
+}
+
+export async function getNetConversions() {
+    if ((await exists(netconversionsfile))) {
+        return JSON.parse(await readTextFile(netconversionsfile));
+    } else {
+        return {};
+    }
+}
+
+export async function setNetConversions(netconversions) {
+    await writeFile(netconversionsfile, JSON.stringify(netconversions, null, 1));
 }

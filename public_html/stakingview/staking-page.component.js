@@ -3,6 +3,7 @@ import { getStakingAccounts } from '../near/stakingpool.js';
 
 import { getAccounts, getStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
 import html from './staking-page.component.html.js';
+
 customElements.define('staking-page',
     class extends HTMLElement {
         constructor() {

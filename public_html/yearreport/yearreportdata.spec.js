@@ -1,7 +1,6 @@
-import { calculateProfitLoss, calculateYearReportData } from './yearreportdata.js';
+import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
 import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
-import { getEODPrice } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
     it('should get daily account balance report for psalomo.near', async () => {
@@ -217,13 +216,13 @@ describe('year-report-data', () => {
 
         await setAccounts([account]);
         await writeTransactions(account, transactionsWithDeposits);
-        const {dailyBalances} = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
+
+        const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
         const yearReportData = dailyBalances;
 
         let currentDate = new Date().getFullYear() === currentYear ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${currentYear}-12-31`);
         const endDate = new Date(`${currentYear}-01-01`);
 
-        let totalStakingReward = 0;
         let totalDeposit = 0;
         let totalWithdrawal = 0;
         let totalProfit = 0;
@@ -233,18 +232,15 @@ describe('year-report-data', () => {
             const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
 
             const rowdata = yearReportData[datestring];
-            const conversionRate = convertToCurrency == 'near' ? 1 : await getEODPrice(convertToCurrency, datestring);
-            
-            const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
-            const deposit = (conversionRate * (rowdata.deposit / 1e+24));
-            const withdrawal = (conversionRate * (rowdata.withdrawal / 1e+24));
 
-            totalStakingReward += stakingReward;
+            const { deposit, withdrawal } = await getConvertedValuesForDay(rowdata, convertToCurrency, datestring);
+
             totalDeposit += deposit;
             totalWithdrawal += withdrawal;
             totalProfit += rowdata.profit ?? 0;
             totalLoss += rowdata.loss ?? 0;
 
+            console.log(datestring, withdrawal);
             currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
         }
         console.log(totalWithdrawal, totalProfit, totalLoss);
