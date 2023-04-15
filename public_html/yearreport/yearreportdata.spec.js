@@ -220,6 +220,7 @@ describe('year-report-data', () => {
 
         await setNetWithdrawalPrice('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
         const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
+
         const yearReportData = dailyBalances;
 
         let currentDate = new Date().getFullYear() === currentYear ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${currentYear}-12-31`);
@@ -247,6 +248,13 @@ describe('year-report-data', () => {
             }
             currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
         }
+
+        const nearValues = yearReportData['2022-02-25'];
+        const convertedValues = await getConvertedValuesForDay(yearReportData['2022-02-25'], 'NOK', '2022-02-25');
+        expect(nearValues.withdrawal).toBe(1.681520098881095e+25);
+        expect(convertedValues.withdrawal).toBe(1285);
+        expect(nearValues.loss).toBeCloseTo((nearValues.withdrawal * nearValues.realizations[0].position.conversionRate / 1e24) - 1285, 12);
+
         console.log(totalWithdrawal, totalProfit, totalLoss);
     }, 60000);
 });

@@ -151,7 +151,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
             let dayRealizedAmount = 0;
 
             dailyEntry.realizations = [];
-            const conversionRate = await getEODPrice(targetCurrency, datestring);
+            const conversionRate = await getNetWithdrawalPrice(targetCurrency, datestring);
             while (openPositions.length > 0 && dayRealizedAmount < dailyEntry.withdrawal) {
                 const position = openPositions[0];
                 if ((dayRealizedAmount + position.remainingAmount) > dailyEntry.withdrawal) {
