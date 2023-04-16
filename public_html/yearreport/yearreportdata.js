@@ -170,6 +170,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
                     const realizationEntry = {
                         date: datestring,
                         amount: partlyRealizedPositionAmount,
+                        initialConvertedValue: partlyRealizedPositionInitialConvertedValue,
                         convertedValue: partlyRealizedPositionRealizedConvertedValue,
                         profit: profitLoss >= 0 ? profitLoss : 0,
                         conversionRate: conversionRate,
@@ -185,7 +186,8 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
                     dayRealizedAmount += position.remainingAmount;
 
                     const convertedValue = conversionRate * (position.remainingAmount / 1e+24);
-                    const profitLoss = convertedValue - position.convertedValue * (position.remainingAmount / position.initialAmount);
+                    const initialConvertedValue = position.convertedValue * (position.remainingAmount / position.initialAmount);
+                    const profitLoss = convertedValue - initialConvertedValue;
                     if (profitLoss >= 0) {
                         dayProfit += profitLoss;
                     } else {
@@ -195,6 +197,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
                         date: datestring,
                         amount: position.remainingAmount,
                         convertedValue: convertedValue,
+                        initialConvertedValue,
                         conversionRate: conversionRate,
                         profit: profitLoss >= 0 ? profitLoss : 0,
                         loss: profitLoss < 0 ? -profitLoss : 0,

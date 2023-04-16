@@ -210,7 +210,7 @@ describe('year-report-data', () => {
         expect(dailydata['2022-09-16'].stakingEarnings).toBe(dailydata['2022-09-16'].stakingBalance - dailydata['2022-09-15'].stakingBalance);
         expect(dailydata['2022-09-15'].stakingEarnings).toBe(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
     }, 60000);
-    fit('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async () => {
+    it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async () => {
         const account = '6f32d9832f4b08752106a782aad702a3210e47906fce4a0cab7528feabd5736e';
         const convertToCurrency = 'NOK';
         const currentYear = 2022;
@@ -219,6 +219,7 @@ describe('year-report-data', () => {
         await writeTransactions(account, transactionsWithDeposits);
 
         await setNetWithdrawalPrice('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
+        await setNetWithdrawalPrice('NOK','2022-08-21', 2.000000849110125e+26, 8200);
         const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
 
         const yearReportData = dailyBalances;
@@ -243,18 +244,22 @@ describe('year-report-data', () => {
             totalProfit += rowdata.profit ?? 0;
             totalLoss += rowdata.loss ?? 0;
 
-            if (withdrawal > 0) {
-                console.log(datestring, withdrawal, rowdata.withdrawal);
-            }
             currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
         }
 
-        const nearValues = yearReportData['2022-02-25'];
-        const convertedValues = await getConvertedValuesForDay(yearReportData['2022-02-25'], 'NOK', '2022-02-25');
+        let nearValues = yearReportData['2022-02-25'];
+        let convertedValues = await getConvertedValuesForDay(yearReportData['2022-02-25'], 'NOK', '2022-02-25');
         expect(nearValues.withdrawal).toBe(1.681520098881095e+25);
         expect(convertedValues.withdrawal).toBe(1285);
         expect(nearValues.loss).toBeCloseTo((nearValues.withdrawal * nearValues.realizations[0].position.conversionRate / 1e24) - 1285, 12);
 
-        console.log(totalWithdrawal, totalProfit, totalLoss);
+        nearValues = yearReportData['2022-08-21'];
+        convertedValues = await getConvertedValuesForDay(yearReportData['2022-08-21'], 'NOK', '2022-08-21');
+        expect(nearValues.withdrawal).toBe(2.000000849110125e+26);
+        expect(convertedValues.withdrawal).toBe(8200);
+
+        expect((nearValues.profit - nearValues.loss)).toBeCloseTo(8200 - (nearValues.realizations.reduce((p, c) => {
+            return p + c.initialConvertedValue;
+        }, 0)), 12);
     }, 60000);
 });
