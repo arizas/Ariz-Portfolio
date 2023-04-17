@@ -225,12 +225,14 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
 }
 
 export async function getConvertedValuesForDay(rowdata, convertToCurrency, datestring) {
-    const conversionRate = convertToCurrency == 'near' ? 1 : await getEODPrice(convertToCurrency, datestring);
+    const convertToCurrencyIsNEAR = convertToCurrency == 'near';
+    const conversionRate = convertToCurrencyIsNEAR ? 1 : await getEODPrice(convertToCurrency, datestring);
+
 
     const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
-    const depositConversionRate = await getNetDepositPrice(convertToCurrency, datestring);
+    const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getNetDepositPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
-    const withdrawalConversionRate = await getNetWithdrawalPrice(convertToCurrency, datestring);
+    const withdrawalConversionRate = convertToCurrencyIsNEAR ? 1 : await getNetWithdrawalPrice(convertToCurrency, datestring);
     const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal / 1e+24));
 
     return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
