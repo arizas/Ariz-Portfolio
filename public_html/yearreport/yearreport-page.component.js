@@ -1,4 +1,4 @@
-import { getEODPrice, getNetWithdrawalPrice } from '../pricedata/pricedata.js';
+import { getEODPrice, getCustomSellPrice } from '../pricedata/pricedata.js';
 import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay } from './yearreportdata.js';
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';

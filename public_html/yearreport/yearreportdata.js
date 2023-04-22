@@ -1,6 +1,6 @@
 import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
-import { getEODPrice, getNetWithdrawalPrice, getNetDepositPrice } from '../pricedata/pricedata.js';
+import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 
 export async function calculateYearReportData() {
     const accounts = await getAccounts();
@@ -151,7 +151,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
             let dayRealizedAmount = 0;
 
             dailyEntry.realizations = [];
-            const conversionRate = await getNetWithdrawalPrice(targetCurrency, datestring);
+            const conversionRate = await getCustomSellPrice(targetCurrency, datestring);
             while (openPositions.length > 0 && dayRealizedAmount < dailyEntry.withdrawal) {
                 const position = openPositions[0];
                 if ((dayRealizedAmount + position.remainingAmount) > dailyEntry.withdrawal) {
@@ -230,9 +230,9 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
 
 
     const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
-    const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getNetDepositPrice(convertToCurrency, datestring);
+    const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
-    const withdrawalConversionRate = convertToCurrencyIsNEAR ? 1 : await getNetWithdrawalPrice(convertToCurrency, datestring);
+    const withdrawalConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomSellPrice(convertToCurrency, datestring);
     const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal / 1e+24));
 
     return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };

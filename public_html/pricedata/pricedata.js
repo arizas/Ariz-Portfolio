@@ -1,10 +1,15 @@
-import { getNetConversions, setNetConversions } from "../storage/domainobjectstore.js";
+import { getCustomExchangeRates, setCustomExchangeRates } from "../storage/domainobjectstore.js";
 
 const cachedPricesPerCurrency = {};
+let cachedCurrencyList;
 
 export async function getCurrencyList() {
+    if (cachedCurrencyList) {
+        return cachedCurrencyList;
+    }
     const current_prices = (await (await fetch('https://api.coingecko.com/api/v3/coins/near')).json()).market_data.current_price;
-    return Object.keys(current_prices);
+    cachedCurrencyList = Object.keys(current_prices)
+    return cachedCurrencyList;
 }
 
 export async function getHistoricalPrices(currency) {
@@ -25,34 +30,34 @@ export async function getEODPrice(currency, datestring) {
     }
 }
 
-export async function getNetWithdrawalPrice(currency, datestring) {
-    const netConversions = await getNetConversions();
-    return netConversions[currency]?.[datestring]?.withdrawal ?? await getEODPrice(currency, datestring);
+export async function getCustomSellPrice(currency, datestring) {
+    const customExchangeRates = await getCustomExchangeRates();
+    return customExchangeRates[currency]?.[datestring]?.withdrawal ?? await getEODPrice(currency, datestring);
 }
 
-export async function getNetDepositPrice(currency, datestring) {
-    const netConversions = await getNetConversions();
-    return netConversions[currency]?.[datestring]?.deposit ?? await getEODPrice(currency, datestring);
+export async function getCustomBuyPrice(currency, datestring) {
+    const customExchangeRates = await getCustomExchangeRates();
+    return customExchangeRates[currency]?.[datestring]?.deposit ?? await getEODPrice(currency, datestring);
 }
 
-export async function setNetWithdrawalPrice(currency, datestring, quantity, totalAmount) {
-    const withdrawalPrice = totalAmount / (quantity / 1e+24);
+export async function setCustomExchangeRateSell(currency, datestring, quantity, totalAmount) {
+    const price = totalAmount / (quantity / 1e+24);
 
-    const netConversions = await getNetConversions();
-    if (!netConversions[currency]) {
-        netConversions[currency] = {};
+    const customExchangeRates = await getCustomExchangeRates();
+    if (!customExchangeRates[currency]) {
+        customExchangeRates[currency] = {};
     }
-    netConversions[currency][datestring] = { withdrawal: withdrawalPrice, withdrawalQuantity: quantity };
-    await setNetConversions(netConversions);
+    customExchangeRates[currency][datestring] = { withdrawal: price, withdrawalQuantity: quantity };
+    await setCustomExchangeRates(customExchangeRates);
 }
 
-export async function setNetDepositPrice(currency, datestring, quantity, totalAmount) {
-    const depositPrice = totalAmount / (quantity / 1e+24);
+export async function setCustomExchangeRateBuy(currency, datestring, quantity, totalAmount) {
+    const price = totalAmount / (quantity / 1e+24);
 
-    const netConversions = await getNetConversions();
-    if (!netConversions[currency]) {
-        netConversions[currency] = {};
+    const customExchangeRates = await getCustomExchangeRates();
+    if (!customExchangeRates[currency]) {
+        customExchangeRates[currency] = {};
     }
-    netConversions[currency][datestring] = { deposit: depositPrice, depositQuantiy: quantity };
-    await setNetConversions(netConversions);
+    customExchangeRates[currency][datestring] = { deposit: price, depositQuantiy: quantity };
+    await setCustomExchangeRates(customExchangeRates);
 }

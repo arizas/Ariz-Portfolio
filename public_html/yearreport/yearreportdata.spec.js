@@ -1,7 +1,7 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
 import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
-import { setNetWithdrawalPrice } from '../pricedata/pricedata.js';
+import { setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
     it('should get daily account balance report for psalomo.near', async () => {
@@ -218,8 +218,8 @@ describe('year-report-data', () => {
         await setAccounts([account]);
         await writeTransactions(account, transactionsWithDeposits);
 
-        await setNetWithdrawalPrice('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
-        await setNetWithdrawalPrice('NOK','2022-08-21', 2.000000849110125e+26, 8200);
+        await setCustomExchangeRateSell('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
+        await setCustomExchangeRateSell('NOK','2022-08-21', 2.000000849110125e+26, 8200);
         const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
 
         const yearReportData = dailyBalances;

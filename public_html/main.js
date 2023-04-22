@@ -3,6 +3,7 @@ import './near/stakingpool.js';
 import './accounts/accounts-page.component.js';
 import './transactions/transactions-page.component.js';
 import './stakingview/staking-page.component.js';
+import './customexchangerates/customexchangerates-page.component.js';
 import './storage/storage-page.component.js';
 import './yearreport/yearreport-page.component.js';
 import { getCurrencyList } from './pricedata/pricedata.js';
