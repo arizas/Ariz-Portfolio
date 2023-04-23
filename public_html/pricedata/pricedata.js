@@ -32,12 +32,12 @@ export async function getEODPrice(currency, datestring) {
 
 export async function getCustomSellPrice(currency, datestring) {
     const customExchangeRates = await getCustomExchangeRates();
-    return customExchangeRates[currency]?.[datestring]?.withdrawal ?? await getEODPrice(currency, datestring);
+    return customExchangeRates[currency]?.[datestring]?.sell ?? await getEODPrice(currency, datestring);
 }
 
 export async function getCustomBuyPrice(currency, datestring) {
     const customExchangeRates = await getCustomExchangeRates();
-    return customExchangeRates[currency]?.[datestring]?.deposit ?? await getEODPrice(currency, datestring);
+    return customExchangeRates[currency]?.[datestring]?.buy ?? await getEODPrice(currency, datestring);
 }
 
 export async function setCustomExchangeRateSell(currency, datestring, quantity, totalAmount) {
@@ -47,7 +47,7 @@ export async function setCustomExchangeRateSell(currency, datestring, quantity, 
     if (!customExchangeRates[currency]) {
         customExchangeRates[currency] = {};
     }
-    customExchangeRates[currency][datestring] = { withdrawal: price, withdrawalQuantity: quantity };
+    customExchangeRates[currency][datestring] = { sell: price };
     await setCustomExchangeRates(customExchangeRates);
 }
 
@@ -58,6 +58,6 @@ export async function setCustomExchangeRateBuy(currency, datestring, quantity, t
     if (!customExchangeRates[currency]) {
         customExchangeRates[currency] = {};
     }
-    customExchangeRates[currency][datestring] = { deposit: price, depositQuantiy: quantity };
+    customExchangeRates[currency][datestring] = { buy: price };
     await setCustomExchangeRates(customExchangeRates);
 }

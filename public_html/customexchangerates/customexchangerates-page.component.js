@@ -26,7 +26,7 @@ customElements.define('customexchangerates-page',
             const customExchangeRatesTable = Array.from(this.customExchangeRatesTable.children).map(row => ({
                 date: row.querySelector('.customexchangeratedate').value,
                 currency: row.querySelector('.customexchangeratecurrency').value,
-                price: row.querySelector('.customexchangerateprice  ').value,
+                price: row.querySelector('.customexchangerateprice  ').valueAsNumber,
                 buysell: row.querySelector('.customexchangeratebuysell').value
             }));
             await setCustomExchangeRatesFromTable(customExchangeRatesTable);
