@@ -54,6 +54,11 @@ return <iframe style={{ width: "100%", height: "600px" }}
             targets: [
                 { src: 'public_html/serviceworker.js', dest: 'dist/' },
             ]
+        }),
+        copy({
+            targets: [
+                { src: 'public_html/sandboxiframe.html', dest: 'dist/' },
+            ]
         })
     ]
 };
