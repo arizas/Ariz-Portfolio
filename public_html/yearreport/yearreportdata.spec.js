@@ -1,5 +1,7 @@
-import { calculateProfitLoss, calculateYearReportData } from './yearreportdata.js';
+import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
 import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions } from '../storage/domainobjectstore.js';
+import { transactionsWithDeposits } from './yearreporttestdata.js'
+import { setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
     it('should get daily account balance report for psalomo.near', async () => {
@@ -207,5 +209,57 @@ describe('year-report-data', () => {
         expect(dailydata['2022-09-15'].stakingBalance).toBe(1.5110166536686937e+26);
         expect(dailydata['2022-09-16'].stakingEarnings).toBe(dailydata['2022-09-16'].stakingBalance - dailydata['2022-09-15'].stakingBalance);
         expect(dailydata['2022-09-15'].stakingEarnings).toBe(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
+    }, 60000);
+    it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async () => {
+        const account = '6f32d9832f4b08752106a782aad702a3210e47906fce4a0cab7528feabd5736e';
+        const convertToCurrency = 'NOK';
+        const currentYear = 2022;
+
+        await setAccounts([account]);
+        await writeTransactions(account, transactionsWithDeposits);
+
+        await setCustomExchangeRateSell('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
+        await setCustomExchangeRateSell('NOK','2022-08-21', 2.000000849110125e+26, 8200);
+        const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
+
+        const yearReportData = dailyBalances;
+
+        let currentDate = new Date().getFullYear() === currentYear ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${currentYear}-12-31`);
+        const endDate = new Date(`${currentYear}-01-01`);
+
+        let totalDeposit = 0;
+        let totalWithdrawal = 0;
+        let totalProfit = 0;
+        let totalLoss = 0;
+
+        while (currentDate.getTime() >= endDate) {
+            const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+
+            const rowdata = yearReportData[datestring];
+
+            const { deposit, withdrawal } = await getConvertedValuesForDay(rowdata, convertToCurrency, datestring);
+
+            totalDeposit += deposit;
+            totalWithdrawal += withdrawal;
+            totalProfit += rowdata.profit ?? 0;
+            totalLoss += rowdata.loss ?? 0;
+
+            currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
+        }
+
+        let nearValues = yearReportData['2022-02-25'];
+        let convertedValues = await getConvertedValuesForDay(yearReportData['2022-02-25'], 'NOK', '2022-02-25');
+        expect(nearValues.withdrawal).toBe(1.681520098881095e+25);
+        expect(convertedValues.withdrawal).toBe(1285);
+        expect(nearValues.loss).toBeCloseTo((nearValues.withdrawal * nearValues.realizations[0].position.conversionRate / 1e24) - 1285, 12);
+
+        nearValues = yearReportData['2022-08-21'];
+        convertedValues = await getConvertedValuesForDay(yearReportData['2022-08-21'], 'NOK', '2022-08-21');
+        expect(nearValues.withdrawal).toBe(2.000000849110125e+26);
+        expect(convertedValues.withdrawal).toBe(8200);
+
+        expect((nearValues.profit - nearValues.loss)).toBeCloseTo(8200 - (nearValues.realizations.reduce((p, c) => {
+            return p + c.initialConvertedValue;
+        }, 0)), 12);
     }, 60000);
 });

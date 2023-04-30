@@ -5,6 +5,7 @@ import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
+export const customexchangeratesfile = 'customexchangerates.json';
 
 export async function getAccounts() {
     return JSON.parse(await readTextFile(accountsconfigfile));
@@ -78,4 +79,56 @@ export async function writeStakingData(account, stakingpool_id, stakingData) {
     }
     const stakingDataPath = getStakingDataPath(account, stakingpool_id);
     await writeFile(stakingDataPath, JSON.stringify(stakingData, null, 1));
+}
+
+export async function getCustomExchangeRates() {
+    if ((await exists(customexchangeratesfile))) {
+        return JSON.parse(await readTextFile(customexchangeratesfile));
+    } else {
+        return {};
+    }
+}
+
+export async function setCustomExchangeRates(customExchangeRates) {
+    await writeFile(customexchangeratesfile, JSON.stringify(customExchangeRates, null, 1));
+}
+
+export async function setCustomExchangeRatesFromTable(customExchangeRatesTable) {
+    const customExchangeRates = {};
+    customExchangeRatesTable.forEach(customExchangeRate => {
+        if (!customExchangeRates[customExchangeRate.currency]) {
+            customExchangeRates[customExchangeRate.currency] = {};
+        }
+        customExchangeRates[customExchangeRate.currency][customExchangeRate.date] = {
+            buy: customExchangeRate.buysell == 'buy' ? customExchangeRate.price : undefined,
+            sell: customExchangeRate.buysell == 'sell' ? customExchangeRate.price : undefined,
+        };
+    });
+    await setCustomExchangeRates(customExchangeRates);
+}
+
+export async function getCustomExchangeRatesAsTable() {
+    const customExchangeRates = await getCustomExchangeRates();
+    const customExchangeRatesTable = [];
+    Object.keys(customExchangeRates).forEach(currency => {
+        Object.keys(customExchangeRates[currency]).forEach(date => {
+            if (customExchangeRates[currency][date].buy) {
+                customExchangeRatesTable.push({
+                    date,
+                    currency,
+                    price: customExchangeRates[currency][date].buy,
+                    buysell: 'buy'
+                });
+            }
+            if (customExchangeRates[currency][date].sell) {
+                customExchangeRatesTable.push({
+                    date,
+                    currency,
+                    price: customExchangeRates[currency][date].sell,
+                    buysell: 'sell'
+                });
+            }
+        });
+    });
+    return customExchangeRatesTable;
 }

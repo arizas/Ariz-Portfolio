@@ -1,6 +1,6 @@
 import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
-import { getEODPrice } from '../pricedata/pricedata.js';
+import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 
 export async function calculateYearReportData() {
     const accounts = await getAccounts();
@@ -151,7 +151,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
             let dayRealizedAmount = 0;
 
             dailyEntry.realizations = [];
-            const conversionRate = await getEODPrice(targetCurrency, datestring);
+            const conversionRate = await getCustomSellPrice(targetCurrency, datestring);
             while (openPositions.length > 0 && dayRealizedAmount < dailyEntry.withdrawal) {
                 const position = openPositions[0];
                 if ((dayRealizedAmount + position.remainingAmount) > dailyEntry.withdrawal) {
@@ -170,6 +170,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
                     const realizationEntry = {
                         date: datestring,
                         amount: partlyRealizedPositionAmount,
+                        initialConvertedValue: partlyRealizedPositionInitialConvertedValue,
                         convertedValue: partlyRealizedPositionRealizedConvertedValue,
                         profit: profitLoss >= 0 ? profitLoss : 0,
                         conversionRate: conversionRate,
@@ -185,7 +186,8 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
                     dayRealizedAmount += position.remainingAmount;
 
                     const convertedValue = conversionRate * (position.remainingAmount / 1e+24);
-                    const profitLoss = convertedValue - position.convertedValue * (position.remainingAmount / position.initialAmount);
+                    const initialConvertedValue = position.convertedValue * (position.remainingAmount / position.initialAmount);
+                    const profitLoss = convertedValue - initialConvertedValue;
                     if (profitLoss >= 0) {
                         dayProfit += profitLoss;
                     } else {
@@ -195,6 +197,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
                         date: datestring,
                         amount: position.remainingAmount,
                         convertedValue: convertedValue,
+                        initialConvertedValue,
                         conversionRate: conversionRate,
                         profit: profitLoss >= 0 ? profitLoss : 0,
                         loss: profitLoss < 0 ? -profitLoss : 0,
@@ -219,4 +222,18 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
         }
     }
     return { openPositions, closedPositions, dailyBalances };
+}
+
+export async function getConvertedValuesForDay(rowdata, convertToCurrency, datestring) {
+    const convertToCurrencyIsNEAR = convertToCurrency == 'near';
+    const conversionRate = convertToCurrencyIsNEAR ? 1 : await getEODPrice(convertToCurrency, datestring);
+
+
+    const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
+    const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
+    const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
+    const withdrawalConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomSellPrice(convertToCurrency, datestring);
+    const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal / 1e+24));
+
+    return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
 }
