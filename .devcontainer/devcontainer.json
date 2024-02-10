@@ -1,0 +1,6 @@
+{
+    "customizations": {
+        
+    },
+    "postCreateCommand": "./.devcontainer/post-create.sh"
+}
