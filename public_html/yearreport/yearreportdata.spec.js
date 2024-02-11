@@ -52,7 +52,7 @@ describe('year-report-data', () => {
         const dailydata = await calculateYearReportData();
         let compareDate = startDateString;
         while (compareDate.localeCompare('2021-01-01') >= 0) {
-            expect(dailydata[compareDate].accountBalance).toBe(expectedDailyBalance[compareDate]);
+            expect(dailydata[compareDate].accountBalance).to.equal(expectedDailyBalance[compareDate]);
             compareDate = new Date(new Date(compareDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
         }
     });
@@ -107,9 +107,9 @@ describe('year-report-data', () => {
         };
         openPositions.filter(p => p.realizations.length).forEach(p => {
             const sumRealizationsAmount = p.realizations.reduce((p, c) => p + c.amount, 0);
-            expect(p.remainingAmount).toBeGreaterThan(0);
+            expect(p.remainingAmount).to.be.above(0);
             expect(Math.abs(p.remainingAmount - (p.initialAmount - sumRealizationsAmount))).withContext(`open positions remaining amount should equal the initial amount minus realized amount.`)
-                .toBeLessThanOrEqual(1e+12);
+                .to.be.at.most(1e+12);
         });
         closedPositions.forEach(p =>
             p.realizations.forEach(r => {
