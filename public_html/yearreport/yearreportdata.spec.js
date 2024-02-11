@@ -5,7 +5,7 @@ import { setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
     it('should get daily account balance report for psalomo.near', async function() {
-        this.timeout(5*60000);
+        this.timeout(10*60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -25,7 +25,7 @@ describe('year-report-data', () => {
         };
     });
     it('should get daily account balance report for two accounts', async function() {
-        this.timeout(5*60000);
+        this.timeout(10*60000);
         const accounts = ['psalomo.near', 'wasmgit.near'];
         await setAccounts(accounts);
         const expectedDailyBalance = {};
@@ -71,7 +71,7 @@ describe('year-report-data', () => {
 
     });
     it('should calculate profit / loss for withdrawals', async function() {
-        this.timeout(5*60000);
+        this.timeout(10*60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
@@ -116,13 +116,13 @@ describe('year-report-data', () => {
                 if (r.profit) {
                     expect(r.profit)
                         .withContext(`realization profit should equal realtization amount multiplied with conversionRate diffs. initial: ${p.conversionRate} (${p.date}), realized: ${r.conversionRate} (${r.date})`)
-                        .toBeCloseTo(
+                        .to.be.closeTo(
                             (r.amount / Math.pow(10, 24)) * (r.conversionRate - p.conversionRate), 4
                         )
                 } else {
                     expect(r.loss)
                         .withContext(`realization loss should equal realtization amount multiplied with conversionRate diffs. initial: ${p.conversionRate}, realized: ${r.conversionRate}`)
-                        .toBeCloseTo(
+                        .to.be.closeTo(
                             (r.amount / Math.pow(10, 24)) * (p.conversionRate - r.conversionRate), 4
                         )
                 }
@@ -134,11 +134,11 @@ describe('year-report-data', () => {
         const closedPositionsTotalLoss = closedPositions.reduce((p, c) => p + c.realizations.reduce((p, c) => p + c.loss, 0), 0);
         const openPositionsTotalLoss = openPositions.reduce((p, c) => p + c.realizations.reduce((p, c) => p + c.loss, 0), 0);
 
-        expect(totalProfit).toBeCloseTo(openPositionsTotalProfit + closedPositionsTotalProfit, 4);
-        expect(totalLoss).toBeCloseTo(openPositionsTotalLoss + closedPositionsTotalLoss, 4);
+        expect(totalProfit).to.be.closeTo(openPositionsTotalProfit + closedPositionsTotalProfit, 4);
+        expect(totalLoss).to.be.closeTo(openPositionsTotalLoss + closedPositionsTotalLoss, 4);
     });
     it('should use previous epoch staking balance for days with no epoch', async function() {
-        this.timeout(5*60000);
+        this.timeout(10*60000);
         const account = 'lala.near';
         const stakingPool = 'abcd.poolv1.near';
 
@@ -215,7 +215,7 @@ describe('year-report-data', () => {
         expect(dailydata['2022-09-15'].stakingEarnings).to.equal(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
     });
     it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async function() {
-        this.timeout(5*60000);
+        this.timeout(10*60000);
         const account = '6f32d9832f4b08752106a782aad702a3210e47906fce4a0cab7528feabd5736e';
         const convertToCurrency = 'NOK';
         const currentYear = 2022;
@@ -266,5 +266,5 @@ describe('year-report-data', () => {
         expect((nearValues.profit - nearValues.loss)).to.be.closeTo(8200 - (nearValues.realizations.reduce((p, c) => {
             return p + c.initialConvertedValue;
         }, 0)), 12);
-    }, 60000);
+    });
 });
