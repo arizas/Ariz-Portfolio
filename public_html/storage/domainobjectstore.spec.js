@@ -1,7 +1,7 @@
 import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable } from './domainobjectstore.js';
 
 describe('domainobjectstore', () => {
-    it('should get and set custom exchange rates from table', async () => {
+    it('should get and set custom exchange rates from table', async function() {
         const customexchangeratestable = [
             {
                 date: '2022-04-14',

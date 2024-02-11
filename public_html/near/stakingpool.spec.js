@@ -3,7 +3,8 @@ import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('stakingpool', () => {
-    it('it should fetch staking balances', async () => {
+    it('it should fetch staking balances', async function() {
+        this.timeout(180000);
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 
@@ -32,11 +33,12 @@ describe('stakingpool', () => {
                 stakingBalanceEntry.withdrawal
             );
         }
-    }, 180000);
+    });
 
-    it('it should identity staking pool accounts in transactions', async () => {
+    it('it should identity staking pool accounts in transactions', async function() {
+        this.timeout(180000);
         const transactions = await getTransactionsToDate('psalomo.near', new Date('2021-05-01').getTime() * 1_000_000);
         const stakingAccounts = findStakingPoolsInTransactions(transactions);
         expect(stakingAccounts.filter(a => a.endsWith('.poolv1.near')).length).toBe(stakingAccounts.length);
-    }, 180000);
+    });
 });
