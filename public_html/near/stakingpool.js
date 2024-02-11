@@ -1,11 +1,12 @@
 import { getTransactionsForAccount } from '../storage/domainobjectstore.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { retry } from './retry.js';
+import { getArchiveNodeUrl } from './network.js';
 
 const blocks_per_epoc = {};
 
 async function getBlockInfo(block_id) {
-    return (await fetch('https://archival-rpc.mainnet.near.org', {
+    return (await fetch(getArchiveNodeUrl(), {
         method: 'POST',
         headers: {
             'content-type': 'application/json'
@@ -24,7 +25,7 @@ async function getBlockInfo(block_id) {
 }
 
 async function getAccountBalance(stakingpool_id, account_id, block_id) {
-    return await fetch('https://archival-rpc.mainnet.near.org', {
+    return await fetch(getArchiveNodeUrl(), {
         method: 'POST',
         headers: {
             'content-type': 'application/json'
