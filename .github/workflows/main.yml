@@ -10,10 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Detect use of fdescribe,fit
+      - name: Detect use of .only
         run: |
-          grep -rq --include '*.spec.js' \fit\( . && echo 'You have fit() in your tests!' && exit 1
-          grep -rq --include '*.spec.js' \fdescribe\( . && echo 'You have fdescribe() in your tests!' && exit 1
+          grep -rq --include '*.spec.js' \.only\( . && echo 'You have .only() in your tests!' && exit 1
           exit 0
   chromeheadless:
     name: Chrome headless
@@ -23,4 +22,6 @@ jobs:
       - name: Chrome headless
         run: |
           yarn install
+          yarn playwright install-deps
+          yarn playwright install
           yarn test
