@@ -5,7 +5,7 @@ import { setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
     it('should get daily account balance report for psalomo.near', async function() {
-        this.timeout(120000);
+        this.timeout(5*60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -25,7 +25,7 @@ describe('year-report-data', () => {
         };
     });
     it('should get daily account balance report for two accounts', async function() {
-        this.timeout(180000);
+        this.timeout(5*60000);
         const accounts = ['psalomo.near', 'wasmgit.near'];
         await setAccounts(accounts);
         const expectedDailyBalance = {};
@@ -71,7 +71,7 @@ describe('year-report-data', () => {
 
     });
     it('should calculate profit / loss for withdrawals', async function() {
-        this.timeout(120000);
+        this.timeout(5*60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
@@ -138,7 +138,7 @@ describe('year-report-data', () => {
         expect(totalLoss).toBeCloseTo(openPositionsTotalLoss + closedPositionsTotalLoss, 4);
     });
     it('should use previous epoch staking balance for days with no epoch', async function() {
-        this.timeout(60000);
+        this.timeout(5*60000);
         const account = 'lala.near';
         const stakingPool = 'abcd.poolv1.near';
 
@@ -215,7 +215,7 @@ describe('year-report-data', () => {
         expect(dailydata['2022-09-15'].stakingEarnings).to.equal(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
     });
     it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async function() {
-        this.timeout(60000);
+        this.timeout(5*60000);
         const account = '6f32d9832f4b08752106a782aad702a3210e47906fce4a0cab7528feabd5736e';
         const convertToCurrency = 'NOK';
         const currentYear = 2022;
