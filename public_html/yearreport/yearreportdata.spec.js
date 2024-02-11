@@ -55,8 +55,8 @@ describe('year-report-data', () => {
             expect(dailydata[compareDate].accountBalance).toBe(expectedDailyBalance[compareDate]);
             compareDate = new Date(new Date(compareDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
         }
-    }, 120000);
-    it('should not report transfers between own accounts as deposits/withdrawals', async () => {
+    });
+    it('should not report transfers between own accounts as deposits/withdrawals', async function() {
         const accounts = ['psalomo.near', 'petersalomonsen.near'];
         const verifyDate = '2021-07-24';
         await setAccounts(accounts);

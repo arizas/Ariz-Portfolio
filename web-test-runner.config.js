@@ -7,6 +7,12 @@ export default {
   ],
   concurrency: 1,
   watch: false,
+  testFramework: {
+    config: {
+      ui: 'bdd',
+      timeout: '20000',
+    },
+  },
   testRunnerHtml: testRunnerImport =>
     `<html>
       <body>
