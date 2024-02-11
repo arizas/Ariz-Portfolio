@@ -4,7 +4,7 @@ import { fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('stakingpool', () => {
     it('it should fetch staking balances', async function() {
-        this.timeout(10*60000);
+        this.timeout(20*60000);
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 

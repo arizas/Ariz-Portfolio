@@ -32,5 +32,5 @@ export default {
       }
     })*/
   ],
-  testsFinishTimeout: 20*60000
+  testsFinishTimeout: 30*60000
 };

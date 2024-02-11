@@ -29,7 +29,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
     });
 
     it('should get correct account balance after receipts are executed', async function() {
-        this.timeout(5*60000);
+        this.timeout(20*60000);
         await fetchTransactionsForAccount(account, 1626977729473574682);
         const transactions = await getTransactionsForAccount(account);
         const chainedTx = transactions.filter(tx => tx.hash == 'Eepx9H8NJ5mxqtSrHojcuV3KZj9y5q6q4oFNWcbGJpnc');
@@ -49,7 +49,7 @@ describe('nearaccount transactions psalomo.near', function () {
     let transactions = [];
     const account = 'psalomo.near';
     it('should get transactions for psalomo.near', async function() {
-        this.timeout(5*60000);
+        this.timeout(10*60000);
         transactions = await getTransactionsToDate('psalomo.near', new Date('2021-04-01').getTime() * 1_000_000, [], 20);
         expect(transactions.find(t => t.args.method_name == 'buy_token' && t.block_timestamp == '1615409039200091358')).to.be.ok;
     });
