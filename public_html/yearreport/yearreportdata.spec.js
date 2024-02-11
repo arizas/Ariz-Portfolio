@@ -4,7 +4,8 @@ import { transactionsWithDeposits } from './yearreporttestdata.js'
 import { setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
-    it('should get daily account balance report for psalomo.near', async () => {
+    it('should get daily account balance report for psalomo.near', async function() {
+        this.timeout(120000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -22,8 +23,9 @@ describe('year-report-data', () => {
                 prevDate = new Date(new Date(prevDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
             }
         };
-    }, 120000);
-    it('should get daily account balance report for two accounts', async () => {
+    });
+    it('should get daily account balance report for two accounts', async function() {
+        this.timeout(180000);
         const accounts = ['psalomo.near', 'wasmgit.near'];
         await setAccounts(accounts);
         const expectedDailyBalance = {};
@@ -67,8 +69,9 @@ describe('year-report-data', () => {
             Number(dailydata[verifyDate].deposit) / 1e+24,
             Number(dailydata[verifyDate].withdrawal) / 1e+24);
 
-    }, 180000);
-    it('should calculate profit / loss for withdrawals', async () => {
+    });
+    it('should calculate profit / loss for withdrawals', async function() {
+        this.timeout(120000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
@@ -133,8 +136,9 @@ describe('year-report-data', () => {
 
         expect(totalProfit).toBeCloseTo(openPositionsTotalProfit + closedPositionsTotalProfit, 4);
         expect(totalLoss).toBeCloseTo(openPositionsTotalLoss + closedPositionsTotalLoss, 4);
-    }, 120000);
-    it('should use previous epoch staking balance for days with no epoch', async () => {
+    });
+    it('should use previous epoch staking balance for days with no epoch', async function() {
+        this.timeout(60000);
         const account = 'lala.near';
         const stakingPool = 'abcd.poolv1.near';
 
@@ -204,13 +208,14 @@ describe('year-report-data', () => {
         await writeTransactions(account, transactions);
         await writeStakingData(account, stakingPool, stakingBalances);
         const dailydata = await calculateYearReportData();
-        expect(dailydata['2022-09-14'].stakingBalance).toBe(1.5110166536686937e+26);
-        expect(dailydata['2022-09-16'].stakingBalance).toBe(1.5116177505287145e+26);
-        expect(dailydata['2022-09-15'].stakingBalance).toBe(1.5110166536686937e+26);
-        expect(dailydata['2022-09-16'].stakingEarnings).toBe(dailydata['2022-09-16'].stakingBalance - dailydata['2022-09-15'].stakingBalance);
-        expect(dailydata['2022-09-15'].stakingEarnings).toBe(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
-    }, 60000);
-    it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async () => {
+        expect(dailydata['2022-09-14'].stakingBalance).to.equal(1.5110166536686937e+26);
+        expect(dailydata['2022-09-16'].stakingBalance).to.equal(1.5116177505287145e+26);
+        expect(dailydata['2022-09-15'].stakingBalance).to.equal(1.5110166536686937e+26);
+        expect(dailydata['2022-09-16'].stakingEarnings).to.equal(dailydata['2022-09-16'].stakingBalance - dailydata['2022-09-15'].stakingBalance);
+        expect(dailydata['2022-09-15'].stakingEarnings).to.equal(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
+    });
+    it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async function() {
+        this.timeout(60000);
         const account = '6f32d9832f4b08752106a782aad702a3210e47906fce4a0cab7528feabd5736e';
         const convertToCurrency = 'NOK';
         const currentYear = 2022;
@@ -249,16 +254,16 @@ describe('year-report-data', () => {
 
         let nearValues = yearReportData['2022-02-25'];
         let convertedValues = await getConvertedValuesForDay(yearReportData['2022-02-25'], 'NOK', '2022-02-25');
-        expect(nearValues.withdrawal).toBe(1.681520098881095e+25);
-        expect(convertedValues.withdrawal).toBe(1285);
-        expect(nearValues.loss).toBeCloseTo((nearValues.withdrawal * nearValues.realizations[0].position.conversionRate / 1e24) - 1285, 12);
+        expect(nearValues.withdrawal).to.equal(1.681520098881095e+25);
+        expect(convertedValues.withdrawal).to.equal(1285);
+        expect(nearValues.loss).to.be.closeTo((nearValues.withdrawal * nearValues.realizations[0].position.conversionRate / 1e24) - 1285, 12);
 
         nearValues = yearReportData['2022-08-21'];
         convertedValues = await getConvertedValuesForDay(yearReportData['2022-08-21'], 'NOK', '2022-08-21');
-        expect(nearValues.withdrawal).toBe(2.000000849110125e+26);
-        expect(convertedValues.withdrawal).toBe(8200);
+        expect(nearValues.withdrawal).to.equal(2.000000849110125e+26);
+        expect(convertedValues.withdrawal).to.equal(8200);
 
-        expect((nearValues.profit - nearValues.loss)).toBeCloseTo(8200 - (nearValues.realizations.reduce((p, c) => {
+        expect((nearValues.profit - nearValues.loss)).to.be.closeTo(8200 - (nearValues.realizations.reduce((p, c) => {
             return p + c.initialConvertedValue;
         }, 0)), 12);
     }, 60000);
