@@ -19,7 +19,7 @@ describe('year-report-data', () => {
             const txdate = new Date(tx.block_timestamp / 1_000_000).toJSON().substring(0, 'yyyy-MM-dd'.length);
 
             while (txdate.localeCompare(prevDate) <= 0) {
-                expect(dailydata[prevDate].accountBalance).toEqual(BigInt(tx.balance));
+                expect(dailydata[prevDate].accountBalance).to.equal(BigInt(tx.balance));
                 prevDate = new Date(new Date(prevDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
             }
         };
@@ -94,13 +94,13 @@ describe('year-report-data', () => {
             const totalDayLoss = openLossSum + closedLossSum;
 
             if (totalDayAmount || dayentry.withdrawal) {
-                expect(totalDayAmount).withContext(`total realized amount at ${datestring} should equal withdrawal amount. Open position amount ${openPositionAmountSum}, Closed position amount ${closedPositionAmountSum}`).toEqual(dayentry.withdrawal);
+                expect(totalDayAmount).withContext(`total realized amount at ${datestring} should equal withdrawal amount. Open position amount ${openPositionAmountSum}, Closed position amount ${closedPositionAmountSum}`).to.equal(dayentry.withdrawal);
             }
             if (totalDayProfit || dayentry.profit) {
-                expect(totalDayProfit).withContext(`profit for day ${datestring} with withdrawal ${dayentry.withdrawal} and closed profit sum ${closedProfitSum} and open profit sum ${openProfitSum} should equal daily calculated profit`).toEqual(dayentry.profit);
+                expect(totalDayProfit).withContext(`profit for day ${datestring} with withdrawal ${dayentry.withdrawal} and closed profit sum ${closedProfitSum} and open profit sum ${openProfitSum} should equal daily calculated profit`).to.equal(dayentry.profit);
             }
             if (totalDayLoss || dayentry.loss) {
-                expect(totalDayLoss).withContext(`loss for day ${datestring}`).toEqual(dayentry.loss);
+                expect(totalDayLoss).withContext(`loss for day ${datestring}`).to.equall(dayentry.loss);
             }
             totalProfit += dayentry.profit ?? 0;
             totalLoss += dayentry.loss ?? 0;

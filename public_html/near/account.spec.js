@@ -12,7 +12,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         expect(transactions[17].block_timestamp).to.equal('1621757638772495934');
         expect(transactions[18].block_timestamp).to.equal('1621757638772495934');
 
-        expect(transactions.filter(t => t.args?.args_base64 != undefined)).toEqual([]);
+        expect(transactions.filter(t => t.args?.args_base64 != undefined)).to.equal([]);
     });
     it('should get transactions new transactions on the next date', async function() {
         this.timeout(5*60000);
