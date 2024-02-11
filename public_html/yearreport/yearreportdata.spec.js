@@ -94,13 +94,13 @@ describe('year-report-data', () => {
             const totalDayLoss = openLossSum + closedLossSum;
 
             if (totalDayAmount || dayentry.withdrawal) {
-                expect(totalDayAmount).withContext(`total realized amount at ${datestring} should equal withdrawal amount. Open position amount ${openPositionAmountSum}, Closed position amount ${closedPositionAmountSum}`).to.equal(dayentry.withdrawal);
+                expect(totalDayAmount, `total realized amount at ${datestring} should equal withdrawal amount. Open position amount ${openPositionAmountSum}, Closed position amount ${closedPositionAmountSum}`).to.equal(dayentry.withdrawal);
             }
             if (totalDayProfit || dayentry.profit) {
-                expect(totalDayProfit).withContext(`profit for day ${datestring} with withdrawal ${dayentry.withdrawal} and closed profit sum ${closedProfitSum} and open profit sum ${openProfitSum} should equal daily calculated profit`).to.equal(dayentry.profit);
+                expect(totalDayProfit, `profit for day ${datestring} with withdrawal ${dayentry.withdrawal} and closed profit sum ${closedProfitSum} and open profit sum ${openProfitSum} should equal daily calculated profit`).to.equal(dayentry.profit);
             }
             if (totalDayLoss || dayentry.loss) {
-                expect(totalDayLoss).withContext(`loss for day ${datestring}`).to.equall(dayentry.loss);
+                expect(totalDayLoss, `loss for day ${datestring}`).to.equall(dayentry.loss);
             }
             totalProfit += dayentry.profit ?? 0;
             totalLoss += dayentry.loss ?? 0;
@@ -108,20 +108,18 @@ describe('year-report-data', () => {
         openPositions.filter(p => p.realizations.length).forEach(p => {
             const sumRealizationsAmount = p.realizations.reduce((p, c) => p + c.amount, 0);
             expect(p.remainingAmount).to.be.above(0);
-            expect(Math.abs(p.remainingAmount - (p.initialAmount - sumRealizationsAmount))).withContext(`open positions remaining amount should equal the initial amount minus realized amount.`)
+            expect(Math.abs(p.remainingAmount - (p.initialAmount - sumRealizationsAmount)), `open positions remaining amount should equal the initial amount minus realized amount.`)
                 .to.be.at.most(1e+12);
         });
         closedPositions.forEach(p =>
             p.realizations.forEach(r => {
                 if (r.profit) {
-                    expect(r.profit)
-                        .withContext(`realization profit should equal realtization amount multiplied with conversionRate diffs. initial: ${p.conversionRate} (${p.date}), realized: ${r.conversionRate} (${r.date})`)
+                    expect(r.profit, `realization profit should equal realtization amount multiplied with conversionRate diffs. initial: ${p.conversionRate} (${p.date}), realized: ${r.conversionRate} (${r.date})`)
                         .to.be.closeTo(
                             (r.amount / Math.pow(10, 24)) * (r.conversionRate - p.conversionRate), 4
                         )
                 } else {
-                    expect(r.loss)
-                        .withContext(`realization loss should equal realtization amount multiplied with conversionRate diffs. initial: ${p.conversionRate}, realized: ${r.conversionRate}`)
+                    expect(r.loss, `realization loss should equal realtization amount multiplied with conversionRate diffs. initial: ${p.conversionRate}, realized: ${r.conversionRate}`)
                         .to.be.closeTo(
                             (r.amount / Math.pow(10, 24)) * (p.conversionRate - r.conversionRate), 4
                         )
