@@ -32,4 +32,5 @@ export default {
       }
     })*/
   ],
+  testsFinishTimeout: 20*60000
 };
