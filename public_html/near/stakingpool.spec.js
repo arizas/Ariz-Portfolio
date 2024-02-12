@@ -19,7 +19,7 @@ describe('stakingpool', () => {
 
         stakingBalances = await fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalances, 37039379);
 
-        expect(stakingBalances.slice(stakingBalances.length - firstStakingBalanceChunk.length)).to.equal(firstStakingBalanceChunk);
+        expect(stakingBalances.slice(stakingBalances.length - firstStakingBalanceChunk.length)).to.deep.equal(firstStakingBalanceChunk);
         expect(stakingBalances.length).to.be.above(firstStakingBalanceChunk.length);
         expect(firstStakingBalance.timestamp.toJSON().substring(0, 'yyyy-mm-dd'.length)).to.equal('2021-02-14');
         expect(stakingBalances[0].timestamp.toJSON().substring(0, 'yyyy-mm-dd'.length)).to.equal('2021-05-05');

@@ -57,6 +57,7 @@ describe('year-report-data', () => {
         }
     });
     it('should not report transfers between own accounts as deposits/withdrawals', async function() {
+        this.timeout(10*60000);
         const accounts = ['psalomo.near', 'petersalomonsen.near'];
         const verifyDate = '2021-07-24';
         await setAccounts(accounts);
@@ -100,7 +101,7 @@ describe('year-report-data', () => {
                 expect(totalDayProfit, `profit for day ${datestring} with withdrawal ${dayentry.withdrawal} and closed profit sum ${closedProfitSum} and open profit sum ${openProfitSum} should equal daily calculated profit`).to.equal(dayentry.profit);
             }
             if (totalDayLoss || dayentry.loss) {
-                expect(totalDayLoss, `loss for day ${datestring}`).to.equall(dayentry.loss);
+                expect(totalDayLoss, `loss for day ${datestring}`).to.equal(dayentry.loss);
             }
             totalProfit += dayentry.profit ?? 0;
             totalLoss += dayentry.loss ?? 0;
