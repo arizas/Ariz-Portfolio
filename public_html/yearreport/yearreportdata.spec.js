@@ -56,7 +56,7 @@ describe('year-report-data', () => {
             compareDate = new Date(new Date(compareDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
         }
     });
-    it.only('should not report transfers between own accounts as deposits/withdrawals', async function() {
+    it('should not report transfers between own accounts as deposits/withdrawals', async function() {
         this.timeout(20*60000);
         const accounts = ['psalomo.near', 'petersalomonsen.near'];
         const verifyDate = '2021-07-24';
