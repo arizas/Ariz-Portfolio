@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Chrome headless
+      - name: Test web components
         run: |
           yarn install
           yarn playwright install-deps
@@ -30,8 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Chrome headless
+      - name: Test BOS E2E
         run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mpeterdev/bos-loader/releases/download/v0.11.0/bos-loader-v0.11.0-installer.sh | sh
           yarn install
           yarn playwright install-deps
           yarn playwright install
