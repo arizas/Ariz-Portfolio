@@ -43,11 +43,6 @@ export default {
                         `<script type="module">${js}</script>`);
                 writeFileSync('dist/index.html', html);
                 unlinkSync(`dist/main.js`);
-                const dataUri = `data:text/html;base64,${Buffer.from(html).toString('base64')}`;
-                writeFileSync(`dist/nearbos.jsx`, `
-return <iframe style={{ width: "100%", height: "600px" }}
-    src="${dataUri}">
-</iframe>;`)
             }
         },
         copy({
