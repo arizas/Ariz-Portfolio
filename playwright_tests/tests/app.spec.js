@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("should open app", async ({ page }) => {
   await page.goto(
-    "/arizas.near/widget/app"
+    "/arizas.near/widget/account_report"
   );
   expect(await page.frameLocator('iframe').getByRole('link', { name: 'NEAR account report' })).toContainText("NEAR account report");
 });
@@ -15,7 +15,7 @@ test("should open accounts page, add account, and load data", async ({ page }) =
   };
 
   await page.goto(
-    "/arizas.near/widget/app"
+    "/arizas.near/widget/account_report"
   );
   await page.frameLocator('iframe').getByRole('link', { name: 'Accounts' }).click();
   await pause500ifRecordingVideo();

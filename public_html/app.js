@@ -50,6 +50,15 @@ class AppNearNumbersComponent extends HTMLElement {
             goToPage(location.href.substring(baseurl.length));
         }
 
+        this.shadowRoot.querySelectorAll('a').forEach(a => {
+            if (a.dataset['page']) {
+                a.onclick = (evt) => {
+                    evt.preventDefault();
+                    window.goToPage(a.dataset['page']);
+                }
+            }
+        });
+
         const init = (async () => {
             if (await exists(accountsconfigfile)) {
                 config.setAccounts(await getAccounts());
@@ -94,31 +103,4 @@ class AppNearNumbersComponent extends HTMLElement {
     }
 }
 
-customElements.define('app-near-numbers', AppNearNumbersComponent);
-
-if (window.top == window) {
-    const registerServiceWorker = async () => {
-        if ("serviceWorker" in navigator) {
-            try {
-                const registration = await navigator.serviceWorker.register(baseurl + "serviceworker.js", {
-                    scope: baseurl,
-                });
-                registration.onupdatefound = () => {
-                    console.log('update available');
-                };
-                if (registration.installing) {
-                    console.log("Service worker installing");
-                } else if (registration.waiting) {
-                    console.log("Service worker installed");
-                } else if (registration.active) {
-                    console.log("Service worker active");
-                    await registration.update();
-                }
-
-            } catch (error) {
-                console.error(`Registration failed with ${error}`);
-            }
-        }
-    };
-    registerServiceWorker();
-}
+customElements.define('app-near-account-report', AppNearNumbersComponent);

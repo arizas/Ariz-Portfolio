@@ -13,7 +13,7 @@ server.listen(8080, () => {
   console.log("HTTP server is listening on port 8080");
 });
 
-const bosLoader = spawn(`${homedir()}/.cargo/bin/bos-loader`, ["arizas.near", "--path", "./bos_components/account-report"], { stdio: "inherit" });
+const bosLoader = spawn(`${homedir()}/.cargo/bin/bos-loader`, ["arizas.near", "--path", "./bos_components"], { stdio: "inherit" });
 
 bosLoader.on("close", (code) => {
   console.log(`bosLoader process exited with code ${code}`);

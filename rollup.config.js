@@ -37,12 +37,12 @@ export default {
         {
             name: 'inline-js',
             closeBundle: () => {
-                const js = readFileSync('dist/main.js').toString();
+                const js = readFileSync('dist/app.js').toString();
                 const html = readFileSync('dist/index.html').toString()
-                    .replace(`<script type="module" src="./main.js"></script>`,
+                    .replace(`<script type="module" src="./app.js"></script>`,
                         `<script type="module">${js}</script>`);
                 writeFileSync('dist/index.html', html);
-                unlinkSync(`dist/main.js`);
+                unlinkSync(`dist/app.js`);
             }
         },
         copy({
