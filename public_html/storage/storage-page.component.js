@@ -1,4 +1,4 @@
-import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js';
+import 'https://cdn.jsdelivr.net/npm/near-api-js@3.0.4/dist/near-api-js.min.js';
 import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
@@ -8,21 +8,17 @@ const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
     walletUrl: 'https://wallet.near.org',
     helperUrl: 'https://helper.mainnet.near.org',
+    networkId: 'mainnet',
     contractName: 'wasmgit.near',
     deps: {}
 };
 
 export const walletConnectionPromise = new Promise(async resolve => {
-    if (window.top == window) {
-        nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
-        const near = await nearApi.connect(nearconfig);
-        const wc = new nearApi.WalletConnection(near);
+    nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
+    const near = await nearApi.connect(nearconfig);
+    const wc = new nearApi.WalletConnection(near, 'wasmgit');
 
-        resolve(wc);
-    } else {
-        console.log('wallet connection not supported in inframe');
-        resolve(null);
-    }
+    resolve(wc);
 });
 
 
@@ -71,22 +67,8 @@ customElements.define('storage-page',
             if (window.top == window) {
                 if ((await walletConnectionPromise).getAccountId()) {
                     this.loadAccountData();
-                    this.logoutbutton.addEventListener('click', async () => {
-                        (await walletConnectionPromise).signOut();
-                        console.log('logged out');
-                        this.loginbutton.style.display = 'block';
-                        this.logoutbutton.style.display = 'none';
-                    });
                 } else {
                     console.log('no loggedin user');
-                    this.logoutbutton.style.display = 'none';
-                    this.loginbutton.addEventListener('click', async () => {
-                        await (await walletConnectionPromise).requestSignIn(
-                            nearconfig.contractName,
-                            'wasm-git'
-                        );
-                        this.loadAccountData();
-                    });
                     return;
                 }
 
@@ -131,7 +113,7 @@ customElements.define('storage-page',
             let currentUser = {
                 accountId: walletConnection.getAccountId()
             };
-            this.loginbutton.style.display = 'none';
+
             this.shadowRoot.querySelector('#currentuserspan').innerHTML = `Logged in as ${currentUser.accountId}`;
 
             const accessToken = await createAccessToken();

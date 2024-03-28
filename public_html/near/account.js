@@ -44,36 +44,64 @@ export async function viewAccount(block_id, account_id) {
     }).then(r => r.json())).result;
 }
 
-export async function getHelperAccountHistory(account_id, maxentries = 100, offset_timestamp = new Date().getTime() * 1_000_000) {
-    return await fetch(`${getHelperNodeUrl()}/account/${account_id}/activity?offset=${offset_timestamp}&limit=${maxentries}`).then(r => r.json());
+export async function getNearblocksAccountHistory(account_id, maxentries = 25, page = 1) {
+    const url = `https://api.nearblocks.io/v1/account/${account_id}/txns?page=${page}&per_page=${maxentries}&order=desc`;
+    for (let n = 0; n < 5; n++) {
+        try {
+            const result = (await fetch(url, {
+                mode: 'cors'
+            }).then(r => r.json())).txns.map(tx => (
+                {
+                    "block_hash": tx.included_in_block_hash,
+                    "block_timestamp": tx.block_timestamp,
+                    "hash": tx.transaction_hash,
+                    "signer_id": tx.predecessor_account_id,
+                    "receiver_id": tx.receiver_account_id,
+                    "action_kind": tx.actions[0].action,
+                    "args": {
+                        "method_name": tx.actions[0].method
+                    }
+                }
+            ));
+            return result;
+        } catch (e) {
+            console.error('error', e, 'retry in 30 seconds', (n + 1));
+            await new Promise(resolve => setTimeout(() => resolve(), 30_000));
+        }
+    }
 }
 
-
-export async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 100) {
-    let accountHistory = await getHelperAccountHistory(account, CHUNK_SIZE, offset_timestamp);
+export async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 25, startPage = 1) {
+    CHUNK_SIZE = 25;
+    let page = startPage;    
+    let accountHistory = await getNearblocksAccountHistory(account, CHUNK_SIZE, page);
     let insertIndex = 0;
 
     while (true) {
         let newTransactionsAdded = 0;
+        let transactionsSkipped = 0;
         for (let n = 0; n < accountHistory.length; n++) {
             const historyLine = accountHistory[n];
-            if (!transactions.find(t => t.hash == historyLine.hash && t.action_index == historyLine.action_index
-                && historyLine.block_hash == t.block_hash && t.action_kind == historyLine.action_kind
-                && t.signer_id == historyLine.signer_id)) {
-                historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash));
-                if (historyLine.args) {
-                    delete historyLine.args.args_base64;
+            if (BigInt(historyLine.block_timestamp) > BigInt(offset_timestamp)) {
+                transactionsSkipped++;
+            } else {
+                const existingTransaction = transactions.find(t => t.hash == historyLine.hash);
+                if (!existingTransaction) {
+                    historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash));
+                    transactions.splice(insertIndex++, 0, historyLine);
+                    offset_timestamp = BigInt(historyLine.block_timestamp) + 1n;
+                    newTransactionsAdded++;    
+                } else if (BigInt(historyLine.block_timestamp) < BigInt(existingTransaction.block_timestamp)) {
+                    Object.assign(existingTransaction, historyLine);
                 }
-                transactions.splice(insertIndex++, 0, historyLine);
-                offset_timestamp = parseInt(historyLine.block_timestamp) + 1;
-                newTransactionsAdded++;
             }
             setProgressbarValue(n / accountHistory.length, `${account} ${new Date(historyLine.block_timestamp / 1_000_000).toDateString()}`)
         }
-        if (newTransactionsAdded == 0) {
+        if (transactionsSkipped == 0 && newTransactionsAdded == 0) {
             break;
         }
-        accountHistory = await getHelperAccountHistory(account, CHUNK_SIZE, offset_timestamp);
+        page++;
+        accountHistory = await getNearblocksAccountHistory(account, CHUNK_SIZE, page);
     }
     return transactions;
 }

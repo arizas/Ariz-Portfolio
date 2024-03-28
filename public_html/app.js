@@ -47,7 +47,7 @@ class AppNearNumbersComponent extends HTMLElement {
         }
 
         if (location.href != baseurl) {
-            goToPage(location.href.substring(baseurl.length));
+            goToPage(location.href.substring(baseurl.length).replace(/\/$/,''));
         }
 
         this.shadowRoot.querySelectorAll('a').forEach(a => {
