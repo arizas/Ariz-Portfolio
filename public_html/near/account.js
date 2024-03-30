@@ -91,8 +91,6 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
                     transactions.splice(insertIndex++, 0, historyLine);
                     offset_timestamp = BigInt(historyLine.block_timestamp) + 1n;
                     newTransactionsAdded++;    
-                } else if (BigInt(historyLine.block_timestamp) < BigInt(existingTransaction.block_timestamp)) {
-                    Object.assign(existingTransaction, historyLine);
                 }
             }
             setProgressbarValue(n / accountHistory.length, `${account} ${new Date(historyLine.block_timestamp / 1_000_000).toDateString()}`)

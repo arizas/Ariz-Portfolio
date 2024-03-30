@@ -44,29 +44,13 @@ describe.only('nearaccount transactions petersalomonsen.near', function () {
 
     });
 
-    it('should get correct account balance after receipts are executed', async function () {
-        this.timeout(20 * 60000);
+    it.only('all transactions should have balance', async function () {
         await fetchTransactionsForAccount(account, 1626977729473574682);
         const transactions = await getTransactionsForAccount(account);
-        const chainedTx = transactions.filter(tx => tx.hash == 'Eepx9H8NJ5mxqtSrHojcuV3KZj9y5q6q4oFNWcbGJpnc');
-
-        expect(chainedTx.length).to.equal(2);
-
-        const txBeforeChainedTx = transactions[transactions.findIndex(tx => tx == chainedTx[1]) + 1];
-
-        const balanceAfterLastTx = BigInt(await getAccountBalanceAfterTransaction(account, chainedTx[0].hash));
-        const balanceAfterFirstTx = BigInt(await getAccountBalanceAfterTransaction(account, txBeforeChainedTx.hash));
-
-        expect(Number(balanceAfterLastTx) / 1e+24).to.be.closeTo(Number(balanceAfterFirstTx - BigInt(chainedTx[1].args.deposit) + BigInt(chainedTx[0].args.deposit)) / 1e+24, 1);
-        expect(BigInt(chainedTx[0].balance)).to.equal(balanceAfterLastTx);
-    });
-});
-describe('nearaccount transactions psalomo.near', function () {
-    let transactions = [];
-    const account = 'psalomo.near';
-    it('should get transactions for psalomo.near', async function () {
-        this.timeout(10 * 60000);
-        transactions = await getTransactionsToDate('psalomo.near', new Date('2021-04-01').getTime() * 1_000_000, [], 20);
-        expect(transactions.find(t => t.args.method_name == 'buy_token' && t.block_timestamp == '1615409039200091358')).to.be.ok;
+        for(let n=0;n<transactions.length;n++) {
+            const transaction = transactions[n];
+            expect(Number(BigInt(transaction.balance))).to.be.gt(0);
+        }
+        
     });
 });

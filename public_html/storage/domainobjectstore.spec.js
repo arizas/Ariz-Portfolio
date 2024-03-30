@@ -1,4 +1,4 @@
-import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable } from './domainobjectstore.js';
+import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData } from './domainobjectstore.js';
 
 describe('domainobjectstore', () => {
     it('should get and set custom exchange rates from table', async function() {
@@ -19,5 +19,11 @@ describe('domainobjectstore', () => {
         await setCustomExchangeRatesFromTable(customexchangeratestable);
         const restoredcustomexchangeratestable = await getCustomExchangeRatesAsTable();
         expect(restoredcustomexchangeratestable).to.deep.equal(customexchangeratestable);
+    });
+    it('should get and set pricedata', async () => {
+        const pricedata = await getHistoricalPriceData('NEAR', 'USD');
+        pricedata['2024-01-01'] = 13.3;
+        await setHistoricalPriceData('NEAR', 'USD', pricedata);
+        expect(await getHistoricalPriceData('NEAR', 'USD')).to.deep.equal(pricedata);
     });
 });
