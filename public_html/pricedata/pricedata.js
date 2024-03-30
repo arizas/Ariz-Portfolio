@@ -1,6 +1,6 @@
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData } from "../storage/domainobjectstore.js";
 
-let cachedCurrencyList = ['USD'];
+let cachedCurrencyList = ['USD', 'NOK'];
 const defaultToken = 'NEAR';
 
 export async function fetchNEARHistoricalPrices() {

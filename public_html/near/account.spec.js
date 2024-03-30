@@ -1,7 +1,7 @@
-import { getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getTransactionsToDate } from './account.js';
+import { getNearblocksAccountHistory, getTransactionsToDate } from './account.js';
 import { getTransactionsForAccount, fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
-describe.only('nearaccount transactions petersalomonsen.near', function () {
+describe('nearaccount transactions petersalomonsen.near', function () {
     const account = 'petersalomonsen.near';
     it('should get transactions, and then add new transactions on the next date', async function () {
         this.timeout(5 * 60000);
@@ -44,7 +44,7 @@ describe.only('nearaccount transactions petersalomonsen.near', function () {
 
     });
 
-    it.only('all transactions should have balance', async function () {
+    it('all transactions should have balance', async function () {
         await fetchTransactionsForAccount(account, 1626977729473574682);
         const transactions = await getTransactionsForAccount(account);
         for (let n = 0; n < transactions.length; n++) {

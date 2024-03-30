@@ -3,6 +3,7 @@ import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sy
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
+import { fetchNEARHistoricalPrices, fetchNOKPrices } from '../pricedata/pricedata.js';
 
 const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
@@ -101,6 +102,18 @@ customElements.define('storage-page',
                     this.syncbutton.disabled = false;
                 });
             }
+
+            this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
+                setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
+                await fetchNEARHistoricalPrices();
+                setProgressbarValue(null);
+            });
+            this.shadowRoot.getElementById('fetchusdnokbutton').addEventListener('click', async () => {
+                setProgressbarValue('indeterminate', 'Fetching USD/NOK rates from Norges Bank');
+                await fetchNOKPrices();
+                setProgressbarValue(null);
+            });
+
             return this.shadowRoot;
         }
 
