@@ -47,10 +47,10 @@ describe.only('nearaccount transactions petersalomonsen.near', function () {
     it.only('all transactions should have balance', async function () {
         await fetchTransactionsForAccount(account, 1626977729473574682);
         const transactions = await getTransactionsForAccount(account);
-        for(let n=0;n<transactions.length;n++) {
+        for (let n = 0; n < transactions.length; n++) {
             const transaction = transactions[n];
             expect(Number(BigInt(transaction.balance))).to.be.gt(0);
         }
-        
+
     });
 });

@@ -6,8 +6,38 @@ const defaultToken = 'NEAR';
 export async function fetchNEARHistoricalPrices() {
     const chartdata = await fetch('https://api.nearblocks.io/v1/charts').then(r => r.json());
     const pricedata = {};
-    chartdata.charts.forEach(dayEntry => pricedata[dayEntry.date.substring(0,'yyyy-MM-dd'.length)] = Number(dayEntry.near_price));
+    chartdata.charts.forEach(dayEntry => pricedata[dayEntry.date.substring(0, 'yyyy-MM-dd'.length)] = Number(dayEntry.near_price));
     await setHistoricalPriceData(defaultToken, 'USD', pricedata);
+}
+
+export async function fetchNOKPrices() {
+    const exchangeRates = await fetch('https://data.norges-bank.no/api/data/EXR/B.USD.NOK.SP?format=sdmx-json&startPeriod=2020-01-01&endPeriod='
+        + new Date().toJSON().substring(0, 'yyyy-MM-dd'.length)
+        + '&locale=en').then(r => r.json());
+    const observations = exchangeRates.data.dataSets[0].series['0:0:0:0'].observations;
+
+    const ratesPerDay = {};
+    const tokenUSDPriceData = await getHistoricalPriceData(defaultToken, 'USD');
+
+    exchangeRates.data.structure.dimensions.observation.find(observation => observation.id === 'TIME_PERIOD').values.forEach(
+        (value, ndx) => {
+            const dateString = value.id;
+            ratesPerDay[dateString] = Number(observations[ndx][0]);
+        });
+    const allDaysSorted = Object.keys(tokenUSDPriceData).sort();
+
+    let previousNOKprice = 0;
+    for (const dateString of allDaysSorted) {
+        const usdPrice = tokenUSDPriceData[dateString];
+        const nokPrice = ratesPerDay[dateString];
+        if (!nokPrice) {
+            ratesPerDay[dateString] = previousNOKprice;
+        } else {
+            previousNOKprice = nokPrice;
+        }
+        ratesPerDay[dateString] *= usdPrice;
+    }
+    await setHistoricalPriceData(defaultToken, 'NOK', ratesPerDay);
 }
 
 export async function getCurrencyList() {

@@ -1,11 +1,11 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
 import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
-import { setCustomExchangeRateSell } from '../pricedata/pricedata.js';
+import { fetchNEARHistoricalPrices, fetchNOKPrices, setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
-    it('should get daily account balance report for psalomo.near', async function() {
-        this.timeout(10*60000);
+    it('should get daily account balance report for psalomo.near', async function () {
+        this.timeout(10 * 60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -24,8 +24,8 @@ describe('year-report-data', () => {
             }
         };
     });
-    it('should get daily account balance report for two accounts', async function() {
-        this.timeout(10*60000);
+    it('should get daily account balance report for two accounts', async function () {
+        this.timeout(10 * 60000);
         const accounts = ['psalomo.near', 'wasmgit.near'];
         await setAccounts(accounts);
         const expectedDailyBalance = {};
@@ -56,8 +56,8 @@ describe('year-report-data', () => {
             compareDate = new Date(new Date(compareDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
         }
     });
-    it('should not report transfers between own accounts as deposits/withdrawals', async function() {
-        this.timeout(20*60000);
+    it('should not report transfers between own accounts as deposits/withdrawals', async function () {
+        this.timeout(20 * 60000);
         const accounts = ['psalomo.near', 'petersalomonsen.near'];
         const verifyDate = '2021-07-24';
         await setAccounts(accounts);
@@ -71,8 +71,11 @@ describe('year-report-data', () => {
             Number(dailydata[verifyDate].withdrawal) / 1e+24);
 
     });
-    it('should calculate profit / loss for withdrawals', async function() {
-        this.timeout(10*60000);
+    it('should calculate profit / loss for withdrawals', async function () {
+        this.timeout(10 * 60000);
+        await fetchNEARHistoricalPrices();
+        await fetchNOKPrices();
+
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
@@ -136,8 +139,8 @@ describe('year-report-data', () => {
         expect(totalProfit).to.be.closeTo(openPositionsTotalProfit + closedPositionsTotalProfit, 4);
         expect(totalLoss).to.be.closeTo(openPositionsTotalLoss + closedPositionsTotalLoss, 4);
     });
-    it('should use previous epoch staking balance for days with no epoch', async function() {
-        this.timeout(10*60000);
+    it('should use previous epoch staking balance for days with no epoch', async function () {
+        this.timeout(10 * 60000);
         const account = 'lala.near';
         const stakingPool = 'abcd.poolv1.near';
 
@@ -213,8 +216,8 @@ describe('year-report-data', () => {
         expect(dailydata['2022-09-16'].stakingEarnings).to.equal(dailydata['2022-09-16'].stakingBalance - dailydata['2022-09-15'].stakingBalance);
         expect(dailydata['2022-09-15'].stakingEarnings).to.equal(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
     });
-    it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async function() {
-        this.timeout(10*60000);
+    it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async function () {
+        this.timeout(10 * 60000);
         const account = '6f32d9832f4b08752106a782aad702a3210e47906fce4a0cab7528feabd5736e';
         const convertToCurrency = 'NOK';
         const currentYear = 2022;
@@ -223,7 +226,7 @@ describe('year-report-data', () => {
         await writeTransactions(account, transactionsWithDeposits);
 
         await setCustomExchangeRateSell('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
-        await setCustomExchangeRateSell('NOK','2022-08-21', 2.000000849110125e+26, 8200);
+        await setCustomExchangeRateSell('NOK', '2022-08-21', 2.000000849110125e+26, 8200);
         const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
 
         const yearReportData = dailyBalances;

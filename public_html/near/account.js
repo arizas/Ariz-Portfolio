@@ -73,7 +73,7 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
 
 export async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 25, startPage = 1) {
     CHUNK_SIZE = 25;
-    let page = startPage;    
+    let page = startPage;
     let accountHistory = await getNearblocksAccountHistory(account, CHUNK_SIZE, page);
     let insertIndex = 0;
 
@@ -90,7 +90,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
                     historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash));
                     transactions.splice(insertIndex++, 0, historyLine);
                     offset_timestamp = BigInt(historyLine.block_timestamp) + 1n;
-                    newTransactionsAdded++;    
+                    newTransactionsAdded++;
                 }
             }
             setProgressbarValue(n / accountHistory.length, `${account} ${new Date(historyLine.block_timestamp / 1_000_000).toDateString()}`)
