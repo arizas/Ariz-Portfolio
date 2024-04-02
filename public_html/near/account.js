@@ -57,9 +57,9 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
                     "hash": tx.transaction_hash,
                     "signer_id": tx.predecessor_account_id,
                     "receiver_id": tx.receiver_account_id,
-                    "action_kind": tx.actions[0].action,
+                    "action_kind": tx.actions? tx.actions[0].action : null,
                     "args": {
-                        "method_name": tx.actions[0].method
+                        "method_name": tx.actions? tx.actions[0].method : null
                     }
                 }
             ));
