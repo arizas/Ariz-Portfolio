@@ -45,7 +45,7 @@ export default {
                 unlinkSync(`dist/app.js`);
             }
         },
-        copy({
+        /*copy({
             targets: [
                 { src: 'public_html/serviceworker.js', dest: 'dist/' },
             ]
@@ -54,6 +54,6 @@ export default {
             targets: [
                 { src: 'public_html/sandboxiframe.html', dest: 'dist/' },
             ]
-        })
+        })*/
     ]
 };
