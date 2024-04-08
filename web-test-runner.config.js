@@ -38,27 +38,29 @@ export default {
         const ctx = await browser.newContext({});
         console.log('creating browser context');
 
-        await ctx.route('https://1rpc.io/near', async (route) => {
+        const archivalRpcCache = async (route) => {
           const postdata = route.request().postData();
-          if (!archiveRpcCache[postdata]) {            
+          if (!archiveRpcCache[postdata]) {
             const response = await route.fetch();
             const body = await response.text();
             archiveRpcCache[postdata] = body;
             await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
           }
           const body = archiveRpcCache[postdata];
-          await route.fulfill({body});
-        });
+          await route.fulfill({ body });
+        };
+        await ctx.route('https://archival-rpc.mainnet.near.org', archivalRpcCache);
+        await ctx.route('https://1rpc.io/near', archivalRpcCache);
         await ctx.route('https://api.nearblocks.io/**/*', async (route) => {
           const url = route.request().url();
-          if (!nearblockscache[url]) {            
+          if (!nearblockscache[url]) {
             const response = await route.fetch();
             const body = await response.text();
             nearblockscache[url] = body;
             await writeFile(nearBlocksCacheURL, JSON.stringify(nearblockscache, null, 1));
           }
           const body = nearblockscache[url];
-          await route.fulfill({body});
+          await route.fulfill({ body });
         })
         return ctx;
       }
