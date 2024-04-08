@@ -37,20 +37,15 @@ export default {
         {
             name: 'inline-js',
             closeBundle: () => {
-                const js = readFileSync('dist/main.js').toString();
+                const js = readFileSync('dist/app.js').toString();
                 const html = readFileSync('dist/index.html').toString()
-                    .replace(`<script type="module" src="./main.js"></script>`,
+                    .replace(`<script type="module" src="./app.js"></script>`,
                         `<script type="module">${js}</script>`);
                 writeFileSync('dist/index.html', html);
-                unlinkSync(`dist/main.js`);
-                const dataUri = `data:text/html;base64,${Buffer.from(html).toString('base64')}`;
-                writeFileSync(`dist/nearbos.jsx`, `
-return <iframe style={{ width: "100%", height: "600px" }}
-    src="${dataUri}">
-</iframe>;`)
+                unlinkSync(`dist/app.js`);
             }
         },
-        copy({
+        /*copy({
             targets: [
                 { src: 'public_html/serviceworker.js', dest: 'dist/' },
             ]
@@ -59,6 +54,6 @@ return <iframe style={{ width: "100%", height: "600px" }}
             targets: [
                 { src: 'public_html/sandboxiframe.html', dest: 'dist/' },
             ]
-        })
+        })*/
     ]
 };

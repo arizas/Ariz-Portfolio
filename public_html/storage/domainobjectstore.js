@@ -6,10 +6,12 @@ import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
 export const customexchangeratesfile = 'customexchangerates.json';
+export const pricedatadir = 'pricehistory';
 
 export async function getAccounts() {
     return JSON.parse(await readTextFile(accountsconfigfile));
 }
+
 export async function setAccounts(accounts) {
     await writeFile(accountsconfigfile, JSON.stringify(accounts));
 }
@@ -20,6 +22,16 @@ export async function getTransactionsForAccount(account) {
         return JSON.parse(await readTextFile(accountdatapath));
     } else {
         return [];
+    }
+}
+
+async function makeDirs(path) {
+    const dirs = path.split('/');
+    for (let n = 0; n < dirs.length - 1; n++) {
+        const dir = dirs.slice(0, n + 1).join('/');
+        if (!await exists(dir)) {
+            await mkdir(dir);
+        }
     }
 }
 
@@ -79,6 +91,25 @@ export async function writeStakingData(account, stakingpool_id, stakingData) {
     }
     const stakingDataPath = getStakingDataPath(account, stakingpool_id);
     await writeFile(stakingDataPath, JSON.stringify(stakingData, null, 1));
+}
+
+function getPriceDataPath(token, targetCurrency) {
+    return `${pricedatadir}/${token}/${targetCurrency}.json`;
+}
+
+export async function getHistoricalPriceData(token, targetCurrency) {
+    const pricedatapath = getPriceDataPath(token, targetCurrency);
+    if (await exists(pricedatapath)) {
+        return JSON.parse(await readTextFile(pricedatapath));
+    } else {
+        return {};
+    }
+}
+
+export async function setHistoricalPriceData(token, targetCurrency, pricedata) {
+    const pricedatapath = getPriceDataPath(token, targetCurrency);
+    await makeDirs(pricedatapath);
+    await writeFile(pricedatapath, JSON.stringify(pricedata, null, 1));
 }
 
 export async function getCustomExchangeRates() {

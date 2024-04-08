@@ -14,14 +14,26 @@ jobs:
         run: |
           grep -rq --include '*.spec.js' \.only\( . && echo 'You have .only() in your tests!' && exit 1
           exit 0
-  chromeheadless:
-    name: Chrome headless
+  test_wtr:
+    name: Test web components
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Chrome headless
+      - name: Test web components
         run: |
           yarn install
           yarn playwright install-deps
           yarn playwright install
           yarn test
+  test_bos:
+    name: Test BOS E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Test BOS E2E
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mpeterdev/bos-loader/releases/download/v0.11.0/bos-loader-v0.11.0-installer.sh | sh
+          yarn install
+          yarn playwright install-deps
+          yarn playwright install
+          yarn test_bos
