@@ -36,17 +36,25 @@ export default /*html*/ `<style>
 </style>
 <h3>Year report ( all accounts )</h3>
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-4">
         <label for="yearselect" class="form-label">Select year</label>   
         <select id="yearselect" class="form-select"></select>        
     </div>
-    <div class="col-md-6">
-        <label for="currencyselect" class="form-label">Currency</label>
-        <select class="form-select" aria-label="Select currency" id="currencyselect">
+    <div class="col-md-4">
+        <label for="currencyselect" class="form-label">Token</label>
+        <select class="form-select" aria-label="Select token" id="tokenselect">
+            <option value="near">NEAR</option>
+            <option value="usdc">USDC</option>
+        </select>        
+    </div>
+    <div class="col-md-4">
+        <label for="currencyselect" class="form-label">View in currency</label>
+        <select class="form-select" aria-label="Select view currency" id="currencyselect">
             <option value="near">NEAR</option>
         </select>        
     </div>
 </div>
+
 <template id="dailybalancerowtemplate">
     <tr>
         <td class="dailybalancerow_datetime"></td>

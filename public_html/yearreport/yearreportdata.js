@@ -228,7 +228,6 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
     const convertToCurrencyIsNEAR = convertToCurrency == 'near';
     const conversionRate = convertToCurrencyIsNEAR ? 1 : await getEODPrice(convertToCurrency, datestring);
 
-
     const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
     const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));

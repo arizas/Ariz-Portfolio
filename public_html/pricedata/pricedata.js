@@ -10,6 +10,16 @@ export async function fetchNEARHistoricalPrices() {
     await setHistoricalPriceData(defaultToken, 'USD', pricedata);
 }
 
+export async function importYahooNEARHistoricalPrices(data) {
+    const lines = data.split(/\n/);
+    const pricedata = {};
+    lines.slice(1).forEach(line => {
+        const cols = line.split(',');
+        pricedata[cols[0]] = parseFloat(cols[4]);
+    });
+    await setHistoricalPriceData(defaultToken, 'USD', pricedata);
+}
+
 export async function fetchNOKPrices() {
     const exchangeRates = await fetch('https://data.norges-bank.no/api/data/EXR/B.USD.NOK.SP?format=sdmx-json&startPeriod=2020-01-01&endPeriod='
         + new Date().toJSON().substring(0, 'yyyy-MM-dd'.length)
@@ -45,7 +55,9 @@ export async function getCurrencyList() {
 }
 
 export async function getEODPrice(currency, datestring) {
-    return (await getHistoricalPriceData(defaultToken, currency))[datestring];
+    const pricedata = (await getHistoricalPriceData(defaultToken, currency));
+    const price = pricedata[datestring];
+    return price;
 }
 
 export async function getCustomSellPrice(currency, datestring) {
