@@ -9,6 +9,17 @@ export const accountsconfigfile = 'accounts.json';
 export const customexchangeratesfile = 'customexchangerates.json';
 export const pricedatadir = 'pricehistory';
 
+const allFungibleTokenSymbols = {};
+
+export async function getAllFungibleTokenSymbols() {
+    const accounts = await getAccounts();
+    for (const account of accounts) {
+        const transactions = await getAllFungibleTokenTransactions(account);
+        transactions.forEach(transaction => { allFungibleTokenSymbols[transaction.ft.symbol] = true });
+    }
+    return Object.keys(allFungibleTokenSymbols);
+}
+
 function getFungibleTokenTransactionsPath(account) {
     return `${accountdatadir}/${account}/fungible_token_transactions.json`;
 }
@@ -98,7 +109,10 @@ function getStakingDataPath(account, stakingpool_id) {
     return `${getStakingDataDir(account)}/${stakingpool_id}.json`;
 }
 
-export async function getStakingRewardsForAccountAndPool(account, stakingpool_id) {
+export async function getStakingRewardsForAccountAndPool(account, stakingpool_id, fungibleTokenSymbol) {
+    if (fungibleTokenSymbol) {
+        return [];
+    }
     const stakingDataPath = getStakingDataPath(account, stakingpool_id);
     if ((await exists(stakingDataPath))) {
         return JSON.parse(await readTextFile(stakingDataPath));

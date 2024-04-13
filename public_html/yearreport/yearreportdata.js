@@ -2,6 +2,14 @@ import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndP
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 
+const fungibleTokenData = {
+
+};
+
+export function getDecimalConversionValue(fungibleTokenSymbol) {
+    return fungibleTokenData[fungibleTokenSymbol].decimalConversionValue;
+}
+
 export async function calculateYearReportData(fungibleTokenSymbol) {
     const accounts = await getAccounts();
     const accountTransactions = {};
@@ -11,6 +19,13 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
     for (let account of accounts) {
         const transactions = await getTransactionsForAccount(account, fungibleTokenSymbol);
+        if (fungibleTokenSymbol && transactions.length > 0) {
+            const tx = transactions[0];
+            if (!fungibleTokenData[tx.ft.symbol]) {
+                fungibleTokenData[tx.ft.symbol] = tx.ft;
+                fungibleTokenData[tx.ft.symbol].decimalConversionValue = Math.pow(10, -fungibleTokenData[tx.ft.symbol].decimals);
+            }
+        }
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
             tx.account = account;
@@ -39,7 +54,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
         for (let stakingAccount of stakingAccounts) {
             allStakingAccounts[stakingAccount] = true;
-            const stakingRewards = await getStakingRewardsForAccountAndPool(account, stakingAccount);
+            const stakingRewards = await getStakingRewardsForAccountAndPool(account, stakingAccount, fungibleTokenSymbol);
             for (let stakingReward of stakingRewards) {
                 const ts = stakingReward.timestamp.substr(0, 'yyyy-MM-dd'.length);
                 const stakingBalances = accountTransactions[account].stakingBalances;
@@ -123,8 +138,8 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     return dailyBalances;
 }
 
-export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near') {
-    if (targetCurrency == 'near') {
+export async function calculateProfitLoss(dailyBalances, targetCurrency) {
+    if (!targetCurrency) {
         return { dailyBalances };
     }
     const openPositions = [];
@@ -225,7 +240,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
 }
 
 export async function getConvertedValuesForDay(rowdata, convertToCurrency, datestring) {
-    const convertToCurrencyIsNEAR = convertToCurrency == 'near';
+    const convertToCurrencyIsNEAR = !convertToCurrency || convertToCurrency === 'near';
     const conversionRate = convertToCurrencyIsNEAR ? 1 : await getEODPrice(convertToCurrency, datestring);
 
     const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
@@ -233,6 +248,20 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
     const withdrawalConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomSellPrice(convertToCurrency, datestring);
     const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal / 1e+24));
+
+    return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
+}
+
+export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, convertToCurrency, datestring) {
+    const doNotConvert = convertToCurrency ? false : true;
+    const conversionRate = doNotConvert ? 1 : await getEODPrice(convertToCurrency, datestring);
+
+    const decimalConversionValue = fungibleTokenData[symbol].decimalConversionValue;
+    const stakingReward = (conversionRate * (rowdata.stakingRewards * decimalConversionValue));
+    const depositConversionRate = doNotConvert ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
+    const deposit = (depositConversionRate * (rowdata.deposit * decimalConversionValue));
+    const withdrawalConversionRate = doNotConvert ? 1 : await getCustomSellPrice(convertToCurrency, datestring);
+    const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal * decimalConversionValue));
 
     return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
 }

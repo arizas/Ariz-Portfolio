@@ -41,16 +41,15 @@ export default /*html*/ `<style>
         <select id="yearselect" class="form-select"></select>        
     </div>
     <div class="col-md-4">
-        <label for="currencyselect" class="form-label">Token</label>
-        <select class="form-select" aria-label="Select token" id="tokenselect">
-            <option value="near">NEAR</option>
-            <option value="usdc">USDC</option>
+        <label for="tokenselect" class="form-label">Fungible token</label>
+        <select class="form-select" aria-label="Select fungible token" id="tokenselect">
+            <option value="">NEAR</option>
         </select>        
     </div>
     <div class="col-md-4">
-        <label for="currencyselect" class="form-label">View in currency</label>
-        <select class="form-select" aria-label="Select view currency" id="currencyselect">
-            <option value="near">NEAR</option>
+        <label for="currencyselect" class="form-label">Currency</label>
+        <select class="form-select" aria-label="Select conversion currency" id="currencyselect">
+            <option value="">No conversion</option>
         </select>        
     </div>
 </div>

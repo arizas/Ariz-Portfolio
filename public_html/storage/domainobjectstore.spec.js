@@ -1,4 +1,4 @@
-import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData, getAllFungibleTokenTransactions, fetchFungibleTokenTransactionsForAccount, getTransactionsForAccount } from './domainobjectstore.js';
+import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData, getAllFungibleTokenTransactions, fetchFungibleTokenTransactionsForAccount, getTransactionsForAccount, getAllFungibleTokenSymbols, setAccounts } from './domainobjectstore.js';
 
 describe('domainobjectstore', () => {
     it('should get and set custom exchange rates from table', async function () {
@@ -37,5 +37,13 @@ describe('domainobjectstore', () => {
         transactions = await getTransactionsForAccount(accountId, 'USDC');
         expect(transactions.length).to.equal(16);
         expect(transactions.reduce((p, c) => BigInt(c.delta_amount) + p, 0n)).to.equal(4563n);
+    });
+    it('should get all fungible token symbols', async () => {
+        const accountId = 'petersalomonsen.near';
+        await setAccounts([accountId]);
+        await fetchFungibleTokenTransactionsForAccount(accountId)
+        expect(await getAllFungibleTokenSymbols()).to.include("wNEAR");
+        expect(await getAllFungibleTokenSymbols()).to.include("USDC");
+        expect(await getAllFungibleTokenSymbols()).to.include("USDt");
     });
 });

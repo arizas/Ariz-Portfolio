@@ -1,7 +1,7 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
 
 export async function fetchFungibleTokenHistory(account_id, maxentries = 25, page = 1) {
-    const url = `https://api.nearblocks.io/v1/account/petersalomonsen.near/ft-txns?page=${page}&per_page=${maxentries}&order=desc`;
+    const url = `https://api.nearblocks.io/v1/account/${account_id}/ft-txns?page=${page}&per_page=${maxentries}&order=desc`;
     const result = await fetch(url).then(r => r.json());
     return result.txns;
 }
