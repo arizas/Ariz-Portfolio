@@ -1,5 +1,5 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
-import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions } from '../storage/domainobjectstore.js';
+import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
 import { fetchNEARHistoricalPrices, fetchNOKPrices, setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
@@ -58,17 +58,17 @@ describe('year-report-data', () => {
     });
     it('should not report transfers between own accounts as deposits/withdrawals', async function () {
         this.timeout(20 * 60000);
-        const accounts = ['psalomo.near', 'petersalomonsen.near'];
-        const verifyDate = '2021-07-24';
+        const accounts = ['psalomo.near', 'wasmgit.near'];
+        const verifyDate = '2021-02-14';
         await setAccounts(accounts);
 
         for (var account of accounts) {
-            await fetchTransactionsForAccount(account, new Date(2021, 7, 1).getTime() * 1_000_000);
+            await fetchTransactionsForAccount(account, new Date(2021, 1, 15).getTime() * 1_000_000);
         }
         const dailydata = await calculateYearReportData();
-        console.log(Number(dailydata[verifyDate].accountChange) / 1e+24,
-            Number(dailydata[verifyDate].deposit) / 1e+24,
-            Number(dailydata[verifyDate].withdrawal) / 1e+24);
+        expect(Number(dailydata[verifyDate].accountChange) / 1e+24).to.be.closeTo(5.96, 0.005);
+        expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.89, 0.005);
+        expect(Number(dailydata[verifyDate].withdrawal) / 1e+24).to.be.closeTo(0.03, 0.005);
 
     });
     it('should calculate profit / loss for withdrawals', async function () {
@@ -268,5 +268,44 @@ describe('year-report-data', () => {
         expect((nearValues.profit - nearValues.loss)).to.be.closeTo(8200 - (nearValues.realizations.reduce((p, c) => {
             return p + c.initialConvertedValue;
         }, 0)), 12);
+    });
+    it('should calculate year report for fungible token USDC', async function () {
+        const account = 'petersalomonsen.near';
+        const startDate = new Date(2024, 3, 12);
+        const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+        await setAccounts([account]);
+        await fetchFungibleTokenTransactionsForAccount(account, startDate.getTime() * 1_000_000);
+        const dailydata = await calculateYearReportData('USDC');
+        const transactions = (await getTransactionsForAccount(account));
+        let prevDate = startDateString;
+        for (let n = 0; n < transactions.length; n++) {
+            const tx = transactions[n];
+            const txdate = new Date(tx.block_timestamp / 1_000_000).toJSON().substring(0, 'yyyy-MM-dd'.length);
+            while (txdate.localeCompare(prevDate) <= 0) {
+                expect(dailydata[prevDate].accountBalance).to.equal(BigInt(tx.balance));
+                prevDate = new Date(new Date(prevDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
+            }
+        };
+        expect(dailydata['2024-04-12'].accountBalance).to.equal(4563n);
+        expect(dailydata['2024-01-12'].accountBalance).to.equal(6441000000n);
+    });
+    it('should calculate year report for fungible token USDT', async function () {
+        const account = 'petersalomonsen.near';
+        const startDate = new Date(2024, 3, 12);
+        const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+        await setAccounts([account]);
+        await fetchFungibleTokenTransactionsForAccount(account, startDate.getTime() * 1_000_000);
+        const dailydata = await calculateYearReportData('USDt');
+        const transactions = (await getTransactionsForAccount(account));
+        let prevDate = startDateString;
+        for (let n = 0; n < transactions.length; n++) {
+            const tx = transactions[n];
+            const txdate = new Date(tx.block_timestamp / 1_000_000).toJSON().substring(0, 'yyyy-MM-dd'.length);
+            while (txdate.localeCompare(prevDate) <= 0) {
+                expect(dailydata[prevDate].accountBalance).to.equal(BigInt(tx.balance));
+                prevDate = new Date(new Date(prevDate).getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length);
+            }
+        };
+        expect(dailydata['2023-10-26'].accountBalance).to.equal(2825000000n);
     });
 });
