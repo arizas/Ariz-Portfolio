@@ -43,7 +43,9 @@ export async function getAllFungibleTokenTransactions(account) {
 
 export async function getTransactionsForAccount(account, fungibleTokenSymbol) {
     if (fungibleTokenSymbol) {
-        return (await getAllFungibleTokenTransactions(account)).filter(fttx => fttx.ft.symbol === fungibleTokenSymbol);
+        return (await getAllFungibleTokenTransactions(account))
+            .filter(fttx => fttx.ft.symbol === fungibleTokenSymbol)
+            .map(tx => ({...tx, hash: tx.transaction_hash}));
     } else {
         const accountdatapath = `${accountdatadir}/${account}/transactions.json`;
         if (await exists(accountdatapath)) {
