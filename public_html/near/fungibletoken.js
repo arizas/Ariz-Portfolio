@@ -20,11 +20,14 @@ export async function getFungibleTokenTransactionsToDate(account, offset_timesta
             if (BigInt(historyLine.block_timestamp) > BigInt(offset_timestamp)) {
                 transactionsSkipped++;
             } else {
-                const existingTransaction = transactions.find(t => t.transaction_hash == historyLine.transaction_hash);
+                const existingTransaction = transactions.find(t => t.transaction_hash === historyLine.transaction_hash
+                    && t.ft.symbol === historyLine.ft.symbol
+                    && t.delta_amount === historyLine.delta_amount);
+
                 if (!existingTransaction) {
-                    //historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.transaction_hash));
                     transactions.splice(insertIndex++, 0, historyLine);
                     offset_timestamp = BigInt(historyLine.block_timestamp) + 1n;
+
                     newTransactionsAdded++;
                 }
             }
@@ -35,6 +38,16 @@ export async function getFungibleTokenTransactionsToDate(account, offset_timesta
         }
         page++;
         accountHistory = await fetchFungibleTokenHistory(account, CHUNK_SIZE, page);
+    }
+
+    const balancePerSymbol = {};
+    for (let n = transactions.length - 1; n >= 0; n--) {
+        const transaction = transactions[n];
+        if (balancePerSymbol[transaction.ft.symbol] === undefined) {
+            balancePerSymbol[transaction.ft.symbol] = 0n;
+        }
+        balancePerSymbol[transaction.ft.symbol] += BigInt(transaction.delta_amount);
+        transaction.balance = balancePerSymbol[transaction.ft.symbol].toString();
     }
     return transactions;
 }

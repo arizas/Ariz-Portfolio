@@ -13,15 +13,16 @@ describe('fungibletoken transactions petersalomonsen.near', function () {
         while (true) {
             const refTransactionsPage = await fetchFungibleTokenHistory(account, 25, page);
             refTransactionsPage.forEach(tx => {
-                if (!referenceTransactions.find(reftx => reftx.transaction_hash === tx.transaction_hash)) {
-                    referenceTransactions.push(tx)
-                }
+                referenceTransactions.push(tx)
             });
             page++;
+
             if (refTransactionsPage.length == 0) {
                 break;
             }
         }
+
+        expect(referenceTransactions.length).to.equal(176);
 
         transactions = await getFungibleTokenTransactionsToDate(account, block_timestamp, transactions, startPage);
 
@@ -40,5 +41,8 @@ describe('fungibletoken transactions petersalomonsen.near', function () {
             expect(transactions[n].transaction_hash).to.equal(referenceTransactionsBeforeBlockTimestamp[n].transaction_hash);
         }
         expect(transactions.length).to.equal(referenceTransactionsBeforeBlockTimestamp.length);
+
+        const latestUSDCTransaction = transactions.find(t => t.ft.symbol === 'USDC');
+        expect(latestUSDCTransaction.balance).to.equal('4563');
     });
 });

@@ -1,4 +1,4 @@
-import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData } from './domainobjectstore.js';
+import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData, getAllFungibleTokenTransactions, fetchFungibleTokenTransactionsForAccount, getTransactionsForAccount } from './domainobjectstore.js';
 
 describe('domainobjectstore', () => {
     it('should get and set custom exchange rates from table', async function () {
@@ -25,5 +25,17 @@ describe('domainobjectstore', () => {
         pricedata['2024-01-01'] = 13.3;
         await setHistoricalPriceData('NEAR', 'USD', pricedata);
         expect(await getHistoricalPriceData('NEAR', 'USD')).to.deep.equal(pricedata);
+    });
+    it('should get all fungible token transactions', async () => {
+        const accountId = 'petersalomonsen.near';
+        let transactions = await getAllFungibleTokenTransactions(accountId);
+        expect(transactions.length).to.equal(0);
+        transactions = await fetchFungibleTokenTransactionsForAccount(accountId);
+        expect(transactions.length).to.equal(176);
+        transactions = await getAllFungibleTokenTransactions(accountId);
+        expect(transactions.length).to.equal(176);
+        transactions = await getTransactionsForAccount(accountId, 'USDC');
+        expect(transactions.length).to.equal(16);
+        expect(transactions.reduce((p, c) => BigInt(c.delta_amount) + p, 0n)).to.equal(4563n);
     });
 });

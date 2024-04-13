@@ -2,7 +2,7 @@ import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndP
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 
-export async function calculateYearReportData() {
+export async function calculateYearReportData(fungibleTokenSymbol) {
     const accounts = await getAccounts();
     const accountTransactions = {};
     const transactionsByHash = {};
@@ -10,7 +10,7 @@ export async function calculateYearReportData() {
     const allStakingAccounts = {};
 
     for (let account of accounts) {
-        const transactions = await getTransactionsForAccount(account);
+        const transactions = await getTransactionsForAccount(account, fungibleTokenSymbol);
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
             tx.account = account;
