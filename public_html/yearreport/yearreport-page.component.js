@@ -119,7 +119,7 @@ customElements.define('year-report-page',
                             <td>${(r.position.initialAmount * decimalConversionValue).toFixed(this.numDecimals)}</td>
                             <td>${r.position.conversionRate.toFixed(this.numDecimals)}</td>
                             <td>${(r.amount * decimalConversionValue).toFixed(this.numDecimals)}</td>
-                            <td>${r.conversionRate.toFixed(this.numDecimals)}</td>
+                            <td>${r.conversionRate?.toFixed(this.numDecimals)}</td>
                         </tr>
                     `).join('\n');
                 } else {

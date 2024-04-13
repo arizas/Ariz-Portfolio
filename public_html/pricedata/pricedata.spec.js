@@ -17,4 +17,14 @@ describe('pricedata', () => {
         expect(await getEODPrice('NOK', '2024-03-01')).to.be.closeTo(41.1, 0.2);
         expect(await getEODPrice('NOK', '2024-03-26')).to.be.closeTo(79.92, 0.05);
     });
+    it('should get USD NOK exchange rate for day', async function () {
+        await fetchNEARHistoricalPrices();
+        await fetchNOKPrices();
+        expect(await getEODPrice('NOK', '2021-02-23', 'USDT.e')).to.be.closeTo(8.4979, 0.1);
+        expect(await getEODPrice('NOK', '2022-01-16', 'USDC.e')).to.be.closeTo(8.7239, 0.7);
+        expect(await getEODPrice('NOK', '2023-12-25', 'USDT')).to.be.closeTo(10.2245, 0.2);
+        expect(await getEODPrice('NOK', '2023-12-27', 'USDC')).to.be.closeTo(10.1541, 0.1);
+        expect(await getEODPrice('NOK', '2023-02-28', 'USN')).to.be.closeTo(10.3318, 0.1);
+        expect(await getEODPrice('NOK', '2024-02-29', 'USDC')).to.be.closeTo(10.6152, 0.1);
+    });
 });

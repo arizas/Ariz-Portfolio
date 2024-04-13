@@ -26,6 +26,7 @@ export async function fetchNOKPrices() {
         + '&locale=en').then(r => r.json());
     const observations = exchangeRates.data.dataSets[0].series['0:0:0:0'].observations;
 
+    const nearNOKPricePerDay = {};
     const ratesPerDay = {};
     const tokenUSDPriceData = await getHistoricalPriceData(defaultToken, 'USD');
 
@@ -45,17 +46,21 @@ export async function fetchNOKPrices() {
         } else {
             previousNOKprice = nokPrice;
         }
-        ratesPerDay[dateString] *= usdPrice;
+        nearNOKPricePerDay[dateString] = ratesPerDay[dateString] * usdPrice;
     }
-    await setHistoricalPriceData(defaultToken, 'NOK', ratesPerDay);
+    await setHistoricalPriceData(defaultToken, 'NOK', nearNOKPricePerDay);
+    await setHistoricalPriceData('USD', 'NOK', ratesPerDay);
 }
 
 export async function getCurrencyList() {
     return cachedCurrencyList;
 }
 
-export async function getEODPrice(currency, datestring) {
-    const pricedata = (await getHistoricalPriceData(defaultToken, currency));
+export async function getEODPrice(currency, datestring, token = defaultToken) {
+    if (token.indexOf('USD') === 0 || token === 'USN') {
+        token = 'USD';
+    }
+    const pricedata = await getHistoricalPriceData(token, currency);
     const price = pricedata[datestring];
     return price;
 }

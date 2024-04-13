@@ -254,14 +254,12 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
 
 export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, convertToCurrency, datestring) {
     const doNotConvert = convertToCurrency ? false : true;
-    const conversionRate = doNotConvert ? 1 : await getEODPrice(convertToCurrency, datestring);
+    const conversionRate = doNotConvert ? 1 : await getEODPrice(convertToCurrency, datestring, symbol);
 
     const decimalConversionValue = fungibleTokenData[symbol].decimalConversionValue;
     const stakingReward = (conversionRate * (rowdata.stakingRewards * decimalConversionValue));
-    const depositConversionRate = doNotConvert ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
-    const deposit = (depositConversionRate * (rowdata.deposit * decimalConversionValue));
-    const withdrawalConversionRate = doNotConvert ? 1 : await getCustomSellPrice(convertToCurrency, datestring);
-    const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal * decimalConversionValue));
+    const deposit = (conversionRate * (rowdata.deposit * decimalConversionValue));
+    const withdrawal = (conversionRate * (rowdata.withdrawal * decimalConversionValue));
 
-    return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
+    return { stakingReward, deposit, withdrawal, conversionRate, conversionRate, conversionRate };
 }
