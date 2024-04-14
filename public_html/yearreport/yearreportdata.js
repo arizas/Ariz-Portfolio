@@ -173,8 +173,8 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
         const dailyEntry = dailyBalances[datestring];
         let dayProfit = 0;
         let dayLoss = 0;
-        if (dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
-            const amount = dailyEntry.deposit ?? 0 + dailyEntry.reward ?? 0;
+        if (dailyEntry.received > 0n || dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
+            const amount = Number(dailyEntry.received ?? 0n) + dailyEntry.deposit ?? 0 + dailyEntry.reward ?? 0;
             const conversionRate = await getEODPrice(targetCurrency, datestring, token);
             openPositions.push({
                 date: datestring,

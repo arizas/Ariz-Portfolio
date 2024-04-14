@@ -67,9 +67,9 @@ describe('year-report-data', () => {
         }
         const dailydata = await calculateYearReportData();
         expect(Number(dailydata[verifyDate].accountChange) / 1e+24).to.be.closeTo(5.96, 0.005);
-        expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.89, 0.005);
+        expect(Number(dailydata[verifyDate].received) / 1e+24).to.be.closeTo(11.99, 0.005);
+        expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(0, 0.005);
         expect(Number(dailydata[verifyDate].withdrawal) / 1e+24).to.be.closeTo(0.03, 0.005);
-
     });
     it('should calculate profit / loss for withdrawals', async function () {
         this.timeout(10 * 60000);
