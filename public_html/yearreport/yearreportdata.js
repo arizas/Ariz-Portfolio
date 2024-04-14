@@ -23,6 +23,8 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     const allStakingAccounts = {};
     const depositaccounts = await getDepositAccounts();
 
+    let decimalConversionValue = Math.pow(10, -24);
+
     for (let account of accounts) {
         const transactions = await getTransactionsForAccount(account, fungibleTokenSymbol);
         const fungbleTokenTxMap = await getAllFungibleTokenTransactionsByTxHash(account);
@@ -32,6 +34,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
             if (!fungibleTokenData[tx.ft.symbol]) {
                 fungibleTokenData[tx.ft.symbol] = tx.ft;
                 fungibleTokenData[tx.ft.symbol].decimalConversionValue = Math.pow(10, -fungibleTokenData[tx.ft.symbol].decimals);
+                //decimalConversionValue = fungibleTokenData[tx.ft.symbol].decimalConversionValue;
             }
         }
         for (let n = 0; n < transactions.length; n++) {
@@ -41,6 +44,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : 0n
             );
 
+            tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
             if (!accountsMap[tx.signer_id]
                 && !allStakingAccounts[tx.signer_id]
                 && tx.changedBalance > 0n
@@ -160,7 +164,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         prevDateString = datestring;
     }
 
-    return dailyBalances;
+    return { dailyBalances, transactionsByDate };
 }
 
 export async function calculateProfitLoss(dailyBalances, targetCurrency, token) {

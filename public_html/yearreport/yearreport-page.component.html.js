@@ -69,9 +69,10 @@ export default /*html*/ `<style>
         <td class="dailybalancerow_withdrawal numeric"></td>
         <td class="dailybalancerow_profit numeric"></td>
         <td class="dailybalancerow_loss numeric"></td>
+        <td><button class="btn btn-light show_transactions_button">&#128194;</button></td>
     </tr>
     <tr class="inforow bg-info">
-        <td colspan="12" >
+        <td colspan="13" >
             <table class="table table-sm table-borderless">
                 <thead>
                     <tr>
@@ -88,7 +89,7 @@ export default /*html*/ `<style>
     </tr>
 </template>
 <div class="table-responsive">
-    <table class="table table-sm">
+    <table class="table table-sm table-hover">
         <thead class="table-dark">
             <th scope="col">
                 date
@@ -179,5 +180,21 @@ export default /*html*/ `<style>
             <th></th>
         </tfoot>
     </table>
+</div>
+<div class="modal" tabindex="-1" id="show_transactions_modal">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Transactions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Modal body text goes here.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 `;

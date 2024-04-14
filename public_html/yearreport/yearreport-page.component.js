@@ -62,7 +62,9 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(this.token), this.convertToCurrency, this.token);
+            let { dailyBalances, transactionsByDate } = await calculateYearReportData(this.token);
+            dailyBalances = (await calculateProfitLoss(dailyBalances, this.convertToCurrency, this.token)).dailyBalances;
+
             const yearReportData = dailyBalances;
             const yearReportTable = this.shadowRoot.querySelector('#dailybalancestable');
 
@@ -83,6 +85,9 @@ customElements.define('year-report-page',
             let totalLoss = 0;
 
             const decimalConversionValue = this.token ? getDecimalConversionValue(this.token) : Math.pow(10, -24);
+
+            const transactionsModalElement = this.shadowRoot.querySelector('#show_transactions_modal');
+            const showTransactionsModal = new bootstrap.Modal(transactionsModalElement);
 
             while (currentDate.getTime() >= endDate) {
                 const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -114,6 +119,27 @@ customElements.define('year-report-page',
                 row.querySelector('.dailybalancerow_withdrawal').innerHTML = withdrawal.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_profit').innerHTML = rowdata.profit?.toFixed(this.numDecimals) ?? '';
                 row.querySelector('.dailybalancerow_loss').innerHTML = rowdata.loss?.toFixed(this.numDecimals) ?? '';
+                row.querySelector('.show_transactions_button').addEventListener('click', () => {
+                    const transactions = transactionsByDate[datestring];
+                    transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
+                    transactionsModalElement.querySelector('.modal-body').innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-sm table-dark">
+                        <thead>
+                            <th>Signer</th>
+                            <th>Received</th>
+                            <th>Changed balance</th>
+                        </thead>
+                        <tbody>
+                        ${transactions ? transactions.map(tx => `<tr>
+<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>
+</tr>`).join('') : ''}
+                        </tbody>
+                        </table>
+                        </div>
+                    `;
+                    showTransactionsModal.show();
+                });
                 if (rowdata.realizations) {
                     const detailInfoElement = row.querySelector('.inforow td table tbody');
                     detailInfoElement.innerHTML = rowdata.realizations.map(r => `
@@ -133,6 +159,7 @@ customElements.define('year-report-page',
                 currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
             }
 
+            console.log('total staking reward', totalStakingReward);
             this.shadowRoot.querySelector('#totalreward').innerHTML = totalStakingReward.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalreceived').innerHTML = totalReceived.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totaldeposit').innerHTML = totalDeposit.toFixed(this.numDecimals);
