@@ -62,7 +62,7 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            const { dailyBalances, closedPositions, openPositions } = await calculateProfitLoss(await calculateYearReportData(this.token), this.convertToCurrency)
+            const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(this.token), this.convertToCurrency, this.token);
             const yearReportData = dailyBalances;
             const yearReportTable = this.shadowRoot.querySelector('#dailybalancestable');
 
@@ -82,7 +82,7 @@ customElements.define('year-report-page',
             let totalLoss = 0;
 
             const decimalConversionValue = this.token ? getDecimalConversionValue(this.token) : Math.pow(10, -24);
- 
+
             while (currentDate.getTime() >= endDate) {
                 const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
 

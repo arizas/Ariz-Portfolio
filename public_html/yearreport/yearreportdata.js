@@ -7,7 +7,7 @@ const fungibleTokenData = {
 };
 
 export function getDecimalConversionValue(fungibleTokenSymbol) {
-    return fungibleTokenData[fungibleTokenSymbol].decimalConversionValue;
+    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol].decimalConversionValue : Math.pow(10, -24);
 }
 
 export async function calculateYearReportData(fungibleTokenSymbol) {
@@ -138,12 +138,13 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     return dailyBalances;
 }
 
-export async function calculateProfitLoss(dailyBalances, targetCurrency) {
+export async function calculateProfitLoss(dailyBalances, targetCurrency, token) {
     if (!targetCurrency) {
         return { dailyBalances };
     }
     const openPositions = [];
     const closedPositions = [];
+    const decimalConversionValue = getDecimalConversionValue(token);
 
     for (const datestring in dailyBalances) {
         const dailyEntry = dailyBalances[datestring];
@@ -151,12 +152,12 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency) {
         let dayLoss = 0;
         if (dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
             const amount = dailyEntry.deposit ?? 0 + dailyEntry.reward ?? 0;
-            const conversionRate = await getEODPrice(targetCurrency, datestring);
+            const conversionRate = await getEODPrice(targetCurrency, datestring, token);
             openPositions.push({
                 date: datestring,
                 initialAmount: amount,
                 remainingAmount: amount,
-                convertedValue: conversionRate * (amount / 1e+24),
+                convertedValue: conversionRate * amount * decimalConversionValue,
                 conversionRate: conversionRate,
                 realizations: []
             });
@@ -166,13 +167,13 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency) {
             let dayRealizedAmount = 0;
 
             dailyEntry.realizations = [];
-            const conversionRate = await getCustomSellPrice(targetCurrency, datestring);
+            const conversionRate = await getCustomSellPrice(targetCurrency, datestring, token);
             while (openPositions.length > 0 && dayRealizedAmount < dailyEntry.withdrawal) {
                 const position = openPositions[0];
                 if ((dayRealizedAmount + position.remainingAmount) > dailyEntry.withdrawal) {
                     const partlyRealizedPositionAmount = (dailyEntry.withdrawal - dayRealizedAmount);
                     const partlyRealizedPositionInitialConvertedValue = position.convertedValue * (partlyRealizedPositionAmount / position.initialAmount);
-                    const partlyRealizedPositionRealizedConvertedValue = (partlyRealizedPositionAmount / 1e+24) * conversionRate;
+                    const partlyRealizedPositionRealizedConvertedValue = partlyRealizedPositionAmount * decimalConversionValue * conversionRate;
                     position.remainingAmount -= partlyRealizedPositionAmount;
                     dayRealizedAmount = dailyEntry.withdrawal;
 
@@ -200,7 +201,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency) {
                 } else {
                     dayRealizedAmount += position.remainingAmount;
 
-                    const convertedValue = conversionRate * (position.remainingAmount / 1e+24);
+                    const convertedValue = conversionRate * position.remainingAmount * decimalConversionValue;
                     const initialConvertedValue = position.convertedValue * (position.remainingAmount / position.initialAmount);
                     const profitLoss = convertedValue - initialConvertedValue;
                     if (profitLoss >= 0) {

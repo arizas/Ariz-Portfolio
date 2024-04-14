@@ -64,6 +64,7 @@ export default /*html*/ `<style>
         <td class="dailybalancerow_stakingbalance numeric"></td>
         <td class="dailybalancerow_stakingchange numeric"></td>
         <td class="dailybalancerow_stakingreward numeric"></td>
+        <td class="dailybalancerow_earnings numeric"></td>
         <td class="dailybalancerow_deposit numeric"></td>
         <td class="dailybalancerow_withdrawal numeric"></td>
         <td class="dailybalancerow_profit numeric"></td>
@@ -114,6 +115,9 @@ export default /*html*/ `<style>
                 reward
             </th>
             <th scope="col">
+                earnings
+            </th>
+            <th scope="col">
                 deposit
             </th>
             <th scope="col">
@@ -155,6 +159,9 @@ export default /*html*/ `<style>
 
             </th>
             <th scope="col" class="numeric" id="totalreward">
+
+            </th>
+            <th scope="col" class="numeric" id="totalearnings">
 
             </th>
             <th scope="col" class="numeric" id="totaldeposit">
