@@ -48,6 +48,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 && !allStakingAccounts[tx.signer_id]
                 && tx.changedBalance > 0n
                 && !depositaccounts[tx.signer_id]
+                && !depositaccounts[tx.involved_account_id]
                 && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
             ) {
                 tx.receivedBalance = tx.changedBalance;

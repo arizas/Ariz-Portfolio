@@ -133,7 +133,8 @@ customElements.define('year-report-page',
                         </thead>
                         <tbody>
                         ${transactions ? transactions.map(tx => `<tr>
-<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>
+${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalConversionValue}</td>` :
+    `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
 <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</button></a>
 </tr>`).join('') : ''}
                         </tbody>
