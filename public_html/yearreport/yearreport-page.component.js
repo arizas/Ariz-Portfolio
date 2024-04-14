@@ -129,10 +129,12 @@ customElements.define('year-report-page',
                             <th>Signer</th>
                             <th>Received</th>
                             <th>Changed balance</th>
+                            <th></th>
                         </thead>
                         <tbody>
                         ${transactions ? transactions.map(tx => `<tr>
 <td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>
+<td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</button></a>
 </tr>`).join('') : ''}
                         </tbody>
                         </table>
@@ -146,7 +148,7 @@ customElements.define('year-report-page',
                         <tr>
                             <td>${r.position.date}</td>
                             <td>${(r.position.initialAmount * decimalConversionValue).toFixed(this.numDecimals)}</td>
-                            <td>${r.position.conversionRate.toFixed(this.numDecimals)}</td>
+                            <td>${r.position.conversionRate?.toFixed(this.numDecimals)}</td>
                             <td>${(r.amount * decimalConversionValue).toFixed(this.numDecimals)}</td>
                             <td>${r.conversionRate?.toFixed(this.numDecimals)}</td>
                         </tr>
@@ -159,7 +161,6 @@ customElements.define('year-report-page',
                 currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
             }
 
-            console.log('total staking reward', totalStakingReward);
             this.shadowRoot.querySelector('#totalreward').innerHTML = totalStakingReward.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalreceived').innerHTML = totalReceived.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totaldeposit').innerHTML = totalDeposit.toFixed(this.numDecimals);

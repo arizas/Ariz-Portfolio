@@ -173,6 +173,9 @@ function getPriceDataPath(token, targetCurrency) {
 }
 
 export async function getHistoricalPriceData(token, targetCurrency) {
+    if (!token) {
+        token = 'NEAR';
+    }
     const pricedatapath = getPriceDataPath(token, targetCurrency);
     if (await exists(pricedatapath)) {
         return JSON.parse(await readTextFile(pricedatapath));
