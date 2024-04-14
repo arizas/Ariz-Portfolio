@@ -1,4 +1,4 @@
-import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash } from "../storage/domainobjectstore.js";
+import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getDepositAccounts } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 
@@ -21,6 +21,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     const transactionsByHash = {};
     const transactionsByDate = {};
     const allStakingAccounts = {};
+    const depositaccounts = await getDepositAccounts();
 
     for (let account of accounts) {
         const transactions = await getTransactionsForAccount(account, fungibleTokenSymbol);
@@ -43,6 +44,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
             if (!accountsMap[tx.signer_id]
                 && !allStakingAccounts[tx.signer_id]
                 && tx.changedBalance > 0n
+                && !depositaccounts[tx.signer_id]
                 && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
             ) {
                 tx.receivedBalance = tx.changedBalance;

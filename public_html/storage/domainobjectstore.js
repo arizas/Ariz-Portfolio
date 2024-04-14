@@ -6,6 +6,7 @@ import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
+export const depositaccountsfile = 'depositaccounts.json';
 export const customexchangeratesfile = 'customexchangerates.json';
 export const pricedatadir = 'pricehistory';
 
@@ -22,6 +23,24 @@ export async function getAllFungibleTokenSymbols() {
 
 function getFungibleTokenTransactionsPath(account) {
     return `${accountdatadir}/${account}/fungible_token_transactions.json`;
+}
+
+export async function getDepositAccounts() {
+    if (await exists(depositaccountsfile)) {
+        return JSON.parse(await readTextFile(depositaccountsfile));
+    } else {
+        const defaultDepositAccounts = {
+            "system": {
+                "description": "Funds from system accounts should be counted as deposits"
+            }
+        };
+        await setDepositAccounts(defaultDepositAccounts);
+        return defaultDepositAccounts;
+    }
+}
+
+export async function setDepositAccounts(depositaccounts) {
+    await writeFile(depositaccountsfile, JSON.stringify(depositaccounts));
 }
 
 export async function getAccounts() {
