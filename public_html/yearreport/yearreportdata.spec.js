@@ -11,7 +11,7 @@ describe('year-report-data', () => {
         const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
         await setAccounts([account]);
         await fetchTransactionsForAccount(account, startDate.getTime() * 1_000_000);
-        const dailydata = await calculateYearReportData();
+        const dailydata = (await calculateYearReportData()).dailyBalances;
         const transactions = (await getTransactionsForAccount(account));
         let prevDate = startDateString;
         for (let n = 0; n < transactions.length; n++) {
@@ -49,7 +49,7 @@ describe('year-report-data', () => {
                 }
             };
         }
-        const dailydata = await calculateYearReportData();
+        const dailydata = (await calculateYearReportData()).dailyBalances;
         let compareDate = startDateString;
         while (compareDate.localeCompare('2021-01-01') >= 0) {
             expect(dailydata[compareDate].accountBalance).to.equal(expectedDailyBalance[compareDate]);
@@ -65,7 +65,7 @@ describe('year-report-data', () => {
         for (var account of accounts) {
             await fetchTransactionsForAccount(account, new Date(2021, 1, 15).getTime() * 1_000_000);
         }
-        const dailydata = await calculateYearReportData();
+        const dailydata = (await calculateYearReportData()).dailyBalances;
         expect(Number(dailydata[verifyDate].accountChange) / 1e+24).to.be.closeTo(5.96, 0.005);
         expect(Number(dailydata[verifyDate].received) / 1e+24).to.be.closeTo(0.1, 0.005);
         expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.89, 0.005);
@@ -81,7 +81,7 @@ describe('year-report-data', () => {
         await setAccounts([account]);
         await fetchTransactionsForAccount(account, startDate.getTime() * 1_000_000);
 
-        const { dailyBalances, openPositions, closedPositions } = await calculateProfitLoss(await calculateYearReportData(), 'NOK');
+        const { dailyBalances, openPositions, closedPositions } = await calculateProfitLoss((await calculateYearReportData()).dailyBalances, 'NOK');
 
         let totalProfit = 0;
         let totalLoss = 0;
@@ -209,7 +209,7 @@ describe('year-report-data', () => {
 
         await writeTransactions(account, transactions);
         await writeStakingData(account, stakingPool, stakingBalances);
-        const dailydata = await calculateYearReportData();
+        const dailydata = (await calculateYearReportData()).dailyBalances;
         expect(dailydata['2022-09-14'].stakingBalance).to.equal(1.5110166536686937e+26);
         expect(dailydata['2022-09-16'].stakingBalance).to.equal(1.5116177505287145e+26);
         expect(dailydata['2022-09-15'].stakingBalance).to.equal(1.5110166536686937e+26);
@@ -227,7 +227,7 @@ describe('year-report-data', () => {
 
         await setCustomExchangeRateSell('NOK', '2022-02-25', 1.681520098881095e+25, 1285);
         await setCustomExchangeRateSell('NOK', '2022-08-21', 2.000000849110125e+26, 8200);
-        const { dailyBalances } = await calculateProfitLoss(await calculateYearReportData(), convertToCurrency);
+        const { dailyBalances } = await calculateProfitLoss((await calculateYearReportData()).dailyBalances, convertToCurrency);
 
         const yearReportData = dailyBalances;
 
@@ -275,7 +275,7 @@ describe('year-report-data', () => {
         const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
         await setAccounts([account]);
         await fetchFungibleTokenTransactionsForAccount(account, startDate.getTime() * 1_000_000);
-        const dailydata = await calculateYearReportData('USDC');
+        const dailydata = (await calculateYearReportData('USDC')).dailyBalances;
         const transactions = (await getTransactionsForAccount(account));
         let prevDate = startDateString;
         for (let n = 0; n < transactions.length; n++) {
@@ -295,7 +295,7 @@ describe('year-report-data', () => {
         const startDateString = startDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
         await setAccounts([account]);
         await fetchFungibleTokenTransactionsForAccount(account, startDate.getTime() * 1_000_000);
-        const dailydata = await calculateYearReportData('USDt');
+        const dailydata = (await calculateYearReportData('USDt')).dailyBalances;
         const transactions = (await getTransactionsForAccount(account));
         let prevDate = startDateString;
         for (let n = 0; n < transactions.length; n++) {

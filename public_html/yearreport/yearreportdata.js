@@ -34,7 +34,6 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
             if (!fungibleTokenData[tx.ft.symbol]) {
                 fungibleTokenData[tx.ft.symbol] = tx.ft;
                 fungibleTokenData[tx.ft.symbol].decimalConversionValue = Math.pow(10, -fungibleTokenData[tx.ft.symbol].decimals);
-                //decimalConversionValue = fungibleTokenData[tx.ft.symbol].decimalConversionValue;
             }
         }
         for (let n = 0; n < transactions.length; n++) {
