@@ -32,6 +32,15 @@ export async function setAccounts(accounts) {
     await writeFile(accountsconfigfile, JSON.stringify(accounts));
 }
 
+export async function getAllFungibleTokenTransactionsByTxHash(account) {
+    const transactions = await getAllFungibleTokenTransactions(account);
+    const transactionsMap = transactions.reduce((obj, tx) => {
+        obj[tx.transaction_hash] = tx;
+        return obj;
+    }, {});
+    return transactionsMap;
+}
+
 export async function getAllFungibleTokenTransactions(account) {
     const fungibleTokenTransactionsPath = getFungibleTokenTransactionsPath(account);
     if (await exists(fungibleTokenTransactionsPath)) {
@@ -45,7 +54,7 @@ export async function getTransactionsForAccount(account, fungibleTokenSymbol) {
     if (fungibleTokenSymbol) {
         return (await getAllFungibleTokenTransactions(account))
             .filter(fttx => fttx.ft.symbol === fungibleTokenSymbol)
-            .map(tx => ({...tx, hash: tx.transaction_hash}));
+            .map(tx => ({ ...tx, hash: tx.transaction_hash }));
     } else {
         const accountdatapath = `${accountdatadir}/${account}/transactions.json`;
         if (await exists(accountdatapath)) {

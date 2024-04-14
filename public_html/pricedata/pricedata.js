@@ -76,7 +76,7 @@ export async function getCustomSellPrice(currency, datestring, token) {
     return customExchangeRates[currency]?.[datestring]?.sell ?? await getEODPrice(currency, datestring);
 }
 
-export async function getCustomBuyPrice(currency, datestring) {
+export async function getCustomBuyPrice(currency, datestring, token) {
     if (token && token !== 'near') {
         return await getEODPrice(currency, datestring, token);
     }

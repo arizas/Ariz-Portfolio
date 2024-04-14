@@ -76,6 +76,7 @@ customElements.define('year-report-page',
             const endDate = new Date(`${this.year}-01-01`);
 
             let totalStakingReward = 0;
+            let totalReceived = 0;
             let totalDeposit = 0;
             let totalWithdrawal = 0;
             let totalProfit = 0;
@@ -89,12 +90,13 @@ customElements.define('year-report-page',
                 const row = rowTemplate.cloneNode(true).content;
                 const rowdata = yearReportData[datestring];
 
-                const { stakingReward, deposit, withdrawal, conversionRate } = this.token ?
+                const { stakingReward, received, deposit, withdrawal, conversionRate } = this.token ?
                     await getFungibleTokenConvertedValuesForDay(rowdata, this.token, this.convertToCurrency, datestring) :
                     await getConvertedValuesForDay(rowdata, this.convertToCurrency, datestring);
 
                 totalStakingReward += stakingReward;
                 totalDeposit += deposit;
+                totalReceived += received;
                 totalWithdrawal += withdrawal;
                 totalProfit += rowdata.profit ?? 0;
                 totalLoss += rowdata.loss ?? 0;
@@ -107,6 +109,7 @@ customElements.define('year-report-page',
                 row.querySelector('.dailybalancerow_accountchange').innerHTML = (conversionRate * (Number(rowdata.accountChange) * decimalConversionValue)).toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_stakingchange').innerHTML = (conversionRate * (rowdata.stakingChange * decimalConversionValue)).toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_stakingreward').innerHTML = stakingReward.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_received').innerHTML = received.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_deposit').innerHTML = deposit.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_withdrawal').innerHTML = withdrawal.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_profit').innerHTML = rowdata.profit?.toFixed(this.numDecimals) ?? '';
@@ -131,6 +134,7 @@ customElements.define('year-report-page',
             }
 
             this.shadowRoot.querySelector('#totalreward').innerHTML = totalStakingReward.toFixed(this.numDecimals);
+            this.shadowRoot.querySelector('#totalreceived').innerHTML = totalReceived.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totaldeposit').innerHTML = totalDeposit.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalwithdrawal').innerHTML = totalWithdrawal.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalprofit').innerHTML = totalProfit.toFixed(this.numDecimals);
