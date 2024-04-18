@@ -1,5 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
+import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
@@ -33,6 +33,7 @@ customElements.define('accounts-page',
                         for (const stakingAccount of stakingAccounts) {
                             await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
                         }
+                        await fetchFungibleTokenTransactionsForAccount(account);
                     }
                     setProgressbarValue(null);
                 } catch (e) {

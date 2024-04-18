@@ -5,14 +5,14 @@ const defaultToken = 'NEAR';
 
 export async function fetchNEARHistoricalPrices() {
     const chartdata = await fetch('https://api.nearblocks.io/v1/charts').then(r => r.json());
-    const pricedata = {};
+    const pricedata = await getHistoricalPriceData(defaultToken, 'USD');
     chartdata.charts.forEach(dayEntry => pricedata[dayEntry.date.substring(0, 'yyyy-MM-dd'.length)] = Number(dayEntry.near_price));
     await setHistoricalPriceData(defaultToken, 'USD', pricedata);
 }
 
 export async function importYahooNEARHistoricalPrices(data) {
     const lines = data.split(/\n/);
-    const pricedata = {};
+    const pricedata = await getHistoricalPriceData(defaultToken, 'USD');
     lines.slice(1).forEach(line => {
         const cols = line.split(',');
         pricedata[cols[0]] = parseFloat(cols[4]);
@@ -26,6 +26,7 @@ export async function fetchNOKPrices() {
         + '&locale=en').then(r => r.json());
     const observations = exchangeRates.data.dataSets[0].series['0:0:0:0'].observations;
 
+    const nearNOKPricePerDay = {};
     const ratesPerDay = {};
     const tokenUSDPriceData = await getHistoricalPriceData(defaultToken, 'USD');
 
@@ -45,27 +46,40 @@ export async function fetchNOKPrices() {
         } else {
             previousNOKprice = nokPrice;
         }
-        ratesPerDay[dateString] *= usdPrice;
+        nearNOKPricePerDay[dateString] = ratesPerDay[dateString] * usdPrice;
     }
-    await setHistoricalPriceData(defaultToken, 'NOK', ratesPerDay);
+    await setHistoricalPriceData(defaultToken, 'NOK', nearNOKPricePerDay);
+    await setHistoricalPriceData('USD', 'NOK', ratesPerDay);
 }
 
 export async function getCurrencyList() {
     return cachedCurrencyList;
 }
 
-export async function getEODPrice(currency, datestring) {
-    const pricedata = (await getHistoricalPriceData(defaultToken, currency));
+export async function getEODPrice(currency, datestring, token = defaultToken) {
+    if (token.indexOf('USD') === 0 || token === 'USN') {
+        token = 'USD';
+    }
+    if (token === 'USD' && currency === 'USD') {
+        return 1;
+    }
+    const pricedata = await getHistoricalPriceData(token, currency);
     const price = pricedata[datestring];
     return price;
 }
 
-export async function getCustomSellPrice(currency, datestring) {
+export async function getCustomSellPrice(currency, datestring, token) {
+    if (token && token !== 'near') {
+        return await getEODPrice(currency, datestring, token);
+    }
     const customExchangeRates = await getCustomExchangeRates();
     return customExchangeRates[currency]?.[datestring]?.sell ?? await getEODPrice(currency, datestring);
 }
 
-export async function getCustomBuyPrice(currency, datestring) {
+export async function getCustomBuyPrice(currency, datestring, token) {
+    if (token && token !== 'near') {
+        return await getEODPrice(currency, datestring, token);
+    }
     const customExchangeRates = await getCustomExchangeRates();
     return customExchangeRates[currency]?.[datestring]?.buy ?? await getEODPrice(currency, datestring);
 }

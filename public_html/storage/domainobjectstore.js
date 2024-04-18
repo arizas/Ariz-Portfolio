@@ -2,11 +2,46 @@ import { readTextFile, exists, mkdir } from './gitstorage.js';
 import { getTransactionsToDate } from '../near/account.js';
 import { writeFile } from './gitstorage.js';
 import { fetchAllStakingEarnings } from '../near/stakingpool.js';
+import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
+export const depositaccountsfile = 'depositaccounts.json';
 export const customexchangeratesfile = 'customexchangerates.json';
 export const pricedatadir = 'pricehistory';
+
+const allFungibleTokenSymbols = {};
+
+export async function getAllFungibleTokenSymbols() {
+    const accounts = await getAccounts();
+    for (const account of accounts) {
+        const transactions = await getAllFungibleTokenTransactions(account);
+        transactions.forEach(transaction => { allFungibleTokenSymbols[transaction.ft.symbol] = true });
+    }
+    return Object.keys(allFungibleTokenSymbols);
+}
+
+function getFungibleTokenTransactionsPath(account) {
+    return `${accountdatadir}/${account}/fungible_token_transactions.json`;
+}
+
+export async function getDepositAccounts() {
+    if (await exists(depositaccountsfile)) {
+        return JSON.parse(await readTextFile(depositaccountsfile));
+    } else {
+        const defaultDepositAccounts = {
+            "system": {
+                "description": "Funds from system accounts should be counted as deposits"
+            }
+        };
+        await setDepositAccounts(defaultDepositAccounts);
+        return defaultDepositAccounts;
+    }
+}
+
+export async function setDepositAccounts(depositaccounts) {
+    await writeFile(depositaccountsfile, JSON.stringify(depositaccounts));
+}
 
 export async function getAccounts() {
     return JSON.parse(await readTextFile(accountsconfigfile));
@@ -16,12 +51,36 @@ export async function setAccounts(accounts) {
     await writeFile(accountsconfigfile, JSON.stringify(accounts));
 }
 
-export async function getTransactionsForAccount(account) {
-    const accountdatapath = `${accountdatadir}/${account}/transactions.json`;
-    if (await exists(accountdatapath)) {
-        return JSON.parse(await readTextFile(accountdatapath));
+export async function getAllFungibleTokenTransactionsByTxHash(account) {
+    const transactions = await getAllFungibleTokenTransactions(account);
+    const transactionsMap = transactions.reduce((obj, tx) => {
+        obj[tx.transaction_hash] = tx;
+        return obj;
+    }, {});
+    return transactionsMap;
+}
+
+export async function getAllFungibleTokenTransactions(account) {
+    const fungibleTokenTransactionsPath = getFungibleTokenTransactionsPath(account);
+    if (await exists(fungibleTokenTransactionsPath)) {
+        return JSON.parse(await readTextFile(fungibleTokenTransactionsPath));
     } else {
         return [];
+    }
+}
+
+export async function getTransactionsForAccount(account, fungibleTokenSymbol) {
+    if (fungibleTokenSymbol) {
+        return (await getAllFungibleTokenTransactions(account))
+            .filter(fttx => fttx.ft.symbol === fungibleTokenSymbol)
+            .map(tx => ({ ...tx, hash: tx.transaction_hash }));
+    } else {
+        const accountdatapath = `${accountdatadir}/${account}/transactions.json`;
+        if (await exists(accountdatapath)) {
+            return JSON.parse(await readTextFile(accountdatapath));
+        } else {
+            return [];
+        }
     }
 }
 
@@ -54,6 +113,19 @@ export async function fetchTransactionsForAccount(account, max_timestamp = new D
     return transactions;
 }
 
+export async function fetchFungibleTokenTransactionsForAccount(account, max_timestamp = BigInt(new Date().getTime()) * 1_000_000n) {
+    let transactions = await getAllFungibleTokenTransactions(account);
+    transactions = await getFungibleTokenTransactionsToDate(account, max_timestamp, transactions);
+    await writeFungibleTokenTransactions(account, transactions);
+    return transactions;
+}
+
+export async function writeFungibleTokenTransactions(account, transactions) {
+    const fungibleTokenTransactionsPath = getFungibleTokenTransactionsPath(account);
+    await makeDirs(fungibleTokenTransactionsPath);
+    await writeFile(fungibleTokenTransactionsPath, JSON.stringify(transactions, null, 1));
+}
+
 export async function writeTransactions(account, transactions) {
     await makeAccountDataDirs(account);
     await writeFile(`${accountdatadir}/${account}/transactions.json`, JSON.stringify(transactions, null, 1));
@@ -67,7 +139,10 @@ function getStakingDataPath(account, stakingpool_id) {
     return `${getStakingDataDir(account)}/${stakingpool_id}.json`;
 }
 
-export async function getStakingRewardsForAccountAndPool(account, stakingpool_id) {
+export async function getStakingRewardsForAccountAndPool(account, stakingpool_id, fungibleTokenSymbol) {
+    if (fungibleTokenSymbol) {
+        return [];
+    }
     const stakingDataPath = getStakingDataPath(account, stakingpool_id);
     if ((await exists(stakingDataPath))) {
         return JSON.parse(await readTextFile(stakingDataPath));
@@ -98,6 +173,9 @@ function getPriceDataPath(token, targetCurrency) {
 }
 
 export async function getHistoricalPriceData(token, targetCurrency) {
+    if (!token) {
+        token = 'NEAR';
+    }
     const pricedatapath = getPriceDataPath(token, targetCurrency);
     if (await exists(pricedatapath)) {
         return JSON.parse(await readTextFile(pricedatapath));

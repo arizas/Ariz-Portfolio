@@ -1,5 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { getArchiveNodeUrl, getHelperNodeUrl } from './network.js';
+import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
 
 export async function getAccountChanges(block_id, account_ids) {

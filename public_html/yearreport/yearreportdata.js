@@ -1,22 +1,60 @@
-import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool } from "../storage/domainobjectstore.js";
+import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getDepositAccounts } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 
-export async function calculateYearReportData() {
+const fungibleTokenData = {
+
+};
+
+export function getDecimalConversionValue(fungibleTokenSymbol) {
+    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol].decimalConversionValue : Math.pow(10, -24);
+}
+
+export async function calculateYearReportData(fungibleTokenSymbol) {
     const accounts = await getAccounts();
+    const accountsMap = accounts.reduce((obj, account) => {
+        obj[account] = true;
+        return obj;
+    }, {});
+
     const accountTransactions = {};
     const transactionsByHash = {};
     const transactionsByDate = {};
     const allStakingAccounts = {};
+    const depositaccounts = await getDepositAccounts();
+
+    let decimalConversionValue = Math.pow(10, -24);
 
     for (let account of accounts) {
-        const transactions = await getTransactionsForAccount(account);
+        const transactions = await getTransactionsForAccount(account, fungibleTokenSymbol);
+        const fungbleTokenTxMap = await getAllFungibleTokenTransactionsByTxHash(account);
+
+        if (fungibleTokenSymbol && transactions.length > 0) {
+            const tx = transactions[0];
+            if (!fungibleTokenData[tx.ft.symbol]) {
+                fungibleTokenData[tx.ft.symbol] = tx.ft;
+                fungibleTokenData[tx.ft.symbol].decimalConversionValue = Math.pow(10, -fungibleTokenData[tx.ft.symbol].decimals);
+            }
+        }
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
             tx.account = account;
             tx.changedBalance = BigInt(tx.balance) - (
-                n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : BigInt(tx.balance)
+                n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : 0n
             );
+
+            tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
+            if (!accountsMap[tx.signer_id]
+                && !allStakingAccounts[tx.signer_id]
+                && tx.changedBalance > 0n
+                && !depositaccounts[tx.signer_id]
+                && !depositaccounts[tx.involved_account_id]
+                && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
+            ) {
+                tx.receivedBalance = tx.changedBalance;
+                tx.changedBalance = 0n;
+            }
+
             if (!transactionsByHash[tx.hash]) {
                 transactionsByHash[tx.hash] = [];
             }
@@ -39,7 +77,7 @@ export async function calculateYearReportData() {
 
         for (let stakingAccount of stakingAccounts) {
             allStakingAccounts[stakingAccount] = true;
-            const stakingRewards = await getStakingRewardsForAccountAndPool(account, stakingAccount);
+            const stakingRewards = await getStakingRewardsForAccountAndPool(account, stakingAccount, fungibleTokenSymbol);
             for (let stakingReward of stakingRewards) {
                 const ts = stakingReward.timestamp.substr(0, 'yyyy-MM-dd'.length);
                 const stakingBalances = accountTransactions[account].stakingBalances;
@@ -69,7 +107,8 @@ export async function calculateYearReportData() {
             stakingBalance: 0,
             stakingEarnings: 0,
             deposit: 0,
-            withdrawal: 0
+            withdrawal: 0,
+            received: 0n
         };
         currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
         accounts.forEach(account => {
@@ -85,10 +124,15 @@ export async function calculateYearReportData() {
             transactionsByDate[datestring].forEach(tx => {
                 let changedBalanceForHashAllAccounts = BigInt(0);
                 const allTxEntriesForHash = transactionsByHash[tx.hash];
-                allTxEntriesForHash.forEach(t => {
-                    changedBalanceForHashAllAccounts += t.changedBalance;
-                    t.changedBalance = BigInt(0);
+                allTxEntriesForHash.forEach(tx => {
+                    changedBalanceForHashAllAccounts += tx.changedBalance;
+                    tx.changedBalance = 0n;
+                    if (tx.receivedBalance) {
+                        dailyBalances[datestring].received += tx.receivedBalance;
+                        tx.receivedBalance = 0n;
+                    }
                 });
+
                 if (!allStakingAccounts[tx.signer_id] && !allStakingAccounts[tx.receiver_id]) {
                     if (changedBalanceForHashAllAccounts >= BigInt(0)) {
                         dailyBalances[datestring].deposit += Number(changedBalanceForHashAllAccounts);
@@ -120,28 +164,29 @@ export async function calculateYearReportData() {
         prevDateString = datestring;
     }
 
-    return dailyBalances;
+    return { dailyBalances, transactionsByDate };
 }
 
-export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near') {
-    if (targetCurrency == 'near') {
+export async function calculateProfitLoss(dailyBalances, targetCurrency, token) {
+    if (!targetCurrency) {
         return { dailyBalances };
     }
     const openPositions = [];
     const closedPositions = [];
+    const decimalConversionValue = getDecimalConversionValue(token);
 
     for (const datestring in dailyBalances) {
         const dailyEntry = dailyBalances[datestring];
         let dayProfit = 0;
         let dayLoss = 0;
-        if (dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
-            const amount = dailyEntry.deposit ?? 0 + dailyEntry.reward ?? 0;
-            const conversionRate = await getEODPrice(targetCurrency, datestring);
+        if (dailyEntry.received > 0n || dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
+            const amount = Number(dailyEntry.received ?? 0n) + dailyEntry.deposit ?? 0 + dailyEntry.reward ?? 0;
+            const conversionRate = await getEODPrice(targetCurrency, datestring, token);
             openPositions.push({
                 date: datestring,
                 initialAmount: amount,
                 remainingAmount: amount,
-                convertedValue: conversionRate * (amount / 1e+24),
+                convertedValue: conversionRate * amount * decimalConversionValue,
                 conversionRate: conversionRate,
                 realizations: []
             });
@@ -151,13 +196,13 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
             let dayRealizedAmount = 0;
 
             dailyEntry.realizations = [];
-            const conversionRate = await getCustomSellPrice(targetCurrency, datestring);
+            const conversionRate = await getCustomSellPrice(targetCurrency, datestring, token);
             while (openPositions.length > 0 && dayRealizedAmount < dailyEntry.withdrawal) {
                 const position = openPositions[0];
                 if ((dayRealizedAmount + position.remainingAmount) > dailyEntry.withdrawal) {
                     const partlyRealizedPositionAmount = (dailyEntry.withdrawal - dayRealizedAmount);
                     const partlyRealizedPositionInitialConvertedValue = position.convertedValue * (partlyRealizedPositionAmount / position.initialAmount);
-                    const partlyRealizedPositionRealizedConvertedValue = (partlyRealizedPositionAmount / 1e+24) * conversionRate;
+                    const partlyRealizedPositionRealizedConvertedValue = partlyRealizedPositionAmount * decimalConversionValue * conversionRate;
                     position.remainingAmount -= partlyRealizedPositionAmount;
                     dayRealizedAmount = dailyEntry.withdrawal;
 
@@ -185,7 +230,7 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
                 } else {
                     dayRealizedAmount += position.remainingAmount;
 
-                    const convertedValue = conversionRate * (position.remainingAmount / 1e+24);
+                    const convertedValue = conversionRate * position.remainingAmount * decimalConversionValue;
                     const initialConvertedValue = position.convertedValue * (position.remainingAmount / position.initialAmount);
                     const profitLoss = convertedValue - initialConvertedValue;
                     if (profitLoss >= 0) {
@@ -225,14 +270,28 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency = 'near'
 }
 
 export async function getConvertedValuesForDay(rowdata, convertToCurrency, datestring) {
-    const convertToCurrencyIsNEAR = convertToCurrency == 'near';
+    const convertToCurrencyIsNEAR = !convertToCurrency || convertToCurrency === 'near';
     const conversionRate = convertToCurrencyIsNEAR ? 1 : await getEODPrice(convertToCurrency, datestring);
 
     const stakingReward = (conversionRate * (rowdata.stakingRewards / 1e+24));
+    const received = (conversionRate * (Number(rowdata.received) / 1e+24));
     const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
     const withdrawalConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomSellPrice(convertToCurrency, datestring);
     const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal / 1e+24));
 
-    return { stakingReward, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
+    return { stakingReward, received, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
+}
+
+export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, convertToCurrency, datestring) {
+    const doNotConvert = convertToCurrency ? false : true;
+    const conversionRate = doNotConvert ? 1 : await getEODPrice(convertToCurrency, datestring, symbol);
+
+    const decimalConversionValue = fungibleTokenData[symbol].decimalConversionValue;
+    const received = (conversionRate * (Number(rowdata.received) * decimalConversionValue));
+    const stakingReward = (conversionRate * (rowdata.stakingRewards * decimalConversionValue));
+    const deposit = (conversionRate * (rowdata.deposit * decimalConversionValue));
+    const withdrawal = (conversionRate * (rowdata.withdrawal * decimalConversionValue));
+
+    return { stakingReward, received, deposit, withdrawal, conversionRate, conversionRate, conversionRate };
 }
