@@ -18,7 +18,9 @@
     "serve:bos_test_gateway": "node bos_test_gateway_server.js",
     "create:car": "ipfs-car pack dist/index.html --output dist/index.car",
     "upload:car": "NODE_ENV=mainnet node ./node_modules/nearfs/scripts/upload-car.js dist/index.car",
-    "serve:dist": "http-server -p 8081 dist/"
+    "serve:dist": "http-server -p 8081 dist/",
+    "web4contract": "node web4contract/web4contract.wat.js && wat2wasm web4contract/web4contract.wat -o web4contract/web4contract.wasm",
+    "web4contract:deploy": "NEAR_ENV=mainnet near deploy arizportfolio.near web4contract/web4contract.wasm"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.2",
