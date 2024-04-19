@@ -11,27 +11,38 @@ export default /*html*/ `<style>
         white-space: nowrap;
     }
 
-    .table-responsive {
-        max-height: 100%;
-    }
-
-    table thead,
-    table tfoot {
-        position: sticky;
-    }
-
-    table thead {
-        inset-block-start: 0;
-        top: 0;
-    }
-
-    table tfoot {
-        inset-block-end: 0;
-        bottom: 0;
-    }
-
     tr.inforow td {
         font-size: 12px;   
+    }
+
+    @media screen {
+        .table-responsive {
+            max-height: 100%;
+        }
+
+        table thead,
+        table tfoot {
+            position: sticky;
+        }
+
+        table thead {
+            inset-block-start: 0;
+            top: 0;
+        }
+
+        table tfoot {
+            inset-block-end: 0;
+            bottom: 0;
+        }
+    }
+
+    @media print {
+        .table-responsive {
+            overflow: visible !important;
+            display: block;
+            width: 100%;
+            max-width: none;
+        }
     }
 </style>
 <h3>Year report ( all accounts )</h3>
@@ -72,7 +83,7 @@ export default /*html*/ `<style>
         <td><button class="btn btn-light show_transactions_button">&#128194;</button></td>
     </tr>
     <tr class="inforow bg-info">
-        <td colspan="13" >
+        <td colspan="14" >
             <table class="table table-sm table-borderless">
                 <thead>
                     <tr>
