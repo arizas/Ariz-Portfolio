@@ -7,6 +7,7 @@ import './customexchangerates/customexchangerates-page.component.js';
 import './storage/storage-page.component.js';
 import './yearreport/yearreport-page.component.js';
 import './yearreport/yearreport-print.component.js';
+import './yearreport/yearsummary-alltokens-print.component.js';
 
 import { getCurrencyList } from './pricedata/pricedata.js';
 import { accountsconfigfile, getAccounts, setAccounts } from './storage/domainobjectstore.js';

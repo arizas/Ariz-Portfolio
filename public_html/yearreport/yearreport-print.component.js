@@ -11,15 +11,25 @@ customElements.define('year-report-print',
             this.token = searchParams.get('token');
             this.year = searchParams.get('year');
             this.convertToCurrency = searchParams.get('currency');
+
             this.numDecimals = 2;
-            this.loadHTML();
+            if (this.token !== null) {
+                console.log(this.token);
+                this.createReport();
+            }
         }
 
-        async loadHTML() {
+        useDataset() {
+            this.year = this.dataset.year;
+            this.convertToCurrency = this.dataset.currency;
+            this.token = this.dataset.token;
+        }
+
+        async createReport() {
             this.shadowRoot.innerHTML = html;
-            this.shadowRoot.getElementById('yearspan').innerHTML = this.year;
-            this.shadowRoot.getElementById('tokenspan').innerHTML = this.token ? this.token : 'NEAR';
-            this.shadowRoot.getElementById('currencyspan').innerHTML = this.convertToCurrency;
+            this.shadowRoot.getElementById('yearspan').innerText = this.year;
+            this.shadowRoot.getElementById('tokenspan').innerText = this.token ? this.token : 'NEAR';
+            this.shadowRoot.getElementById('currencyspan').innerText = this.convertToCurrency;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
             let { dailyBalances, transactionsByDate, accounts } = await calculateYearReportData(this.token);
@@ -65,13 +75,20 @@ customElements.define('year-report-print',
                 totalProfit += rowdata.profit ?? 0;
                 totalLoss += rowdata.loss ?? 0;
 
+                rowdata.convertedTotalBalance = conversionRate * (rowdata.totalBalance * decimalConversionValue);
+                rowdata.convertedAccountBalance = conversionRate * (Number(rowdata.accountBalance) * decimalConversionValue);
+                rowdata.convertedStakingBalance = conversionRate * (rowdata.stakingBalance * decimalConversionValue);
+                rowdata.convertedTotalChange = conversionRate * (rowdata.totalChange * decimalConversionValue);
+                rowdata.convertedAccountChange = conversionRate * (Number(rowdata.accountChange) * decimalConversionValue);
+                rowdata.convertedStakingChange = conversionRate * (rowdata.stakingChange * decimalConversionValue);
+
                 row.querySelector('.dailybalancerow_datetime').innerHTML = datestring;
-                row.querySelector('.dailybalancerow_totalbalance').innerHTML = (conversionRate * (rowdata.totalBalance * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_accountbalance').innerHTML = (conversionRate * (Number(rowdata.accountBalance) * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_stakingbalance').innerHTML = (conversionRate * (rowdata.stakingBalance * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_change').innerHTML = (conversionRate * (rowdata.totalChange * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_accountchange').innerHTML = (conversionRate * (Number(rowdata.accountChange) * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_stakingchange').innerHTML = (conversionRate * (rowdata.stakingChange * decimalConversionValue)).toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_totalbalance').innerHTML = rowdata.convertedTotalBalance.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_accountbalance').innerHTML = rowdata.convertedAccountBalance.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_stakingbalance').innerHTML = rowdata.convertedStakingBalance.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_change').innerHTML = rowdata.convertedTotalChange.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_accountchange').innerHTML = rowdata.convertedAccountChange.toFixed(this.numDecimals);
+                row.querySelector('.dailybalancerow_stakingchange').innerHTML = rowdata.convertedStakingChange.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_stakingreward').innerHTML = stakingReward.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_received').innerHTML = received.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_deposit').innerHTML = deposit.toFixed(this.numDecimals);
@@ -129,6 +146,16 @@ ${this.token ? `
                 this.shadowRoot.querySelector('#totalwithdrawal').innerHTML = totalWithdrawal.toFixed(this.numDecimals);
                 this.shadowRoot.querySelector('#totalprofit').innerHTML = totalProfit.toFixed(this.numDecimals);
                 this.shadowRoot.querySelector('#totalloss').innerHTML = totalLoss.toFixed(this.numDecimals);
+            }
+            return {
+                totalStakingReward,
+                totalReceived,
+                totalDeposit,
+                totalWithdrawal,
+                totalProfit,
+                totalLoss,
+                outboundBalance: dailyBalances[`${this.year}-12-31`],
+                inboundBalance: dailyBalances[`${this.year}-01-01`]
             }
         }
     }
