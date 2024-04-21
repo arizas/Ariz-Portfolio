@@ -35,7 +35,7 @@ export default /*html*/ `<style>
 
 <table class="table">
 <tr>
-    <td>Staking rewards</td
+    <td>Staking rewards</td>
     <td class="numeric" id="totalreward"></td>
 </tr>
 <tr>
@@ -103,7 +103,8 @@ export default /*html*/ `<style>
 <h1>Daily changes</h1>
 <p>
 The following table shows the first and last day of the year, and each day where there are changes in the balance.
-If there is a withdrawal, then profit or loss of the realizations are calculated, and displayed as a table under
+Any transfer to other accounts than those reported for, are counted as withdrawals.
+If there are withdrawals, then profit or loss of the realizations relative to the target currency are calculated, and displayed as a table under
 the row for that day. Staking rewards are added without any transaction taking place, and the new staking balance
 is obtained by calling the staking contract for the balance for that specific date.
 </p>
@@ -152,48 +153,6 @@ is obtained by calling the staking contract for the balance for that specific da
     <tbody id="dailybalancestable">
 
     </tbody>
-    <tfoot class="table-dark">
-        <th scope="col">
-
-        </th>
-        <th scope="col">
-
-        </th>
-        <th scope="col">
-
-        </th>
-        <th scope="col">
-
-        </th>
-        <th scope="col">
-
-        </th>
-        <th scope="col">
-
-        </th>
-        <th scope="col">
-
-        </th>
-        <th scope="col" class="numeric" id="totalreward">
-
-        </th>
-        <th scope="col" class="numeric" id="totalreceived">
-
-        </th>
-        <th scope="col" class="numeric" id="totaldeposit">
-
-        </th>
-        <th scope="col" class="numeric" id="totalwithdrawal">
-
-        </th>
-        <th scope="col" class="numeric" id="totalprofit">
-
-        </th>
-        <th scope="col" class="numeric" id="totalloss">
-
-        </th>
-        <th></th>
-    </tfoot>
 </table>
 
 <div class="pagebreak"></div>
