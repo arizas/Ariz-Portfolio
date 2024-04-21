@@ -1,71 +1,23 @@
+import html from './yearreport-print.component.html.js';
 import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue } from './yearreportdata.js';
-import { getCurrencyList } from '../pricedata/pricedata.js';
-import html from './yearreport-page.component.html.js';
-import { getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
 
-customElements.define('year-report-page',
+customElements.define('year-report-print',
     class extends HTMLElement {
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
-            this.readyPromise = this.loadHTML();
+
+            const searchParams = new URLSearchParams(location.search);
+            this.token = searchParams.get('token');
+            this.year = searchParams.get('year');
+            this.convertToCurrency = searchParams.get('currency');
+            this.loadHTML();
         }
 
         async loadHTML() {
             this.shadowRoot.innerHTML = html;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
-
-            this.year = new Date().getFullYear();
-            this.yearSelect = this.shadowRoot.querySelector('#yearselect');
-            for (let year = this.year; year >= 2020; year--) {
-                const yearOption = document.createElement('option');
-                yearOption.value = year;
-                yearOption.innerHTML = `${year}`;
-                if (year === this.year) {
-                    yearOption.selected = true;
-                }
-                this.yearSelect.appendChild(yearOption);
-            }
-            this.yearSelect.addEventListener('change', () => {
-                this.year = parseInt(this.yearSelect.value);
-                this.refreshView()
-            });
-
-            const tokenselect = this.shadowRoot.querySelector('#tokenselect');
-            (await getAllFungibleTokenSymbols()).forEach(symbol => {
-                const symboloption = document.createElement('option');
-                symboloption.value = symbol;
-                symboloption.text = symbol;
-                tokenselect.appendChild(symboloption);
-            });
-
-            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
-            (await getCurrencyList()).forEach(currency => {
-                const currencyoption = document.createElement('option');
-                currencyoption.value = currency;
-                currencyoption.text = currency.toUpperCase();
-                currencyselect.appendChild(currencyoption);
-            });
-
-            const numDecimals = 2;
-            currencyselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals, tokenselect.value));
-            tokenselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals, tokenselect.value));
-            this.updateView(currencyselect.value, numDecimals, tokenselect.value);
-
-            this.shadowRoot.querySelector('#printbutton').addEventListener('click', () => {
-                window.open(`year-report-print?token=${this.token}&year=${this.year}&currency=${this.convertToCurrency}`);
-            });
-            return this.shadowRoot;
-        }
-
-        async updateView(convertToCurrency, numDecimals, token) {
-            this.convertToCurrency = convertToCurrency;
-            this.numDecimals = numDecimals;
-            this.token = token;
-            await this.refreshView();
-        }
-
-        async refreshView() {
+            
             let { dailyBalances, transactionsByDate } = await calculateYearReportData(this.token);
             dailyBalances = (await calculateProfitLoss(dailyBalances, this.convertToCurrency, this.token)).dailyBalances;
 
@@ -89,9 +41,7 @@ customElements.define('year-report-page',
             let totalLoss = 0;
 
             const decimalConversionValue = this.token ? getDecimalConversionValue(this.token) : Math.pow(10, -24);
-
-            const transactionsModalElement = this.shadowRoot.querySelector('#show_transactions_modal');
-            const showTransactionsModal = new bootstrap.Modal(transactionsModalElement);
+            const transactionstablebody = this.shadowRoot.querySelector('#transactionstablebody');
 
             while (currentDate.getTime() >= endDate) {
                 const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -123,30 +73,27 @@ customElements.define('year-report-page',
                 row.querySelector('.dailybalancerow_withdrawal').innerHTML = withdrawal.toFixed(this.numDecimals);
                 row.querySelector('.dailybalancerow_profit').innerHTML = rowdata.profit?.toFixed(this.numDecimals) ?? '';
                 row.querySelector('.dailybalancerow_loss').innerHTML = rowdata.loss?.toFixed(this.numDecimals) ?? '';
-                row.querySelector('.show_transactions_button').addEventListener('click', () => {
+    
+                if (transactionsByDate[datestring]) {
                     const transactions = transactionsByDate[datestring];
-                    transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
-                    transactionsModalElement.querySelector('.modal-body').innerHTML = `
-                    <div class="table-responsive">
-                        <table class="table table-sm table-dark">
-                        <thead>
-                            <th>Signer</th>
-                            <th>Received</th>
-                            <th>Changed balance</th>
-                            <th></th>
-                        </thead>
-                        <tbody>
-                        ${transactions ? transactions.map(tx => `<tr>
-${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalConversionValue}</td>` :
-    `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
-<td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</button></a>
-</tr>`).join('') : ''}
-                        </tbody>
-                        </table>
-                        </div>
-                    `;
-                    showTransactionsModal.show();
-                });
+                    transactionstablebody.innerHTML += transactions.map(tx => `
+                    <tr>
+                    <td>
+                    ${datestring}
+                    </td>
+                    ${this.token ? `
+                    <td>${tx.involved_account_id}</td>
+                    <td>${tx.affected_account_id}</td>
+                    <td>${tx.cause}</td>
+                    <td class="numeric">${tx.delta_amount * decimalConversionValue}</td>` :
+                        `<td>${tx.signer_id}</td>
+                        <td>${tx.receiver_id}</td>
+                        <td>${tx.action_kind}</td>
+                        <td class="numeric">${tx.visibleChangedBalance}</td>`}
+                    <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</a>
+                    </td></tr>`).join('');
+                }
+
                 if (rowdata.realizations) {
                     const detailInfoElement = row.querySelector('.inforow td table tbody');
                     detailInfoElement.innerHTML = rowdata.realizations.map(r => `
@@ -172,8 +119,6 @@ ${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}<
             this.shadowRoot.querySelector('#totalwithdrawal').innerHTML = totalWithdrawal.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalprofit').innerHTML = totalProfit.toFixed(this.numDecimals);
             this.shadowRoot.querySelector('#totalloss').innerHTML = totalLoss.toFixed(this.numDecimals);
-
-            const tableElement = this.shadowRoot.querySelector('.table-responsive');
-            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
         }
-    });
+    }
+);

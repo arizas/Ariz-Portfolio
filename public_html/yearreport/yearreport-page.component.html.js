@@ -45,7 +45,14 @@ export default /*html*/ `<style>
         }
     }
 </style>
-<h3>Year report ( all accounts )</h3>
+<div class="row">
+    <div class="col-md-9">
+        <h3>Year report ( all accounts )</h3>
+    </div>
+    <div class="col-md-3" style="text-align: right">
+        <button class="btn btn-primary" id="printbutton">Print</button>
+    </div>
+</div>
 <div class="row">
     <div class="col-md-4">
         <label for="yearselect" class="form-label">Select year</label>   
