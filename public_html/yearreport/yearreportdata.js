@@ -164,7 +164,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         prevDateString = datestring;
     }
 
-    return { dailyBalances, transactionsByDate };
+    return { dailyBalances, transactionsByDate, accounts };
 }
 
 export async function calculateProfitLoss(dailyBalances, targetCurrency, token) {
