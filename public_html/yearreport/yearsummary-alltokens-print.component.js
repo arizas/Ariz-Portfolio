@@ -37,7 +37,12 @@ customElements.define('yearsummary-alltokens-print',
 
                 const result = await tokenreport.createReport();
                 
-                if (!isNaN(result.outboundBalance.convertedTotalBalance)) {
+                if (!isNaN(result.outboundBalance.convertedTotalBalance) && (
+                    result.totalReceived !== 0
+                    || result.totalStakingReward !== 0
+                    || result.totalDeposit !== 0
+                    || result.totalWithdrawal !== 0
+                )) {
                     tokenYearReportsElement.appendChild(tokenreport);
                     const row = rowTemplate.cloneNode(true).content;
                     const earnings = result.totalReceived + result.totalStakingReward;

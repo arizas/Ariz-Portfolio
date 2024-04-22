@@ -65,7 +65,7 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     }
     const pricedata = await getHistoricalPriceData(token, currency);
     const price = pricedata[datestring];
-    return price;
+    return price ?? 0;
 }
 
 export async function getCustomSellPrice(currency, datestring, token) {
