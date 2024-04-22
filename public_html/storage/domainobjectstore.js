@@ -26,14 +26,17 @@ function getFungibleTokenTransactionsPath(account) {
 }
 
 export async function getDepositAccounts() {
+    const defaultDepositAccounts = {
+        "system": {
+            "description": "Funds from system account should be counted as deposits"
+        },
+        "null": {
+            "description": "Funds from null account should be counted as deposits"
+        }
+    };
     if (await exists(depositaccountsfile)) {
-        return JSON.parse(await readTextFile(depositaccountsfile));
+        return Object.assign(defaultDepositAccounts, JSON.parse(await readTextFile(depositaccountsfile)));
     } else {
-        const defaultDepositAccounts = {
-            "system": {
-                "description": "Funds from system accounts should be counted as deposits"
-            }
-        };
         await setDepositAccounts(defaultDepositAccounts);
         return defaultDepositAccounts;
     }

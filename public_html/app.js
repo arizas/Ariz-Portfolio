@@ -46,7 +46,9 @@ class AppNearNumbersComponent extends HTMLElement {
             if ((window.top == window) && (location.pathname != path || location.search.indexOf('?account_id') == 0)) {
                 history.pushState({}, null, path);
             }
-            this.shadowRoot.querySelector('nav').remove();
+            if (page.endsWith('-print')) {
+                this.shadowRoot.querySelector('nav').remove();
+            }
             mainContainer.replaceChildren(pageElement);
         }
 
