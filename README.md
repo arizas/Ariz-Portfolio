@@ -1,4 +1,4 @@
-NEAR account-report
+Ariz Portfolio
 ===================
 
 A web application for getting an overview of one or multiple NEAR accounts.
