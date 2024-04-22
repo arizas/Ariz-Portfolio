@@ -46,29 +46,25 @@ export default /*html*/ `<style>
     }
 </style>
 <div class="row">
-    <div class="col-md-9">
-        <h3>Year report ( all accounts )</h3>
-    </div>
-    <div class="col-md-3" style="text-align: right">
-        <button class="btn btn-primary" id="printbutton">Print</button>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="yearselect" class="form-label">Select year</label>   
         <select id="yearselect" class="form-select"></select>        
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="tokenselect" class="form-label">Fungible token</label>
         <select class="form-select" aria-label="Select fungible token" id="tokenselect">
             <option value="">NEAR</option>
         </select>        
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="currencyselect" class="form-label">Currency</label>
         <select class="form-select" aria-label="Select conversion currency" id="currencyselect">
             <option value="">No conversion</option>
         </select>        
+    </div>
+    <div class="col-md-3" style="text-align: right">
+        <button class="btn btn-light" id="print_all_tokens_button">Print (all tokens)</button>
+        <button class="btn btn-light" id="print_current_token_button">Print (selected token)</button>
     </div>
 </div>
 

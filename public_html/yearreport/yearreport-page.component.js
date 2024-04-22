@@ -52,8 +52,11 @@ customElements.define('year-report-page',
             tokenselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals, tokenselect.value));
             this.updateView(currencyselect.value, numDecimals, tokenselect.value);
 
-            this.shadowRoot.querySelector('#printbutton').addEventListener('click', () => {
+            this.shadowRoot.querySelector('#print_current_token_button').addEventListener('click', () => {
                 window.open(`year-report-print?token=${this.token}&year=${this.year}&currency=${this.convertToCurrency}`);
+            });
+            this.shadowRoot.querySelector('#print_all_tokens_button').addEventListener('click', () => {
+                window.open(`yearsummary-alltokens-print?year=${this.year}&currency=${this.convertToCurrency}`);
             });
             return this.shadowRoot;
         }

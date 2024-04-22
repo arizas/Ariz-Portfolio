@@ -25,7 +25,7 @@ customElements.define('yearsummary-alltokens-print',
             this.shadowRoot.getElementById('accountsspan').innerText = (await getAccounts()).join(', ');
             this.shadowRoot.getElementById('yearspan').innerText = this.year;
 
-            const format = Intl.NumberFormat(navigator.language, {style: 'currency', currency: this.currency}).format;
+            const format = Intl.NumberFormat(navigator.language, { style: 'currency', currency: this.currency }).format;
             let totalBalance = 0;
             let totalEarnings = 0;
             let totalProfit = 0;
@@ -39,14 +39,14 @@ customElements.define('yearsummary-alltokens-print',
                 tokenreport.useDataset();
 
                 const result = await tokenreport.createReport();
-                
+
                 if (!isNaN(result.outboundBalance.convertedTotalBalance) && (
                     result.totalReceived !== 0
                     || result.totalStakingReward !== 0
                     || result.totalDeposit !== 0
                     || result.totalWithdrawal !== 0
                 )) {
-                    const pageBreakElement = documen.createElement('div');
+                    const pageBreakElement = document.createElement('div');
                     pageBreakElement.classList.add('pagebreak');
                     tokenYearReportsElement.appendChild(pageBreakElement);
 
