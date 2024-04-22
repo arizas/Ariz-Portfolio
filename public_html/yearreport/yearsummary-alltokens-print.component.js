@@ -1,5 +1,5 @@
 import html from './yearsummary-alltokens-print.component.html.js';
-import { getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
+import { getAccounts, getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
 
 customElements.define('yearsummary-alltokens-print',
     class extends HTMLElement {
@@ -22,6 +22,9 @@ customElements.define('yearsummary-alltokens-print',
             const summarytablebody = this.shadowRoot.getElementById('summarytablebody');
             const rowTemplate = this.shadowRoot.querySelector('#symmaryrowtemplate');
 
+            this.shadowRoot.getElementById('accountsspan').innerText = (await getAccounts()).join(', ');
+            this.shadowRoot.getElementById('yearspan').innerText = this.year;
+
             const format = Intl.NumberFormat(navigator.language, {style: 'currency', currency: this.currency}).format;
             let totalBalance = 0;
             let totalEarnings = 0;
@@ -43,6 +46,10 @@ customElements.define('yearsummary-alltokens-print',
                     || result.totalDeposit !== 0
                     || result.totalWithdrawal !== 0
                 )) {
+                    const pageBreakElement = documen.createElement('div');
+                    pageBreakElement.classList.add('pagebreak');
+                    tokenYearReportsElement.appendChild(pageBreakElement);
+
                     tokenYearReportsElement.appendChild(tokenreport);
                     const row = rowTemplate.cloneNode(true).content;
                     const earnings = result.totalReceived + result.totalStakingReward;

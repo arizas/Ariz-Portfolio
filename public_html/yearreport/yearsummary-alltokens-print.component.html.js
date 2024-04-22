@@ -7,7 +7,11 @@ export default /*html*/ `
         page-break-after: always;
     }
 </style>
-<h1>Year report</h1>
+<h1>Year report <span id="yearspan"></span></h1>
+
+<p>This report is for activity in the following accounts: <span style="font-style: italic;" id="accountsspan"></span></p>
+
+<p>The following table shows the outbound balance, earnings, and profit/loss on realizations per fungible token.</p>
 
 <template id="symmaryrowtemplate">
     <tr>
@@ -50,6 +54,8 @@ export default /*html*/ `
     </tr>
 </tfoot>
 </table>
-<div class="pagebreak"></div>
+
+<p>In the following pages there are detailed reports for each fungible token.</p>
+
 <div id="tokenyearreports"></div>
 `;
