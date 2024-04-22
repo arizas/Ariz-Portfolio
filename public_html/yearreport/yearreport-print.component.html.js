@@ -43,6 +43,10 @@ export default /*html*/ `<style>
     <td class="numeric" id="totalreceived"></td>
 </tr>
 <tr>
+    <td>Total earnings (Staking rewards + Received)</td>
+    <td class="numeric" id="totalearnings"></td>
+</tr>
+<tr>
     <td>Deposit</td>
     <td class="numeric" id="totaldeposit"></td>
 </tr>

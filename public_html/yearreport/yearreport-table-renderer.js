@@ -2,6 +2,12 @@ import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay,
 
 const numDecimals = 2;
 
+export function getNumberFormatter(currency) {
+    const format = currency ? Intl.NumberFormat(navigator.language, { style: 'currency', currency: currency }).format :
+        Intl.NumberFormat(navigator.language).format;
+    return (number) => number!==null && number!==undefined && !isNaN(number) ? format(number) : '';;
+}
+
 export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
     let { dailyBalances, transactionsByDate } = await calculateYearReportData(token);
     dailyBalances = (await calculateProfitLoss(dailyBalances, convertToCurrency, token)).dailyBalances;
@@ -14,6 +20,8 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
     }
 
     const rowTemplate = shadowRoot.querySelector('#dailybalancerowtemplate');
+
+    const formatNumber = getNumberFormatter(convertToCurrency);
 
     let currentDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
     const endDate = new Date(`${year}-01-01`);
@@ -51,19 +59,19 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         rowdata.convertedAccountChange = conversionRate * (Number(rowdata.accountChange) * decimalConversionValue);
         rowdata.convertedStakingChange = conversionRate * (rowdata.stakingChange * decimalConversionValue);
 
-        row.querySelector('.dailybalancerow_datetime').innerHTML = datestring;
-        row.querySelector('.dailybalancerow_totalbalance').innerHTML = rowdata.convertedTotalBalance.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_accountbalance').innerHTML = rowdata.convertedAccountBalance.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_stakingbalance').innerHTML = rowdata.convertedStakingBalance.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_change').innerHTML = rowdata.convertedTotalChange.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_accountchange').innerHTML = rowdata.convertedAccountChange.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_stakingchange').innerHTML = rowdata.convertedStakingChange.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_stakingreward').innerHTML = stakingReward.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_received').innerHTML = received.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_deposit').innerHTML = deposit.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_withdrawal').innerHTML = withdrawal.toFixed(numDecimals);
-        row.querySelector('.dailybalancerow_profit').innerHTML = rowdata.profit?.toFixed(numDecimals) ?? '';
-        row.querySelector('.dailybalancerow_loss').innerHTML = rowdata.loss?.toFixed(numDecimals) ?? '';
+        row.querySelector('.dailybalancerow_datetime').innerText = datestring;
+        row.querySelector('.dailybalancerow_totalbalance').innerText = formatNumber(rowdata.convertedTotalBalance);
+        row.querySelector('.dailybalancerow_accountbalance').innerText = formatNumber(rowdata.convertedAccountBalance);
+        row.querySelector('.dailybalancerow_stakingbalance').innerText = formatNumber(rowdata.convertedStakingBalance);
+        row.querySelector('.dailybalancerow_change').innerText = formatNumber(rowdata.convertedTotalChange);
+        row.querySelector('.dailybalancerow_accountchange').innerText = formatNumber(rowdata.convertedAccountChange);
+        row.querySelector('.dailybalancerow_stakingchange').innerText = formatNumber(rowdata.convertedStakingChange);
+        row.querySelector('.dailybalancerow_stakingreward').innerText = formatNumber(stakingReward);
+        row.querySelector('.dailybalancerow_received').innerText = formatNumber(received);
+        row.querySelector('.dailybalancerow_deposit').innerText = formatNumber(deposit);
+        row.querySelector('.dailybalancerow_withdrawal').innerText = formatNumber(withdrawal);
+        row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit) ?? '';
+        row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss) ?? '';
 
         await perRowFunction({ transactionsByDate, datestring, row, decimalConversionValue, numDecimals });
 
@@ -72,10 +80,10 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
             detailInfoElement.innerHTML = rowdata.realizations.map(r => `
                 <tr>
                     <td>${r.position.date}</td>
-                    <td>${(r.position.initialAmount * decimalConversionValue).toFixed(numDecimals)}</td>
-                    <td>${r.position.conversionRate?.toFixed(numDecimals)}</td>
-                    <td>${(r.amount * decimalConversionValue).toFixed(numDecimals)}</td>
-                    <td>${r.conversionRate?.toFixed(numDecimals)}</td>
+                    <td>${formatNumber(r.position.initialAmount * decimalConversionValue)}</td>
+                    <td>${formatNumber(r.position.conversionRate)}</td>
+                    <td>${formatNumber(r.amount * decimalConversionValue)}</td>
+                    <td>${formatNumber(r.conversionRate)}</td>
                 </tr>
             `).join('\n');
         } else {
@@ -92,12 +100,12 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         }
 
         currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
-        shadowRoot.querySelector('#totalreward').innerHTML = totalStakingReward.toFixed(numDecimals);
-        shadowRoot.querySelector('#totalreceived').innerHTML = totalReceived.toFixed(numDecimals);
-        shadowRoot.querySelector('#totaldeposit').innerHTML = totalDeposit.toFixed(numDecimals);
-        shadowRoot.querySelector('#totalwithdrawal').innerHTML = totalWithdrawal.toFixed(numDecimals);
-        shadowRoot.querySelector('#totalprofit').innerHTML = totalProfit.toFixed(numDecimals);
-        shadowRoot.querySelector('#totalloss').innerHTML = totalLoss.toFixed(numDecimals);
+        shadowRoot.querySelector('#totalreward').innerText = formatNumber(totalStakingReward);
+        shadowRoot.querySelector('#totalreceived').innerText = formatNumber(totalReceived);
+        shadowRoot.querySelector('#totaldeposit').innerText = formatNumber(totalDeposit);
+        shadowRoot.querySelector('#totalwithdrawal').innerText = formatNumber(totalWithdrawal);
+        shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totalProfit);
+        shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);
     }
     return {
         totalStakingReward,

@@ -1,5 +1,5 @@
 import html from './yearreport-print.component.html.js';
-import { renderYearReportTable } from './yearreport-table-renderer.js';
+import { getNumberFormatter, renderYearReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-print',
     class extends HTMLElement {
@@ -31,7 +31,9 @@ customElements.define('year-report-print',
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
             const transactionstablebody = this.shadowRoot.querySelector('#transactionstablebody');
 
-            return await renderYearReportTable({
+            const formatNumber = getNumberFormatter(this.convertToCurrency);
+
+            const result = await renderYearReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
                 year: this.year,
@@ -68,6 +70,8 @@ customElements.define('year-report-print',
                     }
                 }
             });
+            this.shadowRoot.getElementById('totalearnings').innerText = formatNumber(result.totalReceived + result.totalStakingReward);
+            return result;
         }
     }
 );
