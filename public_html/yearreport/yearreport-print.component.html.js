@@ -58,10 +58,6 @@ export default /*html*/ `<style>
     <td>Loss on realizations</td>
     <td class="numeric" id="totalloss"></td>
 </tr>
-<tr>
-    <td>Accounts</td>
-    <td id="accountscolumn"></td>
-</tr>
 </table>
         
 <template id="dailybalancerowtemplate">
