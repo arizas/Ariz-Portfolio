@@ -8,6 +8,18 @@ export function getNumberFormatter(currency) {
     return (number) => number!==null && number!==undefined && !isNaN(number) ? format(number) : '';;
 }
 
+export function hideProfitLossIfNoConvertToCurrency(convertToCurrency, shadowRoot) {
+    if (!convertToCurrency) {
+        const style = document.createElement('style');
+        style.innerHTML = `
+.profit, .loss, .summary_profit, .summary_loss, .dailybalancerow_profit, .dailybalancerow_loss, #summarytablefooter {
+    display: none;
+}
+        `;
+        shadowRoot.appendChild(style);
+    }   
+}
+
 export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
     let { dailyBalances, transactionsByDate } = await calculateYearReportData(token);
     dailyBalances = (await calculateProfitLoss(dailyBalances, convertToCurrency, token)).dailyBalances;
@@ -70,8 +82,10 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         row.querySelector('.dailybalancerow_received').innerText = formatNumber(received);
         row.querySelector('.dailybalancerow_deposit').innerText = formatNumber(deposit);
         row.querySelector('.dailybalancerow_withdrawal').innerText = formatNumber(withdrawal);
-        row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit) ?? '';
-        row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss) ?? '';
+        if (convertToCurrency) {
+            row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit) ?? '';
+            row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss) ?? '';
+        }
 
         await perRowFunction({ transactionsByDate, datestring, row, decimalConversionValue, numDecimals });
 
@@ -104,8 +118,10 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         shadowRoot.querySelector('#totalreceived').innerText = formatNumber(totalReceived);
         shadowRoot.querySelector('#totaldeposit').innerText = formatNumber(totalDeposit);
         shadowRoot.querySelector('#totalwithdrawal').innerText = formatNumber(totalWithdrawal);
-        shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totalProfit);
-        shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);
+        if (convertToCurrency) {
+            shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totalProfit);
+            shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);
+        }
     }
     return {
         totalStakingReward,

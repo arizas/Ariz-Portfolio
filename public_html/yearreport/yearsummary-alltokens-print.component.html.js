@@ -34,23 +34,23 @@ export default /*html*/ `
         <th scope="col" class="numeric">
             earnings
         </th>
-        <th scope="col" class="numeric">
+        <th scope="col" class="numeric profit">
             profit
         </th>
-        <th scope="col" class="numeric">
+        <th scope="col" class="numeric loss">
             loss
         </th>
     </tr>
 </thead>
 <tbody id="summarytablebody">
 </tbody>
-<tfoot>
+<tfoot id="summarytablefooter">
     <tr>
         <th>Total</th>
         <th id="summary_total_balance" class="numeric"></th>
         <th id="summary_total_earnings" class="numeric"></th>
-        <th id="summary_total_profit" class="numeric"></th>
-        <th id="summary_total_loss" class="numeric"></th>
+        <th id="summary_total_profit" class="numeric profit"></th>
+        <th id="summary_total_loss" class="numeric loss"></th>
     </tr>
 </tfoot>
 </table>

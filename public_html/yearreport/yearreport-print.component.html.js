@@ -54,11 +54,11 @@ export default /*html*/ `<style>
     <td>Withdrawal</td>
     <td class="numeric" id="totalwithdrawal"></td>
 </tr>
-<tr>
+<tr class="profit">
     <td>Profit on realizations</td>
     <td class="numeric" id="totalprofit"></td>
 </tr>
-<tr>
+<tr class="loss">
     <td>Loss on realizations</td>
     <td class="numeric" id="totalloss"></td>
 </tr>
@@ -143,10 +143,10 @@ is obtained by calling the staking contract for the balance for that specific da
         <th scope="col" class="numeric">
             withdrawals
         </th>
-        <th scope="col" class="numeric">
+        <th scope="col" class="numeric profit">
             profit
         </th>
-        <th scope="col" class="numeric">
+        <th scope="col" class="numeric loss">
             loss
         </th>
     </thead>

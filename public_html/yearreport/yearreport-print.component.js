@@ -1,5 +1,5 @@
 import html from './yearreport-print.component.html.js';
-import { getNumberFormatter, renderYearReportTable } from './yearreport-table-renderer.js';
+import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency, renderYearReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-print',
     class extends HTMLElement {
@@ -13,6 +13,8 @@ customElements.define('year-report-print',
             this.year = searchParams.get('year');
             this.convertToCurrency = searchParams.get('currency');
 
+            hideProfitLossIfNoConvertToCurrency(this.convertToCurrency, this.shadowRoot);
+
             if (this.token !== null) {
                 this.createReport();
             }
@@ -22,6 +24,7 @@ customElements.define('year-report-print',
             this.year = this.dataset.year;
             this.convertToCurrency = this.dataset.currency;
             this.token = this.dataset.token;
+            hideProfitLossIfNoConvertToCurrency(this.convertToCurrency, this.shadowRoot);
         }
 
         async createReport() {
