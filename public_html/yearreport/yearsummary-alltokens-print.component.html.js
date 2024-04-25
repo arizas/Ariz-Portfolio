@@ -9,9 +9,13 @@ export default /*html*/ `
 </style>
 <h1>Year report <span id="yearspan"></span></h1>
 
+<p><b>Disclaimer:</b> <em>This report is based on the configurations of the user, and the calculations of the software that generated the report.
+Readers of this report, and users of the reporting tool should verify the correctness of the calculations, and ensure that all relevant data is collected.
+<b>The reporting software does not guarantee correctness in calculations or accuracy and completeness in the underlying data</b>.
+</em></p>
 <p>This report is for activity in the following accounts: <span style="font-style: italic;" id="accountsspan"></span></p>
 
-<p>The following table shows the outbound balance, earnings, and profit/loss on realizations per fungible token.</p>
+<p>The following table shows the outbound balance, earnings. If a target currency is selected, it also shows profit/loss on realizations per fungible token relative to the currency.</p>
 
 <template id="symmaryrowtemplate">
     <tr>

@@ -104,7 +104,7 @@ export default /*html*/ `<style>
 <p>
 The following table shows the first and last day of the year, and each day where there are changes in the balance.
 Any transfer to other accounts than those reported for, are counted as withdrawals.
-If there are withdrawals, then profit or loss of the realizations relative to the target currency are calculated, and displayed as a table under
+If there are withdrawals, and a target currency is selected, then profit or loss of the realizations relative to the currency are calculated, and displayed as a table under
 the row for that day. Staking rewards are added without any transaction taking place, and the new staking balance
 is obtained by calling the staking contract for the balance for that specific date.
 </p>
