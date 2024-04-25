@@ -1,5 +1,6 @@
 import html from './yearsummary-alltokens-print.component.html.js';
 import { getAccounts, getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
+import { getNumberFormatter } from './yearreport-table-renderer.js';
 
 customElements.define('yearsummary-alltokens-print',
     class extends HTMLElement {
@@ -25,7 +26,7 @@ customElements.define('yearsummary-alltokens-print',
             this.shadowRoot.getElementById('accountsspan').innerText = (await getAccounts()).join(', ');
             this.shadowRoot.getElementById('yearspan').innerText = this.year;
 
-            const format = Intl.NumberFormat(navigator.language, { style: 'currency', currency: this.currency }).format;
+            const format = getNumberFormatter(this.currency);
             let totalBalance = 0;
             let totalEarnings = 0;
             let totalProfit = 0;

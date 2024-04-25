@@ -6,6 +6,7 @@ customElements.define('year-report-print',
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
+            this.shadowRoot.innerHTML = html;
 
             const searchParams = new URLSearchParams(location.search);
             this.token = searchParams.get('token');
@@ -24,7 +25,6 @@ customElements.define('year-report-print',
         }
 
         async createReport() {
-            this.shadowRoot.innerHTML = html;
             this.shadowRoot.getElementById('yearspan').innerText = this.year;
             this.shadowRoot.getElementById('tokenspan').innerText = this.token ? this.token : 'NEAR';
             this.shadowRoot.getElementById('currencyspan').innerText = this.convertToCurrency;
