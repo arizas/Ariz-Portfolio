@@ -7,6 +7,7 @@ import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
 export const depositaccountsfile = 'depositaccounts.json';
+export const ignorefungibletokensfile = 'ignorefungibletokens.json';
 export const customexchangeratesfile = 'customexchangerates.json';
 export const pricedatadir = 'pricehistory';
 
@@ -44,6 +45,14 @@ export async function getDepositAccounts() {
 
 export async function setDepositAccounts(depositaccounts) {
     await writeFile(depositaccountsfile, JSON.stringify(depositaccounts));
+}
+
+export async function getIgnoredFungibleTokens() {
+    if (await exists(ignorefungibletokensfile)) {
+        return JSON.parse(await readTextFile(ignorefungibletokensfile));
+    } else {
+        return [];
+    }
 }
 
 export async function getAccounts() {

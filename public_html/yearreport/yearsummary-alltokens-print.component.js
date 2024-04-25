@@ -1,5 +1,5 @@
 import html from './yearsummary-alltokens-print.component.html.js';
-import { getAccounts, getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
+import { getAccounts, getAllFungibleTokenSymbols, getIgnoredFungibleTokens } from '../storage/domainobjectstore.js';
 import { getNumberFormatter } from './yearreport-table-renderer.js';
 
 customElements.define('yearsummary-alltokens-print',
@@ -32,7 +32,12 @@ customElements.define('yearsummary-alltokens-print',
             let totalProfit = 0;
             let totalLoss = 0;
 
+            const ignoredFungibleTokens = await getIgnoredFungibleTokens();
+            console.log(ignoredFungibleTokens);
             for (const token of tokens) {
+                if (ignoredFungibleTokens.find(t => t.symbol === token)) {
+                    continue;
+                }
                 const tokenreport = document.createElement('year-report-print');
                 tokenreport.dataset.year = this.year;
                 tokenreport.dataset.currency = this.currency;
