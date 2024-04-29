@@ -53,6 +53,30 @@ customElements.define('storage-page',
         async loadHTML() {
             this.shadowRoot.innerHTML = wasmgitComponentHtml;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
+                console.log('click');
+                setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
+                await fetchNEARHistoricalPrices();
+                setProgressbarValue(null);
+            });
+            this.shadowRoot.getElementById('importnearusdyahoobutton').addEventListener('click', async () => {
+                setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from Yahoo finance');
+                const data = await new Promise(resolve => {
+                    const fileinput = this.shadowRoot.getElementById('yahoofinancecsvfileinput');
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsText(fileinput.files[0]);
+                });
+                await importYahooNEARHistoricalPrices(data);
+                setProgressbarValue(null);
+            });
+            this.shadowRoot.getElementById('fetchusdnokbutton').addEventListener('click', async () => {
+                setProgressbarValue('indeterminate', 'Fetching USD/NOK rates from Norges Bank');
+                await fetchNOKPrices();
+                setProgressbarValue(null);
+            });
+
             this.loginbutton = this.shadowRoot.querySelector('#loginbutton');
             this.logoutbutton = this.shadowRoot.querySelector('#logoutbutton');
 
@@ -65,7 +89,7 @@ customElements.define('storage-page',
                 location.reload();
             });
 
-            this.loadAccountData();
+            await this.loadAccountData();
 
             this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
             this.remoteRepoInput.addEventListener('change', async () => {
@@ -95,29 +119,6 @@ customElements.define('storage-page',
                 setProgressbarValue(null);
                 this.syncbutton.disabled = false;
             });
-            
-            this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
-                setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
-                await fetchNEARHistoricalPrices();
-                setProgressbarValue(null);
-            });
-            this.shadowRoot.getElementById('importnearusdyahoobutton').addEventListener('click', async () => {
-                setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from Yahoo finance');
-                const data = await new Promise(resolve => {
-                    const fileinput = this.shadowRoot.getElementById('yahoofinancecsvfileinput');
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.readAsText(fileinput.files[0]);
-                });
-                await importYahooNEARHistoricalPrices(data);
-                setProgressbarValue(null);
-            });
-            this.shadowRoot.getElementById('fetchusdnokbutton').addEventListener('click', async () => {
-                setProgressbarValue('indeterminate', 'Fetching USD/NOK rates from Norges Bank');
-                await fetchNOKPrices();
-                setProgressbarValue(null);
-            });
-
             return this.shadowRoot;
         }
 
@@ -130,6 +131,10 @@ customElements.define('storage-page',
             let currentUser = {
                 accountId: walletConnection.getAccountId()
             };
+
+            if (!currentUser.accountId) {
+                return;
+            }
 
             this.shadowRoot.querySelector('#currentuserspan').innerHTML = `Logged in as ${currentUser.accountId}`;
 
