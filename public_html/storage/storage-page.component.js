@@ -65,44 +65,37 @@ customElements.define('storage-page',
                 location.reload();
             });
 
-            if (window.top == window) {
-                if ((await walletConnectionPromise).getAccountId()) {
-                    this.loadAccountData();
-                } else {
-                    console.log('no loggedin user');
-                    return;
-                }
+            this.loadAccountData();
 
-                this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
-                this.remoteRepoInput.addEventListener('change', async () => {
-                    await set_remote(this.remoteRepoInput.value);
-                });
+            this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
+            this.remoteRepoInput.addEventListener('change', async () => {
+                await set_remote(this.remoteRepoInput.value);
+            });
 
-                this.remoteRepoInput.value = await get_remote();
-                this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
-                this.syncbutton.addEventListener('click', async () => {
-                    setProgressbarValue('indeterminate', 'syncing with remote');
-                    try {
-                        this.syncbutton.disabled = true;
-                        if (!(await exists('.git'))) {
-                            if (this.remoteRepoInput.value) {
-                                await git_clone(this.remoteRepoInput.value);
-                            } else {
-                                await git_init();
-                            }
+            this.remoteRepoInput.value = await get_remote();
+            this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
+            this.syncbutton.addEventListener('click', async () => {
+                setProgressbarValue('indeterminate', 'syncing with remote');
+                try {
+                    this.syncbutton.disabled = true;
+                    if (!(await exists('.git'))) {
+                        if (this.remoteRepoInput.value) {
+                            await git_clone(this.remoteRepoInput.value);
+                        } else {
+                            await git_init();
                         }
-                        await commit_all();
-                        await sync();
-                        this.dispatchSyncEvent();
-                    } catch (e) {
-                        console.error(e);
-                        modalAlert('Error syncing with remote', e);
                     }
-                    setProgressbarValue(null);
-                    this.syncbutton.disabled = false;
-                });
-            }
-
+                    await commit_all();
+                    await sync();
+                    this.dispatchSyncEvent();
+                } catch (e) {
+                    console.error(e);
+                    modalAlert('Error syncing with remote', e);
+                }
+                setProgressbarValue(null);
+                this.syncbutton.disabled = false;
+            });
+            
             this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
                 setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
                 await fetchNEARHistoricalPrices();

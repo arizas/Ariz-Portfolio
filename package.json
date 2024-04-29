@@ -11,6 +11,7 @@
     "test:watch": "wtr --watch",
     "test": "wtr",
     "test_bos": "npx playwright test",
+    "test_bos:watch": "npx playwright test --ui",
     "test_bos:watch:codespaces": "yarn test_bos --ui-host=0.0.0.0",
     "serve": "http-server --cors -p 8081 public_html/",
     "dist": "rm -Rf dist && rollup -c rollup.config.js",

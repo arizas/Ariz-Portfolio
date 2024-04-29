@@ -36,4 +36,5 @@ jobs:
           yarn install
           yarn playwright install-deps
           yarn playwright install
+          yarn dist
           yarn test_bos
