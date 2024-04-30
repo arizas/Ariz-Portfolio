@@ -1,4 +1,4 @@
-import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData } from "../storage/domainobjectstore.js";
+import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 
 let cachedCurrencyList = ['USD', 'NOK'];
 const defaultToken = 'NEAR';

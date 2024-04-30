@@ -3,7 +3,7 @@ import { writeFile } from 'fs/promises';
 const web4json = {
     contentType: 
     "text/html; charset=UTF-8", 
-    bodyUrl: "https://ipfs.web4.near.page/ipfs/bafybeif3e2buqdefz2q4zf4xxnh66lmdd3inqy4paptca6asb4v3akq4me/"
+    bodyUrl: "https://ipfs.web4.near.page/ipfs/bafybeiezgjo43hoalm6hyk4efblhuqxytpryv4u7zz2zc3wmonzijtmckm/"
 };
 
 const web4jsonstring = JSON.stringify(web4json);

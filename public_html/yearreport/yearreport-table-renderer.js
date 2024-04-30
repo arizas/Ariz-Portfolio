@@ -5,7 +5,7 @@ const numDecimals = 2;
 export function getNumberFormatter(currency) {
     const format = currency ? Intl.NumberFormat(navigator.language, { style: 'currency', currency: currency }).format :
         Intl.NumberFormat(navigator.language).format;
-    return (number) => number!==null && number!==undefined && !isNaN(number) ? format(number) : '';;
+    return (number) => number !== null && number !== undefined && !isNaN(number) ? format(number) : '';;
 }
 
 export function hideProfitLossIfNoConvertToCurrency(convertToCurrency, shadowRoot) {
@@ -17,7 +17,7 @@ export function hideProfitLossIfNoConvertToCurrency(convertToCurrency, shadowRoo
 }
         `;
         shadowRoot.appendChild(style);
-    }   
+    }
 }
 
 export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
@@ -94,9 +94,9 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
             detailInfoElement.innerHTML = rowdata.realizations.map(r => `
                 <tr>
                     <td>${r.position.date}</td>
-                    <td>${formatNumber(r.position.initialAmount * decimalConversionValue)}</td>
+                    <td>${r.position.initialAmount * decimalConversionValue}</td>
                     <td>${formatNumber(r.position.conversionRate)}</td>
-                    <td>${formatNumber(r.amount * decimalConversionValue)}</td>
+                    <td>${r.amount * decimalConversionValue}</td>
                     <td>${formatNumber(r.conversionRate)}</td>
                 </tr>
             `).join('\n');

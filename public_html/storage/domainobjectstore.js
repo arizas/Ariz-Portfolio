@@ -9,6 +9,7 @@ export const accountsconfigfile = 'accounts.json';
 export const depositaccountsfile = 'depositaccounts.json';
 export const ignorefungibletokensfile = 'ignorefungibletokens.json';
 export const customexchangeratesfile = 'customexchangerates.json';
+export const customrealizationratesfile = 'realizations.json';
 export const pricedatadir = 'pricehistory';
 
 const allFungibleTokenSymbols = {};
@@ -202,6 +203,14 @@ export async function setHistoricalPriceData(token, targetCurrency, pricedata) {
     const pricedatapath = getPriceDataPath(token, targetCurrency);
     await makeDirs(pricedatapath);
     await writeFile(pricedatapath, JSON.stringify(pricedata, null, 1));
+}
+
+export async function getCustomRealizationRates() {
+    if ((await exists(customrealizationratesfile))) {
+        return JSON.parse(await readTextFile(customrealizationratesfile));
+    } else {
+        return {};
+    }
 }
 
 export async function getCustomExchangeRates() {

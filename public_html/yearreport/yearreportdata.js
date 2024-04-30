@@ -1,4 +1,4 @@
-import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getDepositAccounts } from "../storage/domainobjectstore.js";
+import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getDepositAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 
@@ -22,6 +22,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     const transactionsByDate = {};
     const allStakingAccounts = {};
     const depositaccounts = await getDepositAccounts();
+    const customRealizationRates = await getCustomRealizationRates();
 
     let decimalConversionValue = Math.pow(10, -24);
 
@@ -138,6 +139,18 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                         dailyBalances[datestring].deposit += Number(changedBalanceForHashAllAccounts);
                     } else {
                         dailyBalances[datestring].withdrawal += -Number(changedBalanceForHashAllAccounts);
+                        if (customRealizationRates[tx.hash]) {
+                            const customRealization = customRealizationRates[tx.hash];
+                            if (!dailyBalances[datestring].customRealizationRates) {
+                                dailyBalances[datestring].customRealizationRates = [];
+                            }
+                            dailyBalances[datestring].customRealizationRates.push({
+                                currency: customRealization.realizationCurrency,
+                                dateTime: customRealization.realizationTime,
+                                amount: -changedBalanceForHashAllAccounts,
+                                price: customRealization.realizationPrice
+                            });
+                        }
                     }
                 }
                 accountDailyBalances[tx.account] = BigInt(tx.balance);
@@ -193,77 +206,97 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
         }
 
         if (dailyEntry.withdrawal > 0) {
-            let dayRealizedAmount = 0;
-
             dailyEntry.realizations = [];
-            const conversionRate = await getCustomSellPrice(targetCurrency, datestring, token);
-            while (openPositions.length > 0 && dayRealizedAmount < dailyEntry.withdrawal) {
-                const position = openPositions[0];
-                if ((dayRealizedAmount + position.remainingAmount) > dailyEntry.withdrawal) {
-                    const partlyRealizedPositionAmount = (dailyEntry.withdrawal - dayRealizedAmount);
-                    const partlyRealizedPositionInitialConvertedValue = position.convertedValue * (partlyRealizedPositionAmount / position.initialAmount);
-                    const partlyRealizedPositionRealizedConvertedValue = partlyRealizedPositionAmount * decimalConversionValue * conversionRate;
-                    position.remainingAmount -= partlyRealizedPositionAmount;
-                    dayRealizedAmount = dailyEntry.withdrawal;
 
-                    const profitLoss = partlyRealizedPositionRealizedConvertedValue - partlyRealizedPositionInitialConvertedValue;
-                    if (profitLoss >= 0) {
-                        dayProfit += profitLoss;
-                    } else {
-                        dayLoss += -profitLoss;
-                    }
-                    const realizationEntry = {
-                        date: datestring,
-                        amount: partlyRealizedPositionAmount,
-                        initialConvertedValue: partlyRealizedPositionInitialConvertedValue,
-                        convertedValue: partlyRealizedPositionRealizedConvertedValue,
-                        profit: profitLoss >= 0 ? profitLoss : 0,
-                        conversionRate: conversionRate,
-                        loss: profitLoss < 0 ? -profitLoss : 0,
-                    };
-                    position.realizations.push(realizationEntry);
-                    dailyEntry.realizations.push(
-                        Object.assign({}, realizationEntry, {
-                            position: Object.assign({}, position, { realizations: undefined })
-                        })
-                    );
-                } else {
-                    dayRealizedAmount += position.remainingAmount;
 
-                    const convertedValue = conversionRate * position.remainingAmount * decimalConversionValue;
-                    const initialConvertedValue = position.convertedValue * (position.remainingAmount / position.initialAmount);
-                    const profitLoss = convertedValue - initialConvertedValue;
-                    if (profitLoss >= 0) {
-                        dayProfit += profitLoss;
+            const createRealizationsForWithdrawal = (withdrawalAmount, conversionRate) => {
+                let dayRealizedAmount = 0;
+                while (openPositions.length > 0 && dayRealizedAmount < withdrawalAmount) {
+                    const position = openPositions[0];
+                    if ((dayRealizedAmount + position.remainingAmount) > withdrawalAmount) {
+                        const partlyRealizedPositionAmount = (withdrawalAmount - dayRealizedAmount);
+                        const partlyRealizedPositionInitialConvertedValue = position.convertedValue * (partlyRealizedPositionAmount / position.initialAmount);
+                        const partlyRealizedPositionRealizedConvertedValue = partlyRealizedPositionAmount * decimalConversionValue * conversionRate;
+                        position.remainingAmount -= partlyRealizedPositionAmount;
+                        dayRealizedAmount = withdrawalAmount;
+
+                        const profitLoss = partlyRealizedPositionRealizedConvertedValue - partlyRealizedPositionInitialConvertedValue;
+                        if (profitLoss >= 0) {
+                            dayProfit += profitLoss;
+                        } else {
+                            dayLoss += -profitLoss;
+                        }
+                        const realizationEntry = {
+                            date: datestring,
+                            amount: partlyRealizedPositionAmount,
+                            initialConvertedValue: partlyRealizedPositionInitialConvertedValue,
+                            convertedValue: partlyRealizedPositionRealizedConvertedValue,
+                            profit: profitLoss >= 0 ? profitLoss : 0,
+                            conversionRate: conversionRate,
+                            loss: profitLoss < 0 ? -profitLoss : 0,
+                        };
+                        position.realizations.push(realizationEntry);
+                        dailyEntry.realizations.push(
+                            Object.assign({}, realizationEntry, {
+                                position: Object.assign({}, position, { realizations: undefined })
+                            })
+                        );
                     } else {
-                        dayLoss += -profitLoss;
+                        dayRealizedAmount += position.remainingAmount;
+
+                        const convertedValue = conversionRate * position.remainingAmount * decimalConversionValue;
+                        const initialConvertedValue = position.convertedValue * (position.remainingAmount / position.initialAmount);
+                        const profitLoss = convertedValue - initialConvertedValue;
+                        if (profitLoss >= 0) {
+                            dayProfit += profitLoss;
+                        } else {
+                            dayLoss += -profitLoss;
+                        }
+                        const realizationEntry = {
+                            date: datestring,
+                            amount: position.remainingAmount,
+                            convertedValue: convertedValue,
+                            initialConvertedValue,
+                            conversionRate: conversionRate,
+                            profit: profitLoss >= 0 ? profitLoss : 0,
+                            loss: profitLoss < 0 ? -profitLoss : 0,
+                        };
+                        position.realizations.push(realizationEntry);
+                        dailyEntry.realizations.push(
+                            Object.assign({}, realizationEntry, {
+                                position: Object.assign({}, position, { realizations: undefined })
+                            })
+                        );
+                        position.remainingAmount = 0;
+                        closedPositions.push(position);
+                        openPositions.shift();
                     }
-                    const realizationEntry = {
-                        date: datestring,
-                        amount: position.remainingAmount,
-                        convertedValue: convertedValue,
-                        initialConvertedValue,
-                        conversionRate: conversionRate,
-                        profit: profitLoss >= 0 ? profitLoss : 0,
-                        loss: profitLoss < 0 ? -profitLoss : 0,
-                    };
-                    position.realizations.push(realizationEntry);
-                    dailyEntry.realizations.push(
-                        Object.assign({}, realizationEntry, {
-                            position: Object.assign({}, position, { realizations: undefined })
-                        })
-                    );
-                    position.remainingAmount = 0;
-                    closedPositions.push(position);
-                    openPositions.shift();
                 }
+                if (dayRealizedAmount < withdrawalAmount) {
+                    console.error(`should not happen: withdrawn amount larger than available positions. wanted to withdraw: ${withdrawalAmount}, available: ${dayRealizedAmount}`);
+                }
+            };
+
+            const conversionRate = await getCustomSellPrice(targetCurrency, datestring, token);
+
+            let remainingWithdrawal = dailyEntry.withdrawal;
+            if (dailyEntry.customRealizationRates) {
+                for (const customRealizationRate of dailyEntry.customRealizationRates) {
+                    if (remainingWithdrawal < Number(customRealizationRate.amount)) {
+                        console.error('custom realization with higher amount than withdrawal for day', customRealizationRate);
+                    }
+                    if (targetCurrency === customRealizationRate.currency) {
+                        remainingWithdrawal -= Number(customRealizationRate.amount);
+                        createRealizationsForWithdrawal(Number(customRealizationRate.amount), customRealizationRate.price);
+                    }
+                }
+            }
+            if (remainingWithdrawal > 0) {
+                createRealizationsForWithdrawal(remainingWithdrawal, conversionRate);
             }
 
             dailyEntry.profit = dayProfit;
             dailyEntry.loss = dayLoss;
-            if (dayRealizedAmount < dailyEntry.withdrawal) {
-                console.error(`should not happen: withdrawn amount larger than available positions. wanted to withdraw: ${dailyEntry.withdrawal}, available: ${dayRealizedAmount}`);
-            }
         }
     }
     return { openPositions, closedPositions, dailyBalances };
