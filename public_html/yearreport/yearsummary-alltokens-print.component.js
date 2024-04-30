@@ -1,6 +1,7 @@
 import html from './yearsummary-alltokens-print.component.html.js';
 import { getAccounts, getAllFungibleTokenSymbols, getIgnoredFungibleTokens } from '../storage/domainobjectstore.js';
 import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency } from './yearreport-table-renderer.js';
+import { getDecimalConversionValue } from './yearreportdata.js';
 
 customElements.define('yearsummary-alltokens-print',
     class extends HTMLElement {
@@ -28,6 +29,7 @@ customElements.define('yearsummary-alltokens-print',
             this.shadowRoot.getElementById('yearspan').innerText = this.year;
 
             const format = getNumberFormatter(this.currency);
+            const formatToken = getNumberFormatter();
             let totalBalance = 0;
             let totalEarnings = 0;
             let totalProfit = 0;
@@ -57,9 +59,11 @@ customElements.define('yearsummary-alltokens-print',
                     tokenYearReportsElement.appendChild(pageBreakElement);
 
                     tokenYearReportsElement.appendChild(tokenreport);
+                    const decimalConversionValue = token ? getDecimalConversionValue(token) : Math.pow(10, -24);
                     const row = rowTemplate.cloneNode(true).content;
                     const earnings = result.totalReceived + result.totalStakingReward;
                     row.querySelector('.summary_token').innerText = token === '' ? 'NEAR' : token;
+                    row.querySelector('.summary_amount').innerText = formatToken(result.outboundBalance.totalBalance * decimalConversionValue);
                     row.querySelector('.summary_balance').innerText = format(result.outboundBalance.convertedTotalBalance);
                     row.querySelector('.summary_earnings').innerText = format(earnings);
                     row.querySelector('.summary_profit').innerText = format(result.totalProfit);

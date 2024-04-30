@@ -44,6 +44,10 @@ export default /*html*/ `<style>
             max-width: none;
         }
     }
+    .token_amount {
+        font-size: 12px;
+        white-space: nowrap;
+    }
 </style>
 <div class="row">
     <div class="col-md-3">

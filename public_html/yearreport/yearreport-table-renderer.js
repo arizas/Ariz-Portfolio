@@ -46,6 +46,11 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
     let totalLoss = 0;
 
     const decimalConversionValue = token ? getDecimalConversionValue(token) : Math.pow(10, -24);
+    const tokenNumberFormatter = getNumberFormatter();
+    const symbol = token === '' ? 'NEAR' : token;
+    const formatTokenAmount = (amount) => {
+        return `<span class="token_amount">${tokenNumberFormatter(amount * decimalConversionValue)} ${symbol}</span>`;
+    };
 
     while (currentDate.getTime() >= endDate) {
         const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -72,16 +77,16 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         rowdata.convertedStakingChange = conversionRate * (rowdata.stakingChange * decimalConversionValue);
 
         row.querySelector('.dailybalancerow_datetime').innerText = datestring;
-        row.querySelector('.dailybalancerow_totalbalance').innerText = formatNumber(rowdata.convertedTotalBalance);
-        row.querySelector('.dailybalancerow_accountbalance').innerText = formatNumber(rowdata.convertedAccountBalance);
-        row.querySelector('.dailybalancerow_stakingbalance').innerText = formatNumber(rowdata.convertedStakingBalance);
-        row.querySelector('.dailybalancerow_change').innerText = formatNumber(rowdata.convertedTotalChange);
-        row.querySelector('.dailybalancerow_accountchange').innerText = formatNumber(rowdata.convertedAccountChange);
-        row.querySelector('.dailybalancerow_stakingchange').innerText = formatNumber(rowdata.convertedStakingChange);
-        row.querySelector('.dailybalancerow_stakingreward').innerText = formatNumber(stakingReward);
-        row.querySelector('.dailybalancerow_received').innerText = formatNumber(received);
-        row.querySelector('.dailybalancerow_deposit').innerText = formatNumber(deposit);
-        row.querySelector('.dailybalancerow_withdrawal').innerText = formatNumber(withdrawal);
+        row.querySelector('.dailybalancerow_totalbalance').innerHTML = `${formatNumber(rowdata.convertedTotalBalance)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.totalBalance)}` : ''}`;
+        row.querySelector('.dailybalancerow_accountbalance').innerHTML = `${formatNumber(rowdata.convertedAccountBalance)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(rowdata.accountBalance))}` : ''}`;
+        row.querySelector('.dailybalancerow_stakingbalance').innerHTML = `${formatNumber(rowdata.convertedStakingBalance)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.stakingBalance)}` : ''}`;
+        row.querySelector('.dailybalancerow_change').innerHTML = `${formatNumber(rowdata.convertedTotalChange)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.totalChange)}` : ''}`;
+        row.querySelector('.dailybalancerow_accountchange').innerHTML = `${formatNumber(rowdata.convertedAccountChange)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(rowdata.accountChange))}` : ''}`;
+        row.querySelector('.dailybalancerow_stakingchange').innerHTML = `${formatNumber(rowdata.convertedStakingChange)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.stakingChange)}` : ''}`;
+        row.querySelector('.dailybalancerow_stakingreward').innerHTML = `${formatNumber(stakingReward)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.stakingRewards)}` : ''}`;
+        row.querySelector('.dailybalancerow_received').innerHTML = `${formatNumber(received)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(rowdata.received))}` : ''}`;
+        row.querySelector('.dailybalancerow_deposit').innerHTML = `${formatNumber(deposit)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.deposit)}` : ''}`;
+        row.querySelector('.dailybalancerow_withdrawal').innerHTML = `${formatNumber(withdrawal)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.withdrawal)}` : ''}`;
         if (convertToCurrency) {
             row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit) ?? '';
             row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss) ?? '';
@@ -94,9 +99,9 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
             detailInfoElement.innerHTML = rowdata.realizations.map(r => `
                 <tr>
                     <td>${r.position.date}</td>
-                    <td>${r.position.initialAmount * decimalConversionValue}</td>
+                    <td>${formatTokenAmount(r.position.initialAmount)}</td>
                     <td>${formatNumber(r.position.conversionRate)}</td>
-                    <td>${r.amount * decimalConversionValue}</td>
+                    <td>${formatTokenAmount(r.amount)}</td>
                     <td>${formatNumber(r.conversionRate)}</td>
                 </tr>
             `).join('\n');
@@ -114,10 +119,10 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         }
 
         currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
-        shadowRoot.querySelector('#totalreward').innerText = formatNumber(totalStakingReward);
-        shadowRoot.querySelector('#totalreceived').innerText = formatNumber(totalReceived);
-        shadowRoot.querySelector('#totaldeposit').innerText = formatNumber(totalDeposit);
-        shadowRoot.querySelector('#totalwithdrawal').innerText = formatNumber(totalWithdrawal);
+        shadowRoot.querySelector('#totalreward').innerHTML = `${formatNumber(totalStakingReward)}`;
+        shadowRoot.querySelector('#totalreceived').innerHTML = `${formatNumber(totalReceived)}`;
+        shadowRoot.querySelector('#totaldeposit').innerHTML = `${formatNumber(totalDeposit)}`;
+        shadowRoot.querySelector('#totalwithdrawal').innerHTML = `${formatNumber(totalWithdrawal)}`;
         if (convertToCurrency) {
             shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totalProfit);
             shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);

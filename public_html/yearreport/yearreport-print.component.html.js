@@ -30,6 +30,10 @@ export default /*html*/ `<style>
     .pagebreak {
         page-break-after: always;
     }
+    .token_amount {
+        font-size: 12px;
+        white-space: nowrap;
+    }
 </style>
 <h1><span id="tokenspan"></span> <span id="currencyspan"></span> <span id="yearspan"></span></h1>
 

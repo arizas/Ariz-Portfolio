@@ -11,15 +11,17 @@ export default /*html*/ `
 
 <p><b>Disclaimer:</b> <em>This report is based on the configurations of the user, and the calculations of the software that generated the report.
 Readers of this report, and users of the reporting tool should verify the correctness of the calculations, and ensure that all relevant data is collected.
-<b>The reporting software does not guarantee correctness in calculations or accuracy and completeness in the underlying data</b>.
+<b>The reporting software does not guarantee correctness in calculations or accuracy and completeness in the underlying data</b>. The source code of the
+reporting software is available at <a href="https://github.com/arizas/Ariz-Portfolio">https://github.com/arizas/Ariz-Portfolio</a>.
 </em></p>
-<p>This report is for activity in the following accounts: <span style="font-style: italic;" id="accountsspan"></span></p>
+<p>This report is for activity in the following accounts on the <a href="https://near.org">NEAR protocol</a> blockchain: <span style="font-style: italic;" id="accountsspan"></span></p>
 
 <p>The following table shows the outbound balance, earnings. If a target currency is selected, it also shows profit/loss on realizations per fungible token relative to the currency.</p>
 
 <template id="symmaryrowtemplate">
     <tr>
         <td class="summary_token"></td>
+        <td class="summary_amount numeric"></td>
         <td class="summary_balance numeric"></td>
         <td class="summary_earnings numeric"></td>
         <td class="summary_profit numeric"></td>
@@ -31,6 +33,9 @@ Readers of this report, and users of the reporting tool should verify the correc
     <tr>
         <th scope="col">
             token
+        </th>
+        <th scope="col" class="numeric">
+            amount
         </th>
         <th scope="col" class="numeric">
             balance
@@ -51,6 +56,7 @@ Readers of this report, and users of the reporting tool should verify the correc
 <tfoot id="summarytablefooter">
     <tr>
         <th>Total</th>
+        <th></th>
         <th id="summary_total_balance" class="numeric"></th>
         <th id="summary_total_earnings" class="numeric"></th>
         <th id="summary_total_profit" class="numeric profit"></th>
