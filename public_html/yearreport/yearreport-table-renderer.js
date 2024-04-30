@@ -45,6 +45,11 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
     let totalProfit = 0;
     let totalLoss = 0;
 
+    let token_totalStakingReward = 0;
+    let token_totalReceived = 0n;
+    let token_totalDeposit = 0;
+    let token_totalWithdrawal = 0;
+
     const decimalConversionValue = token ? getDecimalConversionValue(token) : Math.pow(10, -24);
     const tokenNumberFormatter = getNumberFormatter();
     const symbol = token === '' ? 'NEAR' : token;
@@ -68,6 +73,11 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         totalWithdrawal += withdrawal;
         totalProfit += rowdata.profit ?? 0;
         totalLoss += rowdata.loss ?? 0;
+
+        token_totalStakingReward += rowdata.stakingRewards;
+        token_totalReceived += rowdata.received;
+        token_totalDeposit += rowdata.deposit;
+        token_totalWithdrawal += rowdata.withdrawal;
 
         rowdata.convertedTotalBalance = conversionRate * (rowdata.totalBalance * decimalConversionValue);
         rowdata.convertedAccountBalance = conversionRate * (Number(rowdata.accountBalance) * decimalConversionValue);
@@ -119,10 +129,10 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         }
 
         currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
-        shadowRoot.querySelector('#totalreward').innerHTML = `${formatNumber(totalStakingReward)}`;
-        shadowRoot.querySelector('#totalreceived').innerHTML = `${formatNumber(totalReceived)}`;
-        shadowRoot.querySelector('#totaldeposit').innerHTML = `${formatNumber(totalDeposit)}`;
-        shadowRoot.querySelector('#totalwithdrawal').innerHTML = `${formatNumber(totalWithdrawal)}`;
+        shadowRoot.querySelector('#totalreward').innerHTML = `${formatNumber(totalStakingReward)} ${convertToCurrency ? `<br />${formatTokenAmount(token_totalStakingReward)}` : ''}`;
+        shadowRoot.querySelector('#totalreceived').innerHTML = `${formatNumber(totalReceived)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(token_totalReceived))}` : ''}`;
+        shadowRoot.querySelector('#totaldeposit').innerHTML = `${formatNumber(totalDeposit)} ${convertToCurrency ? `<br />${formatTokenAmount(token_totalDeposit)}` : ''}`;
+        shadowRoot.querySelector('#totalwithdrawal').innerHTML = `${formatNumber(totalWithdrawal)} ${convertToCurrency ? `<br />${formatTokenAmount(token_totalWithdrawal)}` : ''}`;
         if (convertToCurrency) {
             shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totalProfit);
             shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);
