@@ -190,6 +190,8 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
 
     for (const datestring in dailyBalances) {
         const dailyEntry = dailyBalances[datestring];
+        dailyEntry.convertToCurrencyWithdrawalAmount = 0;
+
         let dayProfit = 0;
         let dayLoss = 0;
         if (dailyEntry.received > 0n || dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
@@ -207,7 +209,6 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
 
         if (dailyEntry.withdrawal > 0) {
             dailyEntry.realizations = [];
-            dailyEntry.convertToCurrencyWithdrawalAmount = 0;
 
             const createRealizationsForWithdrawal = (withdrawalAmount, conversionRate) => {
                 let dayRealizedAmount = 0;
@@ -312,10 +313,9 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
     const received = (conversionRate * (Number(rowdata.received) / 1e+24));
     const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
-    const withdrawalConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomSellPrice(convertToCurrency, datestring);
-    const withdrawal = (withdrawalConversionRate * (rowdata.withdrawal / 1e+24));
+    const withdrawal = rowdata.convertToCurrencyWithdrawalAmount;
 
-    return { stakingReward, received, deposit, withdrawal, depositConversionRate, withdrawalConversionRate, conversionRate };
+    return { stakingReward, received, deposit, withdrawal, conversionRate };
 }
 
 export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, convertToCurrency, datestring) {
@@ -328,5 +328,5 @@ export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, con
     const deposit = (conversionRate * (rowdata.deposit * decimalConversionValue));
     const withdrawal = (conversionRate * (rowdata.withdrawal * decimalConversionValue));
 
-    return { stakingReward, received, deposit, withdrawal, conversionRate, conversionRate, conversionRate };
+    return { stakingReward, received, deposit, withdrawal, conversionRate };
 }

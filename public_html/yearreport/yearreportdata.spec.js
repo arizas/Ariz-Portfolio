@@ -267,13 +267,13 @@ describe('year-report-data', () => {
         nearValues = yearReportData['2022-08-21'];
         convertedValues = await getConvertedValuesForDay(yearReportData['2022-08-21'], 'NOK', '2022-08-21');
         expect(nearValues.withdrawal).to.equal(2.000000849110125e+26);
-        expect(convertedValues.withdrawal).to.equal(8200);
+        expect(convertedValues.withdrawal).to.be.closeTo(8200, 0.00001);
 
         expect((nearValues.profit - nearValues.loss)).to.be.closeTo(8200 - (nearValues.realizations.reduce((p, c) => {
             return p + c.initialConvertedValue;
         }, 0)), 12);
     });
-    it.only('should use manually specified realization value for a specific transaction when calculating profit/loss and total withdrawal', async function () {
+    it('should use manually specified realization value for a specific transaction when calculating profit/loss and total withdrawal', async function () {
         const account = 'psalomo.near';
         const convertToCurrency = 'NOK';
 
@@ -299,7 +299,7 @@ describe('year-report-data', () => {
         expect(nearValues.convertToCurrencyWithdrawalAmount / (nearValues.withdrawal / Math.pow(10, 24)))
             .to.be.closeTo(customRealizationRatesObj['64YHGt8Tsp8x28ksvi1vWA3pv9sWs4AhRSAdWPUbtdEC'].realizationPrice, 0.01);
         expect(nearValues.withdrawal / Math.pow(10, 24)).to.be.closeTo(4.0, 0.01);
-        expect(convertedValues.withdrawal).to.be.closeTo(199.7, 0.01);
+        expect(convertedValues.withdrawal).to.be.closeTo(203.68, 0.01);
 
         expect(nearValues.profit).to.be.closeTo(18.84, 0.01);
     });
