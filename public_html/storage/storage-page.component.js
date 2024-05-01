@@ -53,57 +53,9 @@ customElements.define('storage-page',
         async loadHTML() {
             this.shadowRoot.innerHTML = wasmgitComponentHtml;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
-            this.loginbutton = this.shadowRoot.querySelector('#loginbutton');
-            this.logoutbutton = this.shadowRoot.querySelector('#logoutbutton');
-
-            this.deletelocaldatabutton = this.shadowRoot.querySelector('#deletelocaldatabutton');
-
-            this.deletelocaldatabutton.addEventListener('click', async () => {
-                console.log('delete local data');
-                this.deletelocaldatabutton.disabled = true;
-                await delete_local();
-                location.reload();
-            });
-
-            if (window.top == window) {
-                if ((await walletConnectionPromise).getAccountId()) {
-                    this.loadAccountData();
-                } else {
-                    console.log('no loggedin user');
-                    return;
-                }
-
-                this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
-                this.remoteRepoInput.addEventListener('change', async () => {
-                    await set_remote(this.remoteRepoInput.value);
-                });
-
-                this.remoteRepoInput.value = await get_remote();
-                this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
-                this.syncbutton.addEventListener('click', async () => {
-                    setProgressbarValue('indeterminate', 'syncing with remote');
-                    try {
-                        this.syncbutton.disabled = true;
-                        if (!(await exists('.git'))) {
-                            if (this.remoteRepoInput.value) {
-                                await git_clone(this.remoteRepoInput.value);
-                            } else {
-                                await git_init();
-                            }
-                        }
-                        await commit_all();
-                        await sync();
-                        this.dispatchSyncEvent();
-                    } catch (e) {
-                        console.error(e);
-                        modalAlert('Error syncing with remote', e);
-                    }
-                    setProgressbarValue(null);
-                    this.syncbutton.disabled = false;
-                });
-            }
 
             this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
+                console.log('click');
                 setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
                 await fetchNEARHistoricalPrices();
                 setProgressbarValue(null);
@@ -125,6 +77,48 @@ customElements.define('storage-page',
                 setProgressbarValue(null);
             });
 
+            this.loginbutton = this.shadowRoot.querySelector('#loginbutton');
+            this.logoutbutton = this.shadowRoot.querySelector('#logoutbutton');
+
+            this.deletelocaldatabutton = this.shadowRoot.querySelector('#deletelocaldatabutton');
+
+            this.deletelocaldatabutton.addEventListener('click', async () => {
+                console.log('delete local data');
+                this.deletelocaldatabutton.disabled = true;
+                await delete_local();
+                location.reload();
+            });
+
+            await this.loadAccountData();
+
+            this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
+            this.remoteRepoInput.addEventListener('change', async () => {
+                await set_remote(this.remoteRepoInput.value);
+            });
+
+            this.remoteRepoInput.value = await get_remote();
+            this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
+            this.syncbutton.addEventListener('click', async () => {
+                setProgressbarValue('indeterminate', 'syncing with remote');
+                try {
+                    this.syncbutton.disabled = true;
+                    if (!(await exists('.git'))) {
+                        if (this.remoteRepoInput.value) {
+                            await git_clone(this.remoteRepoInput.value);
+                        } else {
+                            await git_init();
+                        }
+                    }
+                    await commit_all();
+                    await sync();
+                    this.dispatchSyncEvent();
+                } catch (e) {
+                    console.error(e);
+                    modalAlert('Error syncing with remote', e);
+                }
+                setProgressbarValue(null);
+                this.syncbutton.disabled = false;
+            });
             return this.shadowRoot;
         }
 
@@ -137,6 +131,10 @@ customElements.define('storage-page',
             let currentUser = {
                 accountId: walletConnection.getAccountId()
             };
+
+            if (!currentUser.accountId) {
+                return;
+            }
 
             this.shadowRoot.querySelector('#currentuserspan').innerHTML = `Logged in as ${currentUser.accountId}`;
 

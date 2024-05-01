@@ -6,6 +6,9 @@ import './stakingview/staking-page.component.js';
 import './customexchangerates/customexchangerates-page.component.js';
 import './storage/storage-page.component.js';
 import './yearreport/yearreport-page.component.js';
+import './yearreport/yearreport-print.component.js';
+import './yearreport/yearsummary-alltokens-print.component.js';
+
 import { getCurrencyList } from './pricedata/pricedata.js';
 import { accountsconfigfile, getAccounts, setAccounts } from './storage/domainobjectstore.js';
 import html from './app.html.js';
@@ -38,16 +41,19 @@ class AppNearNumbersComponent extends HTMLElement {
         const numDecimals = 2;
 
         window.goToPage = (page) => {
-            const pageElement = document.createElement(`${page}-page`);
+            const pageElement = document.createElement(`${page}${page.endsWith('-print') ? '' : '-page'}`);
             const path = `${basepath}${page}`;
             if ((window.top == window) && (location.pathname != path || location.search.indexOf('?account_id') == 0)) {
                 history.pushState({}, null, path);
+            }
+            if (page.endsWith('-print')) {
+                this.shadowRoot.querySelector('nav').remove();
             }
             mainContainer.replaceChildren(pageElement);
         }
 
         if (location.href != baseurl) {
-            goToPage(location.href.substring(baseurl.length).replace(/\/$/,''));
+            goToPage(location.href.substring(baseurl.length).replace(/\/$/,'').split('?')[0]);
         }
 
         this.shadowRoot.querySelectorAll('a').forEach(a => {

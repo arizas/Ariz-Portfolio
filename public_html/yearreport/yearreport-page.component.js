@@ -1,7 +1,7 @@
-import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue } from './yearreportdata.js';
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
+import { renderYearReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-page',
     class extends HTMLElement {
@@ -51,6 +51,13 @@ customElements.define('year-report-page',
             currencyselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals, tokenselect.value));
             tokenselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals, tokenselect.value));
             this.updateView(currencyselect.value, numDecimals, tokenselect.value);
+
+            this.shadowRoot.querySelector('#print_current_token_button').addEventListener('click', () => {
+                window.open(`year-report-print?token=${this.token}&year=${this.year}&currency=${this.convertToCurrency}`);
+            });
+            this.shadowRoot.querySelector('#print_all_tokens_button').addEventListener('click', () => {
+                window.open(`yearsummary-alltokens-print?year=${this.year}&currency=${this.convertToCurrency}`);
+            });
             return this.shadowRoot;
         }
 
@@ -62,114 +69,46 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            let { dailyBalances, transactionsByDate } = await calculateYearReportData(this.token);
-            dailyBalances = (await calculateProfitLoss(dailyBalances, this.convertToCurrency, this.token)).dailyBalances;
-
-            const yearReportData = dailyBalances;
-            const yearReportTable = this.shadowRoot.querySelector('#dailybalancestable');
-
-            while (yearReportTable.lastElementChild) {
-                yearReportTable.removeChild(yearReportTable.lastElementChild);
-            }
-
-            const rowTemplate = this.shadowRoot.querySelector('#dailybalancerowtemplate');
-
-            let currentDate = new Date().getFullYear() === this.year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${this.year}-12-31`);
-            const endDate = new Date(`${this.year}-01-01`);
-
-            let totalStakingReward = 0;
-            let totalReceived = 0;
-            let totalDeposit = 0;
-            let totalWithdrawal = 0;
-            let totalProfit = 0;
-            let totalLoss = 0;
-
-            const decimalConversionValue = this.token ? getDecimalConversionValue(this.token) : Math.pow(10, -24);
-
-            const transactionsModalElement = this.shadowRoot.querySelector('#show_transactions_modal');
-            const showTransactionsModal = new bootstrap.Modal(transactionsModalElement);
-
-            while (currentDate.getTime() >= endDate) {
-                const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
-
-                const row = rowTemplate.cloneNode(true).content;
-                const rowdata = yearReportData[datestring];
-
-                const { stakingReward, received, deposit, withdrawal, conversionRate } = this.token ?
-                    await getFungibleTokenConvertedValuesForDay(rowdata, this.token, this.convertToCurrency, datestring) :
-                    await getConvertedValuesForDay(rowdata, this.convertToCurrency, datestring);
-
-                totalStakingReward += stakingReward;
-                totalDeposit += deposit;
-                totalReceived += received;
-                totalWithdrawal += withdrawal;
-                totalProfit += rowdata.profit ?? 0;
-                totalLoss += rowdata.loss ?? 0;
-
-                row.querySelector('.dailybalancerow_datetime').innerHTML = datestring;
-                row.querySelector('.dailybalancerow_totalbalance').innerHTML = (conversionRate * (rowdata.totalBalance * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_accountbalance').innerHTML = (conversionRate * (Number(rowdata.accountBalance) * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_stakingbalance').innerHTML = (conversionRate * (rowdata.stakingBalance * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_change').innerHTML = (conversionRate * (rowdata.totalChange * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_accountchange').innerHTML = (conversionRate * (Number(rowdata.accountChange) * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_stakingchange').innerHTML = (conversionRate * (rowdata.stakingChange * decimalConversionValue)).toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_stakingreward').innerHTML = stakingReward.toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_received').innerHTML = received.toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_deposit').innerHTML = deposit.toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_withdrawal').innerHTML = withdrawal.toFixed(this.numDecimals);
-                row.querySelector('.dailybalancerow_profit').innerHTML = rowdata.profit?.toFixed(this.numDecimals) ?? '';
-                row.querySelector('.dailybalancerow_loss').innerHTML = rowdata.loss?.toFixed(this.numDecimals) ?? '';
-                row.querySelector('.show_transactions_button').addEventListener('click', () => {
-                    const transactions = transactionsByDate[datestring];
-                    transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
-                    transactionsModalElement.querySelector('.modal-body').innerHTML = `
-                    <div class="table-responsive">
-                        <table class="table table-sm table-dark">
-                        <thead>
-                            <th>Signer</th>
-                            <th>Received</th>
-                            <th>Changed balance</th>
-                            <th></th>
-                        </thead>
-                        <tbody>
-                        ${transactions ? transactions.map(tx => `<tr>
+            await renderYearReportTable({
+                shadowRoot: this.shadowRoot,
+                token: this.token,
+                year: this.year,
+                convertToCurrency: this.convertToCurrency,
+                numDecimals: this.numDecimals,
+                perRowFunction: async ({
+                    datestring,
+                    transactionsByDate,
+                    decimalConversionValue,
+                    numDecimals,
+                    row
+                }) => {
+                    row.querySelector('.show_transactions_button').addEventListener('click', () => {
+                        const transactions = transactionsByDate[datestring];
+                        transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
+                        transactionsModalElement.querySelector('.modal-body').innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark">
+                    <thead>
+                        <th>Signer</th>
+                        <th>Received</th>
+                        <th>Changed balance</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    ${transactions ? transactions.map(tx => `<tr>
 ${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalConversionValue}</td>` :
-    `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
+                                `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
 <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</button></a>
 </tr>`).join('') : ''}
-                        </tbody>
-                        </table>
-                        </div>
-                    `;
-                    showTransactionsModal.show();
-                });
-                if (rowdata.realizations) {
-                    const detailInfoElement = row.querySelector('.inforow td table tbody');
-                    detailInfoElement.innerHTML = rowdata.realizations.map(r => `
-                        <tr>
-                            <td>${r.position.date}</td>
-                            <td>${(r.position.initialAmount * decimalConversionValue).toFixed(this.numDecimals)}</td>
-                            <td>${r.position.conversionRate?.toFixed(this.numDecimals)}</td>
-                            <td>${(r.amount * decimalConversionValue).toFixed(this.numDecimals)}</td>
-                            <td>${r.conversionRate?.toFixed(this.numDecimals)}</td>
-                        </tr>
-                    `).join('\n');
-                } else {
-                    row.querySelector('.inforow').remove();
+                    </tbody>
+                    </table>
+                    </div>
+                `;
+                        showTransactionsModal.show();
+                    });
+                    const tableElement = this.shadowRoot.querySelector('.table-responsive');
+                    tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
                 }
-                yearReportTable.appendChild(row);
-
-                currentDate = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
-            }
-
-            this.shadowRoot.querySelector('#totalreward').innerHTML = totalStakingReward.toFixed(this.numDecimals);
-            this.shadowRoot.querySelector('#totalreceived').innerHTML = totalReceived.toFixed(this.numDecimals);
-            this.shadowRoot.querySelector('#totaldeposit').innerHTML = totalDeposit.toFixed(this.numDecimals);
-            this.shadowRoot.querySelector('#totalwithdrawal').innerHTML = totalWithdrawal.toFixed(this.numDecimals);
-            this.shadowRoot.querySelector('#totalprofit').innerHTML = totalProfit.toFixed(this.numDecimals);
-            this.shadowRoot.querySelector('#totalloss').innerHTML = totalLoss.toFixed(this.numDecimals);
-
-            const tableElement = this.shadowRoot.querySelector('.table-responsive');
-            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+            });
         }
     });

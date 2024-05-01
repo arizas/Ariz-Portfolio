@@ -11,46 +11,64 @@ export default /*html*/ `<style>
         white-space: nowrap;
     }
 
-    .table-responsive {
-        max-height: 100%;
-    }
-
-    table thead,
-    table tfoot {
-        position: sticky;
-    }
-
-    table thead {
-        inset-block-start: 0;
-        top: 0;
-    }
-
-    table tfoot {
-        inset-block-end: 0;
-        bottom: 0;
-    }
-
     tr.inforow td {
         font-size: 12px;   
     }
+
+    @media screen {
+        .table-responsive {
+            max-height: 100%;
+        }
+
+        table thead,
+        table tfoot {
+            position: sticky;
+        }
+
+        table thead {
+            inset-block-start: 0;
+            top: 0;
+        }
+
+        table tfoot {
+            inset-block-end: 0;
+            bottom: 0;
+        }
+    }
+
+    @media print {
+        .table-responsive {
+            overflow: visible !important;
+            display: block;
+            width: 100%;
+            max-width: none;
+        }
+    }
+    .token_amount {
+        font-size: 12px;
+        white-space: nowrap;
+    }
 </style>
-<h3>Year report ( all accounts )</h3>
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="yearselect" class="form-label">Select year</label>   
         <select id="yearselect" class="form-select"></select>        
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="tokenselect" class="form-label">Fungible token</label>
         <select class="form-select" aria-label="Select fungible token" id="tokenselect">
             <option value="">NEAR</option>
         </select>        
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label for="currencyselect" class="form-label">Currency</label>
         <select class="form-select" aria-label="Select conversion currency" id="currencyselect">
             <option value="">No conversion</option>
         </select>        
+    </div>
+    <div class="col-md-3" style="text-align: right">
+        <button class="btn btn-light" id="print_all_tokens_button">Print (all tokens)</button>
+        <button class="btn btn-light" id="print_current_token_button">Print (selected token)</button>
     </div>
 </div>
 
@@ -72,7 +90,7 @@ export default /*html*/ `<style>
         <td><button class="btn btn-light show_transactions_button">&#128194;</button></td>
     </tr>
     <tr class="inforow bg-info">
-        <td colspan="13" >
+        <td colspan="14" >
             <table class="table table-sm table-borderless">
                 <thead>
                     <tr>

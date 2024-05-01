@@ -1,4 +1,4 @@
-import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData } from "../storage/domainobjectstore.js";
+import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 
 let cachedCurrencyList = ['USD', 'NOK'];
 const defaultToken = 'NEAR';
@@ -65,7 +65,7 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     }
     const pricedata = await getHistoricalPriceData(token, currency);
     const price = pricedata[datestring];
-    return price;
+    return price ?? 0;
 }
 
 export async function getCustomSellPrice(currency, datestring, token) {

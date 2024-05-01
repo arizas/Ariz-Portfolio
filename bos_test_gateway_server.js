@@ -5,12 +5,22 @@ import { spawn } from "child_process";
 import { homedir } from "os";
 
 // Start the HTTP server
-const server = httpServer.createServer({
+const gatewayserver = httpServer.createServer({
   root: path.join(process.cwd(), "bos_test_gateway"),
 });
 
-server.listen(8080, () => {
-  console.log("HTTP server is listening on port 8080");
+gatewayserver.listen(8080, () => {
+  console.log("Gateway HTTP server is listening on port 8080");
+});
+
+
+// Start the HTTP server
+const appserver = httpServer.createServer({
+  root: path.join(process.cwd(), "dist"),
+});
+
+appserver.listen(8081, () => {
+  console.log("App HTTP server is listening on port 8081");
 });
 
 const bosLoader = spawn(`${homedir()}/.cargo/bin/bos-loader`, ["arizas.near", "--path", "./bos_components"], { stdio: "inherit" });

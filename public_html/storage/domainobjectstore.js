@@ -7,7 +7,9 @@ import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
 export const depositaccountsfile = 'depositaccounts.json';
+export const ignorefungibletokensfile = 'ignorefungibletokens.json';
 export const customexchangeratesfile = 'customexchangerates.json';
+export const customrealizationratesfile = 'realizations.json';
 export const pricedatadir = 'pricehistory';
 
 const allFungibleTokenSymbols = {};
@@ -26,14 +28,17 @@ function getFungibleTokenTransactionsPath(account) {
 }
 
 export async function getDepositAccounts() {
+    const defaultDepositAccounts = {
+        "system": {
+            "description": "Funds from system account should be counted as deposits"
+        },
+        "null": {
+            "description": "Funds from null account should be counted as deposits"
+        }
+    };
     if (await exists(depositaccountsfile)) {
-        return JSON.parse(await readTextFile(depositaccountsfile));
+        return Object.assign(defaultDepositAccounts, JSON.parse(await readTextFile(depositaccountsfile)));
     } else {
-        const defaultDepositAccounts = {
-            "system": {
-                "description": "Funds from system accounts should be counted as deposits"
-            }
-        };
         await setDepositAccounts(defaultDepositAccounts);
         return defaultDepositAccounts;
     }
@@ -41,6 +46,14 @@ export async function getDepositAccounts() {
 
 export async function setDepositAccounts(depositaccounts) {
     await writeFile(depositaccountsfile, JSON.stringify(depositaccounts));
+}
+
+export async function getIgnoredFungibleTokens() {
+    if (await exists(ignorefungibletokensfile)) {
+        return JSON.parse(await readTextFile(ignorefungibletokensfile));
+    } else {
+        return [];
+    }
 }
 
 export async function getAccounts() {
@@ -175,6 +188,8 @@ function getPriceDataPath(token, targetCurrency) {
 export async function getHistoricalPriceData(token, targetCurrency) {
     if (!token) {
         token = 'NEAR';
+    } else if (token === 'wNEAR') {
+        token = 'NEAR';
     }
     const pricedatapath = getPriceDataPath(token, targetCurrency);
     if (await exists(pricedatapath)) {
@@ -188,6 +203,19 @@ export async function setHistoricalPriceData(token, targetCurrency, pricedata) {
     const pricedatapath = getPriceDataPath(token, targetCurrency);
     await makeDirs(pricedatapath);
     await writeFile(pricedatapath, JSON.stringify(pricedata, null, 1));
+}
+
+export async function getCustomRealizationRates() {
+    if ((await exists(customrealizationratesfile))) {
+        return JSON.parse(await readTextFile(customrealizationratesfile));
+    } else {
+        return {};
+    }
+}
+
+export async function setCustomRealizationRates(customRealizationRatesObj) {
+    await makeDirs(customrealizationratesfile);
+    await writeFile(customrealizationratesfile, JSON.stringify(customRealizationRatesObj, null, 1));
 }
 
 export async function getCustomExchangeRates() {

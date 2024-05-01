@@ -1,4 +1,19 @@
 export default /*html*/ `
+<style>
+@media print {
+    .container {
+        width: 100% !important; /* Ensures the container takes full width */
+        margin: 0 !important; /* Removes horizontal margins */
+        max-width: none !important; /* Ensures there's no max-width limit */
+        padding: 0 !important; /* Removes padding if there's any */
+        min-width: 0 !important; /* Ensures there's no min-width limit */
+        position: static !important; /* Resets position property */
+        float: none !important; /* Avoids floating */
+        border: none !important; /* Removes any borders */
+        box-shadow: none !important; /* Clears box shadows */
+    }
+}
+</style>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
     <div class="container-fluid">
         <a class="navbar-brand nav-link" href="/">NEAR account report</a>
