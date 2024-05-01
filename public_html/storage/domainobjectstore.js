@@ -213,6 +213,11 @@ export async function getCustomRealizationRates() {
     }
 }
 
+export async function setCustomRealizationRates(customRealizationRatesObj) {
+    await makeDirs(customrealizationratesfile);
+    await writeFile(customrealizationratesfile, JSON.stringify(customRealizationRatesObj, null, 1));
+}
+
 export async function getCustomExchangeRates() {
     if ((await exists(customexchangeratesfile))) {
         return JSON.parse(await readTextFile(customexchangeratesfile));

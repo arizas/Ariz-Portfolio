@@ -207,10 +207,12 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
 
         if (dailyEntry.withdrawal > 0) {
             dailyEntry.realizations = [];
-
+            dailyEntry.convertToCurrencyWithdrawalAmount = 0;
 
             const createRealizationsForWithdrawal = (withdrawalAmount, conversionRate) => {
                 let dayRealizedAmount = 0;
+                dailyEntry.convertToCurrencyWithdrawalAmount += withdrawalAmount * conversionRate * decimalConversionValue;
+
                 while (openPositions.length > 0 && dayRealizedAmount < withdrawalAmount) {
                     const position = openPositions[0];
                     if ((dayRealizedAmount + position.remainingAmount) > withdrawalAmount) {

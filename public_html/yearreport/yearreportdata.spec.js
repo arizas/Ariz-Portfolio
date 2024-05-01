@@ -1,9 +1,13 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
-import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount } from '../storage/domainobjectstore.js';
+import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
 import { fetchNEARHistoricalPrices, fetchNOKPrices, setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
+    beforeEach(async () => {
+        await fetchNEARHistoricalPrices();
+        await fetchNOKPrices();
+    });
     it('should get daily account balance report for psalomo.near', async function () {
         this.timeout(10 * 60000);
         const account = 'psalomo.near';
@@ -268,6 +272,36 @@ describe('year-report-data', () => {
         expect((nearValues.profit - nearValues.loss)).to.be.closeTo(8200 - (nearValues.realizations.reduce((p, c) => {
             return p + c.initialConvertedValue;
         }, 0)), 12);
+    });
+    it.only('should use manually specified realization value for a specific transaction when calculating profit/loss and total withdrawal', async function () {
+        const account = 'psalomo.near';
+        const convertToCurrency = 'NOK';
+
+        const startDate = new Date(2021, 4, 1);
+        await setAccounts([account]);
+        await fetchTransactionsForAccount(account, startDate.getTime() * 1_000_000);
+
+        const customRealizationRatesObj = {
+            "64YHGt8Tsp8x28ksvi1vWA3pv9sWs4AhRSAdWPUbtdEC": {
+                "realizationTime": "2021-04-18T05:13:52.000Z",
+                "realizationPrice": 50.87,
+                "realizationCurrency": "NOK"
+            }
+        };
+
+        await setCustomRealizationRates(customRealizationRatesObj);
+
+        let { dailyBalances, transactionsByDate } = await calculateYearReportData();
+        dailyBalances = (await calculateProfitLoss(dailyBalances, convertToCurrency)).dailyBalances;
+        const nearValues = dailyBalances['2021-04-17'];
+        const convertedValues = await getConvertedValuesForDay(dailyBalances['2021-04-17'], 'NOK', '2021-04-17');
+
+        expect(nearValues.convertToCurrencyWithdrawalAmount / (nearValues.withdrawal / Math.pow(10, 24)))
+            .to.be.closeTo(customRealizationRatesObj['64YHGt8Tsp8x28ksvi1vWA3pv9sWs4AhRSAdWPUbtdEC'].realizationPrice, 0.01);
+        expect(nearValues.withdrawal / Math.pow(10, 24)).to.be.closeTo(4.0, 0.01);
+        expect(convertedValues.withdrawal).to.be.closeTo(199.7, 0.01);
+
+        expect(nearValues.profit).to.be.closeTo(18.84, 0.01);
     });
     it('should calculate year report for fungible token USDC', async function () {
         const account = 'petersalomonsen.near';
