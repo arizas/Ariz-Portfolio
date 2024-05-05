@@ -100,7 +100,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "yarn serve:bos_test_gateway",
+    command: "yarn dist && yarn serve:bos_test_gateway",
     port: 3030,
     reuseExistingServer: !process.env.CI,
   },
