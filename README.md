@@ -21,7 +21,7 @@ Add your accounts under the `Accounts` section. Click `load data` to load data f
 
 Daily deposits / withdrawals are calculated by looking at the total balance change for each transaction (instead of going down to each receipt). Balance changes are added up for all accounts involved in a transaction so that transfers between the configured accounts are zeroed out. Also balance changes from transactions to staking pools are ignored.
 
-Transaction data is loaded from wallet helper history, and balances are found by querying NEAR archival RPC for transaction status for each transaction to find the latest execution block and take the account balance from there.
+Transaction data is loaded from wallet helper history, and balances are found by querying Nearblocks for transaction status for each transaction to find the latest execution block and take the account balance from there.
 
 Staking pools are identified by transactions (deposits, staking, withdrawals) to these, and rewards are calculated by the difference in staking pool balance between each epoch.
 
