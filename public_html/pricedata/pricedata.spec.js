@@ -18,7 +18,7 @@ describe('pricedata', () => {
         expect(await getEODPrice('NOK', '2024-03-26')).to.be.closeTo(79.92, 0.05);
     });
     it('should get USD NOK exchange rate for day', async function () {
-        await fetchNEARHistoricalPrices();
+        await fetchNEARHistoricalPricesFromNearBlocks();
         await fetchNOKPrices();
         expect(await getEODPrice('NOK', '2021-02-23', 'USDT.e')).to.be.closeTo(8.4979, 0.1);
         expect(await getEODPrice('NOK', '2022-01-16', 'USDC.e')).to.be.closeTo(8.7239, 0.7);
@@ -45,5 +45,4 @@ describe('pricedata from coingecko', () => {
         await fetchHistoricalPricesFromCoinGecko({currency: 'USD', todate: new Date(2024,4,30).toJSON()});
         expect(await getEODPrice('USD', '2024-01-01')).to.be.closeTo(3.65425834, 0.00001);
     });
-
 });
