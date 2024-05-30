@@ -29,7 +29,7 @@ describe('pricedata', () => {
     });
 });
 
-describe.only('pricedata from coingecko', () => {
+describe('pricedata from coingecko', () => {
     it('should get NOK NEAR price data for day', async function () {
         await fetchHistoricalPricesFromCoinGecko({currency: 'NOK', todate: new Date(2024,4,30).toJSON()});
 
