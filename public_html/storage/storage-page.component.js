@@ -3,7 +3,7 @@ import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sy
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchNEARHistoricalPrices, fetchNOKPrices, importYahooNEARHistoricalPrices } from '../pricedata/pricedata.js';
+import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, importYahooNEARHistoricalPrices } from '../pricedata/pricedata.js';
 
 const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
@@ -57,7 +57,7 @@ customElements.define('storage-page',
             this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
                 console.log('click');
                 setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
-                await fetchNEARHistoricalPrices();
+                await fetchNEARHistoricalPricesFromNearBlocks();
                 setProgressbarValue(null);
             });
             this.shadowRoot.getElementById('importnearusdyahoobutton').addEventListener('click', async () => {

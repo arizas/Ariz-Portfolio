@@ -1,4 +1,4 @@
-import { fetchNEARHistoricalPrices } from '../pricedata/pricedata.js';
+import { fetchNEARHistoricalPricesFromNearBlocks } from '../pricedata/pricedata.js';
 import { fetchTransactionsForAccount, setAccounts } from '../storage/domainobjectstore.js';
 import './yearreport-print.component.js';
 import { renderYearReportTable } from "./yearreport-table-renderer.js";
@@ -8,7 +8,7 @@ describe('year-report-table-renderer', () => {
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
-        await fetchNEARHistoricalPrices();
+        await fetchNEARHistoricalPricesFromNearBlocks();
 
         await fetchTransactionsForAccount(account, startDate.getTime() * 1_000_000);
 

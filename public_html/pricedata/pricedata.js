@@ -1,9 +1,37 @@
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 
-let cachedCurrencyList = ['USD', 'NOK'];
 const defaultToken = 'NEAR';
+const COINGECKO_API_KEY = '__COINGECKO_API_KEY__';
 
-export async function fetchNEARHistoricalPrices() {
+let cachedCurrencyList;
+
+export async function getCurrencyList() {
+    if (cachedCurrencyList) {
+        return cachedCurrencyList;
+    }
+    const current_prices = (await (await fetch('https://api.coingecko.com/api/v3/coins/near')).json()).market_data.current_price;
+    cachedCurrencyList = Object.keys(current_prices);
+    return cachedCurrencyList;
+}
+
+export async function fetchHistoricalPricesFromCoinGecko({baseToken="NEAR", currency, todate=new Date().getTime().toJSON() }) {
+    const url = `https://pro-api.coingecko.com/api/v3/coins/${baseToken.toLowerCase()}/market_chart/range?vs_currency=${currency}&from=0&to=${Math.floor(new Date(todate).getTime() / 1000)}`;
+
+    const prices = (await fetch(url, {
+        headers: {
+            "x-cg-pro-api-key": `${COINGECKO_API_KEY}`
+        }
+    }).then(r => r.json())).prices;
+    const pricesMap = {};
+    prices.forEach(priceEntry => {
+        const datestring = new Date(priceEntry[0]).toJSON().substring(0,'yyyy-MM-dd'.length);
+        const price = priceEntry[1];
+        pricesMap[datestring] = price;
+    });
+    await setHistoricalPriceData(baseToken, currency, pricesMap);
+}
+
+export async function fetchNEARHistoricalPricesFromNearBlocks() {
     const chartdata = await fetch('https://api.nearblocks.io/v1/charts').then(r => r.json());
     const pricedata = await getHistoricalPriceData(defaultToken, 'USD');
     chartdata.charts.forEach(dayEntry => pricedata[dayEntry.date.substring(0, 'yyyy-MM-dd'.length)] = Number(dayEntry.near_price));
@@ -50,10 +78,6 @@ export async function fetchNOKPrices() {
     }
     await setHistoricalPriceData(defaultToken, 'NOK', nearNOKPricePerDay);
     await setHistoricalPriceData('USD', 'NOK', ratesPerDay);
-}
-
-export async function getCurrencyList() {
-    return cachedCurrencyList;
 }
 
 export async function getEODPrice(currency, datestring, token = defaultToken) {
