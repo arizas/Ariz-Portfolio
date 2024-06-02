@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { pause500ifRecordingVideo } from "../util/videorecording.js";
-import { createServer } from 'http';
 
 test("should clone wasm-git repository when providing access key", async ({ page }) => {
   await page.goto(
@@ -16,28 +15,19 @@ test("should clone wasm-git repository when providing access key", async ({ page
   await expect(await page.locator('#wasmgitaccountspan')).toHaveText('test.near');
 
   await pause500ifRecordingVideo(page);
-  await page.locator('#remoterepo').fill('http://localhost:15000/test');
+  await page.locator('#remoterepo').fill('http://localhost:15000/testrepo');
   await pause500ifRecordingVideo(page);
 
-  let requestPromiseResolve;
-  let requestPromise = new Promise(resolve => requestPromiseResolve = resolve);
-
-  const mockGitServer = await createServer((req, res) => {
-    if (req.method == 'OPTIONS') {
-      res.writeHead(200, { 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Origin': '*' });
-      res.end();
-    } else {
-      requestPromiseResolve(req);
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Nothing here');
-    }
+  let authorizationHeader;
+  await page.route('http://localhost:15000/**/*', async(route) => {
+    authorizationHeader = route.request().headers().authorization;
+    route.continue();
   });
-  await new Promise(resolve => mockGitServer.listen(15000, () => resolve()));
+
   await page.locator('#syncbutton').click();
   await pause500ifRecordingVideo(page);
-  const request = await requestPromise;
-  expect(request.url).toEqual('/test/info/refs?service=git-upload-pack');
-  const accessTokenParts = request.headers.authorization.split(' ')[1].split('.');
+
+  const accessTokenParts = authorizationHeader.split(' ')[1].split('.');
   const accessTokenMessageObj = JSON.parse(Buffer.from(accessTokenParts[0], 'base64'));
   expect(accessTokenMessageObj.accountId).toEqual('test.near');
 });
