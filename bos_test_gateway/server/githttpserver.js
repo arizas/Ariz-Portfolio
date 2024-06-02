@@ -28,13 +28,19 @@ export function startServer() {
     });
 
     return http.createServer((request, response) => {
-        if (request.method == 'OPTIONS') {
-            response.writeHead(200, { 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Origin': '*' });
+        console.log('git http server request', request.url, request.method);
+
+        if (request.method === 'OPTIONS') {
+            response.writeHead(200, {
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Allow-Origin': '*'
+            });
             response.end();
         } else {
             let path = request.url.substring(1);
 
-            console.log('git http server request', request.url);
+            response.setHeader('Access-Control-Allow-Headers', '*');
+            response.setHeader('Access-Control-Allow-Origin', '*');
 
             if (path.indexOf('ping') > -1) {
                 response.statusCode = 200;
