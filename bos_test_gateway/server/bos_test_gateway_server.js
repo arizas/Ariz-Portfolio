@@ -26,6 +26,10 @@ appserver.listen(8081, () => {
   console.log("App HTTP server is listening on port 8081");
 });
 
+console.log('gitserver', await fetch('http://localhost:15000/ping').then(r => r.statusText));
+console.log('bos gateway', await fetch('http://localhost:8080').then(r => r.statusText));
+console.log('app', await fetch('http://localhost:8081').then(r => r.statusText));
+
 const bosLoader = spawn(`${homedir()}/.cargo/bin/bos-loader`, ["arizas.near", "--path", "./bos_components"], { stdio: "inherit" });
 
 bosLoader.on("close", (code) => {
