@@ -1,5 +1,5 @@
 import 'https://cdn.jsdelivr.net/npm/near-api-js@4.0.1/dist/near-api-js.min.js';
-import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local } from './gitstorage.js';
+import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
@@ -95,22 +95,30 @@ customElements.define('storage-page',
             this.remoteRepoInput.value = await get_remote();
             this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
             this.syncbutton.addEventListener('click', async () => {
+                if (!this.remoteRepoInput.value) {
+                    return;
+                }
                 setProgressbarValue('indeterminate', 'syncing with remote');
                 try {
                     this.syncbutton.disabled = true;
                     if (!(await exists('.git'))) {
-                        if (this.remoteRepoInput.value) {
+                        if ((await readdir('.')).length == 2) {
                             await git_clone(this.remoteRepoInput.value);
                         } else {
                             await git_init();
+                            await this.loadAccountData();
+                            await set_remote(this.remoteRepoInput.value);
+                            await commit_all();
+                            await push();
                         }
+                    } else {
+                        await commit_all();
+                        await sync();
+                        this.dispatchSyncEvent();
                     }
-                    await commit_all();
-                    await sync();
-                    this.dispatchSyncEvent();
                 } catch (e) {
                     console.error(e);
-                    modalAlert('Error syncing with remote', e);
+                    await modalAlert('Error syncing with remote', e);
                 }
                 setProgressbarValue(null);
                 this.syncbutton.disabled = false;
