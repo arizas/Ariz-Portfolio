@@ -47,7 +47,24 @@ export function startServer() {
                 response.end('pong');
             } else if (path.indexOf('git-upload') > -1 ||
                 path.indexOf('git-receive') > -1) {
-                gitcgi(request, response);
+
+                let tokenError;
+                try {
+                    const token = request.headers['authorization'].split(' ')[1].split('.')[0];
+                    const accountIdFromToken = JSON.parse(Buffer.from(token, 'base64').toString()).accountId;
+                    if (accountIdFromToken !== 'test.near') {
+                        tokenError = `expected account id test.near, but was ${accountIdFromToken}`;
+                    }
+                } catch (e) {
+                    tokenError = e.toString();
+                }
+                if (tokenError) {
+                    console.error(tokenError);
+                    response.statusCode = 401;
+                    response.end(tokenError);
+                } else {
+                    gitcgi(request, response);
+                }
             } else {
                 response.statusCode = 404;
                 response.end('not found');
