@@ -10,15 +10,19 @@ const workerCommand = async (command, params) => {
     currentCommandInProgress = new Promise((resolve, reject) => {
         const progressBarWasAlreadyVisible = isProgressBarVisible();
         worker.onmessage = (msg) => {
-            currentCommandInProgress = null;
             if (msg.data.error) {
+                if (!progressBarWasAlreadyVisible) {
+                    setProgressbarValue(null);
+                }
+                currentCommandInProgress = null;
                 reject(msg.data.error);
-            } else if(msg.data.progress) {
+            } else if (msg.data.progress) {
                 setProgressbarValue('indeterminate', msg.data.progress);
             } else {
                 if (!progressBarWasAlreadyVisible) {
                     setProgressbarValue(null);
                 }
+                currentCommandInProgress = null;
                 resolve(msg.data);
             }
         }
@@ -64,7 +68,7 @@ export async function configure_user(params) {
 }
 
 export async function set_remote(remoteurl) {
-    return (await workerCommand('setremote', {remoteurl})).result;
+    return (await workerCommand('setremote', { remoteurl })).result;
 }
 
 export async function get_remote() {
@@ -78,6 +82,10 @@ export async function get_remote() {
 
 export async function sync() {
     await workerCommand('sync', []);
+}
+
+export async function push() {
+    await workerCommand('git', ['push']);
 }
 
 export async function delete_local() {

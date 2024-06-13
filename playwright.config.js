@@ -33,7 +33,8 @@ export default defineConfig({
   reporter: "line",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    video: 'on',
+    video: 'off',
+    headless: true,
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -100,7 +101,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "yarn serve:bos_test_gateway",
+    command: "yarn dist && yarn serve:bos_test_gateway",
     port: 3030,
     reuseExistingServer: !process.env.CI,
   },

@@ -1,51 +1,61 @@
 import { test, expect } from "@playwright/test";
+import { pause500ifRecordingVideo } from "../util/videorecording.js";
 
-async function pause500ifRecordingVideo(page) {
-  let isVideoRecorded = (await page.video()) ? true : false;
-  if (isVideoRecorded) {
-    await page.waitForTimeout(500);
-  }
-}
-
-test("should open app", async ({ page }) => {
+test("should clone wasm-git repository when providing access key", async ({ page }) => {
   await page.goto(
-    "/arizas.near/widget/account_report"
+    "http://localhost:8081"
   );
+
+  await page.getByRole('link', { name: 'Accounts' }).click();
   await pause500ifRecordingVideo(page);
-  const iframe = await page.frameLocator('iframe');
-  const header = await iframe.getByRole('link', { name: 'NEAR account report' });
 
-  await expect(header).toContainText("NEAR account report");
-});
+  await page.getByRole('button', { name: 'Add account' }).click();
+  await pause500ifRecordingVideo(page);
 
-test("should open accounts page, add account, and load data", async ({ page }) => {
+  await page.getByRole('textbox').fill('petermusic.near');
+  await pause500ifRecordingVideo(page);
+
+  const configureStorage = async () => {
+    await pause500ifRecordingVideo(page);
+    await page.getByRole('link', { name: 'Storage' }).click();
+    await pause500ifRecordingVideo(page);
+    const wasmgitaccesskeyinput = await page.locator('#wasmgitaccesskey');
+    await wasmgitaccesskeyinput.fill('test.near:3XV8JxA8VEngikCBXEqphLbymgK3NyMgAptDdBQURy5J');
+    await wasmgitaccesskeyinput.blur();
+    await expect(await page.locator('#wasmgitaccountspan')).toHaveText('test.near');
+
+    await pause500ifRecordingVideo(page);
+    await page.locator('#remoterepo').fill('http://localhost:15000/testrepo.git');
+    await pause500ifRecordingVideo(page);
+  };
+
+  await configureStorage();
+  await page.locator('#syncbutton').click();
+
+  await page.waitForTimeout(1000);
+  await expect(await page.locator('progress-bar')).not.toBeVisible();
+
+  await page.locator("#deletelocaldatabutton").click();
+
+  await page.waitForTimeout(1000);
 
   await page.goto(
-    "/arizas.near/widget/account_report"
+    "http://localhost:8081"
   );
-  await page.frameLocator('iframe').getByRole('link', { name: 'Accounts' }).click();
+
+  await page.getByRole('link', { name: 'Accounts' }).click();
   await pause500ifRecordingVideo(page);
+  await expect(page.getByRole('textbox')).not.toBeAttached();
 
-  await page.frameLocator('iframe').getByRole('button', { name: 'Add account' }).click();
+  await configureStorage();
+  await page.locator('#syncbutton').click();
+
+  await page.waitForTimeout(1000);
+  await expect(await page.locator('progress-bar')).not.toBeVisible();
+
+  await page.getByRole('link', { name: 'Accounts' }).
+  click();
   await pause500ifRecordingVideo(page);
-
-  await page.frameLocator('iframe').getByRole('textbox').fill('petermusic.near');
-  await pause500ifRecordingVideo(page);
-
-  await page.frameLocator('iframe').getByRole('button', { name: 'load data' }).click();
-  const progressbar = await page.frameLocator('iframe').locator('progress-bar');
-  await progressbar.waitFor({ state: 'visible', timeout: 10 * 1000 });
-  await progressbar.waitFor({ state: 'hidden', timeout: 60 * 1000 });
-
-  await pause500ifRecordingVideo(page);
-  await page.frameLocator('iframe').getByRole('link', { name: 'Year report' }).click();
-  await pause500ifRecordingVideo(page);
-
-  await page.frameLocator('iframe').locator('.dailybalancerow_accountchange').first().waitFor({ 'state': 'visible' });
-
-  await page.frameLocator('iframe').locator('select#yearselect').selectOption('2021');
-  await pause500ifRecordingVideo(page);
-
-  await expect(await page.frameLocator('iframe').getByRole('cell', { name: '-12-31' })).toContainText('2021-12-31');
+  await expect(page.getByRole('textbox')).toHaveValue('petermusic.near');
   await pause500ifRecordingVideo(page);
 });
