@@ -2,6 +2,20 @@ import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
 
+const PIKESPEAKAI_API_LOCALSTORAGE_KEY = 'pikespeakai_api_key';
+const TRANSACTION_DATA_API_LOCALSTORAGE_KEY = 'near_transactiondata_api';
+export const TRANSACTION_DATA_API_NEARBLOCKS = 'nearblocks';
+export const TRANSACTION_DATA_API_PIKESPEAKAI = 'pikespeakai';
+
+export function getTransactionDataApi() {
+    const transactionDataApi = localStorage.getItem(TRANSACTION_DATA_API_LOCALSTORAGE_KEY);
+    if (transactionDataApi == null) {
+        return TRANSACTION_DATA_API_NEARBLOCKS;
+    } else {
+        return transactionDataApi;
+    }
+}
+
 export async function getAccountChanges(block_id, account_ids) {
     return (await fetch(getArchiveNodeUrl(), {
         method: 'POST',
@@ -44,6 +58,33 @@ export async function viewAccount(block_id, account_id) {
     }).then(r => r.json())).result;
 }
 
+export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, page = 1) {
+    const url = `https://api.pikespeak.ai/account/transactions/${account_id}?limit=${maxentries}&offset=${(page - 1) * maxentries}`;
+    for (let n = 0; n < 5; n++) {
+        try {
+            const result = (await fetch(url, {
+                mode: 'cors',
+                headers: {
+                    'x-api-key': localStorage.getItem(PIKESPEAKAI_API_LOCALSTORAGE_KEY)
+                }
+            }).then(r => r.json())).txns.map(tx => (
+                {
+                    "block_hash": tx.block_hash,
+                    "block_timestamp": tx.transaction_timestamp,
+                    "hash": tx.id,
+                    "signer_id": tx.signer,
+                    "receiver_id": tx.receiver,
+                    "action_kind": first_action_type
+                }
+            ));
+            return result;
+        } catch (e) {
+            console.error('error', e, 'retry in 30 seconds', (n + 1));
+            await new Promise(resolve => setTimeout(() => resolve(), 30_000));
+        }
+    }
+}
+
 export async function getNearblocksAccountHistory(account_id, maxentries = 25, page = 1) {
     const url = `https://api.nearblocks.io/v1/account/${account_id}/txns?page=${page}&per_page=${maxentries}&order=desc`;
     for (let n = 0; n < 5; n++) {
@@ -57,9 +98,9 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
                     "hash": tx.transaction_hash,
                     "signer_id": tx.predecessor_account_id,
                     "receiver_id": tx.receiver_account_id,
-                    "action_kind": tx.actions? tx.actions[0].action : null,
+                    "action_kind": tx.actions ? tx.actions[0].action : null,
                     "args": {
-                        "method_name": tx.actions? tx.actions[0].method : null
+                        "method_name": tx.actions ? tx.actions[0].method : null
                     }
                 }
             ));
@@ -74,7 +115,18 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
 export async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 25, startPage = 1) {
     CHUNK_SIZE = 25;
     let page = startPage;
-    let accountHistory = await getNearblocksAccountHistory(account, CHUNK_SIZE, page);
+
+    const getAccountHistory = async (page) => {
+        switch (getTransactionDataApi()) {
+            case TRANSACTION_DATA_API_NEARBLOCKS:
+                return await getNearblocksAccountHistory(account, CHUNK_SIZE, page);
+                break;
+            case TRANSACTION_DATA_API_PIKESPEAKAI:
+                return await getPikespeakaiAccountHistory(account, CHUNK_SIZE, page);
+                break;
+        }
+    };
+    let accountHistory = await getAccountHistory(page);
     let insertIndex = 0;
 
     while (true) {
@@ -99,7 +151,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
             break;
         }
         page++;
-        accountHistory = await getNearblocksAccountHistory(account, CHUNK_SIZE, page);
+        accountHistory = await getAccountHistory(page);
     }
     return transactions;
 }
