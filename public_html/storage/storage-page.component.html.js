@@ -5,8 +5,7 @@ export default /*html*/ `<div class="card">
 
         <p>Enter wasm-git access key</p>
         <p>
-            <span id="currentuserspan"></span>
-            <input id="wasmgitaccesskey" type="password" />
+            <input id="wasmgitaccesskey" type="password" /> <span id="wasmgitaccountspan"></span>
         </p>
         <p>
         <label for="remoterepo" class="form-label">URL to git repository</label>
