@@ -16,6 +16,10 @@ export function getTransactionDataApi() {
     }
 }
 
+export function setTransactionDataApi(api_name) {
+    localStorage.setItem(TRANSACTION_DATA_API_LOCALSTORAGE_KEY, api_name);
+}
+
 export async function getAccountChanges(block_id, account_ids) {
     return (await fetch(getArchiveNodeUrl(), {
         method: 'POST',
@@ -67,16 +71,17 @@ export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, 
                 headers: {
                     'x-api-key': localStorage.getItem(PIKESPEAKAI_API_LOCALSTORAGE_KEY)
                 }
-            }).then(r => r.json())).txns.map(tx => (
+            }).then(r => r.json())).map(tx => (
                 {
                     "block_hash": tx.block_hash,
                     "block_timestamp": tx.transaction_timestamp,
                     "hash": tx.id,
                     "signer_id": tx.signer,
                     "receiver_id": tx.receiver,
-                    "action_kind": first_action_type
+                    "action_kind": tx.first_action_type
                 }
             ));
+            await new Promise(resolve => setTimeout(() => resolve(), 500));
             return result;
         } catch (e) {
             console.error('error', e, 'retry in 30 seconds', (n + 1));

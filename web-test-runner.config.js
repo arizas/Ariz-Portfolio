@@ -31,8 +31,7 @@ export default {
             import { expect, assert} from 'https://cdn.jsdelivr.net/npm/chai@5.0.0/+esm';
             globalThis.assert = assert;
             globalThis.expect = expect;
-            localStorage.setItem('near_transactiondata_api','pikespeakai');
-            localStorage.setItem('pikespeakai_api_key','pikespeakaiapikey');
+            localStorage.setItem('pikespeakai_api_key','API_KEY');
         </script>        
         <script type="module" src="${testRunnerImport}"></script>
       </body>
