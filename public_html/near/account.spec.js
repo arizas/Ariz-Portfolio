@@ -42,7 +42,6 @@ describe('nearaccount transactions petersalomonsen.near', function () {
             expect(transactions[n].hash).to.equal(referenceTransactionsBeforeBlockTimestamp[n].hash);
         }
         expect(transactions.length).to.equal(referenceTransactionsBeforeBlockTimestamp.length);
-
     });
 
     it.skip('should get transactions using the pikespeak.ai API, and then add new transactions on the next date', async function () {
@@ -89,16 +88,15 @@ describe('nearaccount transactions petersalomonsen.near', function () {
     });
 
     it('all transactions should have balance', async function () {
-        await fetchTransactionsForAccount(account, 1626977729473574682);
+        await fetchTransactionsForAccount(account, 1621881780667556458);
         const transactions = await getTransactionsForAccount(account);
         for (let n = 0; n < transactions.length; n++) {
             const transaction = transactions[n];
             expect(Number(BigInt(transaction.balance))).to.be.gt(0);
         }
-
     });
 
-    it.only('should get account balance after transaction', async function () {
+    it('should get account balance after transaction', async function () {
         const getBalanceForTxHash = async (txHash, accountId) => {
             const transaction = await fetch(`https://api3.nearblocks.io/v1/txns/${txHash}`).then(r => r.json());
             const block_height = transaction.txns[0].block.block_height;

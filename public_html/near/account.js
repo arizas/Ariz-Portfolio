@@ -99,6 +99,7 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
             }).then(r => r.json())).txns.map(tx => (
                 {
                     "block_hash": tx.included_in_block_hash,
+                    "block_height": tx.block.block_height,
                     "block_timestamp": tx.block_timestamp,
                     "hash": tx.transaction_hash,
                     "signer_id": tx.predecessor_account_id,
@@ -144,7 +145,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
             } else {
                 const existingTransaction = transactions.find(t => t.hash == historyLine.hash);
                 if (!existingTransaction) {
-                    historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash));
+                    historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash, historyLine.block_height));
                     transactions.splice(insertIndex++, 0, historyLine);
                     offset_timestamp = BigInt(historyLine.block_timestamp) + 1n;
                     newTransactionsAdded++;
@@ -202,7 +203,7 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
     });
 
     let receipt_ids = transactionInFirstBlock.outcome.execution_outcome.outcome.receipt_ids;
-
+    
     while (receipt_ids.length > 0) {
         receipt_ids.forEach(receipt_id => {
             blockdata.shards.forEach(shard => {
