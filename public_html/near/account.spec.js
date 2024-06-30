@@ -1,7 +1,6 @@
-import { getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
+import { getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
 import { getTransactionsForAccount, fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
-import { getTransactionDataApi } from './account.js';
-import { TRANSACTION_DATA_API_NEARBLOCKS, TRANSACTION_DATA_API_PIKESPEAKAI } from './account.js';
+import { TRANSACTION_DATA_API_PIKESPEAKAI } from './account.js';
 
 describe('nearaccount transactions petersalomonsen.near', function () {
     const account = 'petersalomonsen.near';
@@ -97,5 +96,24 @@ describe('nearaccount transactions petersalomonsen.near', function () {
             expect(Number(BigInt(transaction.balance))).to.be.gt(0);
         }
 
+    });
+
+    it.only('should get account balance after transaction', async function () {
+        const getBalanceForTxHash = async (txHash, accountId) => {
+            const transaction = await fetch(`https://api3.nearblocks.io/v1/txns/${txHash}`).then(r => r.json());
+            const block_height = transaction.txns[0].block.block_height;
+            const balance = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
+            return balance;
+        };
+        expect(await (getBalanceForTxHash('6aFHUysZbGeNZSKnFW8e8yp1iYghFatvn6qJ8YcBK9yr', 'petersalomonsen.near'))).to.equal('386753989351046537832522253');
+        expect(await (getBalanceForTxHash('HhKwApMvcMaXKERv1nE3rmKSLjgBSk3u7BjFarr61wEy', 'petersalomonsen.near'))).to.equal('81815522421420461431918066');
+
+        expect(await (getBalanceForTxHash('Af2ZfAHULc4Eh3KpctLtLARViaqo2c7aXgo5okkLJ7pz', 'petersalomonsen.near'))).to.equal('410368406246815598818050335');
+        expect(await (getBalanceForTxHash('A8Fx5L3nyyiod6oe1Nhfcn73t2assWgCKHSqHtKC5GPE', 'petersalomonsen.near'))).to.equal('49460915826791408147001516');
+        expect(await (getBalanceForTxHash('55uEp3iWq3A6S6tZPjNPa7Spt2dePQSbsTU6JDJWRXcS', 'petersalomonsen.near'))).to.equal('49459906717970905047001516');
+        expect(await (getBalanceForTxHash('CJKdJ3K9eL6ZUxnjtzLvaxwJ1bcAYf5jLHuAKQsjt8mo', 'petersalomonsen.near'))).to.equal('49354002147864397747001516');
+        expect(await (getBalanceForTxHash('CC7cGtUgHk6KwbpTMok5Ff3uVBVM8Y6LAfDC1qb35Hbt', 'petersalomonsen.near'))).to.equal('466731120151565365929777536');
+        expect(await (getBalanceForTxHash('8cW5831s99VfKV8zD6ELZDB5chZukn5xdy5D1w8TPs5x', 'petersalomonsen.near'))).to.equal('201224010096836909761681860');
+        expect(await (getBalanceForTxHash('5hcVzM1bR7hLgPBMLD1YAqY6r5Ta7nZheFufuXiKSbWT', 'psalomo.near'))).to.equal('16710096912904207620297833');
     });
 });
