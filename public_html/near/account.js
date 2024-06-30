@@ -138,6 +138,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
     while (true) {
         let newTransactionsAdded = 0;
         let transactionsSkipped = 0;
+
         for (let n = 0; n < accountHistory.length; n++) {
             const historyLine = accountHistory[n];
             if (BigInt(historyLine.block_timestamp) > BigInt(offset_timestamp)) {
@@ -193,7 +194,6 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
 
         const account_update = shard.state_changes.find(state_change =>
             state_change.type === 'account_update' &&
-            state_change.cause.type === 'transaction_processing' &&
             state_change.cause.tx_hash === tx_hash &&
             state_change.change.account_id === account_id
         );
@@ -203,14 +203,13 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
     });
 
     let receipt_ids = transactionInFirstBlock.outcome.execution_outcome.outcome.receipt_ids;
-    
+
     while (receipt_ids.length > 0) {
         receipt_ids.forEach(receipt_id => {
             blockdata.shards.forEach(shard => {
                 const receipt_execution_outcome = shard.receipt_execution_outcomes.find(receipt_execution_outcome => receipt_execution_outcome.execution_outcome.id === receipt_id);
                 const account_update = shard.state_changes.find(state_change =>
                     state_change.type === 'account_update' &&
-                    state_change.cause.type === 'receipt_processing' &&
                     receipt_ids.includes(state_change.cause.receipt_hash) &&
                     state_change.change.account_id === account_id
                 );

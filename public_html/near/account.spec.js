@@ -1,9 +1,15 @@
-import { getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
+import { TRANSACTION_DATA_API_PIKESPEAKAI, getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
 import { getTransactionsForAccount, fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
-import { TRANSACTION_DATA_API_PIKESPEAKAI } from './account.js';
 
 describe('nearaccount transactions petersalomonsen.near', function () {
     const account = 'petersalomonsen.near';
+    const getBalanceForTxHash = async (txHash, accountId) => {
+        const transaction = await fetch(`https://api3.nearblocks.io/v1/txns/${txHash}`).then(r => r.json());
+        const block_height = transaction.txns[0].block.block_height;
+        const balance = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
+        return balance;
+    };
+
     it('should get transactions, and then add new transactions on the next date', async function () {
         this.timeout(5 * 60000);
         let transactions = [];
@@ -97,12 +103,6 @@ describe('nearaccount transactions petersalomonsen.near', function () {
     });
 
     it('should get account balance after transaction', async function () {
-        const getBalanceForTxHash = async (txHash, accountId) => {
-            const transaction = await fetch(`https://api3.nearblocks.io/v1/txns/${txHash}`).then(r => r.json());
-            const block_height = transaction.txns[0].block.block_height;
-            const balance = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
-            return balance;
-        };
         expect(await (getBalanceForTxHash('6aFHUysZbGeNZSKnFW8e8yp1iYghFatvn6qJ8YcBK9yr', 'petersalomonsen.near'))).to.equal('386753989351046537832522253');
         expect(await (getBalanceForTxHash('HhKwApMvcMaXKERv1nE3rmKSLjgBSk3u7BjFarr61wEy', 'petersalomonsen.near'))).to.equal('81815522421420461431918066');
 
@@ -113,5 +113,9 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         expect(await (getBalanceForTxHash('CC7cGtUgHk6KwbpTMok5Ff3uVBVM8Y6LAfDC1qb35Hbt', 'petersalomonsen.near'))).to.equal('466731120151565365929777536');
         expect(await (getBalanceForTxHash('8cW5831s99VfKV8zD6ELZDB5chZukn5xdy5D1w8TPs5x', 'petersalomonsen.near'))).to.equal('201224010096836909761681860');
         expect(await (getBalanceForTxHash('5hcVzM1bR7hLgPBMLD1YAqY6r5Ta7nZheFufuXiKSbWT', 'psalomo.near'))).to.equal('16710096912904207620297833');
+    });
+
+    it('should get account balance on the receiving account after failed transaction', async function () {
+        expect(await (getBalanceForTxHash('GKJkSWw7HPg5BTEATD9Ys75antWwLnVppPSPzjcBi4mD', 'psalomo.near'))).to.equal('7822086507907767200000000');
     });
 });
