@@ -40,9 +40,8 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
             tx.account = account;
-            tx.changedBalance = BigInt(tx.balance) - (
-                n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : 0n
-            );
+            tx.changedBalance = tx.balance !== undefined && transactions[n + 1]?.balance !== undefined ?            
+                BigInt(tx.balance) - BigInt(transactions[n + 1].balance) : 0n;
 
             tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
             if (!accountsMap[tx.signer_id]
@@ -153,7 +152,9 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                         }
                     }
                 }
-                accountDailyBalances[tx.account] = BigInt(tx.balance);
+                if (tx.balance !== undefined) {
+                    accountDailyBalances[tx.account] = BigInt(tx.balance);
+                }
             });
         }
         dailyBalances[datestring].accountBalance = Object.values(accountDailyBalances).reduce((p, c) => p + c, BigInt(0));
