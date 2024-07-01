@@ -187,7 +187,7 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
     let balance;
 
     blockdata.shards.forEach(shard => {
-        const transaction = shard.chunk.transactions.find(transaction => transaction.transaction.hash === tx_hash);
+        const transaction = shard.chunk?.transactions?.find(transaction => transaction.transaction.hash === tx_hash);
         if (transaction) {
             transactionInFirstBlock = transaction;
         }
@@ -206,7 +206,7 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
 
     while (receipt_ids.length > 0) {
         receipt_ids.forEach(receipt_id => {
-            blockdata.shards.forEach(shard => {
+            blockdata?.shards?.forEach(shard => {
                 const receipt_execution_outcome = shard.receipt_execution_outcomes.find(receipt_execution_outcome => receipt_execution_outcome.execution_outcome.id === receipt_id);
                 const account_update = shard.state_changes.find(state_change =>
                     state_change.type === 'account_update' &&

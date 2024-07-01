@@ -117,5 +117,10 @@ describe('nearaccount transactions petersalomonsen.near', function () {
 
     it('should get account balance on the receiving account after failed transaction', async function () {
         expect(await (getBalanceForTxHash('GKJkSWw7HPg5BTEATD9Ys75antWwLnVppPSPzjcBi4mD', 'psalomo.near'))).to.equal('7822086507907767200000000');
+        
+    });
+
+    it('should find balance where method is not found on the target contract', async function () {
+        expect(await (getBalanceForTxHash('7GRkZ3HNWDUmiFXSVRWt4aEmSt8vJZoJLdXvkkQ1uGn7', account))).to.equal('48225636970078724548107302');
     });
 });
