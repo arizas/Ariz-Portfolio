@@ -91,3 +91,18 @@ export async function push() {
 export async function delete_local() {
     await workerCommand('deletelocal', []);
 }
+
+export async function exportZip() {
+    return (await workerCommand('exportzip', [])).result.zipUrl;
+}
+
+export async function exportAndDownloadZip() {
+    const url = await exportZip();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'accountreportfiles.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}

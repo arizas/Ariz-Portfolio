@@ -30,6 +30,7 @@ self.Module = {
 };
 
 importScripts('https://unpkg.com/wasm-git@0.0.10/lg2.js');
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js');
 
 const lgPromise = new Promise(resolve => {
   Module.onRuntimeInitialized = () => {
@@ -57,9 +58,9 @@ self.onmessage = async (msg) => {
     switch (params.command) {
       case 'configureuser':
         accessToken = params.accessToken;
-        callMain(['config','user.name',params.username]);
-        callMain(['config','user.email',params.useremail]);
-  
+        callMain(['config', 'user.name', params.username]);
+        callMain(['config', 'user.email', params.useremail]);
+
         result = { accessTokenConfigured: true };
         break;
       case 'writeFile':
@@ -89,7 +90,7 @@ self.onmessage = async (msg) => {
         break;
       case 'getremote':
         captureOutput = true;
-        callMain(['remote','show', '-v']);
+        callMain(['remote', 'show', '-v']);
         captureOutput = false;
         result = stdout;
         break;
@@ -114,7 +115,7 @@ self.onmessage = async (msg) => {
         FS.unmount(`/${currentRepoRootDir}`);
         console.log('deleting database', currentRepoRootDir);
         self.indexedDB.deleteDatabase('/' + currentRepoRootDir);
-        result = {deleted: currentRepoRootDir };
+        result = { deleted: currentRepoRootDir };
         break;
       case 'commitall':
         captureOutput = true;
@@ -129,23 +130,45 @@ self.onmessage = async (msg) => {
           let filesToAdd = outlines.slice(unTrackedIndex + 3).map(ln => ln.substr('#\t'.length));
           filesToAdd = filesToAdd.slice(0, filesToAdd.length - 1);
           if (filesToAdd.length > 0) {
-            filesToAdd.forEach(f => callMain(['add', f]));            
+            filesToAdd.forEach(f => callMain(['add', f]));
           }
         }
 
         captureOutput = true;
         callMain(['status']);
         captureOutput = false;
-        
-        if (stdout.indexOf('Changes to be committed:') > -1) {      
+
+        if (stdout.indexOf('Changes to be committed:') > -1) {
           callMain(['commit', '-m', 'add all untracked data files']);
           await storeChanges();
         } else {
           console.log('nothing to commit');
         }
+        break;
+      case 'exportzip':
+        const zip = new JSZip();
+        const addFilesToZip = async (dir) => {
+          const entries = FS.readdir(dir);
+          for (let entry of entries) {
+            if (entry === '.' || entry === '..') continue;
+            const path = `${dir}/${entry}`;
+            const stats = FS.stat(path);
+            if (FS.isDir(stats.mode)) {
+              await addFilesToZip(path); // Recursive call for directories
+            } else if (FS.isFile(stats.mode)) {
+              const fileData = FS.readFile(path);
+              zip.file(path, fileData);
+            }
+          }
+        }
+        await addFilesToZip(`/${currentRepoRootDir}`);
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        result = { zipUrl: url };
+        break;
     }
     postMessage({ result });
   } catch (error) {
-    postMessage({ error: error.toString() })
+    postMessage({ error: error.toString() });
   }
 };

@@ -1,5 +1,5 @@
 import 'https://cdn.jsdelivr.net/npm/near-api-js@4.0.1/dist/near-api-js.min.js';
-import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push } from './gitstorage.js';
+import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
@@ -84,7 +84,10 @@ customElements.define('storage-page',
                 await delete_local();
                 location.reload();
             });
-
+            this.downloadzipbutton = this.shadowRoot.querySelector('#downloadzipbutton');
+            this.downloadzipbutton.addEventListener('click', () => {
+                exportAndDownloadZip();
+            });
             await this.loadAccountData();
 
             this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
