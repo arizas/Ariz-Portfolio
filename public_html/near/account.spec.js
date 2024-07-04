@@ -103,6 +103,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
     });
 
     it('should get account balance after transaction', async function () {
+        this.timeout(1 * 60000);
         expect(await (getBalanceForTxHash('6aFHUysZbGeNZSKnFW8e8yp1iYghFatvn6qJ8YcBK9yr', 'petersalomonsen.near'))).to.equal('386753989351046537832522253');
         expect(await (getBalanceForTxHash('HhKwApMvcMaXKERv1nE3rmKSLjgBSk3u7BjFarr61wEy', 'petersalomonsen.near'))).to.equal('81815522421420461431918066');
 
