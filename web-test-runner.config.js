@@ -54,6 +54,7 @@ export default {
           await route.fulfill({ body });
         };
         await ctx.route('https://archival-rpc.mainnet.near.org', archivalRpcCache);
+        await ctx.route('https://rpc.mainnet.near.org', archivalRpcCache);
         await ctx.route('https://1rpc.io/near', archivalRpcCache);
         await ctx.route('https://api.nearblocks.io/**/*', async (route) => {
           const url = route.request().url();

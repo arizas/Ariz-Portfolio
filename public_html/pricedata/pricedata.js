@@ -14,7 +14,7 @@ export async function getCurrencyList() {
     return cachedCurrencyList;
 }
 
-export async function fetchHistoricalPricesFromCoinGecko({baseToken="NEAR", currency, todate=new Date().getTime().toJSON() }) {
+export async function fetchHistoricalPricesFromCoinGecko({baseToken="NEAR", currency, todate=new Date().toJSON() }) {
     const url = `https://pro-api.coingecko.com/api/v3/coins/${baseToken.toLowerCase()}/market_chart/range?vs_currency=${currency}&from=0&to=${Math.floor(new Date(todate).getTime() / 1000)}`;
 
     const prices = (await fetch(url, {
