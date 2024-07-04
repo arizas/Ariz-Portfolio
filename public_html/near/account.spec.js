@@ -120,7 +120,10 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         
     });
 
-    it('should find balance where method is not found on the target contract', async function () {
-        expect(await (getBalanceForTxHash('7GRkZ3HNWDUmiFXSVRWt4aEmSt8vJZoJLdXvkkQ1uGn7', account))).to.equal('48225636970078724548107302');
+    it('should not find balance where method is not found on the target contract', async function () {
+        expect(await (getBalanceForTxHash('7GRkZ3HNWDUmiFXSVRWt4aEmSt8vJZoJLdXvkkQ1uGn7', 'psalomo.near'))).to.be.undefined;
+        expect(await (getBalanceForTxHash('B4uzghQiEwTCwLLHejaUmMyT9m1jCtTFRVTkZevngrrC', 'psalomo.near'))).to.be.undefined;
+        expect(await (getBalanceForTxHash('2xXghNC1GhjFYokX1nWdWLzMCn7yN3SWyhRowtpGuost', 'psalomo.near'))).to.be.undefined;
+        expect(await (getBalanceForTxHash('GHP8GDYN6gdHqq6ZH7adZUUNbmovjC1i25bxAp6Jvb5W', 'psalomo.near'))).to.be.undefined;
     });
 });

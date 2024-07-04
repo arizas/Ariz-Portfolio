@@ -29,7 +29,7 @@ describe('year-report-table-renderer', () => {
         });        
         expect(result.inboundBalance.convertedTotalBalance).to.be.closeTo(11.14, 0.01);
         expect(result.outboundBalance.convertedTotalBalance).to.be.closeTo(243.29, 0.01);
-        expect(result.totalReceived).to.be.closeTo(720.83, 0.01);
+        expect(result.totalReceived).to.be.closeTo(720.80, 0.01);
         expect(result.totalProfit).to.be.closeTo(69.63, 0.01);
         expect(result.totalLoss).to.be.closeTo(27.46, 0.01);
     });
