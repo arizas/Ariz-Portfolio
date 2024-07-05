@@ -3,12 +3,12 @@ import { readFile, writeFile } from 'fs/promises';
 
 const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.url);
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
-const coingeckoCacheURL = new URL('testdata/coingeckocache.json', import.meta.url);
+const arizGatewayCacheURL = new URL('testdata/arizgatewaycache.json', import.meta.url);
 
 const nearblockscache = JSON.parse((await readFile(nearBlocksCacheURL)).toString());
 
 const archiveRpcCache = JSON.parse((await readFile(archiveRpcCacheURL)).toString());
-const coingeckocache = JSON.parse((await readFile(coingeckoCacheURL)).toString());
+const arizGatewayCache = JSON.parse((await readFile(arizGatewayCacheURL)).toString());
 
 export default {
   files: [
@@ -67,16 +67,16 @@ export default {
           const body = nearblockscache[url];
           await route.fulfill({ body });
         });
-        await ctx.route('https://pro-api.coingecko.com/**/*', async (route) => {
+        await ctx.route('https://arizgateway.azurewebsites.net/**/*', async (route) => {
           const url = route.request().url();
-          if (!coingeckocache[url]) {
+          if (!arizGatewayCache[url]) {
             const response = await route.fetch();
 
             const body = await response.text();
-            coingeckocache[url] = body;
-            await writeFile(coingeckoCacheURL, JSON.stringify(coingeckocache, null, 1));
+            arizGatewayCache[url] = body;
+            await writeFile(arizGatewayCacheURL, JSON.stringify(arizGatewayCache, null, 1));
           }
-          const body = coingeckocache[url];
+          const body = arizGatewayCache[url];
           await route.fulfill({ body });
         })
         return ctx;

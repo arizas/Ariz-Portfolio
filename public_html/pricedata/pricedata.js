@@ -1,7 +1,9 @@
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 
 const defaultToken = 'NEAR';
-const COINGECKO_API_KEY = '__COINGECKO_API_KEY__';
+const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
+//const arizgatewayhost = 'http://localhost:15000';
+const arizgatewaytoken = 'eyJpYXQiOjE3MjAyMDI2NjY5MDAsImFjY291bnRJZCI6ImRldmh1YmxpbmsudGVzdG5ldCIsInB1YmxpY0tleSI6ImVkMjU1MTk6RkVyVGpOVXdGWHE0Z0Q3SExwWTVoc1hvVUpSVDdiMXlRcnE4N1NuZVpCQVQifQ==.pwwf3x6OXqI3V8lPY/umcMsNb4xCpUgNjYqXmaqEqEfJDohw2Q0/ZnrfwRUf8WHLxIoyTT5DQsAExGF7G0cVAQ==';
 
 let cachedCurrencyList;
 
@@ -9,25 +11,24 @@ export async function getCurrencyList() {
     if (cachedCurrencyList) {
         return cachedCurrencyList;
     }
-    const current_prices = (await (await fetch('https://api.coingecko.com/api/v3/coins/near')).json()).market_data.current_price;
+    const current_prices = (await (await fetch(`${arizgatewayhost}/api/prices/currencylist`, {
+        headers: {
+            "authorization": `Bearer ${arizgatewaytoken}`
+        }
+    })).json()).market_data.current_price;
     cachedCurrencyList = Object.keys(current_prices);
     return cachedCurrencyList;
 }
 
-export async function fetchHistoricalPricesFromCoinGecko({baseToken="NEAR", currency, todate=new Date().toJSON() }) {
-    const url = `https://pro-api.coingecko.com/api/v3/coins/${baseToken.toLowerCase()}/market_chart/range?vs_currency=${currency}&from=0&to=${Math.floor(new Date(todate).getTime() / 1000)}`;
+export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR", currency, todate = new Date().toJSON() }) {
+    const url = `${arizgatewayhost}/api/prices/history?basetoken=${baseToken.toLowerCase()}&currency=${currency}&todate=${todate}`;
 
-    const prices = (await fetch(url, {
+    const pricesMap = (await fetch(url, {
         headers: {
-            "x-cg-pro-api-key": `${COINGECKO_API_KEY}`
+            "authorization": `Bearer ${arizgatewaytoken}`
         }
-    }).then(r => r.json())).prices;
-    const pricesMap = {};
-    prices.forEach(priceEntry => {
-        const datestring = new Date(priceEntry[0]).toJSON().substring(0,'yyyy-MM-dd'.length);
-        const price = priceEntry[1];
-        pricesMap[datestring] = price;
-    });
+    }).then(r => r.json()));
+
     await setHistoricalPriceData(baseToken, currency, pricesMap);
 }
 
