@@ -2,8 +2,8 @@ import { getAccessToken } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 
 const defaultToken = 'NEAR';
-//const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
-const arizgatewayhost = 'http://localhost:15000';
+const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
+//const arizgatewayhost = 'http://localhost:15000';
 
 let cachedCurrencyList;
 
@@ -20,12 +20,12 @@ export async function getCurrencyList() {
     return cachedCurrencyList;
 }
 
-export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR", currency, todate = new Date().toJSON() }) {
+export async function fetchHistoricalPricesFromArizGateway({ baseToken = "near", currency, todate = new Date().toJSON() }) {
     const url = `${arizgatewayhost}/api/prices/history?basetoken=${baseToken.toLowerCase()}&currency=${currency}&todate=${todate}`;
 
     const pricesMap = (await fetch(url, {
         headers: {
-            "authorization": `Bearer ${arizgatewaytoken}`
+            "authorization": `Bearer ${await getAccessToken()}`
         }
     }).then(r => r.json()));
 
@@ -82,13 +82,20 @@ export async function fetchNOKPrices() {
 }
 
 export async function getEODPrice(currency, datestring, token = defaultToken) {
+    if (token === "") {
+        token = defaultToken;
+    }
     if (token.indexOf('USD') === 0 || token === 'USN') {
         token = 'USD';
     }
     if (token === 'USD' && currency === 'USD') {
         return 1;
     }
-    const pricedata = await getHistoricalPriceData(token, currency);
+    let pricedata = await getHistoricalPriceData(token, currency);
+    if (pricedata[datestring] === undefined) {
+        await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency });
+        pricedata = await getHistoricalPriceData(token, currency);
+    }
     const price = pricedata[datestring];
     return price ?? 0;
 }

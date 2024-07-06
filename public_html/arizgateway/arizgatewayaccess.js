@@ -112,6 +112,7 @@ export async function createAccessToken(oldTokenHash) {
 
     if (oldTokenHash) {
         args.old_token_hash = Array.from(oldTokenHash);
+        args.new_token_hash = args.token_hash;
         await account.functionCall({
             contractId: 'arizportfolio.testnet',
             methodName: 'replace_token',
