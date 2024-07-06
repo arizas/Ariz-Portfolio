@@ -40,8 +40,9 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
             tx.account = account;
-            const previousBalance = transactions.slice(n+1).find(t => t.balance)?.balance ?? '0';
-            tx.changedBalance = BigInt(tx.balance ?? previousBalance) - BigInt(previousBalance);
+            tx.changedBalance = BigInt(tx.balance) - (
+                n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : 0n
+            );
 
             tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
             if (!accountsMap[tx.signer_id]

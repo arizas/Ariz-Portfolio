@@ -1,6 +1,6 @@
 //let archiveNodeUrl = 'https://1rpc.io/near';
-let archiveNodeUrl = 'https://rpc.mainnet.near.org';
-//let archiveNodeUrl = 'https://archival-rpc.mainnet.near.org';
+//let archiveNodeUrl = 'https://rpc.mainnet.near.org';
+let archiveNodeUrl = 'https://archival-rpc.mainnet.near.org';
 let helperNodeUrl = 'https://api.kitwallet.app'
 
 export function getArchiveNodeUrl() {

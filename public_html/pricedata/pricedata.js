@@ -1,9 +1,9 @@
+import { getAccessToken } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 
 const defaultToken = 'NEAR';
-const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
-//const arizgatewayhost = 'http://localhost:15000';
-const arizgatewaytoken = 'eyJpYXQiOjE3MjAyMDI2NjY5MDAsImFjY291bnRJZCI6ImRldmh1YmxpbmsudGVzdG5ldCIsInB1YmxpY0tleSI6ImVkMjU1MTk6RkVyVGpOVXdGWHE0Z0Q3SExwWTVoc1hvVUpSVDdiMXlRcnE4N1NuZVpCQVQifQ==.pwwf3x6OXqI3V8lPY/umcMsNb4xCpUgNjYqXmaqEqEfJDohw2Q0/ZnrfwRUf8WHLxIoyTT5DQsAExGF7G0cVAQ==';
+//const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
+const arizgatewayhost = 'http://localhost:15000';
 
 let cachedCurrencyList;
 
@@ -13,9 +13,9 @@ export async function getCurrencyList() {
     }
     const current_prices = (await (await fetch(`${arizgatewayhost}/api/prices/currencylist`, {
         headers: {
-            "authorization": `Bearer ${arizgatewaytoken}`
+            "authorization": `Bearer ${await getAccessToken()}`
         }
-    })).json()).market_data.current_price;
+    })).json());
     cachedCurrencyList = Object.keys(current_prices);
     return cachedCurrencyList;
 }

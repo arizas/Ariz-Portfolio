@@ -13,6 +13,7 @@
     "test_bos": "npx playwright test",
     "test_bos:watch": "npx playwright test --ui",
     "test_bos:watch:codespaces": "yarn test_bos --ui-host=0.0.0.0",
+    "generateimportmap": "(cd public_html && jspm link index.html -o index.html)",
     "serve": "http-server --cors -p 8081 public_html/",
     "dist": "rm -Rf dist && rollup -c rollup.config.js",
     "link:bos_test_gateway": "(cd bos_test_gateway/ && jspm link 404.html -o 404.html)",

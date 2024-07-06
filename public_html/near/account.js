@@ -228,5 +228,8 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
             blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
         }
     }
+    if (!balance) {
+        balance = (await viewAccount(blockdata.block.header.hash, account_id)).amount;
+    }
     return balance;
 }

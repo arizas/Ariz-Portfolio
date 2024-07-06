@@ -12,6 +12,7 @@ import './yearreport/yearsummary-alltokens-print.component.js';
 import { getCurrencyList } from './pricedata/pricedata.js';
 import { accountsconfigfile, getAccounts, setAccounts } from './storage/domainobjectstore.js';
 import html from './app.html.js';
+import { isSignedIn, loginToArizGateway, logout } from './arizgateway/arizgatewayaccess.js';
 
 const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
 const basepath = baseurl.substring(location.origin.length);
@@ -53,7 +54,10 @@ class AppNearNumbersComponent extends HTMLElement {
         }
 
         if (location.href != baseurl) {
-            goToPage(location.href.substring(baseurl.length).replace(/\/$/,'').split('?')[0]);
+            const page = location.href.substring(baseurl.length).replace(/\/$/, '').split('?')[0];
+            if (page) {
+                goToPage(location.href.substring(baseurl.length).replace(/\/$/, '').split('?')[0]);
+            }
         }
 
         this.shadowRoot.querySelectorAll('a').forEach(a => {
@@ -64,6 +68,21 @@ class AppNearNumbersComponent extends HTMLElement {
                 }
             }
         });
+
+        const loginButton = this.shadowRoot.querySelector('#loginbutton');
+        loginButton.addEventListener('click', async () => {
+            if (await isSignedIn()) {
+                logout();
+                loginButton.innerHTML = 'Login';
+            } else {
+                loginToArizGateway();
+            }
+        });
+        setTimeout(async () => {
+            if (await isSignedIn()) {
+                loginButton.innerHTML = 'Logout';
+            }
+        }, 0);
 
         const init = (async () => {
             if (await exists(accountsconfigfile)) {
@@ -85,6 +104,7 @@ class AppNearNumbersComponent extends HTMLElement {
                 currencyoption.text = currency.toUpperCase();
                 currencyselect.appendChild(currencyoption);
             });
+
             const viewSettingsChange = () => {
                 const account = accountselect.value;
                 const currency = currencyselect.value;

@@ -29,6 +29,7 @@ export default /*html*/ `
                 <a class="nav-item nav-link" href="/customexchangerates" data-page="customexchangerates">Custom exchange rates</a>
                 <a class="nav-item nav-link" href="/accounts" data-page="accounts">Accounts</a>
                 <a class="nav-item nav-link" href="/storage" data-page="storage">Storage</a>
+                <button id="loginbutton" class="nav-item nav-button">Login</button>
             </div>
         </div>
     </div>

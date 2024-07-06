@@ -3,11 +3,6 @@ export default /*html*/ `<div class="card">
     <div class="card-body">
         <p>You may store a remote copy of your data in a git server, which you can then use to synchronize with other browsers and devices</p>
 
-        <p>Enter wasm-git access key</p>
-        <p>
-            <input id="wasmgitaccesskey" type="password" /> <span id="wasmgitaccountspan"></span>
-        </p>
-        <p>
         <label for="remoterepo" class="form-label">URL to git repository</label>
         <input type="text" class="form-control" id="remoterepo" placeholder="https://wasm-git.petersalomonsen.com/YOUR_ACCOUNT-nearsight">
         </p>
@@ -23,7 +18,7 @@ export default /*html*/ `<div class="card">
         <p>Fetch exchange rates from various sources and store in your git repository</p>
         
         <p>
-        <button class="btn btn-primary" id="fetchnearusdbutton">Fetch NEAR/USD rates from nearblocks.io</button>        
+        <button class="btn btn-primary" id="fetchnearusdbutton">Fetch NEAR/USD rates from nearblocks.io</button>
         <button class="btn btn-primary" id="fetchusdnokbutton">Fetch USD/NOK rates from Norges Bank</button>
         </p>
 

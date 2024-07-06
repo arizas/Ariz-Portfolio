@@ -1,4 +1,4 @@
-import 'https://cdn.jsdelivr.net/npm/near-api-js@4.0.1/dist/near-api-js.min.js';
+import nearApi from 'near-api-js';
 import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
@@ -7,7 +7,7 @@ import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, importYahooNEA
 
 const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
-    walletUrl: 'https://wallet.near.org',
+    walletUrl: 'https://app.mynearwallet.com',
     helperUrl: 'https://helper.mainnet.near.org',
     //networkId: 'mainnet',
     contractName: 'wasmgit.near',
@@ -27,12 +27,6 @@ export async function createAccessToken() {
     const signature = await walletConnection.account().connection.signer
         .signMessage(new TextEncoder().encode(tokenMessage), accountId);
     return tokenMessage + '.' + btoa(String.fromCharCode(...signature.signature));
-}
-
-export async function useAccount(accountId, secretKey) {
-    const keypair = nearApi.utils.KeyPair.fromString(secretKey);
-    localStorage.setItem('wasmgit_wallet_auth_key', JSON.stringify({ accountId, allKeys: [keypair.publicKey.toString()] }))
-    await nearconfig.deps.keyStore.setKey(nearconfig.networkId, accountId, keypair);
 }
 
 customElements.define('storage-page',
@@ -70,12 +64,6 @@ customElements.define('storage-page',
                 setProgressbarValue(null);
             });
 
-            this.shadowRoot.getElementById('wasmgitaccesskey').addEventListener('change', async (e) => {
-                const [accountId, accessKey] = e.target.value.split(':');
-                await useAccount(accountId, accessKey);
-                await this.loadAccountData();
-                this.shadowRoot.getElementById('wasmgitaccountspan').innerText = accountId;
-            });
             this.deletelocaldatabutton = this.shadowRoot.querySelector('#deletelocaldatabutton');
 
             this.deletelocaldatabutton.addEventListener('click', async () => {
