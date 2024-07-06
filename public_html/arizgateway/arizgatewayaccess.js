@@ -3,7 +3,7 @@ import { modalYesNo } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 
 const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
-const contractId = 'arizportfolio.testnet';
+const contractId = 'arizportfolio.near';
 const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
 export const TOKEN_EXPIRY_MILLIS = 5 * 60 * 1000;
 const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
@@ -11,9 +11,9 @@ const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
 
 
 const nearConfig = {
-    nodeUrl: 'https://rpc.testnet.near.org',
-    walletUrl: 'https://testnet.mynearwallet.com',
-    networkId: 'testnet',
+    nodeUrl: 'https://rpc.mainnet.near.org',
+    walletUrl: 'https://app.mynearwallet.com',
+    networkId: 'mainnet',
     keyStore
 };
 
@@ -32,7 +32,7 @@ export async function loginToArizGateway() {
         for the smart contract call.
     `)) {
         const walletConnection = await getWalletConnection();
-        await walletConnection.requestSignIn({ contractId });
+        await walletConnection.requestSignIn({ contractId, successUrl: location.origin, failureUrl: location.origin });
     }
 }
 
@@ -127,13 +127,13 @@ export async function createAccessToken(oldTokenHash) {
         args.old_token_hash = Array.from(oldTokenHash);
         args.new_token_hash = args.token_hash;
         await account.functionCall({
-            contractId: 'arizportfolio.testnet',
+            contractId: contractId,
             methodName: 'replace_token',
             args
         });
     } else {
         await account.functionCall({
-            contractId: 'arizportfolio.testnet',
+            contractId: contractId,
             methodName: 'register_token',
             args,
             attachedDeposit: nearApi.utils.format.parseNearAmount('0.2')
