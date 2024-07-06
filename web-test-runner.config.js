@@ -1,9 +1,10 @@
 import { playwrightLauncher } from '@web/test-runner-playwright';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, mkdir, stat } from 'fs/promises';
 
 const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.url);
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
 const arizGatewayCacheURL = new URL('testdata/arizgatewaycache.json', import.meta.url);
+const blockdatadir = new URL('testdata/blockdata/', import.meta.url);
 
 const nearblockscache = JSON.parse((await readFile(nearBlocksCacheURL)).toString());
 
@@ -78,7 +79,28 @@ export default {
           }
           const body = arizGatewayCache[url];
           await route.fulfill({ body });
-        })
+        });
+        
+        await ctx.route('https://mainnet.neardata.xyz/v0/block/*', async (route) => {
+          const url = route.request().url();
+          const pathParts = url.split('/');
+          const block = pathParts[pathParts.length-1];
+          try {
+            await stat(blockdatadir);            
+          } catch {
+            await mkdir(blockdatadir);
+          }
+          const blockFile = new URL(`${block}.json`, blockdatadir);
+          try {
+            const body = await readFile(blockFile);
+            await route.fulfill({ body });
+          } catch {
+            const response = await route.fetch();
+            const body = await response.text();
+            await writeFile(blockFile, body);
+            await route.fulfill({ body });
+          }
+        });
         return ctx;
       }
     }),
