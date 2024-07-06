@@ -1,4 +1,6 @@
 import nearApi from 'near-api-js';
+import { modalYesNo } from '../ui/modal.js';
+import { setProgressbarValue } from '../ui/progress-bar.js';
 
 const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
 const contractId = 'arizportfolio.testnet';
@@ -22,8 +24,16 @@ async function getWalletConnection() {
 }
 
 export async function loginToArizGateway() {
-    const walletConnection = await getWalletConnection();
-    await walletConnection.requestSignIn({contractId, successUrl: location.origin, failureUrl: location.origin});    
+    if (await modalYesNo('Login to Ariz gateway', `
+        By logging in to the Ariz gateway, you will get access to conversion rates for many currencies ( powered by CoinGecko ).
+        If you click "yes", you will be redirected to <b>MyNearWallet</b> for signing into the Ariz Portfolio contract. After signing in
+        you will be prompted to pay 0.2 NEAR for registering an access token to the Ariz gateway on this device. The access token
+        will be valid in 5 minutes, and will have to be renewed if requesting more data from the Ariz gateway. The renewal cost is only the gas
+        for the smart contract call.
+    `)) {
+        const walletConnection = await getWalletConnection();
+        await walletConnection.requestSignIn({ contractId });
+    }
 }
 
 export async function isSignedIn() {
@@ -52,11 +62,11 @@ export async function getAccessToken() {
 
         const token_payload_bytes = new TextEncoder().encode(token_payload);
         const token_hash_bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", token_payload_bytes))
-        
-        const registeredAccountIdForToken = await account.viewFunction({contractId, methodName: 'get_account_id_for_token', args: { token_hash: Array.from(token_hash_bytes) }});
+
+        const registeredAccountIdForToken = await account.viewFunction({ contractId, methodName: 'get_account_id_for_token', args: { token_hash: Array.from(token_hash_bytes) } });
         if (isTokenValidForAccount(registeredAccountIdForToken, token_payload_obj)) {
             return storedAccessToken;
-        } else if(registeredAccountIdForToken === account.accountId) {
+        } else if (registeredAccountIdForToken === account.accountId) {
             return await createAccessToken(token_hash_bytes);
         }
     }
@@ -73,14 +83,14 @@ export async function uint8ArrayToBase64(uint8Array) {
     // Return a promise that resolves when the FileReader finishes reading
     return new Promise((resolve, reject) => {
         // Define the onload event handler
-        reader.onload = function(event) {
+        reader.onload = function (event) {
             // The result is a Data URL, which includes the Base64 encoded string
             const base64String = event.target.result.split(',')[1];
             resolve(base64String);
         };
 
         // Define the onerror event handler
-        reader.onerror = function(error) {
+        reader.onerror = function (error) {
             reject(error);
         };
 
@@ -134,11 +144,14 @@ export async function createAccessToken(oldTokenHash) {
 
 export async function fetchFromArizGateway(path) {
     if (await isSignedIn()) {
-        return await fetch(`${arizgatewayhost}${path}`, {
+        setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
+        const result = await fetch(`${arizgatewayhost}${path}`, {
             headers: {
                 "authorization": `Bearer ${await getAccessToken()}`
             }
         }).then(r => r.json());
+        setProgressbarValue(null);
+        return result;
     } else {
         return {};
     }
