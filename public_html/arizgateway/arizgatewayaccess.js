@@ -4,6 +4,9 @@ const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
 const contractId = 'arizportfolio.testnet';
 const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
 export const TOKEN_EXPIRY_MILLIS = 5 * 60 * 1000;
+const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
+//const arizgatewayhost = 'http://localhost:15000';
+
 
 const nearConfig = {
     nodeUrl: 'https://rpc.testnet.near.org',
@@ -20,7 +23,7 @@ async function getWalletConnection() {
 
 export async function loginToArizGateway() {
     const walletConnection = await getWalletConnection();
-    await walletConnection.requestSignIn({contractId});    
+    await walletConnection.requestSignIn({contractId, successUrl: location.origin, failureUrl: location.origin});    
 }
 
 export async function isSignedIn() {
@@ -127,4 +130,16 @@ export async function createAccessToken(oldTokenHash) {
         });
     }
     return token;
+}
+
+export async function fetchFromArizGateway(path) {
+    if (await isSignedIn()) {
+        return await fetch(`${arizgatewayhost}${path}`, {
+            headers: {
+                "authorization": `Bearer ${await getAccessToken()}`
+            }
+        }).then(r => r.json());
+    } else {
+        return {};
+    }
 }

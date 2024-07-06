@@ -1,34 +1,20 @@
-import { getAccessToken } from "../arizgateway/arizgatewayaccess.js";
+import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 
 const defaultToken = 'NEAR';
-const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
-//const arizgatewayhost = 'http://localhost:15000';
-
 let cachedCurrencyList;
 
 export async function getCurrencyList() {
     if (cachedCurrencyList) {
         return cachedCurrencyList;
     }
-    const current_prices = (await (await fetch(`${arizgatewayhost}/api/prices/currencylist`, {
-        headers: {
-            "authorization": `Bearer ${await getAccessToken()}`
-        }
-    })).json());
+    const current_prices = await fetchFromArizGateway('/api/prices/currencylist');
     cachedCurrencyList = Object.keys(current_prices);
     return cachedCurrencyList;
 }
 
 export async function fetchHistoricalPricesFromArizGateway({ baseToken = "near", currency, todate = new Date().toJSON() }) {
-    const url = `${arizgatewayhost}/api/prices/history?basetoken=${baseToken.toLowerCase()}&currency=${currency}&todate=${todate}`;
-
-    const pricesMap = (await fetch(url, {
-        headers: {
-            "authorization": `Bearer ${await getAccessToken()}`
-        }
-    }).then(r => r.json()));
-
+    const pricesMap = await fetchFromArizGateway(`/api/prices/history?basetoken=${baseToken.toLowerCase()}&currency=${currency}&todate=${todate}`);
     await setHistoricalPriceData(baseToken, currency, pricesMap);
 }
 
