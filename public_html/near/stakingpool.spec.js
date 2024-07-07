@@ -1,9 +1,14 @@
-import { fetchAllStakingEarnings, findStakingPoolsInTransactions } from './stakingpool.js';
+import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getBlockData } from './stakingpool.js';
 import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('stakingpool', () => {
-    it('it should fetch staking balances', async function() {
+    it('should get latest block data and then get the same block data by block height', async function() {
+        const blockdata = await getBlockData('final');
+        const refBlockData = await getBlockData(blockdata.header.height);
+        expect(blockdata).to.deep.equal(refBlockData);
+    });
+    it('should fetch staking balances', async function() {
         this.timeout(20*60000);
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';

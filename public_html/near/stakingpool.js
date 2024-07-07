@@ -23,11 +23,12 @@ async function getBlockInfo(block_id) {
     }).then(r => r.json())).result;
 }
 
-async function getBlockData(block_height) {
+export async function getBlockData(block_height) {
+    let blockEndpoint = 'block';
     if (block_height === 'final') {
-        block_height = 'last_block/final';
+        blockEndpoint = 'last_block';
     }
-    return (await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height}`).then(r => r.json())).block;
+    return (await fetch(`https://mainnet.neardata.xyz/v0/${blockEndpoint}/${block_height}`).then(r => r.json())).block;
 }
 
 async function getAccountBalance(stakingpool_id, account_id, block_id) {

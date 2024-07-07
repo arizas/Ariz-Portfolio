@@ -114,7 +114,6 @@ export async function createAccessToken(oldTokenHash) {
     const signatureBytes = signatureObj.signature;
     const token = `${await uint8ArrayToBase64(tokenBytes)}.${await uint8ArrayToBase64(signatureBytes)}`;
 
-    localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
     const args = {
         token_hash: Array.from(tokenHash),
         signature: Array.from(signatureBytes),
@@ -131,7 +130,9 @@ export async function createAccessToken(oldTokenHash) {
             methodName: 'replace_token',
             args
         });
+        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
     } else {
+        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
         await account.functionCall({
             contractId: contractId,
             methodName: 'register_token',
