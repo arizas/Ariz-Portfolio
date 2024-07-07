@@ -1,5 +1,6 @@
 import { playwrightLauncher } from '@web/test-runner-playwright';
 import { readFile, writeFile, mkdir, stat } from 'fs/promises';
+import { importMapsPlugin } from '@web/dev-server-import-maps';
 
 const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.url);
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
@@ -10,6 +11,11 @@ const nearblockscache = JSON.parse((await readFile(nearBlocksCacheURL)).toString
 
 const archiveRpcCache = JSON.parse((await readFile(archiveRpcCacheURL)).toString());
 const arizGatewayCache = JSON.parse((await readFile(arizGatewayCacheURL)).toString());
+
+const indexHtml = (await readFile(new URL('public_html/index.html', import.meta.url))).toString();
+const importMapStart = indexHtml.indexOf('<script type="importmap">') + '<script type="importmap">'.length;
+const importMapEnd = indexHtml.indexOf('</script>', importMapStart);
+const importMap = JSON.parse(indexHtml.substring(importMapStart, importMapEnd));
 
 export default {
   files: [
@@ -25,6 +31,11 @@ export default {
       timeout: '20000',
     },
   },
+  plugins: [importMapsPlugin({
+    inject: {
+      importMap
+    },
+  })],
   testRunnerHtml: testRunnerImport =>
     `<html>
       <body>
@@ -80,13 +91,13 @@ export default {
           const body = arizGatewayCache[url];
           await route.fulfill({ body });
         });
-        
+
         await ctx.route('https://mainnet.neardata.xyz/v0/block/*', async (route) => {
           const url = route.request().url();
           const pathParts = url.split('/');
-          const block = pathParts[pathParts.length-1];
+          const block = pathParts[pathParts.length - 1];
           try {
-            await stat(blockdatadir);            
+            await stat(blockdatadir);
           } catch {
             await mkdir(blockdatadir);
           }
