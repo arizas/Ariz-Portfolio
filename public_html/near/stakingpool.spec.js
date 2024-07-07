@@ -1,4 +1,4 @@
-import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData } from './stakingpool.js';
+import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData, getBlockInfo } from './stakingpool.js';
 import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
@@ -11,6 +11,11 @@ describe('stakingpool', () => {
         const blockdata = await getBlockData('final');
         const refBlockData = await getBlockData(blockdata.header.height);
         expect(blockdata).to.deep.equal(refBlockData);
+    });
+    it('should get latest block data and then get block info by hash', async function() {
+        const blockdata = await getBlockData('final');
+        const blockInfo = await getBlockInfo(blockdata.header.hash);
+        expect(blockdata.header).to.deep.equal(blockInfo.header);
     });
     it('should fetch staking balances', async function() {
         this.timeout(20*60000);
