@@ -1,6 +1,7 @@
 let rpcIndex = 0;
 
 const rpcs = [
+    'https://free.rpc.fastnear.com',
     'https://near.lava.build',
     'https://rpc.mainnet.near.org',
     'https://1rpc.io/near',
