@@ -58,7 +58,13 @@ export async function getAccountBalanceInPool(stakingpool_id, account_id, block_
         });
 
     const resultObj = await queryMultipleRPC(accountBalanceQuery);
-    return parseInt(resultObj.result.result.map(c => String.fromCharCode(c)).join('').replace(/\"/g, ''));
+    if (resultObj && !resultObj.error) {
+        return parseInt(resultObj.result.result.map(c => String.fromCharCode(c)).join('').replace(/\"/g, ''));
+    } else {
+        console.log('error getting staking account balance', stakingpool_id, account_id, block_id, resultObj);
+        return null;
+    }
+
 }
 
 export async function getStakingAccounts(account) {
@@ -134,17 +140,22 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
     for (let stakingTransaction of stakingTransactions) {
         if (!stakingBalanceEntries.find(sbe => sbe.hash === stakingTransaction.hash)) {
             block = await retry(() => getBlockData(stakingTransaction.block_height));
-            const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, stakingTransaction.block_hash));
-            stakingBalanceEntries.push({
-                timestamp: new Date(stakingTransaction.block_timestamp / 1_000_000),
-                balance: stakingBalance,
-                hash: stakingTransaction.hash,
-                block_height: block.header.height,
-                epoch_id: block.header.epoch_id,
-                next_epoch_id: block.header.next_epoch_id,
-                deposit: stakingTransaction.signer_id == account_id ? parseInt(stakingTransaction.args.deposit) : 0,
-                withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
-            });
+            const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, stakingTransaction.block_hash), 0);
+            const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
+            if (stakingBalance) {
+                stakingBalanceEntries.push({
+                    timestamp,
+                    balance: stakingBalance,
+                    hash: stakingTransaction.hash,
+                    block_height: block.header.height,
+                    epoch_id: block.header.epoch_id,
+                    next_epoch_id: block.header.next_epoch_id,
+                    deposit: stakingTransaction.signer_id == account_id ? parseInt(stakingTransaction.args.deposit) : 0,
+                    withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
+                });
+            } else {
+                console.log('no staking balance', timestamp, stakingpool_id, account_id, stakingTransaction.block_hash)
+            }
         }
     }
 

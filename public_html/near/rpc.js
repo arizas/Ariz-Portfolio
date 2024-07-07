@@ -11,10 +11,7 @@ const rpcs = [
 export async function queryMultipleRPC(queryFunction) {
     const queryRPC = async (rpcUrl) => {
         const response = await queryFunction(rpcUrl);
-        const resultObj = response.ok ? await response.json() : null;
-        if (!resultObj || resultObj.error) {
-            return null;
-        }
+        const resultObj = await response.json();
         return resultObj;
     };
     let resultObj;
@@ -22,7 +19,7 @@ export async function queryMultipleRPC(queryFunction) {
         try {
             resultObj = await queryRPC(rpcs[(n + rpcIndex) % rpcs.length]);
 
-            if (resultObj) {
+            if (resultObj && !resultObj.error) {
                 break;
             }
         } catch { }
