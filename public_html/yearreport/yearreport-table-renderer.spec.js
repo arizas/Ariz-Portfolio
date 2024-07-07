@@ -1,4 +1,4 @@
-import { fetchHistoricalPricesFromCoinGecko } from '../pricedata/pricedata.js';
+import { fetchHistoricalPricesFromArizGateway } from '../pricedata/pricedata.js';
 import { fetchTransactionsForAccount, setAccounts } from '../storage/domainobjectstore.js';
 import './yearreport-print.component.js';
 import { renderYearReportTable } from "./yearreport-table-renderer.js";
@@ -9,7 +9,7 @@ describe('year-report-table-renderer', () => {
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
-        await fetchHistoricalPricesFromCoinGecko({currency: "USD", todate: '2024-05-30'});
+        await fetchHistoricalPricesFromArizGateway({currency: "USD", todate: '2024-05-30'});
 
         await fetchTransactionsForAccount(account, startDate.getTime() * 1_000_000);
 

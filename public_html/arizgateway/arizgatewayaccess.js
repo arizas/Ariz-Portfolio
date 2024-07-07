@@ -25,7 +25,7 @@ async function getWalletConnection() {
 
 export async function loginToArizGateway() {
     if (await modalYesNo('Login to Ariz gateway', `
-        By logging in to the Ariz gateway, you will get access to conversion rates for many currencies ( powered by CoinGecko ).
+        By logging in to the Ariz gateway, you will get access to conversion rates for many currencies.
         If you click "yes", you will be redirected to <b>MyNearWallet</b> for signing into the Ariz Portfolio contract. After signing in
         you will be prompted to pay 0.2 NEAR for registering an access token to the Ariz gateway on this device. The access token
         will be valid in 5 minutes, and will have to be renewed if requesting more data from the Ariz gateway. The renewal cost is only the gas

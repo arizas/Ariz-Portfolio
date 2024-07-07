@@ -1,4 +1,4 @@
-import {createAccessToken, useAccount } from './storage-page.component.js';
+import {createAccessToken } from './storage-page.component.js';
 import { getHistoricalPriceData } from './domainobjectstore.js';
 
 describe('storage-page component', () => {
@@ -21,9 +21,6 @@ describe('storage-page component', () => {
         const storagePageComponent = document.createElement('storage-page');
         document.body.appendChild(storagePageComponent);
 
-        const keypair = nearApi.utils.KeyPairEd25519.fromRandom();
-
-        await useAccount('test.near', keypair.secretKey);
         const accessToken = await createAccessToken();
         const accessTokenParts = accessToken.split('.');
         expect(JSON.parse(atob(accessTokenParts[0])).accountId).to.equal('test.near');
