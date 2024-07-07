@@ -1,5 +1,5 @@
 import nearApi from 'near-api-js';
-import { modalYesNo } from '../ui/modal.js';
+import { modalAlert, modalYesNo } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 
 const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
@@ -125,12 +125,23 @@ export async function createAccessToken(oldTokenHash) {
     if (oldTokenHash) {
         args.old_token_hash = Array.from(oldTokenHash);
         args.new_token_hash = args.token_hash;
-        await account.functionCall({
-            contractId: contractId,
-            methodName: 'replace_token',
-            args
-        });
-        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
+        try {
+            await account.functionCall({
+                contractId: contractId,
+                methodName: 'replace_token',
+                args
+            });
+            localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
+        } catch(e) {
+            if(await modalYesNo('Error renewing token', `<p>There was a problem renewing your access token:</p>
+                ${e.message}
+                <p>
+                Do you want to delete the existing access token, so that a new will be registered on the next attempt (costs 0.2 NEAR) ?
+                </p>`)
+            ) {
+                localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+            }
+        }
     } else {
         localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
         await account.functionCall({

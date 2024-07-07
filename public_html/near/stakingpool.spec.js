@@ -1,8 +1,12 @@
-import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getBlockData } from './stakingpool.js';
+import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData } from './stakingpool.js';
 import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('stakingpool', () => {
+    it('should get account balance', async function() {
+        const balance = await getAccountBalanceInPool('openshards.poolv1.near','petersalomonsen.near', 122823074);
+        expect(balance).to.equal(parseInt('256465402038997425102462871'));
+    })
     it('should get latest block data and then get the same block data by block height', async function() {
         const blockdata = await getBlockData('final');
         const refBlockData = await getBlockData(blockdata.header.height);
