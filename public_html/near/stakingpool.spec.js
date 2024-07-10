@@ -7,6 +7,11 @@ describe('stakingpool', () => {
         const balance = await getAccountBalanceInPool('openshards.poolv1.near','petersalomonsen.near', 122823074);
         expect(balance).to.equal(parseInt('256465402038997425102462871'));
     })
+    it.only('should get account balance from problematic block', async function() {
+        const balanceInBlockByHeight = await getAccountBalanceInPool('epic.poolv1.near','peterjohan.near', 121924307);
+        const balanceInBlockById = await getAccountBalanceInPool('epic.poolv1.near','peterjohan.near', 'GdbPiyTkgMJzhb26HVJ98mTM578Zm1hmw6drkZLaffZ2');
+        expect(balanceInBlockByHeight).to.equal(balanceInBlockById);
+    });
     it('should get latest block data and then get the same block data by block height', async function() {
         const blockdata = await getBlockData('final');
         const refBlockData = await getBlockData(blockdata.header.height);

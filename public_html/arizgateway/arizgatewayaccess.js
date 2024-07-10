@@ -67,10 +67,15 @@ export async function getAccessToken() {
         if (isTokenValidForAccount(registeredAccountIdForToken, token_payload_obj)) {
             return storedAccessToken;
         } else if (registeredAccountIdForToken === account.accountId) {
-            return await createAccessToken(token_hash_bytes);
+            setProgressbarValue('indeterminate', 'Renewing Ariz gateway access token');
+            const renewedAccessToken = await createAccessToken(token_hash_bytes);
+            setProgressbarValue(null);
+            return renewedAccessToken;
         }
     }
+    setProgressbarValue('indeterminate', 'Create Ariz gateway access token');
     await createAccessToken();
+    setProgressbarValue(null);
 }
 
 export async function uint8ArrayToBase64(uint8Array) {
@@ -132,8 +137,8 @@ export async function createAccessToken(oldTokenHash) {
                 args
             });
             localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
-        } catch(e) {
-            if(await modalYesNo('Error renewing token', `<p>There was a problem renewing your access token:</p>
+        } catch (e) {
+            if (await modalYesNo('Error renewing token', `<p>There was a problem renewing your access token:</p>
                 ${e.message}
                 <p>
                 Do you want to delete the existing access token, so that a new will be registered on the next attempt (costs 0.2 NEAR) ?
@@ -156,10 +161,11 @@ export async function createAccessToken(oldTokenHash) {
 
 export async function fetchFromArizGateway(path) {
     if (await isSignedIn()) {
+        const arizGatewayAccessToken = await getAccessToken();
         setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
         const result = await fetch(`${arizgatewayhost}${path}`, {
             headers: {
-                "authorization": `Bearer ${await getAccessToken()}`
+                "authorization": `Bearer ${arizGatewayAccessToken}`
             }
         }).then(r => r.json());
         setProgressbarValue(null);

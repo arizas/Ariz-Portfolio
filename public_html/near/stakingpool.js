@@ -119,22 +119,23 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             block.header.timestamp < firstStakingTransactionTimeStamp) {
             break;
         }
-        const previousBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.next_epoch_id));
 
-        const stakingBalanceEntry = {
-            timestamp: new Date(block.header.timestamp / 1_000_000),
-            balance: latestBalance,
-            block_height: block.header.height,
-            epoch_id: block.header.epoch_id,
-            next_epoch_id: block.header.next_epoch_id,
-            deposit: 0,
-            withdrawal: 0
-        };
+        if (latestBalance !== null) {
+            const stakingBalanceEntry = {
+                timestamp: new Date(block.header.timestamp / 1_000_000),
+                balance: latestBalance,
+                block_height: block.header.height,
+                epoch_id: block.header.epoch_id,
+                next_epoch_id: block.header.next_epoch_id,
+                deposit: 0,
+                withdrawal: 0
+            };
 
-        stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
+            stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
+        }
 
-        latestBalance = previousBalance;
         block = await retry(() => getBlockData(block.header.height - 43_200));
+        latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height));
     }
 
     for (let stakingTransaction of stakingTransactions) {
