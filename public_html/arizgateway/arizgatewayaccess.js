@@ -4,7 +4,7 @@ import { setProgressbarValue } from '../ui/progress-bar.js';
 
 const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
 const contractId = 'arizportfolio.near';
-const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
+export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
 export const TOKEN_EXPIRY_MILLIS = 5 * 60 * 1000;
 const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
 //const arizgatewayhost = 'http://localhost:15000';
@@ -17,7 +17,7 @@ const nearConfig = {
     keyStore
 };
 
-async function getWalletConnection() {
+export async function getWalletConnection() {
     const near = await nearApi.connect(nearConfig);
     const walletConnection = new nearApi.WalletConnection(near, 'Ariz portfolio');
     return walletConnection;
@@ -53,6 +53,7 @@ export function isTokenValidForAccount(accountId, tokenPayload) {
 
 export async function getAccessToken() {
     const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+
     if (storedAccessToken) {
         const walletConnection = await getWalletConnection();
         const account = walletConnection.account();
@@ -73,6 +74,7 @@ export async function getAccessToken() {
             return renewedAccessToken;
         }
     }
+
     setProgressbarValue('indeterminate', 'Create Ariz gateway access token');
     await createAccessToken();
     setProgressbarValue(null);
@@ -104,7 +106,7 @@ export async function uint8ArrayToBase64(uint8Array) {
     });
 }
 
-export async function createAccessToken(oldTokenHash) {
+export async function createAccessTokenPayload() {
     const walletConnection = await getWalletConnection();
     const accountId = walletConnection.getAccountId();
 
@@ -118,11 +120,16 @@ export async function createAccessToken(oldTokenHash) {
 
     const signatureBytes = signatureObj.signature;
     const token = `${await uint8ArrayToBase64(tokenBytes)}.${await uint8ArrayToBase64(signatureBytes)}`;
+    return { token, tokenHash, signatureBytes, publicKeyBytes: keyPair.getPublicKey().data, walletConnection };
+}
+
+export async function createAccessToken(oldTokenHash) {
+    const { token, tokenHash, signatureBytes, publicKeyBytes, walletConnection } = await createAccessTokenPayload();
 
     const args = {
         token_hash: Array.from(tokenHash),
         signature: Array.from(signatureBytes),
-        public_key: Array.from(keyPair.getPublicKey().data)
+        public_key: Array.from(publicKeyBytes)
     };
 
     const account = walletConnection.account();

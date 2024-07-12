@@ -5,7 +5,8 @@ const rpcs = [
     'https://near.lava.build',
     'https://rpc.mainnet.near.org',
     'https://1rpc.io/near',
-    'https://archival-rpc.mainnet.near.org'
+    'https://archival-rpc.mainnet.near.org',
+    'https://archival-rpc.mainnet.pagoda.co'
 ];
 
 export async function queryMultipleRPC(queryFunction) {

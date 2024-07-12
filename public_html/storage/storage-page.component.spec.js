@@ -1,8 +1,12 @@
-import {createAccessToken } from './storage-page.component.js';
+
 import { getHistoricalPriceData } from './domainobjectstore.js';
+import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
+import './storage-page.component.js';
 
 describe('storage-page component', () => {
     it("should be able to fetch price data when not logged in", async () => {
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
         const storagePageComponent = document.createElement('storage-page');
         document.body.appendChild(storagePageComponent);
 
@@ -15,14 +19,5 @@ describe('storage-page component', () => {
         } while (Object.keys(pricedata).length == 0);
 
         expect(pricedata['2020-11-02']).to.equal(0.63411456);
-    });
-
-    it('should create an signed access token if an access key is provided', async () => {
-        const storagePageComponent = document.createElement('storage-page');
-        document.body.appendChild(storagePageComponent);
-
-        const accessToken = await createAccessToken();
-        const accessTokenParts = accessToken.split('.');
-        expect(JSON.parse(atob(accessTokenParts[0])).accountId).to.equal('test.near');
     });
 });

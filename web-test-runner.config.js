@@ -1,6 +1,7 @@
 import { playwrightLauncher } from '@web/test-runner-playwright';
 import { readFile, writeFile, mkdir, stat } from 'fs/promises';
 import { importMapsPlugin } from '@web/dev-server-import-maps';
+import { mockWalletRequests } from './testdata/rpcmock.js';
 
 const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.url);
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
@@ -50,7 +51,9 @@ export default {
     </html>`,
   browsers: [
     playwrightLauncher({
-      product: 'chromium', createBrowserContext: async ({ browser }) => {
+      product: 'chromium', launchOptions: {
+        headless: true
+      }, createBrowserContext: async ({ browser }) => {
         const ctx = await browser.newContext({});
         console.log('creating browser context');
 
@@ -80,7 +83,9 @@ export default {
           await route.fulfill({ body });
         });
         await ctx.route('https://arizgateway.azurewebsites.net/**/*', async (route) => {
-          const url = route.request().url();
+          let url = route.request().url();
+          url = url.substring(0, url.indexOf("&todate="));
+
           if (!arizGatewayCache[url]) {
             const response = await route.fetch();
 
@@ -112,6 +117,7 @@ export default {
             await route.fulfill({ body });
           }
         });
+        await mockWalletRequests(ctx);
         return ctx;
       }
     }),

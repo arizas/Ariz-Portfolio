@@ -1,33 +1,9 @@
-import nearApi from 'near-api-js';
 import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, importYahooNEARHistoricalPrices } from '../pricedata/pricedata.js';
-
-const nearconfig = {
-    nodeUrl: 'https://rpc.mainnet.near.org',
-    walletUrl: 'https://app.mynearwallet.com',
-    helperUrl: 'https://helper.mainnet.near.org',
-    //networkId: 'mainnet',
-    contractName: 'wasmgit.near',
-    deps: {}
-};
-export const createWalletConnection = async () => {
-    nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
-    const near = await nearApi.connect(nearconfig);
-    const wc = new nearApi.WalletConnection(near, 'wasmgit');
-    return wc;
-}
-
-export async function createAccessToken() {
-    const walletConnection = await createWalletConnection();
-    const accountId = walletConnection.getAccountId();
-    const tokenMessage = btoa(JSON.stringify({ accountId: accountId, iat: new Date().getTime() }));
-    const signature = await walletConnection.account().connection.signer
-        .signMessage(new TextEncoder().encode(tokenMessage), accountId);
-    return tokenMessage + '.' + btoa(String.fromCharCode(...signature.signature));
-}
+import { getWalletConnection, getAccessToken } from '../arizgateway/arizgatewayaccess.js';
 
 customElements.define('storage-page',
     class extends HTMLElement {
@@ -122,7 +98,7 @@ customElements.define('storage-page',
         }
 
         async loadAccountData() {
-            const walletConnection = await createWalletConnection();
+            const walletConnection = await getWalletConnection();
             let currentUser = {
                 accountId: walletConnection.getAccountId()
             };
@@ -131,7 +107,7 @@ customElements.define('storage-page',
                 return;
             }
 
-            const accessToken = await createAccessToken();
+            const accessToken = await getAccessToken();
             const configureuserResult = await configure_user({
                 accessToken,
                 useremail: currentUser.accountId,
