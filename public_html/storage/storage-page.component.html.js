@@ -3,6 +3,11 @@ export default /*html*/ `<div class="card">
     <div class="card-body">
         <p>You may store a remote copy of your data in a git server, which you can then use to synchronize with other browsers and devices</p>
 
+        <p>Enter wasm-git access key</p>
+        <p>
+            <input id="wasmgitaccesskey" type="password" /> <span id="wasmgitaccountspan"></span>
+        </p>
+        <p>
         <label for="remoterepo" class="form-label">URL to git repository</label>
         <input type="text" class="form-control" id="remoterepo" placeholder="https://wasm-git.petersalomonsen.com/YOUR_ACCOUNT-nearsight">
         </p>

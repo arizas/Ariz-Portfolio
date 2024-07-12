@@ -1,9 +1,39 @@
+import nearApi from 'near-api-js';
 import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, importYahooNEARHistoricalPrices } from '../pricedata/pricedata.js';
-import { getWalletConnection, getAccessToken } from '../arizgateway/arizgatewayaccess.js';
+
+const nearconfig = {
+    nodeUrl: 'https://rpc.mainnet.near.org',
+    walletUrl: 'https://wallet.near.org',
+    helperUrl: 'https://helper.mainnet.near.org',
+    //networkId: 'mainnet',
+    contractName: 'wasmgit.near',
+    deps: {}
+};
+export const createWalletConnection = async () => {
+    nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
+    const near = await nearApi.connect(nearconfig);
+    const wc = new nearApi.WalletConnection(near, 'wasmgit');
+    return wc;
+}
+
+export async function createAccessToken() {
+    const walletConnection = await createWalletConnection();
+    const accountId = walletConnection.getAccountId();
+    const tokenMessage = btoa(JSON.stringify({ accountId: accountId, iat: new Date().getTime() }));
+    const signature = await walletConnection.account().connection.signer
+        .signMessage(new TextEncoder().encode(tokenMessage), accountId);
+    return tokenMessage + '.' + btoa(String.fromCharCode(...signature.signature));
+}
+
+export async function useAccount(accountId, secretKey) {
+    const keypair = nearApi.utils.KeyPair.fromString(secretKey);
+    localStorage.setItem('wasmgit_wallet_auth_key', JSON.stringify({ accountId, allKeys: [keypair.publicKey.toString()] }))
+    await nearconfig.deps.keyStore.setKey(nearconfig.networkId, accountId, keypair);
+}
 
 customElements.define('storage-page',
     class extends HTMLElement {
@@ -40,6 +70,12 @@ customElements.define('storage-page',
                 setProgressbarValue(null);
             });
 
+            this.shadowRoot.getElementById('wasmgitaccesskey').addEventListener('change', async (e) => {
+                const [accountId, accessKey] = e.target.value.split(':');
+                await useAccount(accountId, accessKey);
+                await this.loadAccountData();
+                this.shadowRoot.getElementById('wasmgitaccountspan').innerText = accountId;
+            });
             this.deletelocaldatabutton = this.shadowRoot.querySelector('#deletelocaldatabutton');
 
             this.deletelocaldatabutton.addEventListener('click', async () => {
@@ -98,7 +134,7 @@ customElements.define('storage-page',
         }
 
         async loadAccountData() {
-            const walletConnection = await getWalletConnection();
+            const walletConnection = await createWalletConnection();
             let currentUser = {
                 accountId: walletConnection.getAccountId()
             };
@@ -107,7 +143,7 @@ customElements.define('storage-page',
                 return;
             }
 
-            const accessToken = await getAccessToken();
+            const accessToken = await createAccessToken();
             const configureuserResult = await configure_user({
                 accessToken,
                 useremail: currentUser.accountId,
