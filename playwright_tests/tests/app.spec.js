@@ -1,61 +1,44 @@
 import { test, expect } from "@playwright/test";
 import { pause500ifRecordingVideo } from "../util/videorecording.js";
 
-test("should clone wasm-git repository when providing access key", async ({ page }) => {
-  await page.goto(
-    "http://localhost:8081"
-  );
-
-  await page.getByRole('link', { name: 'Accounts' }).click();
-  await pause500ifRecordingVideo(page);
-
-  await page.getByRole('button', { name: 'Add account' }).click();
-  await pause500ifRecordingVideo(page);
-
-  await page.getByRole('textbox').fill('petermusic.near');
-  await pause500ifRecordingVideo(page);
-
-  const configureStorage = async () => {
+test("should open app", async ({ page }) => {
+    await page.goto(
+      "/"
+    );
     await pause500ifRecordingVideo(page);
-    await page.getByRole('link', { name: 'Storage' }).click();
+    const header = await page.getByRole('link', { name: 'NEAR account report' });
+  
+    await expect(header).toContainText("NEAR account report");
+  });
+  
+  test("should open accounts page, add account, and load data", async ({ page }) => {
+    await page.goto(
+      "/"
+    );
+    await page.getByRole('link', { name: 'Accounts' }).click();
     await pause500ifRecordingVideo(page);
-    const wasmgitaccesskeyinput = await page.locator('#wasmgitaccesskey');
-    await wasmgitaccesskeyinput.fill('test.near:3XV8JxA8VEngikCBXEqphLbymgK3NyMgAptDdBQURy5J');
-    await wasmgitaccesskeyinput.blur();
-    await expect(await page.locator('#wasmgitaccountspan')).toHaveText('test.near');
-
+  
+    await page.getByRole('button', { name: 'Add account' }).click();
     await pause500ifRecordingVideo(page);
-    await page.locator('#remoterepo').fill('http://localhost:15000/testrepo.git');
+  
+    await page.getByRole('textbox').fill('petermusic.near');
     await pause500ifRecordingVideo(page);
-  };
-
-  await configureStorage();
-  await page.locator('#syncbutton').click();
-
-  await page.waitForTimeout(1000);
-  await expect(await page.locator('progress-bar')).not.toBeVisible();
-
-  await page.locator("#deletelocaldatabutton").click();
-
-  await page.waitForTimeout(1000);
-
-  await page.goto(
-    "http://localhost:8081"
-  );
-
-  await page.getByRole('link', { name: 'Accounts' }).click();
-  await pause500ifRecordingVideo(page);
-  await expect(page.getByRole('textbox')).not.toBeAttached();
-
-  await configureStorage();
-  await page.locator('#syncbutton').click();
-
-  await page.waitForTimeout(1000);
-  await expect(await page.locator('progress-bar')).not.toBeVisible();
-
-  await page.getByRole('link', { name: 'Accounts' }).
-  click();
-  await pause500ifRecordingVideo(page);
-  await expect(page.getByRole('textbox')).toHaveValue('petermusic.near');
-  await pause500ifRecordingVideo(page);
-});
+  
+    await page.getByRole('button', { name: 'load data' }).click();
+    const progressbar = await page.locator('progress-bar');
+    await progressbar.waitFor({ state: 'visible', timeout: 10 * 1000 });
+    await progressbar.waitFor({ state: 'hidden', timeout: 60 * 1000 });
+  
+    await pause500ifRecordingVideo(page);
+    await page.getByRole('link', { name: 'Year report' }).click();
+    await pause500ifRecordingVideo(page);
+  
+    await page.locator('.dailybalancerow_accountchange').first().waitFor({ 'state': 'visible' });
+  
+    await page.locator('select#yearselect').selectOption('2021');
+    await pause500ifRecordingVideo(page);
+  
+    await expect(await page.getByRole('cell', { name: '-12-31' })).toContainText('2021-12-31');
+    await pause500ifRecordingVideo(page);
+  });
+  
