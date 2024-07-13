@@ -4,23 +4,23 @@ import { retry } from './retry.js';
 import { queryMultipleRPC } from './rpc.js';
 
 export async function getBlockInfo(block_id) {
-    const getBlockInfoQuery =  async (rpcUrl) =>
-            await fetch(rpcUrl, {
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json'
-                },
-                body: JSON.stringify({
-                    "jsonrpc": "2.0",
-                    "id": "dontcare",
-                    "method": "block",
-                    "params": {
-                        "block_id": block_id === 'final' ? undefined : block_id,
-                        "finality": block_id === 'final' ? block_id : undefined
-                    }
+    const getBlockInfoQuery = async (rpcUrl) =>
+        await fetch(rpcUrl, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                "jsonrpc": "2.0",
+                "id": "dontcare",
+                "method": "block",
+                "params": {
+                    "block_id": block_id === 'final' ? undefined : block_id,
+                    "finality": block_id === 'final' ? block_id : undefined
                 }
-                )
-            });
+            }
+            )
+        });
     return (await queryMultipleRPC(getBlockInfoQuery)).result;
 }
 
@@ -141,9 +141,10 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
     for (let stakingTransaction of stakingTransactions) {
         if (!stakingBalanceEntries.find(sbe => sbe.hash === stakingTransaction.hash)) {
             block = await retry(() => getBlockData(stakingTransaction.block_height));
-            const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, stakingTransaction.block_hash), 0);
+
+            const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 1);
             const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
-            if (stakingBalance) {
+            if (stakingBalance !== null) {
                 stakingBalanceEntries.push({
                     timestamp,
                     balance: stakingBalance,
@@ -155,7 +156,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
                     withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
                 });
             } else {
-                console.log('no staking balance', timestamp, stakingpool_id, account_id, stakingTransaction.block_hash)
+                console.log('no staking balance', timestamp, stakingBalance, stakingpool_id, account_id, stakingTransaction.block_hash)
             }
         }
     }

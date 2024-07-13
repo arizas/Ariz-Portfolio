@@ -17,9 +17,8 @@ describe('stakingpool', () => {
         const blockInfo = await getBlockInfo(blockdata.header.hash);
         expect(blockdata.header).to.deep.equal(blockInfo.header);
     });
-    // TODO: this crashes
-    it.skip('should fetch staking balances', async function() {
-        this.timeout(1*60000);
+    it('should fetch staking balances', async function() {
+        this.timeout(3*60000);
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 
@@ -50,7 +49,7 @@ describe('stakingpool', () => {
         }
     });
 
-    it('it should identity staking pool accounts in transactions', async function() {
+    it('should identify staking pool accounts in transactions', async function() {
         this.timeout(10*60000);
         const transactions = await getTransactionsToDate('psalomo.near', new Date('2021-05-01').getTime() * 1_000_000);
         const stakingAccounts = findStakingPoolsInTransactions(transactions);

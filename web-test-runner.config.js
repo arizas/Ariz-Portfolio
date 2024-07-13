@@ -55,18 +55,34 @@ export default {
         headless: true
       }, createBrowserContext: async ({ browser }) => {
         const ctx = await browser.newContext({});
-        console.log('creating browser context');
 
         const archivalRpcCache = async (route) => {
           const postdata = route.request().postData();
-          if (!archiveRpcCache[postdata]) {
+          if (archiveRpcCache[postdata]) {
+            await route.fulfill({ body: archiveRpcCache[postdata] });
+          } else {
+            console.log("not in cache", postdata);
             const response = await route.fetch();
-            const body = await response.text();
-            archiveRpcCache[postdata] = body;
-            await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
+            if (response.ok()) {
+              const body = await response.text();
+              try {
+                const resultObj = JSON.parse(body);
+                if (!resultObj.error) {
+                  console.log('stored result in cache');
+                  archiveRpcCache[postdata] = JSON.stringify(resultObj);
+                  await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
+                  await route.fulfill({ body });
+                  return;
+                }
+              } catch (e) { 
+                console.log('failed parsing result', e);
+              }
+              await route.fulfill({ response, body });
+              return;
+            }
+            console.log('failed request', response.status());
+            await route.fulfill({ response });
           }
-          const body = archiveRpcCache[postdata];
-          await route.fulfill({ body });
         };
         await ctx.route('https://archival-rpc.mainnet.near.org', archivalRpcCache);
         await ctx.route('https://rpc.mainnet.near.org', archivalRpcCache);
