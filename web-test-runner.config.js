@@ -2,6 +2,7 @@ import { playwrightLauncher } from '@web/test-runner-playwright';
 import { readFile, writeFile, mkdir, stat } from 'fs/promises';
 import { importMapsPlugin } from '@web/dev-server-import-maps';
 import { mockWalletRequests } from './testdata/rpcmock.js';
+import { rpcs } from './public_html/near/rpc.js';
 
 const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.url);
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
@@ -57,36 +58,46 @@ export default {
         const ctx = await browser.newContext({});
 
         const archivalRpcCache = async (route) => {
-          const postdata = route.request().postData();
-          if (archiveRpcCache[postdata]) {
-            await route.fulfill({ body: archiveRpcCache[postdata] });
-          } else {
-            console.log("not in cache", postdata);
-            const response = await route.fetch();
-            if (response.ok()) {
-              const body = await response.text();
-              try {
-                const resultObj = JSON.parse(body);
-                if (!resultObj.error) {
-                  console.log('stored result in cache');
-                  archiveRpcCache[postdata] = JSON.stringify(resultObj);
-                  await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
-                  await route.fulfill({ body });
-                  return;
+          try {
+            const request = route.request();
+
+            const postdata = request.postData();
+
+            if (archiveRpcCache[postdata]) {
+              const cachedBody = archiveRpcCache[postdata];
+              return await route.fulfill({ json: JSON.parse(cachedBody) });
+            } else {
+              console.log("not in cache", request.url(), postdata);
+              const response = await route.fetch();
+              if (response.ok()) {
+                const body = await response.text();
+                try {
+                  const resultObj = JSON.parse(body);
+                  if (!resultObj.error) {
+                    console.log('stored result in cache');
+                    archiveRpcCache[postdata] = JSON.stringify(resultObj);
+                    await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
+                    return await route.fulfill({ body });
+                  } else {
+
+                  }
+                } catch (e) {
+                  console.log('failed parsing result', e);
                 }
-              } catch (e) { 
-                console.log('failed parsing result', e);
+                return await route.fulfill({ response, body });
               }
-              await route.fulfill({ response, body });
-              return;
+              console.log('failed request', response.status());
+              return await route.fulfill({ response });
             }
-            console.log('failed request', response.status());
-            await route.fulfill({ response });
+          } catch (e) {
+            console.error('failed to handle route', e);
           }
         };
-        await ctx.route('https://archival-rpc.mainnet.near.org', archivalRpcCache);
-        await ctx.route('https://rpc.mainnet.near.org', archivalRpcCache);
-        await ctx.route('https://1rpc.io/near', archivalRpcCache);
+
+        for (let rpc of rpcs) {
+          console.log('setting up archival rpc route for', rpc);
+          await ctx.route(rpc, archivalRpcCache);
+        }
         await ctx.route('https://api.nearblocks.io/**/*', async (route) => {
           const url = route.request().url();
           if (!nearblockscache[url]) {
@@ -134,8 +145,13 @@ export default {
           }
         });
         await mockWalletRequests(ctx);
+        await ctx.route('https://dumptoconsole', async (route) => {
+          console.log(route.request().postData());
+          await route.fulfill({ json: 'thanks' });
+        });
         return ctx;
       }
+
     }),
     /*playwrightLauncher({
       product: 'webkit',launchOptions: {

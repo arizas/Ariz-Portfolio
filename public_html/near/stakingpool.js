@@ -35,8 +35,8 @@ export async function getBlockData(block_height) {
 let rpcIndex = 0;
 
 export async function getAccountBalanceInPool(stakingpool_id, account_id, block_id) {
-    const accountBalanceQuery = async (rpcUrl) =>
-        await fetch(rpcUrl, {
+    const accountBalanceQuery = async (rpcUrl) => {
+        const response = await fetch(rpcUrl, {
             method: 'POST',
             headers: {
                 'content-type': 'application/json'
@@ -56,6 +56,8 @@ export async function getAccountBalanceInPool(stakingpool_id, account_id, block_
                 }
             })
         });
+        return response;
+    };
 
     const resultObj = await queryMultipleRPC(accountBalanceQuery);
     if (resultObj && !resultObj.error) {
@@ -134,7 +136,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
         }
 
-        block = await retry(() => getBlockData(block.header.height - 43_200));
+        block = await retry(() => getBlockInfo(block.header.next_epoch_id));        
         latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height));
     }
 

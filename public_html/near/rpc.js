@@ -1,10 +1,10 @@
 let rpcIndex = 0;
 
-const rpcs = [
-    'https://free.rpc.fastnear.com',
+export const rpcs = [
+    /*'https://free.rpc.fastnear.com',
     'https://near.lava.build',
     'https://rpc.mainnet.near.org',
-    'https://1rpc.io/near',
+    'https://1rpc.io/near',*/
     'https://archival-rpc.mainnet.near.org',
     'https://archival-rpc.mainnet.pagoda.co'
 ];
@@ -17,13 +17,16 @@ export async function queryMultipleRPC(queryFunction) {
     };
     let resultObj;
     for (let n = 0; n < rpcs.length; n++) {
+        const rpcUrl = rpcs[(n + rpcIndex) % rpcs.length];
         try {
-            resultObj = await queryRPC(rpcs[(n + rpcIndex) % rpcs.length]);
+            resultObj = await queryRPC(rpcUrl);
 
             if (resultObj && !resultObj.error) {
                 break;
             }
-        } catch { }
+        } catch (e) {
+
+        }
     }
     rpcIndex++;
     return resultObj;
