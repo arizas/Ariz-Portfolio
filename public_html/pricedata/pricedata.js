@@ -83,7 +83,8 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     const skipFetchingPricesKey = `${token}-${currency}`;
     if (pricedata[datestring] === undefined && !skipFetchingPrices[skipFetchingPricesKey]) {
         if (await modalYesNo('Fetch price data from Ariz gateway?',
-            `Prices for ${token} / ${currency} are missing locally. Would you like to try fetching it from Ariz Gateway?
+            `Price for ${token}-${currency} on ${datestring} is missing locally.
+            Would you like to try fetch updated prices from Ariz Gateway?
         `)) {
             try {
                 await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency });

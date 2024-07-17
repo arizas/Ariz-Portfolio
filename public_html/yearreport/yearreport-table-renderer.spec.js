@@ -12,7 +12,7 @@ describe('year-report-table-renderer', () => {
         await setAccounts([account]);
         mockWalletAuthenticationData();
         await mockArizGatewayAccess();
-        await fetchHistoricalPricesFromArizGateway({ currency: "USD", todate: '2024-05-30' });
+        await fetchHistoricalPricesFromArizGateway({ baseToken: 'NEAR', currency: "USD", todate: '2024-05-30' });
 
         await fetchTransactionsForAccount(account, startDate.getTime() * 1_000_000);
 
