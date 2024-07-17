@@ -13,6 +13,7 @@ export default /*html*/ `<div class="card">
         </p>
         <button class="btn btn-primary" id="syncbutton">Synchronize</button>
         <button class="btn btn-primary" id="deletelocaldatabutton">Delete local data</button>
+        <button class="btn btn-primary" id="downloadzipbutton">Download as zip file</button>
     </div>
 </div>
 <br />
@@ -22,7 +23,7 @@ export default /*html*/ `<div class="card">
         <p>Fetch exchange rates from various sources and store in your git repository</p>
         
         <p>
-        <button class="btn btn-primary" id="fetchnearusdbutton">Fetch NEAR/USD rates from nearblocks.io</button>        
+        <button class="btn btn-primary" id="fetchnearusdbutton">Fetch NEAR/USD rates from nearblocks.io</button>
         <button class="btn btn-primary" id="fetchusdnokbutton">Fetch USD/NOK rates from Norges Bank</button>
         </p>
 

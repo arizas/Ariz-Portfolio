@@ -1,53 +1,72 @@
 import { getTransactionsForAccount } from '../storage/domainobjectstore.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { retry } from './retry.js';
-import { getArchiveNodeUrl } from './network.js';
+import { queryMultipleRPC } from './rpc.js';
 
-const blocks_per_epoc = {};
-
-async function getBlockInfo(block_id) {
-    return (await fetch(getArchiveNodeUrl(), {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            "jsonrpc": "2.0",
-            "id": "dontcare",
-            "method": "block",
-            "params": {
-                "block_id": block_id === 'final' ? undefined : block_id,
-                "finality": block_id === 'final' ? block_id : undefined
+export async function getBlockInfo(block_id) {
+    const getBlockInfoQuery = async (rpcUrl) =>
+        await fetch(rpcUrl, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                "jsonrpc": "2.0",
+                "id": "dontcare",
+                "method": "block",
+                "params": {
+                    "block_id": block_id === 'final' ? undefined : block_id,
+                    "finality": block_id === 'final' ? block_id : undefined
+                }
             }
-        }
-        )
-    }).then(r => r.json())).result;
+            )
+        });
+    return (await queryMultipleRPC(getBlockInfoQuery)).result;
 }
 
-async function getAccountBalance(stakingpool_id, account_id, block_id) {
-    return await fetch(getArchiveNodeUrl(), {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            'jsonrpc': '2.0',
-            'id': 'dontcare',
-            'method': 'query',
-            'params': {
-                request_type: 'call_function',
-                //finality: 'final',
-                block_id: block_id,
-                account_id: stakingpool_id,
-                method_name: 'get_account_total_balance',
-                args_base64: btoa(JSON.stringify({
-                    account_id: account_id
-                }))
-            }
-        })
-    }).then(r => r.json()).then(r =>
-        parseInt(r.result.result.map(c => String.fromCharCode(c)).join('').replace(/\"/g, ''))
-    );
+export async function getBlockData(block_height) {
+    let blockEndpoint = 'block';
+    if (block_height === 'final') {
+        blockEndpoint = 'last_block';
+    }
+    return (await fetch(`https://mainnet.neardata.xyz/v0/${blockEndpoint}/${block_height}`).then(r => r.json())).block;
+}
+
+let rpcIndex = 0;
+
+export async function getAccountBalanceInPool(stakingpool_id, account_id, block_id) {
+    const accountBalanceQuery = async (rpcUrl) => {
+        const response = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                'jsonrpc': '2.0',
+                'id': 'dontcare',
+                'method': 'query',
+                'params': {
+                    request_type: 'call_function',
+                    block_id: block_id,
+                    account_id: stakingpool_id,
+                    method_name: 'get_account_total_balance',
+                    args_base64: btoa(JSON.stringify({
+                        account_id: account_id
+                    }))
+                }
+            })
+        });
+        return response;
+    };
+
+    const resultObj = await queryMultipleRPC(accountBalanceQuery);
+    if (resultObj && !resultObj.error) {
+        return parseInt(resultObj.result.result.map(c => String.fromCharCode(c)).join('').replace(/\"/g, ''));
+    } else {
+        console.log('error getting staking account balance', stakingpool_id, account_id, block_id, resultObj);
+        return null;
+    }
+
 }
 
 export async function getStakingAccounts(account) {
@@ -62,28 +81,6 @@ export async function getStakingAccounts(account) {
     return stakingAccounts;
 }
 
-export async function getStakingEarnings(stakingpool_id, account_id, numepochs, startblock = 'final') {
-    let block = await getBlockInfo(startblock);
-    let latestBalance = await getAccountBalance(stakingpool_id, account_id, block.header.height);
-
-    const balances = [];
-    for (let n = 0; n < numepochs; n++) {
-        const previousBalance = await getAccountBalance(stakingpool_id, account_id, block.header.next_epoch_id);
-
-        balances.push({
-            timestamp: new Date(block.header.timestamp / 1_000_000),
-            balance: latestBalance,
-            earnings: latestBalance - previousBalance,
-            block_height: block.header.height,
-            epoch_id: block.header.epoch_id
-        });
-
-        latestBalance = previousBalance;
-        block = await getBlockInfo(block.header.next_epoch_id);
-    }
-    return balances;
-}
-
 export async function fetchEarlierStakingEarnings() {
     const stakingTransactions = (await getTransactionsForAccount(account_id)).filter(t => t.receiver_id === stakingpool_id);
 
@@ -92,7 +89,7 @@ export async function fetchEarlierStakingEarnings() {
 }
 
 export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalanceEntries, maxStartBlock = 'final') {
-    let block = await getBlockInfo(maxStartBlock);
+    let block = await getBlockData(maxStartBlock);
 
     const stakingTransactions = (await getTransactionsForAccount(account_id))
         .filter(t => (t.receiver_id === stakingpool_id || t.signer_id === stakingpool_id)
@@ -103,10 +100,14 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
 
     const maxBlockTimeStamp = block.header.timestamp;
 
-    let latestBalance = await getAccountBalance(stakingpool_id, account_id, block.header.height);
+    let latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.height);
     if (latestBalance == 0) {
-        block = await getBlockInfo(stakingTransactions[0].block_hash);
-        latestBalance = await getAccountBalance(stakingpool_id, account_id, block.header.height);
+        if (stakingTransactions[0].block_height) {
+            block = await getBlockData(stakingTransactions[0].block_height);
+        } else {
+            block = await getBlockInfo(stakingTransactions[0].block_hash);
+        }
+        latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.height);
     }
     let currentlatestEpochId = stakingBalanceEntries.length > 0 ? stakingBalanceEntries[0].epoch_id : null;
 
@@ -120,38 +121,45 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             block.header.timestamp < firstStakingTransactionTimeStamp) {
             break;
         }
-        const previousBalance = await retry(() => getAccountBalance(stakingpool_id, account_id, block.header.next_epoch_id));
 
-        const stakingBalanceEntry = {
-            timestamp: new Date(block.header.timestamp / 1_000_000),
-            balance: latestBalance,
-            block_height: block.header.height,
-            epoch_id: block.header.epoch_id,
-            next_epoch_id: block.header.next_epoch_id,
-            deposit: 0,
-            withdrawal: 0
-        };
+        if (latestBalance !== null) {
+            const stakingBalanceEntry = {
+                timestamp: new Date(block.header.timestamp / 1_000_000),
+                balance: latestBalance,
+                block_height: block.header.height,
+                epoch_id: block.header.epoch_id,
+                next_epoch_id: block.header.next_epoch_id,
+                deposit: 0,
+                withdrawal: 0
+            };
 
-        stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
+            stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
+        }
 
-        latestBalance = previousBalance;
-        block = await retry(() => getBlockInfo(block.header.next_epoch_id));
+        block = await retry(() => getBlockInfo(block.header.next_epoch_id));        
+        latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height));
     }
 
     for (let stakingTransaction of stakingTransactions) {
         if (!stakingBalanceEntries.find(sbe => sbe.hash === stakingTransaction.hash)) {
-            block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
-            const stakingBalance = await retry(() => getAccountBalance(stakingpool_id, account_id, stakingTransaction.block_hash));
-            stakingBalanceEntries.push({
-                timestamp: new Date(stakingTransaction.block_timestamp / 1_000_000),
-                balance: stakingBalance,
-                hash: stakingTransaction.hash,
-                block_height: block.header.height,
-                epoch_id: block.header.epoch_id,
-                next_epoch_id: block.header.next_epoch_id,
-                deposit: stakingTransaction.signer_id == account_id ? parseInt(stakingTransaction.args.deposit) : 0,
-                withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
-            });
+            block = await retry(() => getBlockData(stakingTransaction.block_height));
+
+            const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 1);
+            const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
+            if (stakingBalance !== null) {
+                stakingBalanceEntries.push({
+                    timestamp,
+                    balance: stakingBalance,
+                    hash: stakingTransaction.hash,
+                    block_height: block.header.height,
+                    epoch_id: block.header.epoch_id,
+                    next_epoch_id: block.header.next_epoch_id,
+                    deposit: stakingTransaction.signer_id == account_id ? parseInt(stakingTransaction.args.deposit) : 0,
+                    withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
+                });
+            } else {
+                console.log('no staking balance', timestamp, stakingBalance, stakingpool_id, account_id, stakingTransaction.block_hash)
+            }
         }
     }
 

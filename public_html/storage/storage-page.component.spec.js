@@ -1,5 +1,6 @@
-import {createAccessToken, useAccount } from './storage-page.component.js';
+import nearApi from 'near-api-js';
 import { getHistoricalPriceData } from './domainobjectstore.js';
+import { useAccount, createAccessToken } from './storage-page.component.js';
 
 describe('storage-page component', () => {
     it("should be able to fetch price data when not logged in", async () => {
@@ -16,7 +17,6 @@ describe('storage-page component', () => {
 
         expect(pricedata['2020-11-02']).to.equal(0.63411456);
     });
-
     it('should create an signed access token if an access key is provided', async () => {
         const storagePageComponent = document.createElement('storage-page');
         document.body.appendChild(storagePageComponent);

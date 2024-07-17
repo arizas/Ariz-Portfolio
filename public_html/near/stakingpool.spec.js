@@ -1,10 +1,24 @@
-import { fetchAllStakingEarnings, findStakingPoolsInTransactions } from './stakingpool.js';
+import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData, getBlockInfo } from './stakingpool.js';
 import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('stakingpool', () => {
-    it('it should fetch staking balances', async function() {
-        this.timeout(20*60000);
+    it('should get account balance', async function() {
+        const balance = await getAccountBalanceInPool('openshards.poolv1.near','petersalomonsen.near', 122823074);
+        expect(balance).to.equal(parseInt('256465402038997425102462871'));
+    })
+    it('should get latest block data and then get the same block data by block height', async function() {
+        const blockdata = await getBlockData('final');
+        const refBlockData = await getBlockData(blockdata.header.height);
+        expect(blockdata).to.deep.equal(refBlockData);
+    });
+    it('should get latest block data and then get block info by hash', async function() {
+        const blockdata = await getBlockData('final');
+        const blockInfo = await getBlockInfo(blockdata.header.hash);
+        expect(blockdata.header).to.deep.equal(blockInfo.header);
+    });
+    it('should fetch staking balances', async function() {
+        this.timeout(5*60000);
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 
@@ -35,7 +49,7 @@ describe('stakingpool', () => {
         }
     });
 
-    it('it should identity staking pool accounts in transactions', async function() {
+    it('should identify staking pool accounts in transactions', async function() {
         this.timeout(10*60000);
         const transactions = await getTransactionsToDate('psalomo.near', new Date('2021-05-01').getTime() * 1_000_000);
         const stakingAccounts = findStakingPoolsInTransactions(transactions);

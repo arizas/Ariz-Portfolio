@@ -1,9 +1,9 @@
-import 'https://cdn.jsdelivr.net/npm/near-api-js@4.0.1/dist/near-api-js.min.js';
-import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push } from './gitstorage.js';
+import nearApi from 'near-api-js';
+import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchNEARHistoricalPrices, fetchNOKPrices, importYahooNEARHistoricalPrices } from '../pricedata/pricedata.js';
+import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, importYahooNEARHistoricalPrices } from '../pricedata/pricedata.js';
 
 const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
@@ -50,7 +50,7 @@ customElements.define('storage-page',
             this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
                 console.log('click');
                 setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
-                await fetchNEARHistoricalPrices();
+                await fetchNEARHistoricalPricesFromNearBlocks();
                 setProgressbarValue(null);
             });
             this.shadowRoot.getElementById('importnearusdyahoobutton').addEventListener('click', async () => {
@@ -84,7 +84,10 @@ customElements.define('storage-page',
                 await delete_local();
                 location.reload();
             });
-
+            this.downloadzipbutton = this.shadowRoot.querySelector('#downloadzipbutton');
+            this.downloadzipbutton.addEventListener('click', () => {
+                exportAndDownloadZip();
+            });
             await this.loadAccountData();
 
             this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');

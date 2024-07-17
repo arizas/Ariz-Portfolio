@@ -1,11 +1,11 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
 import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
-import { fetchNEARHistoricalPrices, fetchNOKPrices, setCustomExchangeRateSell } from '../pricedata/pricedata.js';
+import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
 describe('year-report-data', () => {
     beforeEach(async () => {
-        await fetchNEARHistoricalPrices();
+        await fetchNEARHistoricalPricesFromNearBlocks();
         await fetchNOKPrices();
     });
     it('should get daily account balance report for psalomo.near', async function () {
@@ -77,7 +77,7 @@ describe('year-report-data', () => {
     });
     it('should calculate profit / loss for withdrawals', async function () {
         this.timeout(10 * 60000);
-        await fetchNEARHistoricalPrices();
+        await fetchNEARHistoricalPricesFromNearBlocks();
         await fetchNOKPrices();
 
         const account = 'psalomo.near';

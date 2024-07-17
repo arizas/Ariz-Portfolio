@@ -1,14 +1,18 @@
-import { fetchNEARHistoricalPrices } from '../pricedata/pricedata.js';
+import { mockArizGatewayAccess, mockWalletAuthenticationData } from '../arizgateway/arizgatewayaccess.spec.js';
+import { fetchHistoricalPricesFromArizGateway } from '../pricedata/pricedata.js';
 import { fetchTransactionsForAccount, setAccounts } from '../storage/domainobjectstore.js';
 import './yearreport-print.component.js';
 import { renderYearReportTable } from "./yearreport-table-renderer.js";
 
 describe('year-report-table-renderer', () => {
     it('should render table for year report', async function () {
+        this.timeout(2 * 60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
-        await fetchNEARHistoricalPrices();
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+        await fetchHistoricalPricesFromArizGateway({ baseToken: 'NEAR', currency: "USD", todate: '2024-05-30' });
 
         await fetchTransactionsForAccount(account, startDate.getTime() * 1_000_000);
 
@@ -26,9 +30,9 @@ describe('year-report-table-renderer', () => {
 
             }
         });
-        expect(result.totalReceived).to.be.closeTo(720.83, 0.01);
         expect(result.inboundBalance.convertedTotalBalance).to.be.closeTo(11.14, 0.01);
         expect(result.outboundBalance.convertedTotalBalance).to.be.closeTo(243.29, 0.01);
+        expect(result.totalReceived).to.be.closeTo(720.80, 0.01);
         expect(result.totalProfit).to.be.closeTo(69.63, 0.01);
         expect(result.totalLoss).to.be.closeTo(27.46, 0.01);
     });
