@@ -168,15 +168,20 @@ export async function createAccessToken(oldTokenHash) {
 
 export async function fetchFromArizGateway(path) {
     if (await isSignedIn()) {
-        const arizGatewayAccessToken = await getAccessToken();
-        setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
-        const result = await fetch(`${arizgatewayhost}${path}`, {
-            headers: {
-                "authorization": `Bearer ${arizGatewayAccessToken}`
-            }
-        }).then(r => r.json());
-        setProgressbarValue(null);
-        return result;
+        try {
+            const arizGatewayAccessToken = await getAccessToken();
+            setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
+            const result = await fetch(`${arizgatewayhost}${path}`, {
+                headers: {
+                    "authorization": `Bearer ${arizGatewayAccessToken}`
+                }
+            }).then(r => r.json());
+            setProgressbarValue(null);
+            return result;
+        } catch(e) {
+            setProgressbarValue(null);
+            throw(e);
+        }
     } else {
         return {};
     }

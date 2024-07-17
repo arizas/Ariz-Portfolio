@@ -1,7 +1,9 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
+import { modalAlert, modalYesNo } from "../ui/modal.js";
 
 const defaultToken = 'NEAR';
+const skipFetchingPrices = {};
 let cachedCurrencyList;
 
 export async function getCurrencyList() {
@@ -78,9 +80,23 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
         return 1;
     }
     let pricedata = await getHistoricalPriceData(token, currency);
-    if (pricedata[datestring] === undefined) {
-        await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency });
-        pricedata = await getHistoricalPriceData(token, currency);
+    const skipFetchingPricesKey = `${token}-${currency}`;
+    if (pricedata[datestring] === undefined && !skipFetchingPrices[skipFetchingPricesKey]) {
+        if (await modalYesNo('Fetch price data from Ariz gateway?',
+            `Prices for ${token} / ${currency} are missing locally. Would you like to try fetching it from Ariz Gateway?
+        `)) {
+            try {
+                await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency });
+                pricedata = await getHistoricalPriceData(token, currency);
+            } catch (e) {
+                await modalAlert('Error fetching price data from Ariz Gateway',
+                    `There was an error fetching prices for ${token} / ${currency} from Ariz Gateway:
+                ${e.message}
+                `);
+            }
+        } else {
+            skipFetchingPrices[skipFetchingPricesKey] = true;
+        }
     }
     const price = pricedata[datestring];
     return price ?? 0;
