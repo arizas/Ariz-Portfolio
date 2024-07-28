@@ -1,18 +1,18 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
-import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates } from "../storage/domainobjectstore.js";
+import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCustomRealizationRates, setCurrencyList } from "../storage/domainobjectstore.js";
 import { modalAlert, modalYesNo } from "../ui/modal.js";
 
 const defaultToken = 'NEAR';
 const skipFetchingPrices = {};
-let cachedCurrencyList;
 
 export async function getCurrencyList() {
-    if (cachedCurrencyList) {
-        return cachedCurrencyList;
+    let currencyList = await getCurrencyList();
+    if (currencyList.length === 0) {
+        const current_prices = await fetchFromArizGateway('/api/prices/currencylist');
+        currencyList = Object.keys(current_prices);
+        await setCurrencyList(currencyList);
     }
-    const current_prices = await fetchFromArizGateway('/api/prices/currencylist');
-    cachedCurrencyList = Object.keys(current_prices);
-    return cachedCurrencyList;
+    return currencyList;
 }
 
 export async function fetchHistoricalPricesFromArizGateway({ baseToken = "near", currency, todate = new Date().toJSON() }) {

@@ -9,6 +9,7 @@ export const accountsconfigfile = 'accounts.json';
 export const depositaccountsfile = 'depositaccounts.json';
 export const ignorefungibletokensfile = 'ignorefungibletokens.json';
 export const customexchangeratesfile = 'customexchangerates.json';
+export const currencylistfile = 'currencylist.json';
 export const customrealizationratesfile = 'realizations.json';
 export const pricedatadir = 'pricehistory';
 
@@ -182,7 +183,7 @@ export async function writeStakingData(account, stakingpool_id, stakingData) {
 }
 
 function getPriceDataPath(token, targetCurrency) {
-    return `${pricedatadir}/${token}/${targetCurrency}.json`;
+    return `${pricedatadir}/${token}/${targetCurrency.toLowerCase()}.json`;
 }
 
 export async function getHistoricalPriceData(token, targetCurrency) {
@@ -224,6 +225,18 @@ export async function getCustomExchangeRates() {
     } else {
         return {};
     }
+}
+
+export async function getCurrencyList() {
+    if ((await exists(currencylistfile))) {
+        return JSON.parse(await readTextFile(currencylistfile));
+    } else {
+        return [];
+    }
+}
+
+export async function setCurrencyList(currencyList) {
+    await writeFile(currencylistfile, JSON.stringify(currencyList, null, 1));
 }
 
 export async function setCustomExchangeRates(customExchangeRates) {
