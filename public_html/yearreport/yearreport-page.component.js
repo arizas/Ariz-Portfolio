@@ -58,6 +58,9 @@ customElements.define('year-report-page',
             this.shadowRoot.querySelector('#print_all_tokens_button').addEventListener('click', () => {
                 window.open(`yearsummary-alltokens-print?year=${this.year}&currency=${this.convertToCurrency}`);
             });
+            this.transactionsModalElement = this.shadowRoot.querySelector('#show_transactions_modal');
+            this.showTransactionsModal = new bootstrap.Modal(this.transactionsModalElement);
+
             return this.shadowRoot;
         }
 
@@ -84,8 +87,8 @@ customElements.define('year-report-page',
                 }) => {
                     row.querySelector('.show_transactions_button').addEventListener('click', () => {
                         const transactions = transactionsByDate[datestring];
-                        transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
-                        transactionsModalElement.querySelector('.modal-body').innerHTML = `
+                        this.transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
+                        this.transactionsModalElement.querySelector('.modal-body').innerHTML = `
                 <div class="table-responsive">
                     <table class="table table-sm table-dark">
                     <thead>
@@ -104,7 +107,7 @@ ${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}<
                     </table>
                     </div>
                 `;
-                        showTransactionsModal.show();
+                        this.showTransactionsModal.show();
                     });
                     const tableElement = this.shadowRoot.querySelector('.table-responsive');
                     tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
