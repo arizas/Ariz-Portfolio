@@ -96,7 +96,9 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
         try {
             const result = (await fetch(url, {
                 mode: 'cors'
-            }).then(r => r.json())).txns.map(tx => (
+            }).then(r => r.json()));
+
+            const mappedResult = result.txns.map(tx => (
                 {
                     "block_hash": tx.included_in_block_hash,
                     "block_height": tx.block.block_height,
@@ -110,7 +112,7 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
                     }
                 }
             ));
-            return result;
+            return mappedResult;
         } catch (e) {
             console.error('error', e, 'retry in 30 seconds', (n + 1));
             await new Promise(resolve => setTimeout(() => resolve(), 30_000));
@@ -135,7 +137,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
     let accountHistory = await getAccountHistory(page);
     let insertIndex = 0;
 
-    while (true) {
+    while (accountHistory.length > 0) {
         let newTransactionsAdded = 0;
         let transactionsSkipped = 0;
 
@@ -146,7 +148,6 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
             } else {
                 const existingTransaction = transactions.find(t => t.hash == historyLine.hash);
                 if (!existingTransaction) {
-                    historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash, historyLine.block_height));
                     transactions.splice(insertIndex++, 0, historyLine);
                     offset_timestamp = BigInt(historyLine.block_timestamp) + 1n;
                     newTransactionsAdded++;
@@ -157,8 +158,28 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
         if (transactionsSkipped == 0 && newTransactionsAdded == 0) {
             break;
         }
+
         page++;
         accountHistory = await getAccountHistory(page);
+    }
+    const transactionsWithoutBalance = transactions.filter(txn => txn.balance === undefined);
+    for (const transaction of transactionsWithoutBalance) {
+        const { balance, transaction: transactionFromBlock } = await retry(() => getAccountBalanceAfterTransaction(account, transaction.hash, transaction.block_height));
+        transaction.balance = balance;
+        transaction.signer_id = transactionFromBlock.transaction.signer_id;
+        transaction.receiver_id = transactionFromBlock.transaction.receiver_id;
+        const actionKind = Object.keys(transactionFromBlock.transaction.actions[0])[0];
+        transaction.action_kind = (() => {
+            switch (actionKind) {
+                case 'FunctionCall':
+                    return 'FUNCTION_CALL';
+                default:
+                    return actionKind;
+            }
+        })();
+        transaction.args = {
+            "method_name": transactionFromBlock.transaction.actions[0].FunctionCall?.method_name
+        };
     }
     return transactions;
 }
@@ -231,5 +252,5 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
     if (!balance) {
         balance = (await viewAccount(blockdata.block.header.hash, account_id)).amount;
     }
-    return balance;
+    return { transaction: transactionInFirstBlock, balance };
 }

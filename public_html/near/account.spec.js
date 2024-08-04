@@ -6,7 +6,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
     const getBalanceForTxHash = async (txHash, accountId) => {
         const transaction = await fetch(`https://api3.nearblocks.io/v1/txns/${txHash}`).then(r => r.json());
         const block_height = transaction.txns[0].block.block_height;
-        const balance = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
+        const { balance } = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
         return balance;
     };
 
@@ -118,7 +118,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
 
     it('should get account balance on the receiving account after failed transaction', async function () {
         expect(await (getBalanceForTxHash('GKJkSWw7HPg5BTEATD9Ys75antWwLnVppPSPzjcBi4mD', 'psalomo.near'))).to.equal('7822086507907767200000000');
-        
+
     });
 
     it('should find balance when transaction fails because method is not found on the target contract', async function () {
