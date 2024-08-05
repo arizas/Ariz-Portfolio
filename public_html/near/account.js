@@ -177,9 +177,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
                     return actionKind;
             }
         })();
-        transaction.args = {
-            "method_name": transactionFromBlock.transaction.actions[0].FunctionCall?.method_name
-        };
+        transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name
     }
     return transactions;
 }

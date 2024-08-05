@@ -86,21 +86,25 @@ customElements.define('year-report-page',
                     row
                 }) => {
                     row.querySelector('.show_transactions_button').addEventListener('click', () => {
-                        const transactions = transactionsByDate[datestring];
+                        const transactions = transactionsByDate[datestring].sort((a, b) => Number(BigInt(a.block_timestamp) - BigInt(b.block_timestamp)));
                         this.transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
                         this.transactionsModalElement.querySelector('.modal-body').innerHTML = `
                 <div class="table-responsive">
                     <table class="table table-sm table-dark">
                     <thead>
+                        <th>Time</th>
                         <th>Signer</th>
-                        <th>Received</th>
+                        <th>Received</th>                        
                         <th>Changed balance</th>
+                        <th>Attached deposit</th>
                         <th></th>
                     </thead>
                     <tbody>
                     ${transactions ? transactions.map(tx => `<tr>
+                        <td>${new Date(Number(BigInt(tx.block_timestamp) / 1_000_000n)).toJSON().substring('yyyy-MM-dd '.length)}</td>
 ${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalConversionValue}</td>` :
                                 `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
+<td>${nearApi.utils.format.formatNearAmount(tx.args?.deposit)}</td>
 <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</button></a>
 </tr>`).join('') : ''}
                     </tbody>
