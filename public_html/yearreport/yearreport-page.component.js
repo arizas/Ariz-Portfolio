@@ -1,7 +1,7 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
-import { renderYearReportTable } from './yearreport-table-renderer.js';
+import { renderPeriodReportTable, renderYearReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-page',
     class extends HTMLElement {
@@ -28,6 +28,27 @@ customElements.define('year-report-page',
             }
             this.yearSelect.addEventListener('change', () => {
                 this.year = parseInt(this.yearSelect.value);
+                this.refreshView()
+            });
+            this.month = 0;
+            this.monthSelect = this.shadowRoot.querySelector('#monthselect');
+            for (let month = 0; month < 12; month++) {
+                const monthOption = document.createElement('option');
+                monthOption.value = month;
+                monthOption.innerHTML = `${new Date(2020,month,1).toLocaleDateString('en-US', {month: 'long'})}`;
+                if (month === this.month) {
+                    monthOption.selected = true;
+                }
+                this.monthSelect.appendChild(monthOption);
+            }
+            this.monthSelect.addEventListener('change', () => {
+                this.month = parseInt(this.monthSelect.value);
+                this.refreshView()
+            });
+            const periodLenghtMonthsInput = this.shadowRoot.querySelector('#periodlengthmonths');
+            this.periodLenghtMonths = parseInt(periodLenghtMonthsInput.value);
+            periodLenghtMonthsInput.addEventListener('change', () => {
+                this.periodLenghtMonths = parseInt(periodLenghtMonthsInput.value);
                 this.refreshView()
             });
 
@@ -72,10 +93,14 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            await renderYearReportTable({
+            const  periodStartDate = new Date(this.year, this.month, 1);
+            const periodEndDate = new Date(this.year, this.month, 1);
+            periodEndDate.setMonth(periodStartDate.getMonth() + this.periodLenghtMonths);
+
+            await renderPeriodReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
-                year: this.year,
+                periodStartDate, periodEndDate,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,
                 perRowFunction: async ({
