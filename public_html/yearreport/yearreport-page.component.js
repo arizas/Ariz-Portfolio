@@ -93,14 +93,23 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            const  periodStartDate = new Date(this.year, this.month, 1);
-            const periodEndDate = new Date(this.year, this.month, 1);
-            periodEndDate.setMonth(periodStartDate.getMonth() + this.periodLenghtMonths);
+            const periodStartDate = new Date(this.year, this.month, 1);
+            let periodEndDate = new Date(this.year, this.month, 1);
+            periodEndDate.setMonth(periodEndDate.getMonth() + this.periodLenghtMonths);
+            periodEndDate.setDate(periodEndDate.getDate()-1);
 
+            const maxPeriodEndDate = new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length));
+
+            if (periodEndDate > maxPeriodEndDate) {
+                periodEndDate = maxPeriodEndDate;
+            }
+
+            console.log(periodStartDate, periodEndDate);
             await renderPeriodReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
                 periodStartDate, periodEndDate,
+                year: this.year,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,
                 perRowFunction: async ({

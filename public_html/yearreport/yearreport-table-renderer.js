@@ -21,7 +21,7 @@ export function hideProfitLossIfNoConvertToCurrency(convertToCurrency, shadowRoo
 }
 
 export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
-    let periodEndDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
+    const periodEndDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
     const periodStartDate = new Date(`${year}-01-01`);
     return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
 }
@@ -143,7 +143,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
             shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);
         }
     }
-    
+
     const outboundBalanceDate = new Date(periodEndDate.getTime()).toJSON().substring(0, 'yyyy-MM-dd'.length);
     const inboundBalanceDate = new Date(periodStartDate.getTime()).toJSON().substring(0, 'yyyy-MM-dd'.length);
 
