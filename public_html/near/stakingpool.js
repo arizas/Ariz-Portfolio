@@ -71,7 +71,8 @@ export async function getAccountBalanceInPool(stakingpool_id, account_id, block_
 
 export async function getStakingAccounts(account) {
     const transactions = await getTransactionsForAccount(account);
-    const stakingTransactions = transactions.filter(t => t.action_kind == 'FUNCTION_CALL' && t.args.method_name == 'deposit_and_stake');
+    const stakingTransactions = transactions.filter(t => t.action_kind === 'FUNCTION_CALL' && t.args.method_name === 'deposit_and_stake');
+
     const stakingAccounts = [];
     stakingTransactions.forEach(t => {
         if (!stakingAccounts.find(a => a == t.receiver_id)) {

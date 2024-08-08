@@ -49,23 +49,41 @@ const progressbarhtml = /*html*/`
     75% { width: 20%; }
     100% { margin-left: 0%; width: 10%; }
 }
+
+.buttons {
+    width: 100%;
+    text-align: center;
+}
+
+#stopbutton {
+    display: none;
+    font-family: monospace;
+    font-sizes: 22px;
+    background-color: black;
+    color: white;
+}
 </style>
 <div id="main-progress-bar" class="progress-border">
 <div class="progress-text">50%</div>
 <div class="progress-fill" style="width:20%"></div>
+<div class="buttons"><button id="stopbutton">Stop</button></div>
 </div>
 `;
 
 let progressbar;
-
 customElements.define('progress-bar', class ProgressBar extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
         this.shadowRoot.innerHTML = progressbarhtml;
+        this.stopButton = this.shadowRoot.getElementById('stopbutton');
+
+        this.stopButton.addEventListener('click', () =>  {
+            this.stopButtonClicked = true;
+        });
     }
 
-    setValue(val, extratext) {
+    setValue(val, extratext, allowStop = false) {
         if (val == 'indeterminate') {
             this.shadowRoot.querySelector('.progress-text').innerHTML = `<div style="margin-top: 10px">${extratext}</div>`;
             this.shadowRoot.querySelector('.progress-fill').style.width = `10%`;
@@ -75,20 +93,26 @@ customElements.define('progress-bar', class ProgressBar extends HTMLElement {
             this.shadowRoot.querySelector('.progress-text').innerHTML = `${(val * 100).toFixed(0)}%${extratext ? `<br />${extratext}` : ''}`;
             this.shadowRoot.querySelector('.progress-fill').style.width = `${(val * 100).toFixed(2)}%`;
         }
+        if (allowStop) {
+            this.stopButton.style.display = 'block';
+        } else {
+            this.stopButton.style.display = 'none';
+        }
     }
 });
 
-export function setProgressbarValue(val, extratext) {
+export function setProgressbarValue(val, extratext, allowStop) {
     if (val !== null) {
         if (!progressbar) {
             progressbar = document.createElement('progress-bar');
             document.documentElement.appendChild(progressbar);
         }
-        progressbar.setValue(val, extratext);
+        progressbar.setValue(val, extratext, allowStop);
     } else if (progressbar) {
         progressbar.remove();
         progressbar = null;
     }
+    return { stopButtonClicked: progressbar?.stopButtonClicked };
 }
 
 export function isProgressBarVisible() {

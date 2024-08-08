@@ -1,5 +1,5 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
-import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates } from '../storage/domainobjectstore.js';
+import { setAccounts, fetchTransactionsForAccount, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates, setDepositAccounts } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
 import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, setCustomExchangeRateSell } from '../pricedata/pricedata.js';
 
@@ -65,14 +65,15 @@ describe('year-report-data', () => {
         const accounts = ['psalomo.near', 'wasmgit.near'];
         const verifyDate = '2021-02-14';
         await setAccounts(accounts);
+        await setDepositAccounts({'02cf3e779cbe6e75cc2cfd36a86a2315639b522435b04a34c694d95c8e4404db': "for creating wasm-git"});
 
         for (var account of accounts) {
             await fetchTransactionsForAccount(account, new Date(2021, 1, 15).getTime() * 1_000_000);
         }
         const dailydata = (await calculateYearReportData()).dailyBalances;
         expect(Number(dailydata[verifyDate].accountChange) / 1e+24).to.be.closeTo(5.96, 0.005);
-        expect(Number(dailydata[verifyDate].received) / 1e+24).to.be.closeTo(0.1, 0.005);
-        expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.89, 0.005);
+        expect(Number(dailydata[verifyDate].received) / 1e+24).to.be.closeTo(0.0, 0.005);
+        expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.99, 0.005);
         expect(Number(dailydata[verifyDate].withdrawal) / 1e+24).to.be.closeTo(0.03, 0.005);
     });
     it('should calculate profit / loss for withdrawals', async function () {

@@ -1,6 +1,6 @@
 import { mockArizGatewayAccess, mockWalletAuthenticationData } from '../arizgateway/arizgatewayaccess.spec.js';
 import { fetchHistoricalPricesFromArizGateway } from '../pricedata/pricedata.js';
-import { fetchTransactionsForAccount, setAccounts } from '../storage/domainobjectstore.js';
+import { fetchTransactionsForAccount, setAccounts, setDepositAccounts } from '../storage/domainobjectstore.js';
 import './yearreport-print.component.js';
 import { renderYearReportTable } from "./yearreport-table-renderer.js";
 
@@ -10,6 +10,7 @@ describe('year-report-table-renderer', () => {
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
+        await setDepositAccounts({ "af5a8fddfcceacb573d1dd0eba0406934da7dff9b63cebd7eb24ee47f9c3978f": "For creating psalomo.near" });
         mockWalletAuthenticationData();
         await mockArizGatewayAccess();
         await fetchHistoricalPricesFromArizGateway({ baseToken: 'NEAR', currency: "USD", todate: '2024-05-30' });
@@ -32,8 +33,8 @@ describe('year-report-table-renderer', () => {
         });
         expect(result.inboundBalance.convertedTotalBalance).to.be.closeTo(11.14, 0.01);
         expect(result.outboundBalance.convertedTotalBalance).to.be.closeTo(243.29, 0.01);
-        expect(result.totalReceived).to.be.closeTo(720.80, 0.01);
-        expect(result.totalProfit).to.be.closeTo(69.63, 0.01);
-        expect(result.totalLoss).to.be.closeTo(27.46, 0.01);
+        expect(result.totalReceived).to.be.closeTo(779.63, 0.01);
+        expect(result.totalProfit).to.be.closeTo(75.86, 0.01);
+        expect(result.totalLoss).to.be.closeTo(24.32, 0.01);
     });
 });

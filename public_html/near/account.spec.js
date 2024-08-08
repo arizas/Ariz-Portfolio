@@ -1,4 +1,4 @@
-import { TRANSACTION_DATA_API_PIKESPEAKAI, getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
+import { TRANSACTION_DATA_API_PIKESPEAKAI, fixTransactionsWithoutBalance, getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
 import { getTransactionsForAccount, fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('nearaccount transactions petersalomonsen.near', function () {
@@ -6,7 +6,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
     const getBalanceForTxHash = async (txHash, accountId) => {
         const transaction = await fetch(`https://api3.nearblocks.io/v1/txns/${txHash}`).then(r => r.json());
         const block_height = transaction.txns[0].block.block_height;
-        const balance = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
+        const { balance } = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
         return balance;
     };
 
@@ -118,7 +118,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
 
     it('should get account balance on the receiving account after failed transaction', async function () {
         expect(await (getBalanceForTxHash('GKJkSWw7HPg5BTEATD9Ys75antWwLnVppPSPzjcBi4mD', 'psalomo.near'))).to.equal('7822086507907767200000000');
-        
+
     });
 
     it('should find balance when transaction fails because method is not found on the target contract', async function () {
@@ -127,4 +127,26 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         expect(await (getBalanceForTxHash('2xXghNC1GhjFYokX1nWdWLzMCn7yN3SWyhRowtpGuost', 'psalomo.near'))).to.equal('16710096912904207620297833');
         expect(await (getBalanceForTxHash('GHP8GDYN6gdHqq6ZH7adZUUNbmovjC1i25bxAp6Jvb5W', 'psalomo.near'))).to.equal('16710096912904207620297833');
     });
+    it('should find balance for transaction when passed blockheight is not the first block for the transaction', async function() {
+        expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'H5TRhv1wZgBtRHrWpkHpcQ3KiBkFC6wfj1Zcq9XDCJ3L', 111132053))).balance).to.equal('65262119033825266605299669');
+        expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'EvRStyT6VavKxba8U3pMYQ9KVbd9VUXLupYem8EBFESu', 110377210))).balance).to.equal('65264527225561096005299669');
+        expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'GtHtwySAVBppR8rUH5xXWaqz4XhChDJZDd2ZZvmMVv27', 110293816))).balance).to.equal('47532452152970436125563667');
+    });
+    it('should handle transaction without any action', async function() {
+        const transactions = [{
+            "block_hash": "9zt3XU7PuC3zZnuhWGZ2H8DrJcjWx3p8AaWGtyfmpjUX",
+            "block_timestamp": "1714576046443461074",
+            "hash": "91LK4BPDKhmgu8vvkJSwGg8WFXZf4CYX3HomRCSM6pSh",
+            "signer_id": "devgovgigs.petersalomonsen.near",
+            "receiver_id": "devgovgigs.petersalomonsen.near",
+            "args": {
+                
+            },
+            "block_height": 118024815
+        }];
+        await fixTransactionsWithoutBalance({account: 'devgovgigs.petersalomonsen.near', transactions});
+        expect(transactions[0].action_kind).to.be.null;
+        expect(transactions[0].args.method_name).to.be.null;
+    });
+
 });

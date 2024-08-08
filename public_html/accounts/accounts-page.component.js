@@ -1,5 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount } from '../storage/domainobjectstore.js';
+import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
@@ -43,6 +43,21 @@ customElements.define('accounts-page',
 
                 this.dispatchChangeEvent();
             });
+
+            this.shadowRoot.getElementById('fixtransactionswithoutbalancesbutton').addEventListener('click', async () => {
+                setProgressbarValue(0);
+                try {
+                    for (const account of this.getAccounts()) {
+                        await fixTransactionsBalancesForAccount(account);
+                    }
+                    setProgressbarValue(null);
+                } catch (e) {
+                    setProgressbarValue(null);
+                    modalAlert('Error fixing transactions without balance', e.message);
+                }
+                this.dispatchChangeEvent();
+            });
+            
             if (await exists(accountsconfigfile)) {
                 this.setAccounts(await getAccounts());
             }

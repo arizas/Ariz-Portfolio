@@ -1,5 +1,5 @@
 import { readTextFile, exists, mkdir } from './gitstorage.js';
-import { getTransactionsToDate } from '../near/account.js';
+import { fixTransactionsWithoutBalance, getTransactionsToDate } from '../near/account.js';
 import { writeFile } from './gitstorage.js';
 import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
@@ -9,6 +9,7 @@ export const accountsconfigfile = 'accounts.json';
 export const depositaccountsfile = 'depositaccounts.json';
 export const ignorefungibletokensfile = 'ignorefungibletokens.json';
 export const customexchangeratesfile = 'customexchangerates.json';
+export const currencylistfile = 'currencylist.json';
 export const customrealizationratesfile = 'realizations.json';
 export const pricedatadir = 'pricehistory';
 
@@ -29,12 +30,6 @@ function getFungibleTokenTransactionsPath(account) {
 
 export async function getDepositAccounts() {
     const defaultDepositAccounts = {
-        "system": {
-            "description": "Funds from system account should be counted as deposits"
-        },
-        "null": {
-            "description": "Funds from null account should be counted as deposits"
-        }
     };
     if (await exists(depositaccountsfile)) {
         return Object.assign(defaultDepositAccounts, JSON.parse(await readTextFile(depositaccountsfile)));
@@ -126,6 +121,14 @@ export async function fetchTransactionsForAccount(account, max_timestamp = new D
     return transactions;
 }
 
+export async function fixTransactionsBalancesForAccount(account) {
+    let transactions = await getTransactionsForAccount(account);
+    await fixTransactionsWithoutBalance({account, transactions});
+
+    await writeTransactions(account, transactions);
+    return transactions;
+}
+
 export async function fetchFungibleTokenTransactionsForAccount(account, max_timestamp = BigInt(new Date().getTime()) * 1_000_000n) {
     let transactions = await getAllFungibleTokenTransactions(account);
     transactions = await getFungibleTokenTransactionsToDate(account, max_timestamp, transactions);
@@ -182,7 +185,7 @@ export async function writeStakingData(account, stakingpool_id, stakingData) {
 }
 
 function getPriceDataPath(token, targetCurrency) {
-    return `${pricedatadir}/${token}/${targetCurrency}.json`;
+    return `${pricedatadir}/${token}/${targetCurrency.toLowerCase()}.json`;
 }
 
 export async function getHistoricalPriceData(token, targetCurrency) {
@@ -224,6 +227,18 @@ export async function getCustomExchangeRates() {
     } else {
         return {};
     }
+}
+
+export async function getCurrencyList() {
+    if ((await exists(currencylistfile))) {
+        return JSON.parse(await readTextFile(currencylistfile));
+    } else {
+        return [];
+    }
+}
+
+export async function setCurrencyList(currencyList) {
+    await writeFile(currencylistfile, JSON.stringify(currencyList, null, 1));
 }
 
 export async function setCustomExchangeRates(customExchangeRates) {
