@@ -256,17 +256,18 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
     let block_height_bn;
     let blockdata;
 
-    while(!transactionInFirstBlock) {
+    while (!transactionInFirstBlock) {
         block_height_bn = BigInt(block_height);
         blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
-    
+
         blockdata.shards.forEach(shard => {
             const transaction = shard.chunk?.transactions?.find(transaction => transaction.transaction.hash === tx_hash);
             if (transaction) {
                 transactionInFirstBlock = transaction;
             } else {
                 const receipt_execution_outcomes = shard.receipt_execution_outcomes?.filter(receipt_execution_outcome => receipt_execution_outcome.tx_hash === tx_hash);
-                if (receipt_execution_outcomes) {
+
+                if (receipt_execution_outcomes && receipt_execution_outcomes.length > 0) {
                     receiptForTransactionFound = receipt_execution_outcomes.map(receipt_execution_outcome => receipt_execution_outcome.receipt.receipt_id).length > 0;
                 }
             }
