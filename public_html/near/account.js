@@ -219,16 +219,22 @@ export async function fixTransactionsWithoutBalance({ account, transactions }) {
         transaction.balance = balance;
         transaction.signer_id = transactionFromBlock.transaction.signer_id;
         transaction.receiver_id = transactionFromBlock.transaction.receiver_id;
-        const actionKind = Object.keys(transactionFromBlock.transaction.actions[0])[0];
-        transaction.action_kind = (() => {
-            switch (actionKind) {
-                case 'FunctionCall':
-                    return 'FUNCTION_CALL';
-                default:
-                    return actionKind;
-            }
-        })();
-        transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name;
+        const transactionActions = transactionFromBlock.transaction.actions;
+        if (transactionActions && transactionActions.length > 0) {
+            const actionKind = Object.keys(transactionFromBlock.transaction.actions[0])[0];
+            transaction.action_kind = (() => {
+                switch (actionKind) {
+                    case 'FunctionCall':
+                        return 'FUNCTION_CALL';
+                    default:
+                        return actionKind;
+                }
+            })();
+            transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name;
+        } else {
+            transaction.action_kind = null;
+            transaction.args.method_name = null;
+        }
         n++;
     }
 }

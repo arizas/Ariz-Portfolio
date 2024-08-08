@@ -1,4 +1,4 @@
-import { TRANSACTION_DATA_API_PIKESPEAKAI, getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
+import { TRANSACTION_DATA_API_PIKESPEAKAI, fixTransactionsWithoutBalance, getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
 import { getTransactionsForAccount, fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('nearaccount transactions petersalomonsen.near', function () {
@@ -132,4 +132,21 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'EvRStyT6VavKxba8U3pMYQ9KVbd9VUXLupYem8EBFESu', 110377210))).balance).to.equal('65264527225561096005299669');
         expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'GtHtwySAVBppR8rUH5xXWaqz4XhChDJZDd2ZZvmMVv27', 110293816))).balance).to.equal('47532452152970436125563667');
     });
+    it('should handle transaction without any action', async function() {
+        const transactions = [{
+            "block_hash": "9zt3XU7PuC3zZnuhWGZ2H8DrJcjWx3p8AaWGtyfmpjUX",
+            "block_timestamp": "1714576046443461074",
+            "hash": "91LK4BPDKhmgu8vvkJSwGg8WFXZf4CYX3HomRCSM6pSh",
+            "signer_id": "devgovgigs.petersalomonsen.near",
+            "receiver_id": "devgovgigs.petersalomonsen.near",
+            "args": {
+                
+            },
+            "block_height": 118024815
+        }];
+        await fixTransactionsWithoutBalance({account: 'devgovgigs.petersalomonsen.near', transactions});
+        expect(transactions[0].action_kind).to.be.null;
+        expect(transactions[0].args.method_name).to.be.null;
+    });
+
 });
