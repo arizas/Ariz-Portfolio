@@ -98,10 +98,10 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
         const response = await fetch(url, {
             mode: 'cors'
         });
-        
+
         let result;
-        if(response.ok) {
-            result = await r.json();
+        if (response.ok) {
+            result = await response.json();
         } else if (response.status === 429) {
             console.error('too many requests', response, 'retry in 30 seconds. Attempt no', (n + 1));
             await new Promise(resolve => setTimeout(() => resolve(), 30_000));
@@ -110,7 +110,7 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
             console.log(response);
             throw new Error(`${response.status}: ${await response.text()}`);
         }
-        
+
         const mappedResult = result.txns.map(tx => (
             {
                 "block_hash": tx.included_in_block_hash,
@@ -171,7 +171,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
         page++;
         accountHistory = await getAccountHistory(page);
     }
-    
+
     const transactionsWithoutBalance = transactions.filter(txn => txn.balance === undefined);
     let n = 0;
     for (const transaction of transactionsWithoutBalance) {
@@ -181,7 +181,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
             const blockInfo = await getBlockInfo(transaction.block_hash);
             transaction.block_height = blockInfo.header.height;
         }
-        const { balance, transaction: transactionFromBlock } = await retry(() => getAccountBalanceAfterTransaction(account, transaction.hash, transaction.block_height));
+        const { balance, transaction: transactionFromBlock } = await getAccountBalanceAfterTransaction(account, transaction.hash, transaction.block_height);
         transaction.balance = balance;
         transaction.signer_id = transactionFromBlock.transaction.signer_id;
         transaction.receiver_id = transactionFromBlock.transaction.receiver_id;
@@ -197,11 +197,11 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
         transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name;
         n++;
     }
-    await fixTransactionsWithoutBalance({account, transactions});
+    await fixTransactionsWithoutBalance({ account, transactions });
     return transactions;
 }
 
-export async function fixTransactionsWithoutBalance({account, transactions}) {
+export async function fixTransactionsWithoutBalance({ account, transactions }) {
     const transactionsWithoutBalance = transactions.filter(txn => txn.balance === undefined);
     let n = 0;
     for (const transaction of transactionsWithoutBalance) {
@@ -250,27 +250,45 @@ export async function getTransactionStatus(txhash, account_id) {
 }
 
 export async function getAccountBalanceAfterTransaction(account_id, tx_hash, block_height) {
-    let block_height_bn = BigInt(block_height);
-
-    let blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
     let transactionInFirstBlock;
     let balance;
+    let receiptForTransactionFound;
+    let block_height_bn;
+    let blockdata;
 
-    blockdata.shards.forEach(shard => {
-        const transaction = shard.chunk?.transactions?.find(transaction => transaction.transaction.hash === tx_hash);
-        if (transaction) {
-            transactionInFirstBlock = transaction;
-        }
+    while(!transactionInFirstBlock) {
+        block_height_bn = BigInt(block_height);
+        blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
+    
+        blockdata.shards.forEach(shard => {
+            const transaction = shard.chunk?.transactions?.find(transaction => transaction.transaction.hash === tx_hash);
+            if (transaction) {
+                transactionInFirstBlock = transaction;
+            } else {
+                const receipt_execution_outcomes = shard.receipt_execution_outcomes?.filter(receipt_execution_outcome => receipt_execution_outcome.tx_hash === tx_hash);
+                if (receipt_execution_outcomes) {
+                    receiptForTransactionFound = receipt_execution_outcomes.map(receipt_execution_outcome => receipt_execution_outcome.receipt.receipt_id).length > 0;
+                }
+            }
 
-        const account_update = shard.state_changes.find(state_change =>
-            state_change.type === 'account_update' &&
-            state_change.cause.tx_hash === tx_hash &&
-            state_change.change.account_id === account_id
-        );
-        if (account_update) {
-            balance = account_update.change.amount;
+            const account_update = shard.state_changes.find(state_change =>
+                state_change.type === 'account_update' &&
+                state_change.cause.tx_hash === tx_hash &&
+                state_change.change.account_id === account_id
+            );
+            if (account_update) {
+                balance = account_update.change.amount;
+            }
+        });
+        if (transactionInFirstBlock) {
+            break;
         }
-    });
+        if (!receiptForTransactionFound) {
+            throw new Error(`No transaction or receipts found for transaction ${tx_hash} by ${account_id} in block ${block_height}`);
+        }
+        block_height_bn--;
+        block_height = block_height_bn.toString();
+    }
 
     let receipt_ids = transactionInFirstBlock.outcome.execution_outcome.outcome.receipt_ids;
 

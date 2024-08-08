@@ -127,4 +127,7 @@ describe('nearaccount transactions petersalomonsen.near', function () {
         expect(await (getBalanceForTxHash('2xXghNC1GhjFYokX1nWdWLzMCn7yN3SWyhRowtpGuost', 'psalomo.near'))).to.equal('16710096912904207620297833');
         expect(await (getBalanceForTxHash('GHP8GDYN6gdHqq6ZH7adZUUNbmovjC1i25bxAp6Jvb5W', 'psalomo.near'))).to.equal('16710096912904207620297833');
     });
+    it('should find balance for transaction when passed blockheight is not the first block for the transaction', async function() {
+        expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'H5TRhv1wZgBtRHrWpkHpcQ3KiBkFC6wfj1Zcq9XDCJ3L', 111132053))).balance).to.equal('65262119033825266605299669');
+    });
 });
