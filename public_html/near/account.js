@@ -250,7 +250,9 @@ export async function getTransactionStatus(txhash, account_id) {
 }
 
 export async function getAccountBalanceAfterTransaction(account_id, tx_hash, block_height) {
+    const given_block_height = block_height;
     let transactionInFirstBlock;
+    let numberOfBlocksWithoutATrace = 0;
     let balance;
     let receiptForTransactionFound;
     let block_height_bn;
@@ -285,7 +287,12 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
             break;
         }
         if (!receiptForTransactionFound) {
-            throw new Error(`No transaction or receipts found for transaction ${tx_hash} by ${account_id} in block ${block_height}`);
+            numberOfBlocksWithoutATrace++;
+            if (numberOfBlocksWithoutATrace === 10 ) {
+                throw new Error(`No transaction or receipts found for transaction ${tx_hash} by ${account_id} in block ${given_block_height}`);
+            }
+        } else {
+            numberOfBlocksWithoutATrace = 0;
         }
         block_height_bn--;
         block_height = block_height_bn.toString();

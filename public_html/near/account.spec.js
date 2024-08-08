@@ -130,5 +130,6 @@ describe('nearaccount transactions petersalomonsen.near', function () {
     it('should find balance for transaction when passed blockheight is not the first block for the transaction', async function() {
         expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'H5TRhv1wZgBtRHrWpkHpcQ3KiBkFC6wfj1Zcq9XDCJ3L', 111132053))).balance).to.equal('65262119033825266605299669');
         expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'EvRStyT6VavKxba8U3pMYQ9KVbd9VUXLupYem8EBFESu', 110377210))).balance).to.equal('65264527225561096005299669');
+        expect((await (getAccountBalanceAfterTransaction('petersalomonsen.near', 'GtHtwySAVBppR8rUH5xXWaqz4XhChDJZDd2ZZvmMVv27', 110293816))).balance).to.equal('47532452152970436125563667');
     });
 });
