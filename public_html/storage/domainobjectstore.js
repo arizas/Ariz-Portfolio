@@ -1,5 +1,5 @@
 import { readTextFile, exists, mkdir } from './gitstorage.js';
-import { getTransactionsToDate } from '../near/account.js';
+import { fixTransactionsWithoutBalance, getTransactionsToDate } from '../near/account.js';
 import { writeFile } from './gitstorage.js';
 import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
@@ -116,6 +116,14 @@ async function makeAccountDataDirs(account) {
 export async function fetchTransactionsForAccount(account, max_timestamp = new Date().getTime() * 1_000_000) {
     let transactions = await getTransactionsForAccount(account);
     transactions = await getTransactionsToDate(account, max_timestamp, transactions);
+
+    await writeTransactions(account, transactions);
+    return transactions;
+}
+
+export async function fixTransactionsBalancesForAccount(account) {
+    let transactions = await getTransactionsForAccount(account);
+    await fixTransactionsWithoutBalance({account, transactions});
 
     await writeTransactions(account, transactions);
     return transactions;

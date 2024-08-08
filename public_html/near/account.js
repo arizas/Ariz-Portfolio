@@ -1,6 +1,8 @@
+import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
+import { getBlockInfo } from './stakingpool.js';
 
 const PIKESPEAKAI_API_LOCALSTORAGE_KEY = 'pikespeakai_api_key';
 const TRANSACTION_DATA_API_LOCALSTORAGE_KEY = 'near_transactiondata_api';
@@ -93,30 +95,37 @@ export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, 
 export async function getNearblocksAccountHistory(account_id, maxentries = 25, page = 1) {
     const url = `https://api.nearblocks.io/v1/account/${account_id}/txns?page=${page}&per_page=${maxentries}&order=desc`;
     for (let n = 0; n < 5; n++) {
-        try {
-            const result = (await fetch(url, {
-                mode: 'cors'
-            }).then(r => r.json()));
-
-            const mappedResult = result.txns.map(tx => (
-                {
-                    "block_hash": tx.included_in_block_hash,
-                    "block_height": tx.block.block_height,
-                    "block_timestamp": tx.block_timestamp,
-                    "hash": tx.transaction_hash,
-                    "signer_id": tx.predecessor_account_id,
-                    "receiver_id": tx.receiver_account_id,
-                    "action_kind": tx.actions ? tx.actions[0].action : null,
-                    "args": {
-                        "method_name": tx.actions ? tx.actions[0].method : null
-                    }
-                }
-            ));
-            return mappedResult;
-        } catch (e) {
-            console.error('error', e, 'retry in 30 seconds', (n + 1));
+        const response = await fetch(url, {
+            mode: 'cors'
+        });
+        
+        let result;
+        if(response.ok) {
+            result = await r.json();
+        } else if (response.status === 429) {
+            console.error('too many requests', response, 'retry in 30 seconds. Attempt no', (n + 1));
             await new Promise(resolve => setTimeout(() => resolve(), 30_000));
+            continue;
+        } else {
+            console.log(response);
+            throw new Error(`${response.status}: ${await response.text()}`);
         }
+        
+        const mappedResult = result.txns.map(tx => (
+            {
+                "block_hash": tx.included_in_block_hash,
+                "block_height": tx.block.block_height,
+                "block_timestamp": tx.block_timestamp,
+                "hash": tx.transaction_hash,
+                "signer_id": tx.predecessor_account_id,
+                "receiver_id": tx.receiver_account_id,
+                "action_kind": tx.actions ? tx.actions[0].action : null,
+                "args": {
+                    "method_name": tx.actions ? tx.actions[0].method : null
+                }
+            }
+        ));
+        return mappedResult;
     }
 }
 
@@ -162,8 +171,16 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
         page++;
         accountHistory = await getAccountHistory(page);
     }
+    
     const transactionsWithoutBalance = transactions.filter(txn => txn.balance === undefined);
+    let n = 0;
     for (const transaction of transactionsWithoutBalance) {
+        setProgressbarValue(n / transactionsWithoutBalance.length, `${account} ${new Date(transaction.block_timestamp / 1_000_000).toDateString()}`);
+
+        if (!transaction.block_height) {
+            const blockInfo = await getBlockInfo(transaction.block_hash);
+            transaction.block_height = blockInfo.header.height;
+        }
         const { balance, transaction: transactionFromBlock } = await retry(() => getAccountBalanceAfterTransaction(account, transaction.hash, transaction.block_height));
         transaction.balance = balance;
         transaction.signer_id = transactionFromBlock.transaction.signer_id;
@@ -177,9 +194,43 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
                     return actionKind;
             }
         })();
-        transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name
+        transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name;
+        n++;
     }
+    await fixTransactionsWithoutBalance({account, transactions});
     return transactions;
+}
+
+export async function fixTransactionsWithoutBalance({account, transactions}) {
+    const transactionsWithoutBalance = transactions.filter(txn => txn.balance === undefined);
+    let n = 0;
+    for (const transaction of transactionsWithoutBalance) {
+        const { stopButtonClicked } = setProgressbarValue(n / transactionsWithoutBalance.length, `${account} ${new Date(transaction.block_timestamp / 1_000_000).toDateString()}`, true);
+
+        if (stopButtonClicked) {
+            break;
+        }
+
+        if (!transaction.block_height) {
+            const blockInfo = await getBlockInfo(transaction.block_hash);
+            transaction.block_height = blockInfo.header.height;
+        }
+        const { balance, transaction: transactionFromBlock } = await retry(() => getAccountBalanceAfterTransaction(account, transaction.hash, transaction.block_height));
+        transaction.balance = balance;
+        transaction.signer_id = transactionFromBlock.transaction.signer_id;
+        transaction.receiver_id = transactionFromBlock.transaction.receiver_id;
+        const actionKind = Object.keys(transactionFromBlock.transaction.actions[0])[0];
+        transaction.action_kind = (() => {
+            switch (actionKind) {
+                case 'FunctionCall':
+                    return 'FUNCTION_CALL';
+                default:
+                    return actionKind;
+            }
+        })();
+        transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name;
+        n++;
+    }
 }
 
 export async function getTransactionStatus(txhash, account_id) {
