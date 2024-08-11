@@ -93,8 +93,8 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            const periodStartDate = new Date(this.year, this.month, 1);
-            let periodEndDate = new Date(this.year, this.month, 1);
+            const periodStartDate = new Date(Date.UTC(this.year, this.month, 1));
+            let periodEndDate = new Date(Date.UTC(this.year, this.month, 1));
             periodEndDate.setMonth(periodEndDate.getMonth() + this.periodLenghtMonths);
             periodEndDate.setDate(periodEndDate.getDate()-1);
 
