@@ -18,7 +18,7 @@ describe('stakingpool', () => {
         expect(blockdata.header).to.deep.equal(blockInfo.header);
     });
     it('should fetch staking balances', async function () {
-        this.timeout(5 * 60000);
+        this.timeout(30_000);
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 
