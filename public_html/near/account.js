@@ -172,31 +172,6 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
         accountHistory = await getAccountHistory(page);
     }
 
-    const transactionsWithoutBalance = transactions.filter(txn => txn.balance === undefined);
-    let n = 0;
-    for (const transaction of transactionsWithoutBalance) {
-        setProgressbarValue(n / transactionsWithoutBalance.length, `${account} ${new Date(transaction.block_timestamp / 1_000_000).toDateString()}`);
-
-        if (!transaction.block_height) {
-            const blockInfo = await getBlockInfo(transaction.block_hash);
-            transaction.block_height = blockInfo.header.height;
-        }
-        const { balance, transaction: transactionFromBlock } = await getAccountBalanceAfterTransaction(account, transaction.hash, transaction.block_height);
-        transaction.balance = balance;
-        transaction.signer_id = transactionFromBlock.transaction.signer_id;
-        transaction.receiver_id = transactionFromBlock.transaction.receiver_id;
-        const actionKind = Object.keys(transactionFromBlock.transaction.actions[0])[0];
-        transaction.action_kind = (() => {
-            switch (actionKind) {
-                case 'FunctionCall':
-                    return 'FUNCTION_CALL';
-                default:
-                    return actionKind;
-            }
-        })();
-        transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name;
-        n++;
-    }
     await fixTransactionsWithoutBalance({ account, transactions });
     return transactions;
 }
