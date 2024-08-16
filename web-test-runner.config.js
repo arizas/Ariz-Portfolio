@@ -27,7 +27,6 @@ export default {
     '!./node_modules/**/*', // exclude any node modules
     '!./playwright_tests/**/*' // exclude playwright tests
   ],
-  concurrency: 1,
   watch: false,
   testFramework: {
     config: {
