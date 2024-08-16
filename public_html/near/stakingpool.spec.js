@@ -22,13 +22,13 @@ describe('stakingpool', () => {
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 
-        console.log("1");
+        console.log("1", new Date());
         await fetchTransactionsForAccount(account_id, new Date('2021-05-14').getTime() * 1_000_000);
-        console.log("2");
+        console.log("2"), new Date();
         let stakingBalances = [];
         const first_block = 31789506;
         stakingBalances = await fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalances, first_block);
-        console.log("3");
+        console.log("3", new Date());
         const firstStakingBalance = stakingBalances[stakingBalances.length - 1];
         expect(firstStakingBalance.timestamp.toJSON().substring(0, 'yyyy-mm-dd'.length)).to.equal('2021-02-14');
 
@@ -36,6 +36,7 @@ describe('stakingpool', () => {
 
         stakingBalances = await fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalances, 37039379);
 
+        console.log("4", new Date());
         expect(stakingBalances.slice(stakingBalances.length - firstStakingBalanceChunk.length)).to.deep.equal(firstStakingBalanceChunk);
         expect(stakingBalances.length).to.be.above(firstStakingBalanceChunk.length);
         expect(firstStakingBalance.timestamp.toJSON().substring(0, 'yyyy-mm-dd'.length)).to.equal('2021-02-14');
