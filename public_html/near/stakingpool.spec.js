@@ -22,11 +22,13 @@ describe('stakingpool', () => {
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 
+        console.log("1");
         await fetchTransactionsForAccount(account_id, new Date('2021-05-14').getTime() * 1_000_000);
-
+        console.log("2");
         let stakingBalances = [];
         const first_block = 31789506;
         stakingBalances = await fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalances, first_block);
+        console.log("3");
         const firstStakingBalance = stakingBalances[stakingBalances.length - 1];
         expect(firstStakingBalance.timestamp.toJSON().substring(0, 'yyyy-mm-dd'.length)).to.equal('2021-02-14');
 
