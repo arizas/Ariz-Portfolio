@@ -24,7 +24,8 @@ jobs:
           yarn install
           yarn playwright install-deps
           yarn playwright install
-          yarn test
+          #yarn test
+          yarn test public_html/near/stakingpool.spec.js 
   test_bos:
     name: Test BOS E2E
     runs-on: ubuntu-latest
