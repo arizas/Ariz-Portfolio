@@ -15,13 +15,20 @@ test("should open app", async ({ page }) => {
     await page.goto(
       "/"
     );
+    await page.route("https://api.nearblocks.io/v1/account/arizportfolio.near/txns?page=2&per_page=25&order=desc", async(route) => {
+        route.fulfill({json: {
+          "cursor": "6999325132",
+          "txns": []
+        }
+      });
+    });
     await page.getByRole('link', { name: 'Accounts' }).click();
     await pause500ifRecordingVideo(page);
   
     await page.getByRole('button', { name: 'Add account' }).click();
     await pause500ifRecordingVideo(page);
   
-    await page.getByRole('textbox').fill('petermusic.near');
+    await page.getByRole('textbox').fill('arizportfolio.near');
     await pause500ifRecordingVideo(page);
   
     await page.getByRole('button', { name: 'load data' }).click();
