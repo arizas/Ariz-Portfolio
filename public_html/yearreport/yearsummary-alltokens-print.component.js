@@ -13,6 +13,8 @@ customElements.define('yearsummary-alltokens-print',
 
             const searchParams = new URLSearchParams(location.search);
             this.year = searchParams.get('year');
+            this.month = searchParams.get('month');
+            this.periodLengthMonths = searchParams.get('nummonths');
             this.currency = searchParams.get('currency');
             hideProfitLossIfNoConvertToCurrency(this.currency, this.shadowRoot);
 
@@ -42,6 +44,8 @@ customElements.define('yearsummary-alltokens-print',
                 }
                 const tokenreport = document.createElement('year-report-print');
                 tokenreport.dataset.year = this.year;
+                tokenreport.dataset.month = this.month;
+                tokenreport.dataset.periodLengthMonths = this.periodLengthMonths;
                 tokenreport.dataset.currency = this.currency;
                 tokenreport.dataset.token = token;
                 tokenreport.useDataset();

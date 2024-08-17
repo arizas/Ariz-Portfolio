@@ -20,9 +20,30 @@ export function hideProfitLossIfNoConvertToCurrency(convertToCurrency, shadowRoo
     }
 }
 
+export function calculatePeriodStartAndEndDate(year, month, periodLengthMonths) {
+    const periodStartDate = new Date(Date.UTC(year, month, 1));
+    let periodEndDate = new Date(Date.UTC(year, month, 1));
+    periodEndDate.setMonth(periodEndDate.getMonth() + Number(periodLengthMonths));
+    periodEndDate.setDate(periodEndDate.getDate() - 1);
+
+    const maxPeriodEndDate = new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length));
+
+    if (periodEndDate > maxPeriodEndDate) {
+        periodEndDate = maxPeriodEndDate;
+    }
+
+    return { periodStartDate, periodEndDate };
+}
+
 export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
     const periodEndDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
     const periodStartDate = new Date(`${year}-01-01`);
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
+}
+
+export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction }) {
+    const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(year, month, periodLengthMonths);
+    console.log(year, month, periodLengthMonths, periodStartDate, periodEndDate);
     return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
 }
 

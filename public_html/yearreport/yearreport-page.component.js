@@ -1,7 +1,7 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
-import { renderPeriodReportTable, renderYearReportTable } from './yearreport-table-renderer.js';
+import { renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-page',
     class extends HTMLElement {
@@ -45,10 +45,10 @@ customElements.define('year-report-page',
                 this.month = parseInt(this.monthSelect.value);
                 this.refreshView()
             });
-            const periodLenghtMonthsInput = this.shadowRoot.querySelector('#periodlengthmonths');
-            this.periodLenghtMonths = parseInt(periodLenghtMonthsInput.value);
-            periodLenghtMonthsInput.addEventListener('change', () => {
-                this.periodLenghtMonths = parseInt(periodLenghtMonthsInput.value);
+            const periodLengthMonthsInput = this.shadowRoot.querySelector('#periodlengthmonths');
+            this.periodLengthMonths = parseInt(periodLengthMonthsInput.value);
+            periodLengthMonthsInput.addEventListener('change', () => {
+                this.periodLengthMonths = parseInt(periodLengthMonthsInput.value);
                 this.refreshView()
             });
 
@@ -74,10 +74,10 @@ customElements.define('year-report-page',
             this.updateView(currencyselect.value, numDecimals, tokenselect.value);
 
             this.shadowRoot.querySelector('#print_current_token_button').addEventListener('click', () => {
-                window.open(`year-report-print?token=${this.token}&year=${this.year}&currency=${this.convertToCurrency}`);
+                window.open(`year-report-print?token=${this.token}&year=${this.year}&month=${this.month}&nummonths=${this.periodLengthMonths}&currency=${this.convertToCurrency}`);
             });
             this.shadowRoot.querySelector('#print_all_tokens_button').addEventListener('click', () => {
-                window.open(`yearsummary-alltokens-print?year=${this.year}&currency=${this.convertToCurrency}`);
+                window.open(`yearsummary-alltokens-print?year=${this.year}&month=${this.month}&nummonths=${this.periodLengthMonths}&currency=${this.convertToCurrency}`);
             });
             this.transactionsModalElement = this.shadowRoot.querySelector('#show_transactions_modal');
             this.showTransactionsModal = new bootstrap.Modal(this.transactionsModalElement);
@@ -93,22 +93,11 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            const periodStartDate = new Date(Date.UTC(this.year, this.month, 1));
-            let periodEndDate = new Date(Date.UTC(this.year, this.month, 1));
-            periodEndDate.setMonth(periodEndDate.getMonth() + this.periodLenghtMonths);
-            periodEndDate.setDate(periodEndDate.getDate()-1);
-
-            const maxPeriodEndDate = new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length));
-
-            if (periodEndDate > maxPeriodEndDate) {
-                periodEndDate = maxPeriodEndDate;
-            }
-
-            console.log(periodStartDate, periodEndDate);
-            await renderPeriodReportTable({
+            await renderMonthPeriodReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
-                periodStartDate, periodEndDate,
+                month: this.month,
+                periodLengthMonths: this.periodLengthMonths,
                 year: this.year,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,

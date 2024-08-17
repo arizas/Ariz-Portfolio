@@ -2,9 +2,24 @@ import { mockArizGatewayAccess, mockWalletAuthenticationData } from '../arizgate
 import { fetchHistoricalPricesFromArizGateway } from '../pricedata/pricedata.js';
 import { fetchTransactionsForAccount, setAccounts, setDepositAccounts } from '../storage/domainobjectstore.js';
 import './yearreport-print.component.js';
-import { renderPeriodReportTable, renderYearReportTable } from "./yearreport-table-renderer.js";
+import { calculatePeriodStartAndEndDate, renderPeriodReportTable, renderYearReportTable } from "./yearreport-table-renderer.js";
 
 describe('year-report-table-renderer', () => {
+    it.only('should calculate period start and end date', () => {
+        const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(2024, 0, 2);
+        expect(periodStartDate.toJSON()).to.equal('2024-01-01T00:00:00.000Z');
+        expect(periodEndDate.toJSON()).to.equal('2024-02-29T00:00:00.000Z');
+    });
+
+    it('should calculate period start and end date for current year', () => {
+        const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(new Date().getFullYear(), 0, 12);
+        expect(periodStartDate.toJSON()).to.equal('2024-01-01T00:00:00.000Z');
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        expect(periodEndDate.toJSON()).to.equal(yesterday.toJSON().substring(0, 'yyyy-MM-dd'.length) + 'T00:00:00.000Z');
+    });
+
     it('should render table for year report', async function () {
         this.timeout(2 * 60000);
         const account = 'psalomo.near';
@@ -55,8 +70,8 @@ describe('year-report-table-renderer', () => {
         const result = await renderPeriodReportTable({
             shadowRoot: yearReportPrintComponent.getRootNode().shadowRoot,
             token: '',
-            periodStartDate: new Date(Date.UTC(2021,1,7)),
-            periodEndDate: new Date(Date.UTC(2021,1,23)),
+            periodStartDate: new Date(Date.UTC(2021, 1, 7)),
+            periodEndDate: new Date(Date.UTC(2021, 1, 23)),
             convertToCurrency: 'USD',
 
             perRowFunction: async ({
@@ -86,8 +101,8 @@ describe('year-report-table-renderer', () => {
         const result = await renderPeriodReportTable({
             shadowRoot: yearReportPrintComponent.getRootNode().shadowRoot,
             token: '',
-            periodStartDate: new Date(Date.UTC(2021,1,7)),
-            periodEndDate: new Date(Date.UTC(2021,1,23)),
+            periodStartDate: new Date(Date.UTC(2021, 1, 7)),
+            periodEndDate: new Date(Date.UTC(2021, 1, 23)),
             convertToCurrency: 'USD',
 
             perRowFunction: async ({
