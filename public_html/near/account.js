@@ -1,6 +1,8 @@
+import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
+import { getBlockInfo } from './stakingpool.js';
 
 const PIKESPEAKAI_API_LOCALSTORAGE_KEY = 'pikespeakai_api_key';
 const TRANSACTION_DATA_API_LOCALSTORAGE_KEY = 'near_transactiondata_api';
@@ -93,28 +95,37 @@ export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, 
 export async function getNearblocksAccountHistory(account_id, maxentries = 25, page = 1) {
     const url = `https://api.nearblocks.io/v1/account/${account_id}/txns?page=${page}&per_page=${maxentries}&order=desc`;
     for (let n = 0; n < 5; n++) {
-        try {
-            const result = (await fetch(url, {
-                mode: 'cors'
-            }).then(r => r.json())).txns.map(tx => (
-                {
-                    "block_hash": tx.included_in_block_hash,
-                    "block_height": tx.block.block_height,
-                    "block_timestamp": tx.block_timestamp,
-                    "hash": tx.transaction_hash,
-                    "signer_id": tx.predecessor_account_id,
-                    "receiver_id": tx.receiver_account_id,
-                    "action_kind": tx.actions ? tx.actions[0].action : null,
-                    "args": {
-                        "method_name": tx.actions ? tx.actions[0].method : null
-                    }
-                }
-            ));
-            return result;
-        } catch (e) {
-            console.error('error', e, 'retry in 30 seconds', (n + 1));
+        const response = await fetch(url, {
+            mode: 'cors'
+        });
+
+        let result;
+        if (response.ok) {
+            result = await response.json();
+        } else if (response.status === 429) {
+            console.error('too many requests', response, 'retry in 30 seconds. Attempt no', (n + 1));
             await new Promise(resolve => setTimeout(() => resolve(), 30_000));
+            continue;
+        } else {
+            console.log(response);
+            throw new Error(`${response.status}: ${await response.text()}`);
         }
+
+        const mappedResult = result.txns.map(tx => (
+            {
+                "block_hash": tx.included_in_block_hash,
+                "block_height": tx.block.block_height,
+                "block_timestamp": tx.block_timestamp,
+                "hash": tx.transaction_hash,
+                "signer_id": tx.predecessor_account_id,
+                "receiver_id": tx.receiver_account_id,
+                "action_kind": tx.actions ? tx.actions[0].action : null,
+                "args": {
+                    "method_name": tx.actions ? tx.actions[0].method : null
+                }
+            }
+        ));
+        return mappedResult;
     }
 }
 
@@ -135,7 +146,7 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
     let accountHistory = await getAccountHistory(page);
     let insertIndex = 0;
 
-    while (true) {
+    while (accountHistory.length > 0) {
         let newTransactionsAdded = 0;
         let transactionsSkipped = 0;
 
@@ -146,7 +157,6 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
             } else {
                 const existingTransaction = transactions.find(t => t.hash == historyLine.hash);
                 if (!existingTransaction) {
-                    historyLine.balance = await retry(() => getAccountBalanceAfterTransaction(account, historyLine.hash, historyLine.block_height));
                     transactions.splice(insertIndex++, 0, historyLine);
                     offset_timestamp = BigInt(historyLine.block_timestamp) + 1n;
                     newTransactionsAdded++;
@@ -157,10 +167,51 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
         if (transactionsSkipped == 0 && newTransactionsAdded == 0) {
             break;
         }
+
         page++;
         accountHistory = await getAccountHistory(page);
     }
+
+    await fixTransactionsWithoutBalance({ account, transactions });
     return transactions;
+}
+
+export async function fixTransactionsWithoutBalance({ account, transactions }) {
+    const transactionsWithoutBalance = transactions.filter(txn => txn.balance === undefined);
+    let n = 0;
+    for (const transaction of transactionsWithoutBalance) {
+        const { stopButtonClicked } = setProgressbarValue(n / transactionsWithoutBalance.length, `${account} ${new Date(transaction.block_timestamp / 1_000_000).toDateString()}`, true);
+
+        if (stopButtonClicked) {
+            break;
+        }
+
+        if (!transaction.block_height) {
+            const blockInfo = await getBlockInfo(transaction.block_hash);
+            transaction.block_height = blockInfo.header.height;
+        }
+        const { balance, transaction: transactionFromBlock } = await retry(() => getAccountBalanceAfterTransaction(account, transaction.hash, transaction.block_height));
+        transaction.balance = balance;
+        transaction.signer_id = transactionFromBlock.transaction.signer_id;
+        transaction.receiver_id = transactionFromBlock.transaction.receiver_id;
+        const transactionActions = transactionFromBlock.transaction.actions;
+        if (transactionActions && transactionActions.length > 0) {
+            const actionKind = Object.keys(transactionFromBlock.transaction.actions[0])[0];
+            transaction.action_kind = (() => {
+                switch (actionKind) {
+                    case 'FunctionCall':
+                        return 'FUNCTION_CALL';
+                    default:
+                        return actionKind;
+                }
+            })();
+            transaction.args.method_name = transactionFromBlock.transaction.actions[0].FunctionCall?.method_name;
+        } else {
+            transaction.action_kind = null;
+            transaction.args.method_name = null;
+        }
+        n++;
+    }
 }
 
 export async function getTransactionStatus(txhash, account_id) {
@@ -180,27 +231,53 @@ export async function getTransactionStatus(txhash, account_id) {
 }
 
 export async function getAccountBalanceAfterTransaction(account_id, tx_hash, block_height) {
-    let block_height_bn = BigInt(block_height);
-
-    let blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
+    const given_block_height = block_height;
     let transactionInFirstBlock;
+    let numberOfBlocksWithoutATrace = 0;
     let balance;
+    let receiptForTransactionFound;
+    let block_height_bn;
+    let blockdata;
 
-    blockdata.shards.forEach(shard => {
-        const transaction = shard.chunk?.transactions?.find(transaction => transaction.transaction.hash === tx_hash);
-        if (transaction) {
-            transactionInFirstBlock = transaction;
-        }
+    while (!transactionInFirstBlock) {
+        block_height_bn = BigInt(block_height);
+        blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
 
-        const account_update = shard.state_changes.find(state_change =>
-            state_change.type === 'account_update' &&
-            state_change.cause.tx_hash === tx_hash &&
-            state_change.change.account_id === account_id
-        );
-        if (account_update) {
-            balance = account_update.change.amount;
+        blockdata.shards.forEach(shard => {
+            const transaction = shard.chunk?.transactions?.find(transaction => transaction.transaction.hash === tx_hash);
+            if (transaction) {
+                transactionInFirstBlock = transaction;
+            } else {
+                const receipt_execution_outcomes = shard.receipt_execution_outcomes?.filter(receipt_execution_outcome => receipt_execution_outcome.tx_hash === tx_hash);
+
+                if (receipt_execution_outcomes && receipt_execution_outcomes.length > 0) {
+                    receiptForTransactionFound = receipt_execution_outcomes.map(receipt_execution_outcome => receipt_execution_outcome.receipt.receipt_id).length > 0;
+                }
+            }
+
+            const account_update = shard.state_changes.find(state_change =>
+                state_change.type === 'account_update' &&
+                state_change.cause.tx_hash === tx_hash &&
+                state_change.change.account_id === account_id
+            );
+            if (account_update) {
+                balance = account_update.change.amount;
+            }
+        });
+        if (transactionInFirstBlock) {
+            break;
         }
-    });
+        if (!receiptForTransactionFound) {
+            numberOfBlocksWithoutATrace++;
+            if (numberOfBlocksWithoutATrace === 10 ) {
+                throw new Error(`No transaction or receipts found for transaction ${tx_hash} by ${account_id} in block ${given_block_height}`);
+            }
+        } else {
+            numberOfBlocksWithoutATrace = 0;
+        }
+        block_height_bn--;
+        block_height = block_height_bn.toString();
+    }
 
     let receipt_ids = transactionInFirstBlock.outcome.execution_outcome.outcome.receipt_ids;
 
@@ -231,5 +308,5 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
     if (!balance) {
         balance = (await viewAccount(blockdata.block.header.hash, account_id)).amount;
     }
-    return balance;
+    return { transaction: transactionInFirstBlock, balance };
 }

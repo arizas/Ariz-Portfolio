@@ -10,9 +10,9 @@
   "scripts": {
     "test:watch": "wtr --watch",
     "test": "wtr",
-    "test_bos": "npx playwright test",
-    "test_bos:watch": "npx playwright test --ui",
-    "test_bos:watch:codespaces": "yarn test_bos --ui-host=0.0.0.0",
+    "test:e2e": "npx playwright test",
+    "test:e2e:watch": "npx playwright test --ui",
+    "test:e2e:watch:codespaces": "yarn test:e2e --ui-host=0.0.0.0",
     "generateimportmap": "(cd public_html && jspm link index.html -o index.html)",
     "serve": "http-server --cors -p 8081 public_html/",
     "dist": "rm -Rf dist && rollup -c rollup.config.js",

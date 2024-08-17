@@ -20,7 +20,36 @@ export function hideProfitLossIfNoConvertToCurrency(convertToCurrency, shadowRoo
     }
 }
 
+export function calculatePeriodStartAndEndDate(year, month, periodLengthMonths) {
+    const periodStartDate = new Date(Date.UTC(year, month, 1));
+    let periodEndDate = new Date(Date.UTC(year, month, 1));
+    periodEndDate.setMonth(periodEndDate.getMonth() + Number(periodLengthMonths));
+    periodEndDate.setDate(periodEndDate.getDate() - 1);
+
+    const maxPeriodEndDate = new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length));
+
+    if (periodEndDate > maxPeriodEndDate) {
+        periodEndDate = maxPeriodEndDate;
+    }
+
+    return { periodStartDate, periodEndDate };
+}
+
 export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
+    const periodEndDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
+    const periodStartDate = new Date(`${year}-01-01`);
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
+}
+
+export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction }) {
+    const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(year, month, periodLengthMonths);
+    console.log(year, month, periodLengthMonths, periodStartDate, periodEndDate);
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
+}
+
+export async function renderPeriodReportTable({ shadowRoot, token, periodStartDate, periodEndDate, convertToCurrency, perRowFunction }) {
+    let currentDate = periodEndDate;
+
     let { dailyBalances, transactionsByDate } = await calculateYearReportData(token);
     dailyBalances = (await calculateProfitLoss(dailyBalances, convertToCurrency, token)).dailyBalances;
 
@@ -34,9 +63,6 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
     const rowTemplate = shadowRoot.querySelector('#dailybalancerowtemplate');
 
     const formatNumber = getNumberFormatter(convertToCurrency);
-
-    let currentDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
-    const endDate = new Date(`${year}-01-01`);
 
     let totalStakingReward = 0;
     let totalReceived = 0;
@@ -57,7 +83,7 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         return `<span class="token_amount">${tokenNumberFormatter(amount * decimalConversionValue)} ${symbol}</span>`;
     };
 
-    while (currentDate.getTime() >= endDate) {
+    while (currentDate.getTime() >= periodStartDate) {
         const datestring = currentDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
 
         const row = rowTemplate.cloneNode(true).content;
@@ -138,6 +164,10 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
             shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);
         }
     }
+
+    const outboundBalanceDate = new Date(periodEndDate.getTime()).toJSON().substring(0, 'yyyy-MM-dd'.length);
+    const inboundBalanceDate = new Date(periodStartDate.getTime()).toJSON().substring(0, 'yyyy-MM-dd'.length);
+
     return {
         totalStakingReward,
         totalReceived,
@@ -145,7 +175,7 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
         totalWithdrawal,
         totalProfit,
         totalLoss,
-        outboundBalance: dailyBalances[`${year}-12-31`],
-        inboundBalance: dailyBalances[`${year}-01-01`]
+        outboundBalance: dailyBalances[outboundBalanceDate],
+        inboundBalance: dailyBalances[inboundBalanceDate]
     }
 }

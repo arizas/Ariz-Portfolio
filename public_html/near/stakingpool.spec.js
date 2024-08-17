@@ -1,24 +1,24 @@
-import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData, getBlockInfo } from './stakingpool.js';
+import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData, getBlockInfo, getStakingAccounts } from './stakingpool.js';
 import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 
 describe('stakingpool', () => {
-    it('should get account balance', async function() {
-        const balance = await getAccountBalanceInPool('openshards.poolv1.near','petersalomonsen.near', 122823074);
+    it('should get account balance', async function () {
+        const balance = await getAccountBalanceInPool('openshards.poolv1.near', 'petersalomonsen.near', 122823074);
         expect(balance).to.equal(parseInt('256465402038997425102462871'));
     })
-    it('should get latest block data and then get the same block data by block height', async function() {
+    it('should get latest block data and then get the same block data by block height', async function () {
         const blockdata = await getBlockData('final');
         const refBlockData = await getBlockData(blockdata.header.height);
         expect(blockdata).to.deep.equal(refBlockData);
     });
-    it('should get latest block data and then get block info by hash', async function() {
+    it('should get latest block data and then get block info by hash', async function () {
         const blockdata = await getBlockData('final');
         const blockInfo = await getBlockInfo(blockdata.header.hash);
         expect(blockdata.header).to.deep.equal(blockInfo.header);
     });
-    it('should fetch staking balances', async function() {
-        this.timeout(5*60000);
+    it('should fetch staking balances', async function () {
+        this.timeout(60_000);
         const account_id = 'psalomo.near';
         const stakingpool_id = '01node.poolv1.near';
 
@@ -49,10 +49,28 @@ describe('stakingpool', () => {
         }
     });
 
-    it('should identify staking pool accounts in transactions', async function() {
-        this.timeout(10*60000);
+    it('should identify staking pool accounts in transactions', async function () {
+        this.timeout(10 * 60000);
         const transactions = await getTransactionsToDate('psalomo.near', new Date('2021-05-01').getTime() * 1_000_000);
         const stakingAccounts = findStakingPoolsInTransactions(transactions);
         expect(stakingAccounts.filter(a => a.endsWith('.poolv1.near')).length).to.equal(stakingAccounts.length);
     });
+
+    it('should fetch staking pool accounts', async function () {
+        const accountId = 'psalomo.near';
+        await fetchTransactionsForAccount(accountId, new Date('2021-05-14').getTime() * 1_000_000);
+        const stakingAccounts = await getStakingAccounts(accountId);
+
+        for (const stakingAccount of [
+            '01node.poolv1.near',
+            'nodeasy.poolv1.near',
+            'epic.poolv1.near',
+            'inotel.poolv1.near',
+            'moonlet.poolv1.near',
+            'rekt.poolv1.near'
+        ]) {
+            expect(stakingAccounts).to.contain(stakingAccount);
+        }
+    });
+
 });

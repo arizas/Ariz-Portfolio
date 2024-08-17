@@ -1,5 +1,5 @@
 import html from './yearreport-print.component.html.js';
-import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency, renderYearReportTable } from './yearreport-table-renderer.js';
+import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency, renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-print',
     class extends HTMLElement {
@@ -11,6 +11,8 @@ customElements.define('year-report-print',
             const searchParams = new URLSearchParams(location.search);
             this.token = searchParams.get('token');
             this.year = searchParams.get('year');
+            this.month = searchParams.get('month');
+            this.periodLengthMonths = searchParams.get('nummonths');
             this.convertToCurrency = searchParams.get('currency');
 
             hideProfitLossIfNoConvertToCurrency(this.convertToCurrency, this.shadowRoot);
@@ -22,6 +24,8 @@ customElements.define('year-report-print',
 
         useDataset() {
             this.year = this.dataset.year;
+            this.month = this.dataset.month;
+            this.periodLengthMonths = this.dataset.periodLengthMonths;
             this.convertToCurrency = this.dataset.currency;
             this.token = this.dataset.token;
             hideProfitLossIfNoConvertToCurrency(this.convertToCurrency, this.shadowRoot);
@@ -36,10 +40,12 @@ customElements.define('year-report-print',
 
             const formatNumber = getNumberFormatter(this.convertToCurrency);
 
-            const result = await renderYearReportTable({
+            const result = await renderMonthPeriodReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
                 year: this.year,
+                month: this.month,
+                periodLengthMonths: this.periodLengthMonths,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,
                 perRowFunction: async ({

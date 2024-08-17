@@ -50,23 +50,31 @@ export default /*html*/ `<style>
     }
 </style>
 <div class="row">
-    <div class="col-md-3">
-        <label for="yearselect" class="form-label">Select year</label>   
-        <select id="yearselect" class="form-select"></select>        
+    <div class="col-md-2">
+        <label for="yearselect" class="form-label">Select start year</label>   
+        <select id="yearselect" class="form-select"></select>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
+        <label for="monthselect" class="form-label">Select start month</label>   
+        <select id="monthselect" class="form-select"></select>        
+    </div>
+    <div class="col-md-2">
+        <label for="periodlengthmonths" class="form-label">Number of months</label>   
+        <input id="periodlengthmonths" class="form-control" type="number" min="1" value="12"></id>        
+    </div>
+    <div class="col-md-2">
         <label for="tokenselect" class="form-label">Fungible token</label>
         <select class="form-select" aria-label="Select fungible token" id="tokenselect">
             <option value="">NEAR</option>
         </select>        
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <label for="currencyselect" class="form-label">Currency</label>
         <select class="form-select" aria-label="Select conversion currency" id="currencyselect">
             <option value="">No conversion</option>
         </select>        
     </div>
-    <div class="col-md-3" style="text-align: right">
+    <div class="col-md-2" style="text-align: right">
         <button class="btn btn-light" id="print_all_tokens_button">Print (all tokens)</button>
         <button class="btn btn-light" id="print_current_token_button">Print (selected token)</button>
     </div>

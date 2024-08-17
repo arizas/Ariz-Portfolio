@@ -4,12 +4,6 @@ import cgi from 'cgi';
 import { tmpdir } from 'os';
 import { execSync } from 'child_process';
 
-
-/**
- * This example will create a git http server to repositories on your local disk.
- * Set the GIT_PROJECT_ROOT environment variable to point to location of your git repositories.
- */
-
 export function startServer() {
     const testrepodir = `${tmpdir()}/testrepo.git`;
     fs.rmSync(testrepodir, { recursive: true, force: true });

@@ -1,7 +1,7 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
-import { renderYearReportTable } from './yearreport-table-renderer.js';
+import { renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-page',
     class extends HTMLElement {
@@ -30,6 +30,27 @@ customElements.define('year-report-page',
                 this.year = parseInt(this.yearSelect.value);
                 this.refreshView()
             });
+            this.month = 0;
+            this.monthSelect = this.shadowRoot.querySelector('#monthselect');
+            for (let month = 0; month < 12; month++) {
+                const monthOption = document.createElement('option');
+                monthOption.value = month;
+                monthOption.innerHTML = `${new Date(2020,month,1).toLocaleDateString('en-US', {month: 'long'})}`;
+                if (month === this.month) {
+                    monthOption.selected = true;
+                }
+                this.monthSelect.appendChild(monthOption);
+            }
+            this.monthSelect.addEventListener('change', () => {
+                this.month = parseInt(this.monthSelect.value);
+                this.refreshView()
+            });
+            const periodLengthMonthsInput = this.shadowRoot.querySelector('#periodlengthmonths');
+            this.periodLengthMonths = parseInt(periodLengthMonthsInput.value);
+            periodLengthMonthsInput.addEventListener('change', () => {
+                this.periodLengthMonths = parseInt(periodLengthMonthsInput.value);
+                this.refreshView()
+            });
 
             const tokenselect = this.shadowRoot.querySelector('#tokenselect');
             (await getAllFungibleTokenSymbols()).forEach(symbol => {
@@ -53,11 +74,14 @@ customElements.define('year-report-page',
             this.updateView(currencyselect.value, numDecimals, tokenselect.value);
 
             this.shadowRoot.querySelector('#print_current_token_button').addEventListener('click', () => {
-                window.open(`year-report-print?token=${this.token}&year=${this.year}&currency=${this.convertToCurrency}`);
+                window.open(`year-report-print?token=${this.token}&year=${this.year}&month=${this.month}&nummonths=${this.periodLengthMonths}&currency=${this.convertToCurrency}`);
             });
             this.shadowRoot.querySelector('#print_all_tokens_button').addEventListener('click', () => {
-                window.open(`yearsummary-alltokens-print?year=${this.year}&currency=${this.convertToCurrency}`);
+                window.open(`yearsummary-alltokens-print?year=${this.year}&month=${this.month}&nummonths=${this.periodLengthMonths}&currency=${this.convertToCurrency}`);
             });
+            this.transactionsModalElement = this.shadowRoot.querySelector('#show_transactions_modal');
+            this.showTransactionsModal = new bootstrap.Modal(this.transactionsModalElement);
+
             return this.shadowRoot;
         }
 
@@ -69,9 +93,11 @@ customElements.define('year-report-page',
         }
 
         async refreshView() {
-            await renderYearReportTable({
+            await renderMonthPeriodReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
+                month: this.month,
+                periodLengthMonths: this.periodLengthMonths,
                 year: this.year,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,
@@ -83,28 +109,32 @@ customElements.define('year-report-page',
                     row
                 }) => {
                     row.querySelector('.show_transactions_button').addEventListener('click', () => {
-                        const transactions = transactionsByDate[datestring];
-                        transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
-                        transactionsModalElement.querySelector('.modal-body').innerHTML = `
+                        const transactions = transactionsByDate[datestring].sort((a, b) => Number(BigInt(a.block_timestamp) - BigInt(b.block_timestamp)));
+                        this.transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
+                        this.transactionsModalElement.querySelector('.modal-body').innerHTML = `
                 <div class="table-responsive">
                     <table class="table table-sm table-dark">
                     <thead>
+                        <th>Time</th>
                         <th>Signer</th>
-                        <th>Received</th>
+                        <th>Received</th>                        
                         <th>Changed balance</th>
+                        <th>Attached deposit</th>
                         <th></th>
                     </thead>
                     <tbody>
                     ${transactions ? transactions.map(tx => `<tr>
+                        <td>${new Date(Number(BigInt(tx.block_timestamp) / 1_000_000n)).toJSON().substring('yyyy-MM-dd '.length)}</td>
 ${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalConversionValue}</td>` :
                                 `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
+<td>${nearApi.utils.format.formatNearAmount(tx.args?.deposit)}</td>
 <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</button></a>
 </tr>`).join('') : ''}
                     </tbody>
                     </table>
                     </div>
                 `;
-                        showTransactionsModal.show();
+                        this.showTransactionsModal.show();
                     });
                     const tableElement = this.shadowRoot.querySelector('.table-responsive');
                     tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';

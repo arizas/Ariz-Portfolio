@@ -9,7 +9,7 @@ await startGitServer();
 
 // Start the HTTP server
 const gatewayserver = httpServer.createServer({
-  root: path.join(process.cwd(), "bos_test_gateway/public_html"),
+  root: path.join(process.cwd(), "bos_test_gateway/public_html")
 });
 
 gatewayserver.listen(8080, () => {
@@ -20,6 +20,8 @@ gatewayserver.listen(8080, () => {
 // Start the HTTP server
 const appserver = httpServer.createServer({
   root: path.join(process.cwd(), "dist"),
+  // root: path.join(process.cwd(), "public_html"),
+  proxy: 'http://localhost:8081?'
 });
 
 appserver.listen(8081, () => {

@@ -19,13 +19,14 @@ const importMapStart = indexHtml.indexOf('<script type="importmap">') + '<script
 const importMapEnd = indexHtml.indexOf('</script>', importMapStart);
 const importMap = JSON.parse(indexHtml.substring(importMapStart, importMapEnd));
 
+const storeInArchiveRpcCache = false;
+
 export default {
   files: [
     '**/*.spec.js', // include `.spec.ts` files
     '!./node_modules/**/*', // exclude any node modules
     '!./playwright_tests/**/*' // exclude playwright tests
   ],
-  concurrency: 1,
   watch: false,
   testFramework: {
     config: {
@@ -74,9 +75,10 @@ export default {
                 try {
                   const resultObj = JSON.parse(body);
                   if (!resultObj.error) {
-                    console.log('stored result in cache');
-                    archiveRpcCache[postdata] = JSON.stringify(resultObj);
-                    await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
+                    if (storeInArchiveRpcCache) {
+                      archiveRpcCache[postdata] = JSON.stringify(resultObj);
+                      await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
+                    }
                     return await route.fulfill({ body });
                   } else {
 
