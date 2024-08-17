@@ -5,7 +5,7 @@ import './yearreport-print.component.js';
 import { calculatePeriodStartAndEndDate, renderPeriodReportTable, renderYearReportTable } from "./yearreport-table-renderer.js";
 
 describe('year-report-table-renderer', () => {
-    it.only('should calculate period start and end date', () => {
+    it('should calculate period start and end date', () => {
         const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(2024, 0, 2);
         expect(periodStartDate.toJSON()).to.equal('2024-01-01T00:00:00.000Z');
         expect(periodEndDate.toJSON()).to.equal('2024-02-29T00:00:00.000Z');
