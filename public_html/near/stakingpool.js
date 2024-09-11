@@ -137,14 +137,24 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
         }
 
-        block = await retry(() => getBlockInfo(block.header.next_epoch_id));        
+        let next_epoch_id = block.header.next_epoch_id;
+        let existingStakingBalanceEntryForNextEpoch = stakingBalanceEntries.find(sbe => block.header.next_epoch_id === sbe.next_epoch_id);
+
+        while (existingStakingBalanceEntryForNextEpoch) {
+            next_epoch_id = existingStakingBalanceEntryForNextEpoch.epoch_id;
+            existingStakingBalanceEntryForNextEpoch = stakingBalanceEntries.find(sbe => existingStakingBalanceEntryForNextEpoch.epoch_id === sbe.next_epoch_id);
+        }
+        block = await retry(() => getBlockInfo(next_epoch_id));
         latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height));
     }
 
     for (let stakingTransaction of stakingTransactions) {
         if (!stakingBalanceEntries.find(sbe => sbe.hash === stakingTransaction.hash)) {
-            block = await retry(() => getBlockData(stakingTransaction.block_height));
-
+            if (stakingTransaction.block_height) {
+                block = await retry(() => getBlockData(stakingTransaction.block_height));
+            } else {
+                block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
+            }
             const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 1);
             const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
             if (stakingBalance !== null) {
