@@ -138,7 +138,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
         }
 
         let next_epoch_id = block.header.next_epoch_id;
-        let existingStakingBalanceEntryForNextEpoch = stakingBalanceEntries.find(sbe => block.header.next_epoch_id === sbe.next_epoch_id);
+        let existingStakingBalanceEntryForNextEpoch = stakingBalanceEntries.find(sbe => block.header.next_epoch_id === sbe.epoch_id);
 
         while (existingStakingBalanceEntryForNextEpoch) {
             next_epoch_id = existingStakingBalanceEntryForNextEpoch.epoch_id;
