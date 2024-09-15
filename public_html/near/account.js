@@ -1,5 +1,5 @@
-import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
+import { getFromNearBlocks } from './nearblocks.js';
 import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
 import { getBlockInfo } from './stakingpool.js';
@@ -93,40 +93,25 @@ export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, 
 }
 
 export async function getNearblocksAccountHistory(account_id, maxentries = 25, page = 1) {
-    const url = `https://api.nearblocks.io/v1/account/${account_id}/txns?page=${page}&per_page=${maxentries}&order=desc`;
-    for (let n = 0; n < 5; n++) {
-        const response = await fetch(url, {
-            mode: 'cors'
-        });
+    const path = `/v1/account/${account_id}/txns?page=${page}&per_page=${maxentries}&order=desc`;
 
-        let result;
-        if (response.ok) {
-            result = await response.json();
-        } else if (response.status === 429) {
-            console.error('too many requests', response, 'retry in 30 seconds. Attempt no', (n + 1));
-            await new Promise(resolve => setTimeout(() => resolve(), 30_000));
-            continue;
-        } else {
-            console.log(response);
-            throw new Error(`${response.status}: ${await response.text()}`);
-        }
+    const result = await getFromNearBlocks(path);
 
-        const mappedResult = result.txns.map(tx => (
-            {
-                "block_hash": tx.included_in_block_hash,
-                "block_height": tx.block.block_height,
-                "block_timestamp": tx.block_timestamp,
-                "hash": tx.transaction_hash,
-                "signer_id": tx.predecessor_account_id,
-                "receiver_id": tx.receiver_account_id,
-                "action_kind": tx.actions ? tx.actions[0].action : null,
-                "args": {
-                    "method_name": tx.actions ? tx.actions[0].method : null
-                }
+    const mappedResult = result.txns.map(tx => (
+        {
+            "block_hash": tx.included_in_block_hash,
+            "block_height": tx.block.block_height,
+            "block_timestamp": tx.block_timestamp,
+            "hash": tx.transaction_hash,
+            "signer_id": tx.predecessor_account_id,
+            "receiver_id": tx.receiver_account_id,
+            "action_kind": tx.actions ? tx.actions[0].action : null,
+            "args": {
+                "method_name": tx.actions ? tx.actions[0].method : null
             }
-        ));
-        return mappedResult;
-    }
+        }
+    ));
+    return mappedResult;
 }
 
 export async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 25, startPage = 1) {
@@ -269,7 +254,7 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
         }
         if (!receiptForTransactionFound) {
             numberOfBlocksWithoutATrace++;
-            if (numberOfBlocksWithoutATrace === 10 ) {
+            if (numberOfBlocksWithoutATrace === 10) {
                 throw new Error(`No transaction or receipts found for transaction ${tx_hash} by ${account_id} in block ${given_block_height}`);
             }
         } else {

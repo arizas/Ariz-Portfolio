@@ -31,7 +31,7 @@ export default {
   testFramework: {
     config: {
       ui: 'bdd',
-      timeout: '20000',
+      timeout: '120000',
     },
   },
   plugins: [importMapsPlugin({
@@ -102,14 +102,31 @@ export default {
         }
         await ctx.route('https://api.nearblocks.io/**/*', async (route) => {
           const url = route.request().url();
-          if (!nearblockscache[url]) {
-            const response = await route.fetch();
-            const body = await response.text();
-            nearblockscache[url] = body;
-            await writeFile(nearBlocksCacheURL, JSON.stringify(nearblockscache, null, 1));
+          let headers = {};
+          let body = nearblockscache[url];
+          let status = 200;
+
+          if (body === undefined) {
+            try {
+              response = await route.fetch();
+              status = response.status();
+              body = await response.text();
+              if (response.ok()) {
+                nearblockscache[url] = body;
+                await writeFile(nearBlocksCacheURL, JSON.stringify(nearblockscache, null, 1));
+              }
+            } catch(e) {
+              
+            }
+          } else {
+            headers = {
+              'Access-Control-Expose-Headers': 'X-Cache-Hit',
+              'X-Cache-Hit': 'true'
+            };
           }
-          const body = nearblockscache[url];
-          await route.fulfill({ body });
+          await route.fulfill({
+            body, headers, status
+          });
         });
         await ctx.route('https://arizgateway.azurewebsites.net/**/*', async (route) => {
           let url = route.request().url();

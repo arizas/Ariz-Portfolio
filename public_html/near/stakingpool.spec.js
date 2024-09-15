@@ -1,7 +1,7 @@
 import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData, getBlockInfo, getStakingAccounts } from './stakingpool.js';
 import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount, writeTransactions } from '../storage/domainobjectstore.js';
-import { dokiacapitaltransactions, dokiaCapitalStakingBalances, sweedenpooltransactions, swedenPoolStakingBalances } from '../../testdata/stakingbalances.js';
+import { dokiacapitaltransactions, dokiaCapitalStakingBalances } from '../../testdata/stakingbalances.js';
 
 describe('stakingpool', () => {
     it('should get account balance', async function () {
