@@ -63,8 +63,8 @@ export async function getAccountBalanceInPool(stakingpool_id, account_id, block_
     if (resultObj && !resultObj.error) {
         return parseInt(resultObj.result.result.map(c => String.fromCharCode(c)).join('').replace(/\"/g, ''));
     } else {
-        console.log('error getting staking account balance', stakingpool_id, account_id, block_id, resultObj);
-        return null;
+        console.error(resultObj.error);
+        throw new Error(`Error getting staking account balance for staking pool ${stakingpool_id}, account ${account_id}, block_id ${block_id}. Result: ${JSON.stringify(resultObj?.error)}`);
     }
 
 }
@@ -101,14 +101,20 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
 
     const maxBlockTimeStamp = block.header.timestamp;
 
-    let latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.height);
-    if (latestBalance == 0) {
+    let latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id);
+    console.log(`staking pool ${stakingpool_id} balance for account ${account_id} in block ${block.header.height} is ${latestBalance}`);
+    if (latestBalance === 0) {
+        console.log(`Looking for block for last staking transaction from date ${new Date(stakingTransactions[0].block_timestamp / 1_000_000)}`);
         if (stakingTransactions[0].block_height) {
             block = await getBlockData(stakingTransactions[0].block_height);
         } else {
             block = await getBlockInfo(stakingTransactions[0].block_hash);
         }
-        latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.height);
+        latestBalance = stakingBalanceEntries.find(sbe => sbe.epoch_id === block.header.epoch_id)?.balance;
+        if (latestBalance === undefined) {
+            latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id);
+        }
+        console.log(`staking pool ${stakingpool_id} balance for account ${account_id} in block ${block.header.height} (${new Date(block.header.timestamp / 1_000_000)}}) is ${latestBalance}`);
     }
     let currentlatestEpochId = stakingBalanceEntries.length > 0 ? stakingBalanceEntries[0].epoch_id : null;
 
@@ -145,7 +151,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             existingStakingBalanceEntryForNextEpoch = stakingBalanceEntries.find(sbe => existingStakingBalanceEntryForNextEpoch.epoch_id === sbe.next_epoch_id);
         }
         block = await retry(() => getBlockInfo(next_epoch_id));
-        latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height));
+        latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id));
     }
 
     for (let stakingTransaction of stakingTransactions) {
@@ -155,9 +161,9 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             } else {
                 block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
             }
-            const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 1);
-            const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
-            if (stakingBalance !== null) {
+            if (!stakingBalanceEntries.find(sbe => sbe.epoch_id === block.header.epoch_id)) {
+                const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id), 4);
+                const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
                 stakingBalanceEntries.push({
                     timestamp,
                     balance: stakingBalance,
@@ -168,8 +174,6 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
                     deposit: stakingTransaction.signer_id == account_id ? parseInt(stakingTransaction.args.deposit) : 0,
                     withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
                 });
-            } else {
-                console.log('no staking balance', timestamp, stakingBalance, stakingpool_id, account_id, stakingTransaction.block_hash)
             }
         }
     }

@@ -1,7 +1,7 @@
 import { fetchAllStakingEarnings, findStakingPoolsInTransactions, getAccountBalanceInPool, getBlockData, getBlockInfo, getStakingAccounts } from './stakingpool.js';
 import { getTransactionsToDate } from './account.js';
 import { fetchTransactionsForAccount, writeTransactions } from '../storage/domainobjectstore.js';
-import { stakingBalances } from '../../testdata/stakingbalances.js';
+import { dokiacapitaltransactions, dokiaCapitalStakingBalances, sweedenpooltransactions, swedenPoolStakingBalances } from '../../testdata/stakingbalances.js';
 
 describe('stakingpool', () => {
     it('should get account balance', async function () {
@@ -55,133 +55,13 @@ describe('stakingpool', () => {
         const account_id = 'petersalomonsen.near';
         const stakingpool_id = 'dokiacapital.poolv1.near';
 
-        const stakingTransactions = [
-            {
-                block_hash: 'HRNCVGdq8RtbeTEAmyjbjrHSFqAg5sQrMRveaHkALvE5',
-                block_timestamp: '1700805291286078571',
-                hash: 'Gu7kjCsPaoYQUdQpvxHm6L2LvStZ6go7AGFypQWpNCJx',
-                action_index: 0,
-                signer_id: 'dokiacapital.poolv1.near',
-                receiver_id: 'petersalomonsen.near',
-                action_kind: 'TRANSFER',
-                args: { deposit: '107781876121379430562795333' },
-                balance: '140070757487458768247810272'
-            },
-            {
-                block_hash: 'ByGmv11KH9T8N1ULwLMXN31BJ1upMf8Ry5Rfi2v4ZMC4',
-                block_timestamp: '1700805289955243055',
-                hash: 'Gu7kjCsPaoYQUdQpvxHm6L2LvStZ6go7AGFypQWpNCJx',
-                action_index: 0,
-                signer_id: 'petersalomonsen.near',
-                receiver_id: 'dokiacapital.poolv1.near',
-                action_kind: 'FUNCTION_CALL',
-                args: {
-                    gas: 175000000000000,
-                    deposit: '0',
-                    args_json: {},
-                    method_name: 'withdraw_all'
-                },
-                balance: '140070757487458768247810272'
-            },
-            {
-                block_hash: '9pSfArFzMaVHGL98N4pQZNU5FqCxCgogkfTqiqxHLA5Z',
-                block_timestamp: '1700501307576148206',
-                hash: '8b3CKnA6y7PKHr4TFz6X4ntJ4PHWtQTHpkdtzqkbHL4e',
-                action_index: 0,
-                signer_id: 'petersalomonsen.near',
-                receiver_id: 'dokiacapital.poolv1.near',
-                action_kind: 'FUNCTION_CALL',
-                args: {
-                    gas: 125000000000000,
-                    deposit: '0',
-                    args_json: {},
-                    method_name: 'unstake_all'
-                },
-                balance: '28550460865852622885014943'
-            },
-            {
-                block_hash: '2BbALSrcbohGrUxujSrDbVYG6TsNKhUE3VBqnNHkAeJ6',
-                block_timestamp: '1670965041080322963',
-                hash: '4syZCwYR9MdRvfPPV1FCt6XPtdSQX2PGyfA58tcbBy4w',
-                action_index: 0,
-                signer_id: 'petersalomonsen.near',
-                receiver_id: 'dokiacapital.poolv1.near',
-                action_kind: 'FUNCTION_CALL',
-                args: {
-                    gas: 125000000000000,
-                    deposit: '100000000000000000000000000',
-                    args_json: {},
-                    method_name: 'deposit_and_stake'
-                },
-                balance: '35952228543679286747001536'
-            },
-            {
-                block_hash: '991n8RQDRHSMP54aKLorU2thwdU6U6CXzQzB3NQM4H2x',
-                block_timestamp: '1670965004801621827',
-                hash: 'GJof1hwvnEtw3TpV5K9XZwpQfxrYgM2af38EHmdUnZSW',
-                action_index: 0,
-                signer_id: 'dokiacapital.poolv1.near',
-                receiver_id: 'petersalomonsen.near',
-                action_kind: 'TRANSFER',
-                args: { deposit: '111780575950537918979824444' },
-                balance: '135953495946786343047001536'
-            },
-            {
-                block_hash: 'A2rbaqpKfiY3471AfGkxQEB5hLkBKMJYQEdSwBTQEADx',
-                block_timestamp: '1670965003692394709',
-                hash: 'GJof1hwvnEtw3TpV5K9XZwpQfxrYgM2af38EHmdUnZSW',
-                action_index: 0,
-                signer_id: 'petersalomonsen.near',
-                receiver_id: 'dokiacapital.poolv1.near',
-                action_kind: 'FUNCTION_CALL',
-                args: {
-                    gas: 175000000000000,
-                    deposit: '0',
-                    args_json: {},
-                    method_name: 'withdraw_all'
-                },
-                balance: '135953495946786343047001536'
-            },
-            {
-                block_hash: 'BD7d8dMnUHrUKbwJdmoMminzP89z6GifY3L7WtEVmtmf',
-                block_timestamp: '1670648821661501076',
-                hash: '8EDs6Rn1LPmG5hFopCErGTTYA5YTGxEbNeBNb37Jkrfg',
-                action_index: 0,
-                signer_id: 'petersalomonsen.near',
-                receiver_id: 'dokiacapital.poolv1.near',
-                action_kind: 'FUNCTION_CALL',
-                args: {
-                    gas: 125000000000000,
-                    deposit: '0',
-                    args_json: {},
-                    method_name: 'unstake_all'
-                },
-                balance: '24190526013605135667177092'
-            },
-            {
-                block_hash: 'BLvLAPGrsdsfN9TfoJzTDqxXgrrnG2hE5RoGUBPCPzay',
-                block_timestamp: '1635612819158468503',
-                hash: 'FShAiHofxY2MA6KEvnPoeQyyP9stAs7n91m3LAGASKPY',
-                action_index: 0,
-                signer_id: 'petersalomonsen.near',
-                receiver_id: 'dokiacapital.poolv1.near',
-                action_kind: 'FUNCTION_CALL',
-                args: {
-                    gas: 125000000000000,
-                    deposit: '100000000000000000000000000',
-                    args_json: {},
-                    args_base64: 'e30=',
-                    method_name: 'deposit_and_stake'
-                },
-                balance: '57076767884778730300000000'
-            }
-        ];
+        const stakingTransactions = dokiacapitaltransactions;
         await writeTransactions(account_id, stakingTransactions);
 
         const first_block = 106501900 + 43_200 * 3;
-        const newStakingBalances = await fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalances, first_block);
+        const newStakingBalances = await fetchAllStakingEarnings(stakingpool_id, account_id, dokiaCapitalStakingBalances, first_block);
         
-        expect(newStakingBalances.length).to.equal(stakingBalances.length);
+        expect(newStakingBalances.length).to.equal(dokiaCapitalStakingBalances.length);
     });
 
     it('should identify staking pool accounts in transactions', async function () {
