@@ -1,10 +1,10 @@
-export const MAX_CALLS_PER_MINUTE = 6;
+export const MAX_CALLS_PER_MINUTE = 5;
 let lastCountStartTime = new Date().getTime();
 let countSinceStartTime = 0;
 
 export async function getFromNearBlocks(path) {
     countSinceStartTime++;
-    if (countSinceStartTime >= MAX_CALLS_PER_MINUTE) {
+    if (countSinceStartTime > MAX_CALLS_PER_MINUTE) {
         const timeoutMillis = lastCountStartTime + 60_000 - new Date().getTime();
         if (timeoutMillis > 0) {
             await new Promise(resolve => setTimeout(() => resolve(), timeoutMillis));

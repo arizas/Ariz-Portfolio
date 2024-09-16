@@ -108,15 +108,15 @@ export default {
 
           if (body === undefined) {
             try {
-              response = await route.fetch();
+              const response = await route.fetch();
               status = response.status();
               body = await response.text();
-              if (response.ok()) {
+              if (response.ok() && !url.endsWith('/v1/blocks/count')) {
                 nearblockscache[url] = body;
                 await writeFile(nearBlocksCacheURL, JSON.stringify(nearblockscache, null, 1));
               }
-            } catch(e) {
-              
+            } catch (e) {
+              await writeFile('routeerror.txt', `${url} ${status} ${JSON.stringify(headers)}: ${body}, ${e}`);
             }
           } else {
             headers = {
@@ -124,6 +124,7 @@ export default {
               'X-Cache-Hit': 'true'
             };
           }
+
           await route.fulfill({
             body, headers, status
           });
