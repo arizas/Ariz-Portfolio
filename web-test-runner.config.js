@@ -74,15 +74,11 @@ export default {
                 const body = await response.text();
                 try {
                   const resultObj = JSON.parse(body);
-                  if (!resultObj.error) {
-                    if (storeInArchiveRpcCache) {
-                      archiveRpcCache[postdata] = JSON.stringify(resultObj);
-                      await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
-                    }
-                    return await route.fulfill({ body });
-                  } else {
-
+                  if (!resultObj.error && storeInArchiveRpcCache) {
+                    archiveRpcCache[postdata] = JSON.stringify(resultObj);
+                    await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
                   }
+                  return await route.fulfill({ body });                  
                 } catch (e) {
                   console.log('failed parsing result', e);
                 }
