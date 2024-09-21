@@ -46,6 +46,7 @@ describe('stakingpool', () => {
                 stakingBalanceEntry.deposit -
                 stakingBalanceEntry.withdrawal
             );
+            expect(stakingBalanceEntry.epoch_id).to.equal(stakingBalances[n + 1].next_epoch_id, `${JSON.stringify(stakingBalanceEntry, null, 1)}\n${JSON.stringify(stakingBalances[n + 1], null, 1)}`);
         }
     });
 
@@ -59,7 +60,7 @@ describe('stakingpool', () => {
 
         const first_block = 106501900 + 43_200 * 3;
         const newStakingBalances = await fetchAllStakingEarnings(stakingpool_id, account_id, dokiaCapitalStakingBalances, first_block);
-        
+
         expect(newStakingBalances.length).to.equal(dokiaCapitalStakingBalances.length);
     });
 

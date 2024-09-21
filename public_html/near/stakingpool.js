@@ -101,7 +101,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
 
     const maxBlockTimeStamp = block.header.timestamp;
 
-    let latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id);
+    let latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.height);
     console.log(`staking pool ${stakingpool_id} balance for account ${account_id} in block ${block.header.height} is ${latestBalance}`);
     if (latestBalance === 0) {
         console.log(`Looking for block for last staking transaction from date ${new Date(stakingTransactions[0].block_timestamp / 1_000_000)}`);
@@ -112,7 +112,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
         }
         latestBalance = stakingBalanceEntries.find(sbe => sbe.epoch_id === block.header.epoch_id)?.balance;
         if (latestBalance === undefined) {
-            latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id);
+            latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.height);
         }
         console.log(`staking pool ${stakingpool_id} balance for account ${account_id} in block ${block.header.height} (${new Date(block.header.timestamp / 1_000_000)}}) is ${latestBalance}`);
     }
@@ -123,6 +123,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
     while (true) {
         setProgressbarValue(1 - ((block.header.timestamp - firstStakingTransactionTimeStamp) / (maxBlockTimeStamp - firstStakingTransactionTimeStamp)),
             `${account_id} / ${stakingpool_id} ${new Date(block.header.timestamp / 1_000_000).toDateString()}`)
+
 
         if (block.header.epoch_id == currentlatestEpochId ||
             block.header.timestamp < firstStakingTransactionTimeStamp) {
@@ -143,15 +144,17 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
         }
 
-        let next_epoch_id = block.header.next_epoch_id;
-        let existingStakingBalanceEntryForNextEpoch = stakingBalanceEntries.find(sbe => block.header.next_epoch_id === sbe.epoch_id);
+        let currentBlockHeight = block.header.height;
+        let previousEpochStakingBalanceEntry = stakingBalanceEntries.find(sbe => block.header.epoch_id === sbe.next_epoch_id);
 
-        while (existingStakingBalanceEntryForNextEpoch) {
-            next_epoch_id = existingStakingBalanceEntryForNextEpoch.epoch_id;
-            existingStakingBalanceEntryForNextEpoch = stakingBalanceEntries.find(sbe => existingStakingBalanceEntryForNextEpoch.epoch_id === sbe.next_epoch_id);
+        while (previousEpochStakingBalanceEntry) {
+            currentBlockHeight = previousEpochStakingBalanceEntry.block_height;
+            previousEpochStakingBalanceEntry = stakingBalanceEntries.find(sbe => previousEpochStakingBalanceEntry.epoch_id === sbe.next_epoch_id);
         }
-        block = await retry(() => getBlockInfo(next_epoch_id));
-        latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id));
+
+
+        block = await retry(() => getBlockData(currentBlockHeight - 43_200));
+        latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height));
     }
 
     for (let stakingTransaction of stakingTransactions) {
@@ -162,7 +165,7 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
                 block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
             }
             if (!stakingBalanceEntries.find(sbe => sbe.epoch_id === block.header.epoch_id)) {
-                const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.epoch_id), 4);
+                const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 4);
                 const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
                 stakingBalanceEntries.push({
                     timestamp,
