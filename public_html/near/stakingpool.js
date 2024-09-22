@@ -144,17 +144,21 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             stakingBalanceEntries.splice(insertIndex++, 0, stakingBalanceEntry);
         }
 
-        let currentBlockHeight = block.header.height;
+        // block.header.next_epoch_id is the same as the id of last block in the previous epoch
+        let previousEpochLatestBlockId = block.header.next_epoch_id;
         let previousEpochStakingBalanceEntry = stakingBalanceEntries.find(sbe => block.header.epoch_id === sbe.next_epoch_id);
 
         while (previousEpochStakingBalanceEntry) {
-            currentBlockHeight = previousEpochStakingBalanceEntry.block_height;
+            previousEpochLatestBlockId = previousEpochStakingBalanceEntry.next_epoch_id;
             previousEpochStakingBalanceEntry = stakingBalanceEntries.find(sbe => previousEpochStakingBalanceEntry.epoch_id === sbe.next_epoch_id);
         }
 
-
-        block = await retry(() => getBlockData(currentBlockHeight - 43_200));
-        latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height));
+        block = await retry(() => getBlockInfo(previousEpochLatestBlockId));
+        try {
+            latestBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 0);
+        } catch(e) {
+            console.warn(`error fetching staking balance ${stakingpool_id} ${account_id} ${block.header.height}. Skipping.`, e);
+        }
     }
 
     for (let stakingTransaction of stakingTransactions) {
