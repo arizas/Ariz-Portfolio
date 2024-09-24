@@ -12939,3 +12939,7628 @@ export const dokiacapitaltransactions = [
         balance: '57076767884778730300000000'
     }
 ];
+
+export const nearDevGovStakingBalances = [
+    {
+        "timestamp": "2024-09-15T06:41:10.278Z",
+        "balance": 1.0356271045777196e+26,
+        "block_height": 128091761,
+        "epoch_id": "EUVYKXbDnaySkZUReEbA37oCGhggGC7iYFZhpobc5Y4w",
+        "next_epoch_id": "EQ4R81dVRvRWgb3nEAZj3juWUEDmWeuNfpvAkrXJxtYj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2422784702995981e+22
+    },
+    {
+        "timestamp": "2024-09-14T09:00:56.157Z",
+        "balance": 1.0355028767306896e+26,
+        "block_height": 128021278,
+        "epoch_id": "BcFvqvsf36V2VVWRTU1NbaZDjcmT9rrTgm4UDH5LLb1Y",
+        "next_epoch_id": "EUVYKXbDnaySkZUReEbA37oCGhggGC7iYFZhpobc5Y4w",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2413738435035089e+22
+    },
+    {
+        "timestamp": "2024-09-13T20:17:28.177Z",
+        "balance": 1.0353787393463393e+26,
+        "block_height": 127979919,
+        "epoch_id": "29oyp3KqVtx2S3Pmo5XATKmSAGnY2qgHapJ8mnEgQaeZ",
+        "next_epoch_id": "BcFvqvsf36V2VVWRTU1NbaZDjcmT9rrTgm4UDH5LLb1Y",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2467857837559837e+22
+    },
+    {
+        "timestamp": "2024-09-13T17:56:03.535Z",
+        "balance": 1.0352540607679637e+26,
+        "block_height": 127972310,
+        "epoch_id": "4duFpgwcxHjtyc8CX1uEJtovduKYEZWWfMzGGLyjx22i",
+        "next_epoch_id": "29oyp3KqVtx2S3Pmo5XATKmSAGnY2qgHapJ8mnEgQaeZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.248300246404312e+22
+    },
+    {
+        "timestamp": "2024-09-12T19:44:53.798Z",
+        "balance": 1.0351292307433232e+26,
+        "block_height": 127900411,
+        "epoch_id": "5XizAVFY85eUEuWGrrGj6pdELSEob9iGJL8Fh1johJB8",
+        "next_epoch_id": "4duFpgwcxHjtyc8CX1uEJtovduKYEZWWfMzGGLyjx22i",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2954638260245476e+22
+    },
+    {
+        "timestamp": "2024-09-12T15:14:35.277Z",
+        "balance": 1.0349996843607208e+26,
+        "block_height": 127885910,
+        "epoch_id": "28QA1pJVtzYJ4eRiBvDEZeohmFZ3uG2e9qNW2bTBDJvs",
+        "next_epoch_id": "5XizAVFY85eUEuWGrrGj6pdELSEob9iGJL8Fh1johJB8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.629737691513803e+22
+    },
+    {
+        "timestamp": "2024-09-11T11:17:43.080Z",
+        "balance": 1.0347367105915694e+26,
+        "block_height": 127799510,
+        "epoch_id": "7TUPSvHkWBZS81zzqHi16C2PheG7dJ6svjyvXeH5vWmk",
+        "next_epoch_id": "EsEQwWtjtURiwejU64TR5CVR37kCv6fWi5nN7W4yVRCs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-11T11:17:43.080Z",
+        "balance": 1.0347367105915694e+26,
+        "block_height": 127799510,
+        "epoch_id": "7TUPSvHkWBZS81zzqHi16C2PheG7dJ6svjyvXeH5vWmk",
+        "next_epoch_id": "EsEQwWtjtURiwejU64TR5CVR37kCv6fWi5nN7W4yVRCs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2701351282094652e+22
+    },
+    {
+        "timestamp": "2024-09-10T21:20:21.682Z",
+        "balance": 1.0346096970787484e+26,
+        "block_height": 127756310,
+        "epoch_id": "EuzPvfoXd71sfgPRVoiGME3muncV5h3bhkJMc8bm3CCp",
+        "next_epoch_id": "7TUPSvHkWBZS81zzqHi16C2PheG7dJ6svjyvXeH5vWmk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-10T21:20:21.682Z",
+        "balance": 1.0346096970787484e+26,
+        "block_height": 127756310,
+        "epoch_id": "EuzPvfoXd71sfgPRVoiGME3muncV5h3bhkJMc8bm3CCp",
+        "next_epoch_id": "7TUPSvHkWBZS81zzqHi16C2PheG7dJ6svjyvXeH5vWmk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.566250342139058e+22
+    },
+    {
+        "timestamp": "2024-09-09T18:01:07.838Z",
+        "balance": 1.0343530720445345e+26,
+        "block_height": 127669910,
+        "epoch_id": "5LKoXYXUkWH9TryL4d7DM5DKLZiEMNnjUCSPrxhsA5Y3",
+        "next_epoch_id": "A6faGmnyqHh6gZYa8bX8NjrPuPYqY3eG1TtzDS67GXp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-09T18:01:07.838Z",
+        "balance": 1.0343530720445345e+26,
+        "block_height": 127669910,
+        "epoch_id": "5LKoXYXUkWH9TryL4d7DM5DKLZiEMNnjUCSPrxhsA5Y3",
+        "next_epoch_id": "A6faGmnyqHh6gZYa8bX8NjrPuPYqY3eG1TtzDS67GXp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2576669888767595e+22
+    },
+    {
+        "timestamp": "2024-09-09T04:43:01.339Z",
+        "balance": 1.0342273053456469e+26,
+        "block_height": 127626710,
+        "epoch_id": "E6ZuoRwoYsbcTkDVRVStQ4TLJCEtQCd4zkFqfCfgM9e8",
+        "next_epoch_id": "5LKoXYXUkWH9TryL4d7DM5DKLZiEMNnjUCSPrxhsA5Y3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-09T04:43:01.339Z",
+        "balance": 1.0342273053456469e+26,
+        "block_height": 127626710,
+        "epoch_id": "E6ZuoRwoYsbcTkDVRVStQ4TLJCEtQCd4zkFqfCfgM9e8",
+        "next_epoch_id": "5LKoXYXUkWH9TryL4d7DM5DKLZiEMNnjUCSPrxhsA5Y3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.5597301175733566e+22
+    },
+    {
+        "timestamp": "2024-09-08T01:47:25.708Z",
+        "balance": 1.0339713323338895e+26,
+        "block_height": 127540310,
+        "epoch_id": "8f5hSjPaLSh9eVyq8heVpoVsuWGDUwfb44gvTW51gez8",
+        "next_epoch_id": "DSRM4oErXpURAktMb8N3VTCuumhxmBR6fDFcPtzsZqfa",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-08T01:47:25.708Z",
+        "balance": 1.0339713323338895e+26,
+        "block_height": 127540310,
+        "epoch_id": "8f5hSjPaLSh9eVyq8heVpoVsuWGDUwfb44gvTW51gez8",
+        "next_epoch_id": "DSRM4oErXpURAktMb8N3VTCuumhxmBR6fDFcPtzsZqfa",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2855086003565474e+22
+    },
+    {
+        "timestamp": "2024-09-07T12:15:54.335Z",
+        "balance": 1.0338427814738539e+26,
+        "block_height": 127497110,
+        "epoch_id": "EmXfxjWYb4nhcuNzXjorqysMHCj1MBRxyLiju4GtefLc",
+        "next_epoch_id": "8f5hSjPaLSh9eVyq8heVpoVsuWGDUwfb44gvTW51gez8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-07T12:15:54.335Z",
+        "balance": 1.0338427814738539e+26,
+        "block_height": 127497110,
+        "epoch_id": "EmXfxjWYb4nhcuNzXjorqysMHCj1MBRxyLiju4GtefLc",
+        "next_epoch_id": "8f5hSjPaLSh9eVyq8heVpoVsuWGDUwfb44gvTW51gez8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.6167538575881703e+22
+    },
+    {
+        "timestamp": "2024-09-06T09:08:08.252Z",
+        "balance": 1.033581106088095e+26,
+        "block_height": 127410710,
+        "epoch_id": "53f9XpSxYhvMmg3QoUDCHEcKKL2U3DgXUumWzY2jQUYw",
+        "next_epoch_id": "Bjssb1BBQaEm45VKEpp8ZtfuvEnMWdn9KFs87wUxijji",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-06T09:08:08.252Z",
+        "balance": 1.033581106088095e+26,
+        "block_height": 127410710,
+        "epoch_id": "53f9XpSxYhvMmg3QoUDCHEcKKL2U3DgXUumWzY2jQUYw",
+        "next_epoch_id": "Bjssb1BBQaEm45VKEpp8ZtfuvEnMWdn9KFs87wUxijji",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.375409635807523e+22
+    },
+    {
+        "timestamp": "2024-09-05T19:00:01.931Z",
+        "balance": 1.0334435651245143e+26,
+        "block_height": 127367510,
+        "epoch_id": "Hy1dhpHQLQASUdGuEJqYdxJqzhHLCDZojHPVu2BBG7pc",
+        "next_epoch_id": "53f9XpSxYhvMmg3QoUDCHEcKKL2U3DgXUumWzY2jQUYw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-05T19:00:01.931Z",
+        "balance": 1.0334435651245143e+26,
+        "block_height": 127367510,
+        "epoch_id": "Hy1dhpHQLQASUdGuEJqYdxJqzhHLCDZojHPVu2BBG7pc",
+        "next_epoch_id": "53f9XpSxYhvMmg3QoUDCHEcKKL2U3DgXUumWzY2jQUYw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.5827340024982394e+22
+    },
+    {
+        "timestamp": "2024-09-04T14:10:57.001Z",
+        "balance": 1.0331852917242645e+26,
+        "block_height": 127281110,
+        "epoch_id": "6QKmvuZcPLLZXyyBJst68kz5ayyvKQA676KmxcuisB5f",
+        "next_epoch_id": "3hmqJ7Stifr7D9MewDik5ct6iUZYDsSfENbP39bu4YW1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-04T14:10:57.001Z",
+        "balance": 1.0331852917242645e+26,
+        "block_height": 127281110,
+        "epoch_id": "6QKmvuZcPLLZXyyBJst68kz5ayyvKQA676KmxcuisB5f",
+        "next_epoch_id": "3hmqJ7Stifr7D9MewDik5ct6iUZYDsSfENbP39bu4YW1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2760205659735643e+22
+    },
+    {
+        "timestamp": "2024-09-04T00:44:33.755Z",
+        "balance": 1.0330576896676671e+26,
+        "block_height": 127237910,
+        "epoch_id": "F3MsVSNPZM3ph2STPN1sRxiYoR7G4eB3kE9DLDRUCoz2",
+        "next_epoch_id": "6QKmvuZcPLLZXyyBJst68kz5ayyvKQA676KmxcuisB5f",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-04T00:44:33.755Z",
+        "balance": 1.0330576896676671e+26,
+        "block_height": 127237910,
+        "epoch_id": "F3MsVSNPZM3ph2STPN1sRxiYoR7G4eB3kE9DLDRUCoz2",
+        "next_epoch_id": "6QKmvuZcPLLZXyyBJst68kz5ayyvKQA676KmxcuisB5f",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.537577824535557e+22
+    },
+    {
+        "timestamp": "2024-09-02T21:42:03.877Z",
+        "balance": 1.0328039318852136e+26,
+        "block_height": 127151510,
+        "epoch_id": "HKYto62ZJUT8cBX1rB43XLxSNRXrsebJrGPvTvKmjQej",
+        "next_epoch_id": "Ak7FX6fbJ32kwv9yonhMDPS316R7r1devPYEwZtfsdQg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-02T21:42:03.877Z",
+        "balance": 1.0328039318852136e+26,
+        "block_height": 127151510,
+        "epoch_id": "HKYto62ZJUT8cBX1rB43XLxSNRXrsebJrGPvTvKmjQej",
+        "next_epoch_id": "Ak7FX6fbJ32kwv9yonhMDPS316R7r1devPYEwZtfsdQg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2694431749567846e+22
+    },
+    {
+        "timestamp": "2024-09-02T08:11:37.775Z",
+        "balance": 1.0326769875677179e+26,
+        "block_height": 127108310,
+        "epoch_id": "CTpotscZooSwUpDzNfJMbDmwSZhqzzoQsQnd6SNTMhH6",
+        "next_epoch_id": "HKYto62ZJUT8cBX1rB43XLxSNRXrsebJrGPvTvKmjQej",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-02T08:11:37.775Z",
+        "balance": 1.0326769875677179e+26,
+        "block_height": 127108310,
+        "epoch_id": "CTpotscZooSwUpDzNfJMbDmwSZhqzzoQsQnd6SNTMhH6",
+        "next_epoch_id": "HKYto62ZJUT8cBX1rB43XLxSNRXrsebJrGPvTvKmjQej",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.55300375971675e+22
+    },
+    {
+        "timestamp": "2024-09-01T05:10:45.596Z",
+        "balance": 1.0324216871917462e+26,
+        "block_height": 127021910,
+        "epoch_id": "CLWbunbnu93k1TMdC9ifPmymJEJSR73soQdJF9znqBMy",
+        "next_epoch_id": "7w1ScKPsVS1hmjVd7eCwqtgWFUW9JbtLe2HdGivinoym",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-09-01T05:10:45.596Z",
+        "balance": 1.0324216871917462e+26,
+        "block_height": 127021910,
+        "epoch_id": "CLWbunbnu93k1TMdC9ifPmymJEJSR73soQdJF9znqBMy",
+        "next_epoch_id": "7w1ScKPsVS1hmjVd7eCwqtgWFUW9JbtLe2HdGivinoym",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3261123961337657e+22
+    },
+    {
+        "timestamp": "2024-08-31T15:42:13.095Z",
+        "balance": 1.0322890759521328e+26,
+        "block_height": 126978710,
+        "epoch_id": "5mdXXT7peakSchQ8QZwugFpMbLosDKEUh98dkAXdUdkx",
+        "next_epoch_id": "CLWbunbnu93k1TMdC9ifPmymJEJSR73soQdJF9znqBMy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-31T15:42:13.095Z",
+        "balance": 1.0322890759521328e+26,
+        "block_height": 126978710,
+        "epoch_id": "5mdXXT7peakSchQ8QZwugFpMbLosDKEUh98dkAXdUdkx",
+        "next_epoch_id": "CLWbunbnu93k1TMdC9ifPmymJEJSR73soQdJF9znqBMy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.5935631587881146e+22
+    },
+    {
+        "timestamp": "2024-08-30T11:23:53.876Z",
+        "balance": 1.032029719636254e+26,
+        "block_height": 126892310,
+        "epoch_id": "8m62bPdu4Wmh5EEyLWEJyXybTxhVzpTnvYVwg4Sxwcdn",
+        "next_epoch_id": "FqfESvDE4WBUvbChAZu4DrpHnDmjj6TM2GvLQC2Kx3hD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-30T11:23:53.876Z",
+        "balance": 1.032029719636254e+26,
+        "block_height": 126892310,
+        "epoch_id": "8m62bPdu4Wmh5EEyLWEJyXybTxhVzpTnvYVwg4Sxwcdn",
+        "next_epoch_id": "FqfESvDE4WBUvbChAZu4DrpHnDmjj6TM2GvLQC2Kx3hD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.29177252983212e+22
+    },
+    {
+        "timestamp": "2024-08-29T21:58:41.786Z",
+        "balance": 1.0319005423832708e+26,
+        "block_height": 126849110,
+        "epoch_id": "NBDCDHBwqzWwL7SV16yku4QTzcDdBeHMgcE1iedE6iV",
+        "next_epoch_id": "8m62bPdu4Wmh5EEyLWEJyXybTxhVzpTnvYVwg4Sxwcdn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-29T21:58:41.786Z",
+        "balance": 1.0319005423832708e+26,
+        "block_height": 126849110,
+        "epoch_id": "NBDCDHBwqzWwL7SV16yku4QTzcDdBeHMgcE1iedE6iV",
+        "next_epoch_id": "8m62bPdu4Wmh5EEyLWEJyXybTxhVzpTnvYVwg4Sxwcdn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.788455716883939e+22
+    },
+    {
+        "timestamp": "2024-08-28T17:42:43.974Z",
+        "balance": 1.0316216968115824e+26,
+        "block_height": 126762710,
+        "epoch_id": "8j2zNnZ4A14vBpzDWCADkqWkGETWDYv34gbe2qsxj3c2",
+        "next_epoch_id": "8KDSDTFcXC5yFu6MhhwRWAiVHkv5yPMMZX8BEUPPj53b",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-28T17:42:43.974Z",
+        "balance": 1.0316216968115824e+26,
+        "block_height": 126762710,
+        "epoch_id": "8j2zNnZ4A14vBpzDWCADkqWkGETWDYv34gbe2qsxj3c2",
+        "next_epoch_id": "8KDSDTFcXC5yFu6MhhwRWAiVHkv5yPMMZX8BEUPPj53b",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3417740638557387e+22
+    },
+    {
+        "timestamp": "2024-08-28T02:08:26.851Z",
+        "balance": 1.0314875194051968e+26,
+        "block_height": 126719510,
+        "epoch_id": "77hs6VzhsqCDnjQrwK43oVYs1CEL2rL5Ci8e22nT8PtG",
+        "next_epoch_id": "8j2zNnZ4A14vBpzDWCADkqWkGETWDYv34gbe2qsxj3c2",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-28T02:08:26.851Z",
+        "balance": 1.0314875194051968e+26,
+        "block_height": 126719510,
+        "epoch_id": "77hs6VzhsqCDnjQrwK43oVYs1CEL2rL5Ci8e22nT8PtG",
+        "next_epoch_id": "8j2zNnZ4A14vBpzDWCADkqWkGETWDYv34gbe2qsxj3c2",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.6411680104333194e+22
+    },
+    {
+        "timestamp": "2024-08-26T20:20:18.442Z",
+        "balance": 1.0312234026041535e+26,
+        "block_height": 126633110,
+        "epoch_id": "7TUMhAaJWjRSvCxQEeBpZHpDbsoLduKH3RKrJg3Wc94h",
+        "next_epoch_id": "BHdsRtTtnwYU6GiNpBbvQEwP84kg859ACfCDesoNtPsS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-26T20:20:18.442Z",
+        "balance": 1.0312234026041535e+26,
+        "block_height": 126633110,
+        "epoch_id": "7TUMhAaJWjRSvCxQEeBpZHpDbsoLduKH3RKrJg3Wc94h",
+        "next_epoch_id": "BHdsRtTtnwYU6GiNpBbvQEwP84kg859ACfCDesoNtPsS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3014516017765768e+22
+    },
+    {
+        "timestamp": "2024-08-26T06:22:40.593Z",
+        "balance": 1.0310932574439759e+26,
+        "block_height": 126589910,
+        "epoch_id": "6GeyMPzcvygT1TR1HZ57irtUyoQp653TsCmEsTr6FXWM",
+        "next_epoch_id": "7TUMhAaJWjRSvCxQEeBpZHpDbsoLduKH3RKrJg3Wc94h",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-26T06:22:40.593Z",
+        "balance": 1.0310932574439759e+26,
+        "block_height": 126589910,
+        "epoch_id": "6GeyMPzcvygT1TR1HZ57irtUyoQp653TsCmEsTr6FXWM",
+        "next_epoch_id": "7TUMhAaJWjRSvCxQEeBpZHpDbsoLduKH3RKrJg3Wc94h",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.6103530251624544e+22
+    },
+    {
+        "timestamp": "2024-08-25T02:39:49.633Z",
+        "balance": 1.0308322221414596e+26,
+        "block_height": 126503510,
+        "epoch_id": "22gPTjMx2nDY8uDD4JnHkPeAcC9RQisVT2CHzN7NeU46",
+        "next_epoch_id": "5N2LT1giyRHFbV7ig6wsRLho9E7WqnFGBAawoiHgk7Jv",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-25T02:39:49.633Z",
+        "balance": 1.0308322221414596e+26,
+        "block_height": 126503510,
+        "epoch_id": "22gPTjMx2nDY8uDD4JnHkPeAcC9RQisVT2CHzN7NeU46",
+        "next_epoch_id": "5N2LT1giyRHFbV7ig6wsRLho9E7WqnFGBAawoiHgk7Jv",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.333349064030904e+22
+    },
+    {
+        "timestamp": "2024-08-24T12:46:25.765Z",
+        "balance": 1.0306988872350565e+26,
+        "block_height": 126460310,
+        "epoch_id": "HHH1WrnbVqukcCoT8oA1qw8ESqTExKarTmK8KZy7VQoR",
+        "next_epoch_id": "22gPTjMx2nDY8uDD4JnHkPeAcC9RQisVT2CHzN7NeU46",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-24T12:46:25.765Z",
+        "balance": 1.0306988872350565e+26,
+        "block_height": 126460310,
+        "epoch_id": "HHH1WrnbVqukcCoT8oA1qw8ESqTExKarTmK8KZy7VQoR",
+        "next_epoch_id": "22gPTjMx2nDY8uDD4JnHkPeAcC9RQisVT2CHzN7NeU46",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.7231248113223284e+22
+    },
+    {
+        "timestamp": "2024-08-23T08:06:56.990Z",
+        "balance": 1.0304265747539243e+26,
+        "block_height": 126373910,
+        "epoch_id": "B4eU2bj2b9dsuuZbKby1CfSTp7TiuEPppE85rhuZbTfX",
+        "next_epoch_id": "BFi2K9pszHyDDDi3NAXjnFg47fVD7MRUtyC3xT35har7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-23T08:06:56.990Z",
+        "balance": 1.0304265747539243e+26,
+        "block_height": 126373910,
+        "epoch_id": "B4eU2bj2b9dsuuZbKby1CfSTp7TiuEPppE85rhuZbTfX",
+        "next_epoch_id": "BFi2K9pszHyDDDi3NAXjnFg47fVD7MRUtyC3xT35har7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3887070288697637e+22
+    },
+    {
+        "timestamp": "2024-08-22T17:44:43.190Z",
+        "balance": 1.0302877040510373e+26,
+        "block_height": 126330710,
+        "epoch_id": "5bH4JCVAnVFqKsf21cYGFDTBRAAAmzneofoqG68RUDZR",
+        "next_epoch_id": "B4eU2bj2b9dsuuZbKby1CfSTp7TiuEPppE85rhuZbTfX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-22T17:44:43.190Z",
+        "balance": 1.0302877040510373e+26,
+        "block_height": 126330710,
+        "epoch_id": "5bH4JCVAnVFqKsf21cYGFDTBRAAAmzneofoqG68RUDZR",
+        "next_epoch_id": "B4eU2bj2b9dsuuZbKby1CfSTp7TiuEPppE85rhuZbTfX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.774060855586461e+22
+    },
+    {
+        "timestamp": "2024-08-21T12:19:43.370Z",
+        "balance": 1.0300102979654787e+26,
+        "block_height": 126244310,
+        "epoch_id": "AmuwyKGsgEWcXU31ktyxy2uNWcWYGZydGpfpsVjhu8Ym",
+        "next_epoch_id": "FenaGUEYq82grSD1BVpXpi9Hn8YpPhUTG6qR69bczAfb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-21T12:19:43.370Z",
+        "balance": 1.0300102979654787e+26,
+        "block_height": 126244310,
+        "epoch_id": "AmuwyKGsgEWcXU31ktyxy2uNWcWYGZydGpfpsVjhu8Ym",
+        "next_epoch_id": "FenaGUEYq82grSD1BVpXpi9Hn8YpPhUTG6qR69bczAfb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3974273562946124e+22
+    },
+    {
+        "timestamp": "2024-08-20T21:31:03.342Z",
+        "balance": 1.0298705552298492e+26,
+        "block_height": 126201110,
+        "epoch_id": "6oFrtvnMRCnPxCg843aYKnexCfzuZuKhVfyfFTmGwkME",
+        "next_epoch_id": "AmuwyKGsgEWcXU31ktyxy2uNWcWYGZydGpfpsVjhu8Ym",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-20T21:31:03.342Z",
+        "balance": 1.0298705552298492e+26,
+        "block_height": 126201110,
+        "epoch_id": "6oFrtvnMRCnPxCg843aYKnexCfzuZuKhVfyfFTmGwkME",
+        "next_epoch_id": "AmuwyKGsgEWcXU31ktyxy2uNWcWYGZydGpfpsVjhu8Ym",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.8084724110117464e+22
+    },
+    {
+        "timestamp": "2024-08-19T15:35:45.081Z",
+        "balance": 1.029589707988748e+26,
+        "block_height": 126114710,
+        "epoch_id": "FLoyGVLT7sT4zCC83LBzGGjfKX6RMnyCXvvgWmKYj2y3",
+        "next_epoch_id": "AgWuQ63hT2NJaP1Whf6ps66KsSE3ZYrf8HVyU7L7ntK3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-19T15:35:45.081Z",
+        "balance": 1.029589707988748e+26,
+        "block_height": 126114710,
+        "epoch_id": "FLoyGVLT7sT4zCC83LBzGGjfKX6RMnyCXvvgWmKYj2y3",
+        "next_epoch_id": "AgWuQ63hT2NJaP1Whf6ps66KsSE3ZYrf8HVyU7L7ntK3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3951243882712231e+22
+    },
+    {
+        "timestamp": "2024-08-19T00:30:29.014Z",
+        "balance": 1.0294501955499209e+26,
+        "block_height": 126071510,
+        "epoch_id": "66TMxzpPg2kbsBrsHRmSwASBnZoSpnRu86M8M2s5VKMP",
+        "next_epoch_id": "FLoyGVLT7sT4zCC83LBzGGjfKX6RMnyCXvvgWmKYj2y3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-19T00:30:29.014Z",
+        "balance": 1.0294501955499209e+26,
+        "block_height": 126071510,
+        "epoch_id": "66TMxzpPg2kbsBrsHRmSwASBnZoSpnRu86M8M2s5VKMP",
+        "next_epoch_id": "FLoyGVLT7sT4zCC83LBzGGjfKX6RMnyCXvvgWmKYj2y3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.823585246324056e+22
+    },
+    {
+        "timestamp": "2024-08-17T18:24:50.765Z",
+        "balance": 1.0291678370252885e+26,
+        "block_height": 125985110,
+        "epoch_id": "24hCEVfhzw9DP5E9rgvvrRzWdQcwwHkMiff8wQUVev9z",
+        "next_epoch_id": "49ku2iqX7g743TxyDbQr3CQBVfuvkbEttXzprQUmXk8j",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-17T07:05:55.581Z",
+        "balance": 1.0291678370252885e+26,
+        "block_height": 125952740,
+        "epoch_id": "24hCEVfhzw9DP5E9rgvvrRzWdQcwwHkMiff8wQUVev9z",
+        "next_epoch_id": "49ku2iqX7g743TxyDbQr3CQBVfuvkbEttXzprQUmXk8j",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 25862712508547070
+    },
+    {
+        "timestamp": "2024-08-17T03:18:39.881Z",
+        "balance": 1.0291678367666614e+26,
+        "block_height": 125941910,
+        "epoch_id": "Bgn9RA3wW1S8b2ucsBXFDgT1hnRfg1QPKG2BhvqKk649",
+        "next_epoch_id": "24hCEVfhzw9DP5E9rgvvrRzWdQcwwHkMiff8wQUVev9z",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-08-17T03:18:39.881Z",
+        "balance": 1.0291678367666614e+26,
+        "block_height": 125941910,
+        "epoch_id": "Bgn9RA3wW1S8b2ucsBXFDgT1hnRfg1QPKG2BhvqKk649",
+        "next_epoch_id": "24hCEVfhzw9DP5E9rgvvrRzWdQcwwHkMiff8wQUVev9z",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 34356474192855040
+    },
+    {
+        "timestamp": "2024-08-16T12:12:57.023Z",
+        "balance": 1.0291678364230966e+26,
+        "block_height": 125898710,
+        "epoch_id": "GF4xWos1sr4cTAWtyowRGdrph39hWKGMuFp7C53zXm6F",
+        "next_epoch_id": "Bgn9RA3wW1S8b2ucsBXFDgT1hnRfg1QPKG2BhvqKk649",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 226171981374947330
+    },
+    {
+        "timestamp": "2024-08-15T20:34:57.704Z",
+        "balance": 1.0291678341613768e+26,
+        "block_height": 125855510,
+        "epoch_id": "6SkzTzMMLmxoHfRUEmS9pUtLRDJVJd2GevDj33TFwopc",
+        "next_epoch_id": "GF4xWos1sr4cTAWtyowRGdrph39hWKGMuFp7C53zXm6F",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2706002699395246e+22
+    },
+    {
+        "timestamp": "2024-08-15T04:25:02.573Z",
+        "balance": 1.0290407741343829e+26,
+        "block_height": 125812310,
+        "epoch_id": "8H5bxjKfyCBvPpsg9B7sU6MeftkGAzumxXcLvHbSzmAa",
+        "next_epoch_id": "6SkzTzMMLmxoHfRUEmS9pUtLRDJVJd2GevDj33TFwopc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3575174627334623e+22
+    },
+    {
+        "timestamp": "2024-08-14T15:14:31.257Z",
+        "balance": 1.0289050223881095e+26,
+        "block_height": 125769110,
+        "epoch_id": "EF37AN63EfwDrUvbwbwtZpUFSz358yUvRRLHyphi13UG",
+        "next_epoch_id": "8H5bxjKfyCBvPpsg9B7sU6MeftkGAzumxXcLvHbSzmAa",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.384221434946171e+22
+    },
+    {
+        "timestamp": "2024-08-14T00:44:31.610Z",
+        "balance": 1.0287666002446149e+26,
+        "block_height": 125725910,
+        "epoch_id": "BqCBXdfMSbpYjkwCeZyFTehLuEEjUQp9tHXoPpfTNjaD",
+        "next_epoch_id": "EF37AN63EfwDrUvbwbwtZpUFSz358yUvRRLHyphi13UG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.25369304772417e+22
+    },
+    {
+        "timestamp": "2024-08-13T09:57:12.946Z",
+        "balance": 1.0286412309398425e+26,
+        "block_height": 125682710,
+        "epoch_id": "2BnhtYbEAPaDzj8X9rCWcNcUSF5SmXJVB3TbzFhjbVyi",
+        "next_epoch_id": "BqCBXdfMSbpYjkwCeZyFTehLuEEjUQp9tHXoPpfTNjaD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2817255303801167e+22
+    },
+    {
+        "timestamp": "2024-08-12T20:33:33.381Z",
+        "balance": 1.0285130583868045e+26,
+        "block_height": 125639510,
+        "epoch_id": "6akQNDLDrrmwKoPEnmhuKh2Rv277YyUepRkdkrKVJeEV",
+        "next_epoch_id": "2BnhtYbEAPaDzj8X9rCWcNcUSF5SmXJVB3TbzFhjbVyi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2400400048561284e+22
+    },
+    {
+        "timestamp": "2024-08-12T06:52:40.886Z",
+        "balance": 1.0283890543863189e+26,
+        "block_height": 125596310,
+        "epoch_id": "ArcjWerkFgALYBiS4d1gWckfU4oyX5NahNVv3TXatKf7",
+        "next_epoch_id": "6akQNDLDrrmwKoPEnmhuKh2Rv277YyUepRkdkrKVJeEV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2451370380119712e+22
+    },
+    {
+        "timestamp": "2024-08-11T17:39:01.319Z",
+        "balance": 1.0282645406825177e+26,
+        "block_height": 125553110,
+        "epoch_id": "3jWmJ8WTUkeEs4KcLMXWKL8Y5Jk9EsRmz9Vehn6f4fsr",
+        "next_epoch_id": "ArcjWerkFgALYBiS4d1gWckfU4oyX5NahNVv3TXatKf7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2424729849411817e+22
+    },
+    {
+        "timestamp": "2024-08-11T04:24:17.080Z",
+        "balance": 1.0281402933840235e+26,
+        "block_height": 125509910,
+        "epoch_id": "DBYpW1MUAuCU6SJUvwFP6qiVaTLTdWNaW7jiKpE4tT6p",
+        "next_epoch_id": "3jWmJ8WTUkeEs4KcLMXWKL8Y5Jk9EsRmz9Vehn6f4fsr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2504848119976457e+22
+    },
+    {
+        "timestamp": "2024-08-10T15:09:52.920Z",
+        "balance": 1.0280152449028238e+26,
+        "block_height": 125466710,
+        "epoch_id": "wWvS91hoGZNJBVyshMcNTwY7hsq7XFDUgdeDrhoTBwa",
+        "next_epoch_id": "DBYpW1MUAuCU6SJUvwFP6qiVaTLTdWNaW7jiKpE4tT6p",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2785006785418156e+22
+    },
+    {
+        "timestamp": "2024-08-09T16:58:57.800Z",
+        "balance": 1.0278873948349696e+26,
+        "block_height": 125395149,
+        "epoch_id": "8wJaQgywixTtmxEx51CYE8q1n6pFZDNv5ZYR7C4JN6sX",
+        "next_epoch_id": "wWvS91hoGZNJBVyshMcNTwY7hsq7XFDUgdeDrhoTBwa",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2904688915736988e+22
+    },
+    {
+        "timestamp": "2024-08-09T04:51:24.093Z",
+        "balance": 1.0277583479458122e+26,
+        "block_height": 125357142,
+        "epoch_id": "27vHs9nGiSu9XQcWzp29ZZEPyZQw5ZAqj9jjqTaYjNNK",
+        "next_epoch_id": "8wJaQgywixTtmxEx51CYE8q1n6pFZDNv5ZYR7C4JN6sX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.278367180959572e+22
+    },
+    {
+        "timestamp": "2024-08-08T22:35:26.094Z",
+        "balance": 1.0276305112277163e+26,
+        "block_height": 125337110,
+        "epoch_id": "6ymA6mprFniKSjTi2HeTAQcCxnHtCrgpa2f1ifNApomS",
+        "next_epoch_id": "27vHs9nGiSu9XQcWzp29ZZEPyZQw5ZAqj9jjqTaYjNNK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2405423258932762e+22
+    },
+    {
+        "timestamp": "2024-08-08T09:04:32.260Z",
+        "balance": 1.027506456995127e+26,
+        "block_height": 125293910,
+        "epoch_id": "J18y4YESfnH5jqbBFj7qNcfpCFtSzmNzMZBR6LeD7QCE",
+        "next_epoch_id": "6ymA6mprFniKSjTi2HeTAQcCxnHtCrgpa2f1ifNApomS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2582591524521218e+22
+    },
+    {
+        "timestamp": "2024-08-07T19:57:25.491Z",
+        "balance": 1.0273806310798817e+26,
+        "block_height": 125250710,
+        "epoch_id": "ErjgoJKrtfYQ8Q8aUFY5UgroGxkARum1pVdkMJH6A44q",
+        "next_epoch_id": "J18y4YESfnH5jqbBFj7qNcfpCFtSzmNzMZBR6LeD7QCE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2617447534076665e+22
+    },
+    {
+        "timestamp": "2024-08-07T06:37:44.999Z",
+        "balance": 1.027254456604541e+26,
+        "block_height": 125207510,
+        "epoch_id": "FDsY5wvM5M7dBk596rHwujfUvrU5ozmfkaPj86VEU12G",
+        "next_epoch_id": "ErjgoJKrtfYQ8Q8aUFY5UgroGxkARum1pVdkMJH6A44q",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2528151219666659e+22
+    },
+    {
+        "timestamp": "2024-08-06T17:16:10.692Z",
+        "balance": 1.0271291750923443e+26,
+        "block_height": 125164310,
+        "epoch_id": "25PBZe3ToVw7kKbyjVBZV5NFKjBzpCHkqc7FVduCurQG",
+        "next_epoch_id": "FDsY5wvM5M7dBk596rHwujfUvrU5ozmfkaPj86VEU12G",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2648796332677466e+22
+    },
+    {
+        "timestamp": "2024-08-06T04:00:14.974Z",
+        "balance": 1.0270026871290175e+26,
+        "block_height": 125121110,
+        "epoch_id": "4XhzWVXB8yhuXPLarYej8YM4tKCTt839KDd1hPKfNZEP",
+        "next_epoch_id": "25PBZe3ToVw7kKbyjVBZV5NFKjBzpCHkqc7FVduCurQG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.259748296802534e+22
+    },
+    {
+        "timestamp": "2024-08-05T14:35:50.719Z",
+        "balance": 1.0268767122993373e+26,
+        "block_height": 125077910,
+        "epoch_id": "DnmfMmc8ae1hzLPG87oXDuY1oaxneuxvRy22DDbop7DA",
+        "next_epoch_id": "4XhzWVXB8yhuXPLarYej8YM4tKCTt839KDd1hPKfNZEP",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2480808913864392e+22
+    },
+    {
+        "timestamp": "2024-08-05T01:13:59.898Z",
+        "balance": 1.0267519042101986e+26,
+        "block_height": 125034710,
+        "epoch_id": "GfkhzmEpck5oVveWihcUUw6QfMagBKDh3FwZi17yjFBN",
+        "next_epoch_id": "DnmfMmc8ae1hzLPG87oXDuY1oaxneuxvRy22DDbop7DA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2427464861891303e+22
+    },
+    {
+        "timestamp": "2024-08-04T11:59:50.929Z",
+        "balance": 1.0266276295615797e+26,
+        "block_height": 124991510,
+        "epoch_id": "G9sVdng2WXgmy7TiUooo5YzHzRZAHHhzyZfKrRQ2PXv6",
+        "next_epoch_id": "GfkhzmEpck5oVveWihcUUw6QfMagBKDh3FwZi17yjFBN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2451166500049396e+22
+    },
+    {
+        "timestamp": "2024-08-03T22:49:47.366Z",
+        "balance": 1.0265031178965792e+26,
+        "block_height": 124948310,
+        "epoch_id": "E77wafwyHHBahufucrRchZi9E1zKoEQdzu2FTBMec6xA",
+        "next_epoch_id": "G9sVdng2WXgmy7TiUooo5YzHzRZAHHhzyZfKrRQ2PXv6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.249588593182436e+22
+    },
+    {
+        "timestamp": "2024-08-03T09:37:21.358Z",
+        "balance": 1.026378159037261e+26,
+        "block_height": 124905110,
+        "epoch_id": "DGoip6WMHHcWsaNTax546Uq8gBRDhUuS1LDsqhrHWsJ8",
+        "next_epoch_id": "E77wafwyHHBahufucrRchZi9E1zKoEQdzu2FTBMec6xA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2613297886535268e+22
+    },
+    {
+        "timestamp": "2024-08-02T20:26:44.123Z",
+        "balance": 1.0262520260583956e+26,
+        "block_height": 124861910,
+        "epoch_id": "4vvigoYwpLV8cxBQNkv1Md23cXJ5fUZJFREpmb9fETgc",
+        "next_epoch_id": "DGoip6WMHHcWsaNTax546Uq8gBRDhUuS1LDsqhrHWsJ8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3318896536531826e+22
+    },
+    {
+        "timestamp": "2024-08-02T07:01:49.393Z",
+        "balance": 1.0261188370930303e+26,
+        "block_height": 124818710,
+        "epoch_id": "2w4ZkojyvQYXy51yunoqDpV4i6kt9zTAsVQm7D3uW7wK",
+        "next_epoch_id": "4vvigoYwpLV8cxBQNkv1Md23cXJ5fUZJFREpmb9fETgc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2498105297058637e+22
+    },
+    {
+        "timestamp": "2024-08-01T16:52:10.148Z",
+        "balance": 1.0259938560400597e+26,
+        "block_height": 124775510,
+        "epoch_id": "5YGxva1pYF1JCJBuhcPaFPL82iKAUmFif8d7f7YcXACS",
+        "next_epoch_id": "2w4ZkojyvQYXy51yunoqDpV4i6kt9zTAsVQm7D3uW7wK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2602636301354538e+22
+    },
+    {
+        "timestamp": "2024-08-01T03:33:46.127Z",
+        "balance": 1.0258678296770462e+26,
+        "block_height": 124732310,
+        "epoch_id": "GyvAjXEnnVA2GAYhbmbWquW9GDSZGbKMkpUhcYTDMfw1",
+        "next_epoch_id": "5YGxva1pYF1JCJBuhcPaFPL82iKAUmFif8d7f7YcXACS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.270679228113206e+22
+    },
+    {
+        "timestamp": "2024-07-31T14:07:43.639Z",
+        "balance": 1.0257407617542349e+26,
+        "block_height": 124689110,
+        "epoch_id": "AwTfBSDBNTp8zT3ggpGj5JnsQPukWXwA5UWKZcV2jGqB",
+        "next_epoch_id": "GyvAjXEnnVA2GAYhbmbWquW9GDSZGbKMkpUhcYTDMfw1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3024316875024886e+22
+    },
+    {
+        "timestamp": "2024-07-31T00:35:11.409Z",
+        "balance": 1.0256105185854846e+26,
+        "block_height": 124645910,
+        "epoch_id": "6TJmBcNDmD4uwiKjKtcYhQVBjYoYyE1peEJxz57Hnhku",
+        "next_epoch_id": "AwTfBSDBNTp8zT3ggpGj5JnsQPukWXwA5UWKZcV2jGqB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3134008474615048e+22
+    },
+    {
+        "timestamp": "2024-07-30T11:10:22.618Z",
+        "balance": 1.0254791785007385e+26,
+        "block_height": 124602710,
+        "epoch_id": "Hw6YadZrAZTjjSABubaMJwh1BkU1yZdh5RLhBRi314qB",
+        "next_epoch_id": "6TJmBcNDmD4uwiKjKtcYhQVBjYoYyE1peEJxz57Hnhku",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3238426116805404e+22
+    },
+    {
+        "timestamp": "2024-07-29T21:39:27.434Z",
+        "balance": 1.0253467942395704e+26,
+        "block_height": 124559510,
+        "epoch_id": "CX6h9877n94r3hWNFpUq6HuERjX6YyHiUeu3RBP3YLWk",
+        "next_epoch_id": "Hw6YadZrAZTjjSABubaMJwh1BkU1yZdh5RLhBRi314qB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.325444339816268e+22
+    },
+    {
+        "timestamp": "2024-07-29T07:58:43.163Z",
+        "balance": 1.0252142498055888e+26,
+        "block_height": 124516310,
+        "epoch_id": "CJPpAKnk6w45sw3n76qffvbGZNVNLkKxBmMZ2XW5ZKF1",
+        "next_epoch_id": "CX6h9877n94r3hWNFpUq6HuERjX6YyHiUeu3RBP3YLWk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2981190079761082e+22
+    },
+    {
+        "timestamp": "2024-07-28T18:16:55.666Z",
+        "balance": 1.0250844379047912e+26,
+        "block_height": 124473110,
+        "epoch_id": "ELX97jJp4ccE4Mcnjy4f6PWVy7X3R75k5Q8GhzALGv3n",
+        "next_epoch_id": "CJPpAKnk6w45sw3n76qffvbGZNVNLkKxBmMZ2XW5ZKF1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2608715668493617e+22
+    },
+    {
+        "timestamp": "2024-07-27T19:06:43.672Z",
+        "balance": 1.0249583507481062e+26,
+        "block_height": 124397414,
+        "epoch_id": "FYQGMEk6WLyNXmsXRhNaYmV5wRWvZL4TKdNBscHSn6vB",
+        "next_epoch_id": "ELX97jJp4ccE4Mcnjy4f6PWVy7X3R75k5Q8GhzALGv3n",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2894498419491455e+22
+    },
+    {
+        "timestamp": "2024-07-27T15:51:04.897Z",
+        "balance": 1.0248294057639113e+26,
+        "block_height": 124386710,
+        "epoch_id": "H8CtLL6de86ThrkrBCt7a7rZ4xixhNbJrFNTUnpNJTcy",
+        "next_epoch_id": "FYQGMEk6WLyNXmsXRhNaYmV5wRWvZL4TKdNBscHSn6vB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2913146027348668e+22
+    },
+    {
+        "timestamp": "2024-07-27T02:32:22.211Z",
+        "balance": 1.0247002743036378e+26,
+        "block_height": 124343510,
+        "epoch_id": "H9rYcmLBGmf4UrQPkRvdMVPNgfMTgXDnaaSoU9xxTWqJ",
+        "next_epoch_id": "H8CtLL6de86ThrkrBCt7a7rZ4xixhNbJrFNTUnpNJTcy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2958750489499213e+22
+    },
+    {
+        "timestamp": "2024-07-26T13:12:29.968Z",
+        "balance": 1.0245706867987428e+26,
+        "block_height": 124300310,
+        "epoch_id": "DiV2qWKRuaeZZMbMLesuZ8R3JTdP8PJgRkRHqAPKzqon",
+        "next_epoch_id": "H9rYcmLBGmf4UrQPkRvdMVPNgfMTgXDnaaSoU9xxTWqJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.348601562175776e+22
+    },
+    {
+        "timestamp": "2024-07-25T23:47:26.205Z",
+        "balance": 1.0244358266425253e+26,
+        "block_height": 124257110,
+        "epoch_id": "7y98n8AHxwdvjYjmvrkC3c4nqdHdKDLQwwDjrgoHtTJT",
+        "next_epoch_id": "DiV2qWKRuaeZZMbMLesuZ8R3JTdP8PJgRkRHqAPKzqon",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3174103405993059e+22
+    },
+    {
+        "timestamp": "2024-07-25T09:49:29.954Z",
+        "balance": 1.0243040856084653e+26,
+        "block_height": 124213910,
+        "epoch_id": "8nKuZzHNCQiBn2uYn5UkAcRkPktupSFXRJbDgw9GvNNC",
+        "next_epoch_id": "7y98n8AHxwdvjYjmvrkC3c4nqdHdKDLQwwDjrgoHtTJT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3307791400217193e+22
+    },
+    {
+        "timestamp": "2024-07-24T20:08:43.955Z",
+        "balance": 1.0241710076944632e+26,
+        "block_height": 124170710,
+        "epoch_id": "89DpT7jJMwupggM4s5CFhuf5nmkKgr5eg19Udd8788cE",
+        "next_epoch_id": "8nKuZzHNCQiBn2uYn5UkAcRkPktupSFXRJbDgw9GvNNC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.293328422317383e+22
+    },
+    {
+        "timestamp": "2024-07-24T06:06:11.629Z",
+        "balance": 1.0240416748522314e+26,
+        "block_height": 124127162,
+        "epoch_id": "7Nc3oxbfqW8A76hKYTrWK8HJabfGxuQ5xFBfmEzVtmvU",
+        "next_epoch_id": "89DpT7jJMwupggM4s5CFhuf5nmkKgr5eg19Udd8788cE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3132852664470056e+22
+    },
+    {
+        "timestamp": "2024-07-23T16:43:44.305Z",
+        "balance": 1.0239103463255867e+26,
+        "block_height": 124084310,
+        "epoch_id": "CQmfUiSqUnmuL78U3h8nTSXqxL2A2LLmS6neQaRCd8WT",
+        "next_epoch_id": "7Nc3oxbfqW8A76hKYTrWK8HJabfGxuQ5xFBfmEzVtmvU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3025963651677576e+22
+    },
+    {
+        "timestamp": "2024-07-23T03:09:14.026Z",
+        "balance": 1.02378008668907e+26,
+        "block_height": 124041110,
+        "epoch_id": "Bh4RJBuS2ZiryP7wqbRXfVC338Bze2R3G82MRKRWwVW",
+        "next_epoch_id": "CQmfUiSqUnmuL78U3h8nTSXqxL2A2LLmS6neQaRCd8WT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3039333900675503e+22
+    },
+    {
+        "timestamp": "2024-07-22T13:40:37.054Z",
+        "balance": 1.0236496933500632e+26,
+        "block_height": 123997910,
+        "epoch_id": "3HbKdnznAEeJwVMqpuH8jWAYHMpruAFxM4jtXrSJyLHp",
+        "next_epoch_id": "Bh4RJBuS2ZiryP7wqbRXfVC338Bze2R3G82MRKRWwVW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2772754689150962e+22
+    },
+    {
+        "timestamp": "2024-07-22T00:11:00.694Z",
+        "balance": 1.0235219658031717e+26,
+        "block_height": 123954710,
+        "epoch_id": "BnbtSUN1EtgTF3RYoSpxwt6tvjSDYap41T92aGDP4eum",
+        "next_epoch_id": "3HbKdnznAEeJwVMqpuH8jWAYHMpruAFxM4jtXrSJyLHp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2805074100624938e+22
+    },
+    {
+        "timestamp": "2024-07-21T10:58:31.271Z",
+        "balance": 1.0233939150621654e+26,
+        "block_height": 123911510,
+        "epoch_id": "AqfLeSAcsFXjMhoFd1bGyTs3mAfLGZowsRnyCX4XZqDE",
+        "next_epoch_id": "BnbtSUN1EtgTF3RYoSpxwt6tvjSDYap41T92aGDP4eum",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.289534415187835e+22
+    },
+    {
+        "timestamp": "2024-07-20T21:44:22.446Z",
+        "balance": 1.0232649616206466e+26,
+        "block_height": 123868310,
+        "epoch_id": "ASnhPNxHUsnS4CCJkbKNYo7Qj3EoEj4KtGCAxjU8J4hh",
+        "next_epoch_id": "AqfLeSAcsFXjMhoFd1bGyTs3mAfLGZowsRnyCX4XZqDE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2958789288034742e+22
+    },
+    {
+        "timestamp": "2024-07-20T08:23:25.012Z",
+        "balance": 1.0231353737277663e+26,
+        "block_height": 123825110,
+        "epoch_id": "Hm4TkhjCr3TPHVVcbkEXg8RosU4WQHrGat1S8fyujZVe",
+        "next_epoch_id": "ASnhPNxHUsnS4CCJkbKNYo7Qj3EoEj4KtGCAxjU8J4hh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.277985672981902e+22
+    },
+    {
+        "timestamp": "2024-07-19T18:58:47.165Z",
+        "balance": 1.0230075751604681e+26,
+        "block_height": 123781910,
+        "epoch_id": "AAa2is8Z3PX81nemzCmcqvKAGhaxDKEQKfc6nv28DGMc",
+        "next_epoch_id": "Hm4TkhjCr3TPHVVcbkEXg8RosU4WQHrGat1S8fyujZVe",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.5776336878293276e+22
+    },
+    {
+        "timestamp": "2024-07-18T17:15:58.869Z",
+        "balance": 1.0227498117916852e+26,
+        "block_height": 123697402,
+        "epoch_id": "9eiNktgp5Be8L8iPD6J5VuvngD1Lx26GCdAPc5aBdjsD",
+        "next_epoch_id": "AAa2is8Z3PX81nemzCmcqvKAGhaxDKEQKfc6nv28DGMc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-07-18T16:40:43.929Z",
+        "balance": 1.0227498117916852e+26,
+        "block_height": 123695510,
+        "epoch_id": "FpsRxD4Ex19v4YbCfTxpcttSo251hrrgBajBcvVCWC95",
+        "next_epoch_id": "9eiNktgp5Be8L8iPD6J5VuvngD1Lx26GCdAPc5aBdjsD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.299199394794838e+22
+    },
+    {
+        "timestamp": "2024-07-17T15:34:26.516Z",
+        "balance": 1.0226198918522057e+26,
+        "block_height": 123615279,
+        "epoch_id": "sw9QwUkdwp4iAhHJUTRLQpviEQ1nVJvvK7p1QpNJMFL",
+        "next_epoch_id": "FpsRxD4Ex19v4YbCfTxpcttSo251hrrgBajBcvVCWC95",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2831836460674345e+22
+    },
+    {
+        "timestamp": "2024-07-17T13:36:47.919Z",
+        "balance": 1.022491573487599e+26,
+        "block_height": 123609110,
+        "epoch_id": "5M2ksbg8HuDf1CAY5wDPLJZMeSKd5iR2nmrZQFhbbhvT",
+        "next_epoch_id": "sw9QwUkdwp4iAhHJUTRLQpviEQ1nVJvvK7p1QpNJMFL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2962777709599133e+22
+    },
+    {
+        "timestamp": "2024-07-17T00:17:43.027Z",
+        "balance": 1.022361945710503e+26,
+        "block_height": 123565910,
+        "epoch_id": "zhVjqpCaa7SeZXSqYeDiSGF8C7MdNToxwrzQFQ6Bhoj",
+        "next_epoch_id": "5M2ksbg8HuDf1CAY5wDPLJZMeSKd5iR2nmrZQFhbbhvT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.29348805696262e+22
+    },
+    {
+        "timestamp": "2024-07-16T10:49:56.421Z",
+        "balance": 1.0222325969048067e+26,
+        "block_height": 123522710,
+        "epoch_id": "Fwt1kkMWqsHWk8TtEdzocVvQwzXmxYnJRV97Z4TJzBGP",
+        "next_epoch_id": "zhVjqpCaa7SeZXSqYeDiSGF8C7MdNToxwrzQFQ6Bhoj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2956032385876476e+22
+    },
+    {
+        "timestamp": "2024-07-15T21:23:55.222Z",
+        "balance": 1.022103036580948e+26,
+        "block_height": 123479510,
+        "epoch_id": "14VV8tTcNQ4srniNArAZ2nXphBS4w4K2nJ8eJomp2oTB",
+        "next_epoch_id": "Fwt1kkMWqsHWk8TtEdzocVvQwzXmxYnJRV97Z4TJzBGP",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2878642788264973e+22
+    },
+    {
+        "timestamp": "2024-07-15T07:57:29.647Z",
+        "balance": 1.0219742501530653e+26,
+        "block_height": 123436310,
+        "epoch_id": "5tYmypQn9cjWzCJJtXN8ZcpTAjAuJqEbQpRoRpuFmetn",
+        "next_epoch_id": "14VV8tTcNQ4srniNArAZ2nXphBS4w4K2nJ8eJomp2oTB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2965780316769e+22
+    },
+    {
+        "timestamp": "2024-07-14T18:36:07.880Z",
+        "balance": 1.0218445923498976e+26,
+        "block_height": 123393110,
+        "epoch_id": "FWuR2nvfUXEEzPkY1upBPYSdjRAF2ETG24PQwPh9mqC1",
+        "next_epoch_id": "5tYmypQn9cjWzCJJtXN8ZcpTAjAuJqEbQpRoRpuFmetn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2699881316515255e+22
+    },
+    {
+        "timestamp": "2024-07-14T05:09:09.963Z",
+        "balance": 1.0217175935367324e+26,
+        "block_height": 123349910,
+        "epoch_id": "8E43ZnyUuNiQRQ8HjQKzTA41rbfmPmZaxjmXRqnyoVrh",
+        "next_epoch_id": "FWuR2nvfUXEEzPkY1upBPYSdjRAF2ETG24PQwPh9mqC1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2803351945956173e+22
+    },
+    {
+        "timestamp": "2024-07-13T15:57:29.231Z",
+        "balance": 1.0215895600172729e+26,
+        "block_height": 123306710,
+        "epoch_id": "GFm8Evj1U4b6sjpQ7WWok2dTvZc3FKo4J97dttwcQSNr",
+        "next_epoch_id": "8E43ZnyUuNiQRQ8HjQKzTA41rbfmPmZaxjmXRqnyoVrh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2899913512591804e+22
+    },
+    {
+        "timestamp": "2024-07-13T02:39:28.821Z",
+        "balance": 1.021460560882147e+26,
+        "block_height": 123263510,
+        "epoch_id": "DXrPVocrjN6RLsgHYDN6ArxVUFVec7FGtGjVQm5dYEoV",
+        "next_epoch_id": "GFm8Evj1U4b6sjpQ7WWok2dTvZc3FKo4J97dttwcQSNr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2528269871264947e+22
+    },
+    {
+        "timestamp": "2024-07-12T13:16:07.055Z",
+        "balance": 1.0213352781834343e+26,
+        "block_height": 123220310,
+        "epoch_id": "73JbXB5DhYTe6PybhRkWKuwPngYix2wzvfvTJJySQ5yA",
+        "next_epoch_id": "DXrPVocrjN6RLsgHYDN6ArxVUFVec7FGtGjVQm5dYEoV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3030869085455863e+22
+    },
+    {
+        "timestamp": "2024-07-12T00:15:47.176Z",
+        "balance": 1.0212049694925797e+26,
+        "block_height": 123177110,
+        "epoch_id": "DAngEAHnJYaMCx2YE6bf4C8rBfKVC8R7t7Q3LiqgK8dz",
+        "next_epoch_id": "73JbXB5DhYTe6PybhRkWKuwPngYix2wzvfvTJJySQ5yA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3033196876057197e+22
+    },
+    {
+        "timestamp": "2024-07-11T10:43:45.427Z",
+        "balance": 1.0210746375238192e+26,
+        "block_height": 123133910,
+        "epoch_id": "9amikt5nqGC8M8Ue5ZSMSbbhh286qUX88mcNrRxStuoA",
+        "next_epoch_id": "DAngEAHnJYaMCx2YE6bf4C8rBfKVC8R7t7Q3LiqgK8dz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3157328265888192e+22
+    },
+    {
+        "timestamp": "2024-07-10T21:12:08.824Z",
+        "balance": 1.0209430642411603e+26,
+        "block_height": 123090710,
+        "epoch_id": "7ZUgCaSbgKGuUJjyFTn8tVftfoyx2z8CRHSinbkLMSd1",
+        "next_epoch_id": "9amikt5nqGC8M8Ue5ZSMSbbhh286qUX88mcNrRxStuoA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2932678224058826e+22
+    },
+    {
+        "timestamp": "2024-07-10T04:32:36.306Z",
+        "balance": 1.0208137374589197e+26,
+        "block_height": 123038048,
+        "epoch_id": "rsDkgnB7kj8XdoEQAR1ebUuaZzx5jppDxeTXmoBscsu",
+        "next_epoch_id": "7ZUgCaSbgKGuUJjyFTn8tVftfoyx2z8CRHSinbkLMSd1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.330425904752043e+22
+    },
+    {
+        "timestamp": "2024-07-09T14:58:13.213Z",
+        "balance": 1.0206806948684445e+26,
+        "block_height": 122994848,
+        "epoch_id": "GYgRSHewRjKzcjzyycDYaJaDfyp63dn3aS35teCSVfeK",
+        "next_epoch_id": "rsDkgnB7kj8XdoEQAR1ebUuaZzx5jppDxeTXmoBscsu",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2979865676378603e+22
+    },
+    {
+        "timestamp": "2024-07-09T01:03:06.839Z",
+        "balance": 1.0205508962116807e+26,
+        "block_height": 122951648,
+        "epoch_id": "4jNg5ZYuXD8Tcsf21bjJ4GsHySdgdsRopdsAPyFjgSq8",
+        "next_epoch_id": "GYgRSHewRjKzcjzyycDYaJaDfyp63dn3aS35teCSVfeK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2917842579189265e+22
+    },
+    {
+        "timestamp": "2024-07-08T11:27:55.948Z",
+        "balance": 1.0204217177858888e+26,
+        "block_height": 122908448,
+        "epoch_id": "8eR7QY523vQQsXdTgyppZaniE1mS9T913VMEZorCE5aj",
+        "next_epoch_id": "4jNg5ZYuXD8Tcsf21bjJ4GsHySdgdsRopdsAPyFjgSq8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.5695842069114027e+22
+    },
+    {
+        "timestamp": "2024-07-07T11:43:33.164Z",
+        "balance": 1.0201647593651977e+26,
+        "block_height": 122832534,
+        "epoch_id": "3rQPjBqVus3FkR1fzpg9r3kt125GfwxA4db5ZaDYLvjd",
+        "next_epoch_id": "8eR7QY523vQQsXdTgyppZaniE1mS9T913VMEZorCE5aj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-07-07T11:15:09.406Z",
+        "balance": 1.0201647593651977e+26,
+        "block_height": 122831000,
+        "epoch_id": "2FpZuEmUN7FSF3qwXxtHcJPCMF7bny9EssKA7a2NYxHC",
+        "next_epoch_id": "3rQPjBqVus3FkR1fzpg9r3kt125GfwxA4db5ZaDYLvjd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3031299512045882e+22
+    },
+    {
+        "timestamp": "2024-07-06T18:52:08.059Z",
+        "balance": 1.0200344463700772e+26,
+        "block_height": 122778363,
+        "epoch_id": "CBHotdR8qZ3wETymWPgQiPpPLKHpp1xSK14WqFuZYeA3",
+        "next_epoch_id": "2FpZuEmUN7FSF3qwXxtHcJPCMF7bny9EssKA7a2NYxHC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3051644451464776e+22
+    },
+    {
+        "timestamp": "2024-07-06T08:16:14.443Z",
+        "balance": 1.0199039299255626e+26,
+        "block_height": 122745110,
+        "epoch_id": "B1zaGYNzR5qgrPUtEQvkDr8rJPQJCHQbnbYK17df42Ss",
+        "next_epoch_id": "CBHotdR8qZ3wETymWPgQiPpPLKHpp1xSK14WqFuZYeA3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.347243709261578e+22
+    },
+    {
+        "timestamp": "2024-07-05T18:34:50.276Z",
+        "balance": 1.0197692055546364e+26,
+        "block_height": 122701910,
+        "epoch_id": "6GuA73dmMfwDN1Jcj4EZAXB1vx8rL6mP9Dxbe9qTb8NZ",
+        "next_epoch_id": "B1zaGYNzR5qgrPUtEQvkDr8rJPQJCHQbnbYK17df42Ss",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.354541727294488e+22
+    },
+    {
+        "timestamp": "2024-07-05T04:26:32.406Z",
+        "balance": 1.019633751381907e+26,
+        "block_height": 122658710,
+        "epoch_id": "77kKgrqGq8UMVTNH4dZ96voCQskSpWBqVgnES8tqMDrV",
+        "next_epoch_id": "6GuA73dmMfwDN1Jcj4EZAXB1vx8rL6mP9Dxbe9qTb8NZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3585361295767864e+22
+    },
+    {
+        "timestamp": "2024-07-04T14:13:11.878Z",
+        "balance": 1.0194978977689493e+26,
+        "block_height": 122615510,
+        "epoch_id": "F5qdfijmjt9DE9o38KbD5YDAm5qEo6f5XQzHwwYt91Bd",
+        "next_epoch_id": "77kKgrqGq8UMVTNH4dZ96voCQskSpWBqVgnES8tqMDrV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3553723135719863e+22
+    },
+    {
+        "timestamp": "2024-07-03T23:57:29.843Z",
+        "balance": 1.0193623605375921e+26,
+        "block_height": 122572310,
+        "epoch_id": "GCsZuCNZHYWcPBrjf9hEayxPQiwXqkChc9WgougRRsNM",
+        "next_epoch_id": "F5qdfijmjt9DE9o38KbD5YDAm5qEo6f5XQzHwwYt91Bd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3346187183365437e+22
+    },
+    {
+        "timestamp": "2024-07-03T09:44:26.606Z",
+        "balance": 1.0192288986657584e+26,
+        "block_height": 122529110,
+        "epoch_id": "69a4eYnr5Lv5HtVLNoNJF8bsWhj3MWVcb3sCtEzFXeXF",
+        "next_epoch_id": "GCsZuCNZHYWcPBrjf9hEayxPQiwXqkChc9WgougRRsNM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.364950817077373e+22
+    },
+    {
+        "timestamp": "2024-07-02T19:44:53.421Z",
+        "balance": 1.0190924035840507e+26,
+        "block_height": 122485910,
+        "epoch_id": "GTLonv7dwnG6VgfkvsrEv7Rr8ypqwpAuSBrPtBS4CFzN",
+        "next_epoch_id": "69a4eYnr5Lv5HtVLNoNJF8bsWhj3MWVcb3sCtEzFXeXF",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3527996670277004e+22
+    },
+    {
+        "timestamp": "2024-07-02T05:27:48.735Z",
+        "balance": 1.018957123617348e+26,
+        "block_height": 122442710,
+        "epoch_id": "Bjc2wGxnMEZamGfkZbf9n6WatNMuHfKTyM9dGXMfcwXt",
+        "next_epoch_id": "GTLonv7dwnG6VgfkvsrEv7Rr8ypqwpAuSBrPtBS4CFzN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3958444059311374e+22
+    },
+    {
+        "timestamp": "2024-07-01T15:18:18.506Z",
+        "balance": 1.0188175391767548e+26,
+        "block_height": 122399510,
+        "epoch_id": "AtC6RSehPhYH8STuzERvA2UHnwpwDG6MCtMbfa2X7Xru",
+        "next_epoch_id": "Bjc2wGxnMEZamGfkZbf9n6WatNMuHfKTyM9dGXMfcwXt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3969108362862805e+22
+    },
+    {
+        "timestamp": "2024-07-01T00:38:45.363Z",
+        "balance": 1.0186778480931262e+26,
+        "block_height": 122356310,
+        "epoch_id": "2G2sJ89t2zpWRsEnx3bCByuF41n7MSMQBKb4VtxYRKTc",
+        "next_epoch_id": "AtC6RSehPhYH8STuzERvA2UHnwpwDG6MCtMbfa2X7Xru",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.341503782398743e+22
+    },
+    {
+        "timestamp": "2024-06-30T10:01:36.031Z",
+        "balance": 1.0185436977148863e+26,
+        "block_height": 122313110,
+        "epoch_id": "4mw9E5AbRg1AwoVpX8R7oPy96YPLmsaTxy7cnrdKwWTp",
+        "next_epoch_id": "2G2sJ89t2zpWRsEnx3bCByuF41n7MSMQBKb4VtxYRKTc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.383666836106544e+22
+    },
+    {
+        "timestamp": "2024-06-29T19:58:16.360Z",
+        "balance": 1.0184053310312757e+26,
+        "block_height": 122269910,
+        "epoch_id": "GzmmnwB2TyaTaRksZ9mkBQohj6pUURTBSfJhwcrTFmYc",
+        "next_epoch_id": "4mw9E5AbRg1AwoVpX8R7oPy96YPLmsaTxy7cnrdKwWTp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3672630293719037e+22
+    },
+    {
+        "timestamp": "2024-06-29T05:28:54.656Z",
+        "balance": 1.0182686047283385e+26,
+        "block_height": 122226710,
+        "epoch_id": "58othovZFom3wxfR4jYcE2bNBq5VszYmpayWCy1CfK2k",
+        "next_epoch_id": "GzmmnwB2TyaTaRksZ9mkBQohj6pUURTBSfJhwcrTFmYc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4175396302947713e+22
+    },
+    {
+        "timestamp": "2024-06-28T15:08:51.972Z",
+        "balance": 1.018126850765309e+26,
+        "block_height": 122183510,
+        "epoch_id": "67F8eXE4ceJvkCXSmWtJLHqePFNKj4Qe5guCzr1guKME",
+        "next_epoch_id": "58othovZFom3wxfR4jYcE2bNBq5VszYmpayWCy1CfK2k",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4044255054232222e+22
+    },
+    {
+        "timestamp": "2024-06-28T00:15:26.877Z",
+        "balance": 1.0179864082147667e+26,
+        "block_height": 122140310,
+        "epoch_id": "7NVd6URfod1f2oekts52MU8zMHcD5THq4tXVteU9pj4Y",
+        "next_epoch_id": "67F8eXE4ceJvkCXSmWtJLHqePFNKj4Qe5guCzr1guKME",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3666372643501113e+22
+    },
+    {
+        "timestamp": "2024-06-27T09:35:55.268Z",
+        "balance": 1.0178497444883317e+26,
+        "block_height": 122097110,
+        "epoch_id": "CMvg54ULBKJfAuA6hGfsfWRAGC4QPpQ2uCmAZvo5WTxq",
+        "next_epoch_id": "7NVd6URfod1f2oekts52MU8zMHcD5THq4tXVteU9pj4Y",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4352463252095903e+22
+    },
+    {
+        "timestamp": "2024-06-26T19:30:37.981Z",
+        "balance": 1.0177062198558107e+26,
+        "block_height": 122053910,
+        "epoch_id": "DtYdA7b82qJmAtyw9N2TsVTjyUhwcvtW2oHC1n4qKC1",
+        "next_epoch_id": "CMvg54ULBKJfAuA6hGfsfWRAGC4QPpQ2uCmAZvo5WTxq",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4605794070438206e+22
+    },
+    {
+        "timestamp": "2024-06-26T04:25:46.743Z",
+        "balance": 1.0175601619151063e+26,
+        "block_height": 122010710,
+        "epoch_id": "GdbPiyTkgMJzhb26HVJ98mTM578Zm1hmw6drkZLaffZ2",
+        "next_epoch_id": "DtYdA7b82qJmAtyw9N2TsVTjyUhwcvtW2oHC1n4qKC1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3198515166982946e+22
+    },
+    {
+        "timestamp": "2024-06-25T13:05:25.132Z",
+        "balance": 1.0174281767634365e+26,
+        "block_height": 121967507,
+        "epoch_id": "A172PuHwBKtDNVsqSuxXYvQj4memHTDMnu5EKif74KnS",
+        "next_epoch_id": "GdbPiyTkgMJzhb26HVJ98mTM578Zm1hmw6drkZLaffZ2",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.337013918215942e+22
+    },
+    {
+        "timestamp": "2024-06-24T23:13:45.650Z",
+        "balance": 1.0172944753716149e+26,
+        "block_height": 121924307,
+        "epoch_id": "4RjXBrNcu39wutFTuFpnRHgNqgHxLMcGBKNEQdtkSBhy",
+        "next_epoch_id": "A172PuHwBKtDNVsqSuxXYvQj4memHTDMnu5EKif74KnS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2925850458490461e+22
+    },
+    {
+        "timestamp": "2024-06-24T09:11:55.164Z",
+        "balance": 1.01716521686703e+26,
+        "block_height": 121881107,
+        "epoch_id": "CRTZ7cQd77rvfS57Y7M36P1vLhran9HyQFEpTLxHRf9t",
+        "next_epoch_id": "4RjXBrNcu39wutFTuFpnRHgNqgHxLMcGBKNEQdtkSBhy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3306003359375718e+22
+    },
+    {
+        "timestamp": "2024-06-23T19:37:45.931Z",
+        "balance": 1.0170321568334362e+26,
+        "block_height": 121837907,
+        "epoch_id": "HPi5yyZHZ91t5S4SPAAfEZwGYEqq5i6QjzXoVMi8ksae",
+        "next_epoch_id": "CRTZ7cQd77rvfS57Y7M36P1vLhran9HyQFEpTLxHRf9t",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.293939286587515e+22
+    },
+    {
+        "timestamp": "2024-06-23T05:39:38.407Z",
+        "balance": 1.0169027629047775e+26,
+        "block_height": 121794707,
+        "epoch_id": "3JMehuv86nBynJ33VBUGAvfd9Ts8EfvytGJ8i8e45XPi",
+        "next_epoch_id": "HPi5yyZHZ91t5S4SPAAfEZwGYEqq5i6QjzXoVMi8ksae",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3180525972956465e+22
+    },
+    {
+        "timestamp": "2024-06-22T16:04:05.555Z",
+        "balance": 1.0167709576450479e+26,
+        "block_height": 121751507,
+        "epoch_id": "89PT9SkLXB1FZHvW7EdQHxiSpm5ybuTCvjrGZWWhXMTz",
+        "next_epoch_id": "3JMehuv86nBynJ33VBUGAvfd9Ts8EfvytGJ8i8e45XPi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2970125090928126e+22
+    },
+    {
+        "timestamp": "2024-06-22T02:15:24.598Z",
+        "balance": 1.0166412563941386e+26,
+        "block_height": 121708307,
+        "epoch_id": "3TDMgDbDBZbzkjRT3CCw3RBQk5aLRrmmD9WiYbuZQV9d",
+        "next_epoch_id": "89PT9SkLXB1FZHvW7EdQHxiSpm5ybuTCvjrGZWWhXMTz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3398362738770676e+22
+    },
+    {
+        "timestamp": "2024-06-21T12:39:51.653Z",
+        "balance": 1.016507272766751e+26,
+        "block_height": 121665107,
+        "epoch_id": "9ASpcRrp7iJin1PAUCVhoD4r7MhcLi6tVtRGSfSfsv44",
+        "next_epoch_id": "3TDMgDbDBZbzkjRT3CCw3RBQk5aLRrmmD9WiYbuZQV9d",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3238446697326613e+22
+    },
+    {
+        "timestamp": "2024-06-20T22:37:25.437Z",
+        "balance": 1.0163748882997777e+26,
+        "block_height": 121621907,
+        "epoch_id": "97fDLBWDyKSwCH3MmeTY6VMe2o48bQ9ZNMyiRejuoBhT",
+        "next_epoch_id": "9ASpcRrp7iJin1PAUCVhoD4r7MhcLi6tVtRGSfSfsv44",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2753795290410638e+22
+    },
+    {
+        "timestamp": "2024-06-20T08:44:02.558Z",
+        "balance": 1.0162473503468736e+26,
+        "block_height": 121578707,
+        "epoch_id": "DvpH8HRqtYM77tkkMJiSPaEbR63VrAh2NJGjL39mYK8n",
+        "next_epoch_id": "97fDLBWDyKSwCH3MmeTY6VMe2o48bQ9ZNMyiRejuoBhT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2943584674138374e+22
+    },
+    {
+        "timestamp": "2024-06-19T19:19:37.085Z",
+        "balance": 1.0161179145001322e+26,
+        "block_height": 121535507,
+        "epoch_id": "6roR7NaJrsfxNeU2phRyWwPWAZdW7BpiXRjFuGu7RcY1",
+        "next_epoch_id": "DvpH8HRqtYM77tkkMJiSPaEbR63VrAh2NJGjL39mYK8n",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.2822396961777166e+22
+    },
+    {
+        "timestamp": "2024-06-19T05:45:59.483Z",
+        "balance": 1.0159896905305144e+26,
+        "block_height": 121492307,
+        "epoch_id": "5KxLdek84Ui7BS5wSWkLCbub2o8Jfo87jJVbUNFFyPK4",
+        "next_epoch_id": "6roR7NaJrsfxNeU2phRyWwPWAZdW7BpiXRjFuGu7RcY1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.339739060400161e+22
+    },
+    {
+        "timestamp": "2024-06-18T16:18:47.687Z",
+        "balance": 1.0158557166244744e+26,
+        "block_height": 121449107,
+        "epoch_id": "CQQbNc1XiVgiUxgQtkcYsmapwXgPjPmR1SCsKSVeSsJj",
+        "next_epoch_id": "5KxLdek84Ui7BS5wSWkLCbub2o8Jfo87jJVbUNFFyPK4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3159414501722003e+22
+    },
+    {
+        "timestamp": "2024-06-18T02:14:39.976Z",
+        "balance": 1.0157241224794572e+26,
+        "block_height": 121405907,
+        "epoch_id": "8vTCZDwGiw9D5DUnVJj29744Uo9TEs97WuKCwJ1t3eLg",
+        "next_epoch_id": "CQQbNc1XiVgiUxgQtkcYsmapwXgPjPmR1SCsKSVeSsJj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.306822883734888e+22
+    },
+    {
+        "timestamp": "2024-06-17T12:33:57.523Z",
+        "balance": 1.0155934401910837e+26,
+        "block_height": 121362707,
+        "epoch_id": "CLXk22wwFpiWZrq5WDJdkVScN2tQ9AVBbmDXi6x6wCih",
+        "next_epoch_id": "8vTCZDwGiw9D5DUnVJj29744Uo9TEs97WuKCwJ1t3eLg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.436634023734705e+22
+    },
+    {
+        "timestamp": "2024-06-16T22:59:03.934Z",
+        "balance": 1.0154497767887102e+26,
+        "block_height": 121319507,
+        "epoch_id": "8b2pLrk1msVgAChpFP7YauVUK3EzBhknwrbyTCQy9WGZ",
+        "next_epoch_id": "CLXk22wwFpiWZrq5WDJdkVScN2tQ9AVBbmDXi6x6wCih",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4382906554612978e+22
+    },
+    {
+        "timestamp": "2024-06-16T07:54:43.695Z",
+        "balance": 1.015305947723164e+26,
+        "block_height": 121276307,
+        "epoch_id": "2UD5MbcubvV3EBfwsVaNrL7zat6w6uGizBkfjmGG6VQ4",
+        "next_epoch_id": "8b2pLrk1msVgAChpFP7YauVUK3EzBhknwrbyTCQy9WGZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.355371371872919e+22
+    },
+    {
+        "timestamp": "2024-06-15T16:49:29.112Z",
+        "balance": 1.0151704105859768e+26,
+        "block_height": 121233107,
+        "epoch_id": "D4sHr7U4CFjPUJN7MPkW2cSULrtdwA4wdVXm8fWxBxXj",
+        "next_epoch_id": "2UD5MbcubvV3EBfwsVaNrL7zat6w6uGizBkfjmGG6VQ4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3360542113590896e+22
+    },
+    {
+        "timestamp": "2024-06-15T02:46:11.119Z",
+        "balance": 1.0150368051648409e+26,
+        "block_height": 121189907,
+        "epoch_id": "25HzMRNxuAfp21319oFQELh1V8sX63Fv6ekAeC1iGhbS",
+        "next_epoch_id": "D4sHr7U4CFjPUJN7MPkW2cSULrtdwA4wdVXm8fWxBxXj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4608799175457974e+22
+    },
+    {
+        "timestamp": "2024-06-14T12:54:42.469Z",
+        "balance": 1.0148907171730863e+26,
+        "block_height": 121146707,
+        "epoch_id": "FBiVruRirWiKyNZojZzkHMFQGmLRe5nZgnpq1pBKXHo6",
+        "next_epoch_id": "25HzMRNxuAfp21319oFQELh1V8sX63Fv6ekAeC1iGhbS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4150967075270725e+22
+    },
+    {
+        "timestamp": "2024-06-13T21:28:49.260Z",
+        "balance": 1.0147492075023336e+26,
+        "block_height": 121103068,
+        "epoch_id": "AEVPFToJXQ888CveYcZDKqaNF1m9gonXHsTG4vNDTRQL",
+        "next_epoch_id": "FBiVruRirWiKyNZojZzkHMFQGmLRe5nZgnpq1pBKXHo6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3088900415696423e+22
+    },
+    {
+        "timestamp": "2024-06-13T06:50:55.554Z",
+        "balance": 1.0146183184981766e+26,
+        "block_height": 121060307,
+        "epoch_id": "FY8vMqjwVXumHMm6UYjK3dNquoMhmMat5wQ3Hhw7sBHL",
+        "next_epoch_id": "AEVPFToJXQ888CveYcZDKqaNF1m9gonXHsTG4vNDTRQL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3631320282162746e+22
+    },
+    {
+        "timestamp": "2024-06-12T17:10:27.795Z",
+        "balance": 1.014482005295355e+26,
+        "block_height": 121017107,
+        "epoch_id": "6JkEvmXjH4Jn5HcRwaZCHCjrwyDki9BVLeFJgZTfYw3P",
+        "next_epoch_id": "FY8vMqjwVXumHMm6UYjK3dNquoMhmMat5wQ3Hhw7sBHL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.348140216440892e+22
+    },
+    {
+        "timestamp": "2024-06-12T02:57:46.769Z",
+        "balance": 1.0143471912737109e+26,
+        "block_height": 120973907,
+        "epoch_id": "2o7D2y57uXqErbFqx8JoFPeN1oYqaph6jYw93Ted9AEL",
+        "next_epoch_id": "6JkEvmXjH4Jn5HcRwaZCHCjrwyDki9BVLeFJgZTfYw3P",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3180946700891855e+22
+    },
+    {
+        "timestamp": "2024-06-11T12:58:10.666Z",
+        "balance": 1.014215381806702e+26,
+        "block_height": 120930707,
+        "epoch_id": "4NTfRJoC2BuQPecmNcqqmHkcUoHXWKHbgsjbFvoppizE",
+        "next_epoch_id": "2o7D2y57uXqErbFqx8JoFPeN1oYqaph6jYw93Ted9AEL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3969974165408538e+22
+    },
+    {
+        "timestamp": "2024-06-10T23:14:46.354Z",
+        "balance": 1.0140756820650479e+26,
+        "block_height": 120887507,
+        "epoch_id": "DmTiP5BkrfesBvWF8Ng78zvLRo61JHLcyKYo8DsieUA6",
+        "next_epoch_id": "4NTfRJoC2BuQPecmNcqqmHkcUoHXWKHbgsjbFvoppizE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3887787176154462e+22
+    },
+    {
+        "timestamp": "2024-06-10T08:54:18.752Z",
+        "balance": 1.0139368041932864e+26,
+        "block_height": 120844307,
+        "epoch_id": "3V5JxX6dZxjPaf6ekhPbZSyFxYXdLxLD42YUrjbGEKJ4",
+        "next_epoch_id": "DmTiP5BkrfesBvWF8Ng78zvLRo61JHLcyKYo8DsieUA6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4123839701653232e+22
+    },
+    {
+        "timestamp": "2024-06-09T18:38:13.387Z",
+        "balance": 1.0137955657962698e+26,
+        "block_height": 120801107,
+        "epoch_id": "ESNJJmSXw7xu4u1vrELuRFEr9NoNoZ9jppoyRNzwVvyY",
+        "next_epoch_id": "3V5JxX6dZxjPaf6ekhPbZSyFxYXdLxLD42YUrjbGEKJ4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3758987736177904e+22
+    },
+    {
+        "timestamp": "2024-06-09T04:18:24.705Z",
+        "balance": 1.013657975918908e+26,
+        "block_height": 120757907,
+        "epoch_id": "FjmF83DVRRessei2KQC6NAamemaShDxoHFteYsFJNF7M",
+        "next_epoch_id": "ESNJJmSXw7xu4u1vrELuRFEr9NoNoZ9jppoyRNzwVvyY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.404542372575986e+22
+    },
+    {
+        "timestamp": "2024-06-08T14:20:30.536Z",
+        "balance": 1.0135175216816504e+26,
+        "block_height": 120714707,
+        "epoch_id": "F13VkENA7rfsM2gWDPfeD3JvZnDe11W81VUeRnSU4QCj",
+        "next_epoch_id": "FjmF83DVRRessei2KQC6NAamemaShDxoHFteYsFJNF7M",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.414747227218454e+22
+    },
+    {
+        "timestamp": "2024-06-08T00:03:52.413Z",
+        "balance": 1.0133760469589286e+26,
+        "block_height": 120671507,
+        "epoch_id": "FH9orhez7ADwc3bPkiFo6B233RH4tBf9LdQwfs8xSnYx",
+        "next_epoch_id": "F13VkENA7rfsM2gWDPfeD3JvZnDe11W81VUeRnSU4QCj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4227718775062296e+22
+    },
+    {
+        "timestamp": "2024-06-07T09:39:42.814Z",
+        "balance": 1.013233769771178e+26,
+        "block_height": 120628307,
+        "epoch_id": "BANWz3867e9S4epMu936obvFoeuTv55jXvrDQBkGwjxZ",
+        "next_epoch_id": "FH9orhez7ADwc3bPkiFo6B233RH4tBf9LdQwfs8xSnYx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4059473496823772e+22
+    },
+    {
+        "timestamp": "2024-06-06T19:11:51.458Z",
+        "balance": 1.0130931750362097e+26,
+        "block_height": 120585107,
+        "epoch_id": "BRhrQEc5Cu75b1dcd6WXQCXU2BMWoZrZrGWDif5uyXD1",
+        "next_epoch_id": "BANWz3867e9S4epMu936obvFoeuTv55jXvrDQBkGwjxZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3668906115602307e+22
+    },
+    {
+        "timestamp": "2024-06-06T04:42:16.533Z",
+        "balance": 1.0129564859750537e+26,
+        "block_height": 120541907,
+        "epoch_id": "Db7EFLP7Q3ymECWH8j74GduM6koRX2PtCpu9Zav8XbXb",
+        "next_epoch_id": "BRhrQEc5Cu75b1dcd6WXQCXU2BMWoZrZrGWDif5uyXD1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3829092497200106e+22
+    },
+    {
+        "timestamp": "2024-06-05T14:38:15.095Z",
+        "balance": 1.0128181950500817e+26,
+        "block_height": 120498707,
+        "epoch_id": "EQpcBA3woXwG6e9WTCkNKDAc4oje649sc3dcCLvVLiy7",
+        "next_epoch_id": "Db7EFLP7Q3ymECWH8j74GduM6koRX2PtCpu9Zav8XbXb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4142384258435967e+22
+    },
+    {
+        "timestamp": "2024-06-05T00:22:41.993Z",
+        "balance": 1.0126767712074974e+26,
+        "block_height": 120455507,
+        "epoch_id": "4YBJXVzj6UU4DpVJ5gh4d7SxPQSTsTU9bUTsJTxBS8ob",
+        "next_epoch_id": "EQpcBA3woXwG6e9WTCkNKDAc4oje649sc3dcCLvVLiy7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.375395927876514e+22
+    },
+    {
+        "timestamp": "2024-06-04T09:46:57.413Z",
+        "balance": 1.0125392316147097e+26,
+        "block_height": 120412307,
+        "epoch_id": "Hc8rX5svN7gJts3duiAvqnCaGu3D6HGoKnmGcZwjJLqR",
+        "next_epoch_id": "4YBJXVzj6UU4DpVJ5gh4d7SxPQSTsTU9bUTsJTxBS8ob",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3805470723924522e+22
+    },
+    {
+        "timestamp": "2024-06-03T16:18:44.570Z",
+        "balance": 1.0124011769074705e+26,
+        "block_height": 120358320,
+        "epoch_id": "5Hc1KuMhcKTMLHGRVvMxXWK4Nbw2gwDNrHJ5gxR5b4yq",
+        "next_epoch_id": "Hc8rX5svN7gJts3duiAvqnCaGu3D6HGoKnmGcZwjJLqR",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4281032011950707e+22
+    },
+    {
+        "timestamp": "2024-06-03T05:40:55.373Z",
+        "balance": 1.012258366587351e+26,
+        "block_height": 120325907,
+        "epoch_id": "BRDmgyrWnGefBFcYrKMgodFMvyb8Ga2CSeNzuW3GDR9c",
+        "next_epoch_id": "5Hc1KuMhcKTMLHGRVvMxXWK4Nbw2gwDNrHJ5gxR5b4yq",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4413795476874824e+22
+    },
+    {
+        "timestamp": "2024-06-02T15:09:30.693Z",
+        "balance": 1.0121142286325822e+26,
+        "block_height": 120282707,
+        "epoch_id": "64P8hvFvgmDVfh39zPcoU55pvbkCAid6oBkv7jCBRx1M",
+        "next_epoch_id": "BRDmgyrWnGefBFcYrKMgodFMvyb8Ga2CSeNzuW3GDR9c",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.450626593410556e+22
+    },
+    {
+        "timestamp": "2024-06-02T00:26:37.315Z",
+        "balance": 1.0119691659732411e+26,
+        "block_height": 120239507,
+        "epoch_id": "5atv5Hr8hkLonGBjUzkR94FMya8y242Wz1vncWux2Pmu",
+        "next_epoch_id": "64P8hvFvgmDVfh39zPcoU55pvbkCAid6oBkv7jCBRx1M",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4326524373942999e+22
+    },
+    {
+        "timestamp": "2024-06-01T09:39:54.634Z",
+        "balance": 1.0118259007295017e+26,
+        "block_height": 120196307,
+        "epoch_id": "GhPbd6YUgXbnQPmG9TQG3LZeVjbZR1xAhsypgoCU3gd",
+        "next_epoch_id": "5atv5Hr8hkLonGBjUzkR94FMya8y242Wz1vncWux2Pmu",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4796166218813545e+22
+    },
+    {
+        "timestamp": "2024-05-31T19:04:17.417Z",
+        "balance": 1.0116779390673136e+26,
+        "block_height": 120153107,
+        "epoch_id": "2NV5y1pbaQ5zwXuGtnCJFQu8zUj2Qz3cUjG4rmZc8d4o",
+        "next_epoch_id": "GhPbd6YUgXbnQPmG9TQG3LZeVjbZR1xAhsypgoCU3gd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4174540491097207e+22
+    },
+    {
+        "timestamp": "2024-05-31T03:52:13.405Z",
+        "balance": 1.0115361936624026e+26,
+        "block_height": 120109907,
+        "epoch_id": "EQzDX3HrhJSebo25yuWV7TaL8GumgaGfhSEbEqftZXS8",
+        "next_epoch_id": "2NV5y1pbaQ5zwXuGtnCJFQu8zUj2Qz3cUjG4rmZc8d4o",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4291678092471298e+22
+    },
+    {
+        "timestamp": "2024-05-30T13:18:26.497Z",
+        "balance": 1.0113932768814779e+26,
+        "block_height": 120066707,
+        "epoch_id": "5QRwCDE32hfakJDW4Mv6Kk4HSKcEgtJQoco6za6Cc5Nj",
+        "next_epoch_id": "EQzDX3HrhJSebo25yuWV7TaL8GumgaGfhSEbEqftZXS8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4299229442192316e+22
+    },
+    {
+        "timestamp": "2024-05-29T22:33:13.291Z",
+        "balance": 1.011250284587056e+26,
+        "block_height": 120023507,
+        "epoch_id": "8NRhYtxkVMNfkTCX5DuQccnXxe7shUukzzjnsa2UpBAd",
+        "next_epoch_id": "5QRwCDE32hfakJDW4Mv6Kk4HSKcEgtJQoco6za6Cc5Nj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3858484329858411e+22
+    },
+    {
+        "timestamp": "2024-05-29T07:35:25.058Z",
+        "balance": 1.0111116997437574e+26,
+        "block_height": 119980307,
+        "epoch_id": "4dsqvgNrXiCrBFLjpPouekHYbGzEHdb2B2UPrsddV8xV",
+        "next_epoch_id": "8NRhYtxkVMNfkTCX5DuQccnXxe7shUukzzjnsa2UpBAd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.401516759063328e+22
+    },
+    {
+        "timestamp": "2024-05-28T17:04:52.965Z",
+        "balance": 1.010971548067851e+26,
+        "block_height": 119937107,
+        "epoch_id": "taXLH5QiRoXW9G9VnG12rLuXGhG5EE5bBeGearrLAMW",
+        "next_epoch_id": "4dsqvgNrXiCrBFLjpPouekHYbGzEHdb2B2UPrsddV8xV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 9.813863994830837e+21
+    },
+    {
+        "timestamp": "2024-05-28T02:21:42.725Z",
+        "balance": 1.0108734094279027e+26,
+        "block_height": 119893907,
+        "epoch_id": "7MLjtN4MnQSa97voBuZhaseKuzWj5XcWkehi2s48bEt",
+        "next_epoch_id": "taXLH5QiRoXW9G9VnG12rLuXGhG5EE5bBeGearrLAMW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.288525726950225e+21
+    },
+    {
+        "timestamp": "2024-05-27T11:40:35.392Z",
+        "balance": 1.0108305241706332e+26,
+        "block_height": 119850707,
+        "epoch_id": "DSSJz73PcnnkMbmNNCvD1JNPT1WQs3GK5sKrCdEEPUqA",
+        "next_epoch_id": "7MLjtN4MnQSa97voBuZhaseKuzWj5XcWkehi2s48bEt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 213030137363431420
+    },
+    {
+        "timestamp": "2024-05-26T21:31:29.366Z",
+        "balance": 1.0108305220403319e+26,
+        "block_height": 119807507,
+        "epoch_id": "CXZifJPDuZsgtzvjCA4bs4cnjNBLqBi8o4dnPEnRyhZv",
+        "next_epoch_id": "DSSJz73PcnnkMbmNNCvD1JNPT1WQs3GK5sKrCdEEPUqA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 213829190259048450
+    },
+    {
+        "timestamp": "2024-05-26T07:04:27.256Z",
+        "balance": 1.01083051990204e+26,
+        "block_height": 119764307,
+        "epoch_id": "6b2s1bNHgu2876zR14c9qDMN2U5Sn9hDTwLjGo5Hsq4W",
+        "next_epoch_id": "CXZifJPDuZsgtzvjCA4bs4cnjNBLqBi8o4dnPEnRyhZv",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3762512643394242e+22
+    },
+    {
+        "timestamp": "2024-05-25T16:59:34.224Z",
+        "balance": 1.010692894775606e+26,
+        "block_height": 119721107,
+        "epoch_id": "5tUvdaeSgN4Zq31m413wsQSuqATPb5ofFnANBDtBcRwC",
+        "next_epoch_id": "6b2s1bNHgu2876zR14c9qDMN2U5Sn9hDTwLjGo5Hsq4W",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3729418701020166e+22
+    },
+    {
+        "timestamp": "2024-05-25T02:35:50.921Z",
+        "balance": 1.0105556005885958e+26,
+        "block_height": 119677907,
+        "epoch_id": "2qygBKpC3D6PNC4L73J51Z8N6Bnx7KZednrcht7Jjvq4",
+        "next_epoch_id": "5tUvdaeSgN4Zq31m413wsQSuqATPb5ofFnANBDtBcRwC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3840211757463153e+22
+    },
+    {
+        "timestamp": "2024-05-24T12:13:33.771Z",
+        "balance": 1.0104171984710212e+26,
+        "block_height": 119634707,
+        "epoch_id": "A8uTrvNEwQuinJkcKfBUAEYQfQyHtYp8McvD3M8nevfr",
+        "next_epoch_id": "2qygBKpC3D6PNC4L73J51Z8N6Bnx7KZednrcht7Jjvq4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 3.5881473750936616e+21
+    },
+    {
+        "timestamp": "2024-05-23T21:58:22.139Z",
+        "balance": 1.0103813169972703e+26,
+        "block_height": 119591507,
+        "epoch_id": "DsngyQnqb63SxDmpww1L9P3ZasUGRd4FNTY4PKM9a5Yi",
+        "next_epoch_id": "A8uTrvNEwQuinJkcKfBUAEYQfQyHtYp8McvD3M8nevfr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3556016117552589e+22
+    },
+    {
+        "timestamp": "2024-05-23T07:32:48.312Z",
+        "balance": 1.0102457568360947e+26,
+        "block_height": 119548307,
+        "epoch_id": "B11oxTuFpcJS8hphsy1M6v17vWsWPGAtWQtZmVzGSGRB",
+        "next_epoch_id": "DsngyQnqb63SxDmpww1L9P3ZasUGRd4FNTY4PKM9a5Yi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 8.663199278178333e+21
+    },
+    {
+        "timestamp": "2024-05-22T17:33:15.488Z",
+        "balance": 1.010159124843313e+26,
+        "block_height": 119505107,
+        "epoch_id": "B2Gu4fHjBQFnHvRXCkd56u8BULWJ6SNxXsRNr4BCFEnm",
+        "next_epoch_id": "B11oxTuFpcJS8hphsy1M6v17vWsWPGAtWQtZmVzGSGRB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3826887208326004e+22
+    },
+    {
+        "timestamp": "2024-05-22T03:22:21.071Z",
+        "balance": 1.0100208559712297e+26,
+        "block_height": 119461907,
+        "epoch_id": "3HqumBZGdykrTbKGKfEEFZ2SQXGHeHWG2ckhsEGnDfdw",
+        "next_epoch_id": "B2Gu4fHjBQFnHvRXCkd56u8BULWJ6SNxXsRNr4BCFEnm",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3571951520443609e+22
+    },
+    {
+        "timestamp": "2024-05-21T13:06:22.672Z",
+        "balance": 1.0098851364560253e+26,
+        "block_height": 119418707,
+        "epoch_id": "HcFvrge7XW56Eybnosw6LfQQM6hJ7jvCWbJN7fQXkBwA",
+        "next_epoch_id": "3HqumBZGdykrTbKGKfEEFZ2SQXGHeHWG2ckhsEGnDfdw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3555782054994736e+22
+    },
+    {
+        "timestamp": "2024-05-20T22:50:18.707Z",
+        "balance": 1.0097495786354753e+26,
+        "block_height": 119375507,
+        "epoch_id": "4dzkDcZfYrb81SPDhhfAfNA1WREzHXa1rPUZZEz3pHhc",
+        "next_epoch_id": "HcFvrge7XW56Eybnosw6LfQQM6hJ7jvCWbJN7fQXkBwA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3218831949936277e+22
+    },
+    {
+        "timestamp": "2024-05-20T08:36:16.733Z",
+        "balance": 1.009617390315976e+26,
+        "block_height": 119332307,
+        "epoch_id": "2H73RSgUR8tgwF36iMMBKxZHQZeL2x954iV53Uk1Z7v5",
+        "next_epoch_id": "4dzkDcZfYrb81SPDhhfAfNA1WREzHXa1rPUZZEz3pHhc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 8.615398329483e+21
+    },
+    {
+        "timestamp": "2024-05-19T18:43:13.730Z",
+        "balance": 1.0095312363326811e+26,
+        "block_height": 119289107,
+        "epoch_id": "BwA2Qok2wXzVh72Rq3y6KHjZtC9XHxYYvFj7Xzb1Q55E",
+        "next_epoch_id": "2H73RSgUR8tgwF36iMMBKxZHQZeL2x954iV53Uk1Z7v5",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3136363671299618e+22
+    },
+    {
+        "timestamp": "2024-05-19T04:44:53.618Z",
+        "balance": 1.0093998726959681e+26,
+        "block_height": 119245907,
+        "epoch_id": "Hg9mD2RZpL5ANEWpPMMP2W3Tee88tZz8wYhyW1DfYWMZ",
+        "next_epoch_id": "BwA2Qok2wXzVh72Rq3y6KHjZtC9XHxYYvFj7Xzb1Q55E",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3070149836341886e+22
+    },
+    {
+        "timestamp": "2024-05-18T14:56:48.821Z",
+        "balance": 1.0092691711976047e+26,
+        "block_height": 119202707,
+        "epoch_id": "2H8P24YVXTyrZPqmerXMVWcs5fbabAizKR218xdUKpg3",
+        "next_epoch_id": "Hg9mD2RZpL5ANEWpPMMP2W3Tee88tZz8wYhyW1DfYWMZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 220168338649645060
+    },
+    {
+        "timestamp": "2024-05-18T01:14:30.408Z",
+        "balance": 1.0092691689959213e+26,
+        "block_height": 119159507,
+        "epoch_id": "8nU64P6zXYvreJKtUkACp9Qw9SEaVoMK9mrQMCaQQr4d",
+        "next_epoch_id": "2H8P24YVXTyrZPqmerXMVWcs5fbabAizKR218xdUKpg3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 227263504363552770
+    },
+    {
+        "timestamp": "2024-05-17T11:20:08.895Z",
+        "balance": 1.0092691667232863e+26,
+        "block_height": 119116307,
+        "epoch_id": "Bh16JHDALmr2K4hXwJ6fHqeQje3ZfqXqanEqrGypxkCH",
+        "next_epoch_id": "8nU64P6zXYvreJKtUkACp9Qw9SEaVoMK9mrQMCaQQr4d",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 232246199002857470
+    },
+    {
+        "timestamp": "2024-05-16T21:32:41.556Z",
+        "balance": 1.0092691644008243e+26,
+        "block_height": 119073107,
+        "epoch_id": "63yzLJbaWTFcSBorewcweK3bzzDFH59gKtikuZG1tQTA",
+        "next_epoch_id": "Bh16JHDALmr2K4hXwJ6fHqeQje3ZfqXqanEqrGypxkCH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 228756005498912770
+    },
+    {
+        "timestamp": "2024-05-16T07:35:15.960Z",
+        "balance": 1.0092691621132642e+26,
+        "block_height": 119029907,
+        "epoch_id": "F5dpqJSdk9h8b1cFm2mZuL7i8TyDT22fgmD4j9zpDiPB",
+        "next_epoch_id": "63yzLJbaWTFcSBorewcweK3bzzDFH59gKtikuZG1tQTA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 8.351017212109505e+21
+    },
+    {
+        "timestamp": "2024-05-15T17:34:29.765Z",
+        "balance": 1.0091856519411431e+26,
+        "block_height": 118986707,
+        "epoch_id": "9QLkmJFHznDVNdm5ZK5jiTwsWMEwZHGoUb3Wqfvvr9wh",
+        "next_epoch_id": "F5dpqJSdk9h8b1cFm2mZuL7i8TyDT22fgmD4j9zpDiPB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.452580525520439e+22
+    },
+    {
+        "timestamp": "2024-05-15T03:11:18.375Z",
+        "balance": 1.009040393888591e+26,
+        "block_height": 118943507,
+        "epoch_id": "HZ7WqvJhwk1EMCB5yvXuaCtJowuqUeYHkztNcpWrq1vx",
+        "next_epoch_id": "9QLkmJFHznDVNdm5ZK5jiTwsWMEwZHGoUb3Wqfvvr9wh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.1254009819477863e+22
+    },
+    {
+        "timestamp": "2024-05-14T12:00:03.791Z",
+        "balance": 1.0089278537903963e+26,
+        "block_height": 118900307,
+        "epoch_id": "GWCbeBuF9h96BJYLTtHLmcPASq5oaybUi4HqJ8H1Ry2G",
+        "next_epoch_id": "HZ7WqvJhwk1EMCB5yvXuaCtJowuqUeYHkztNcpWrq1vx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5408754791235461e+22
+    },
+    {
+        "timestamp": "2024-05-13T20:01:38.104Z",
+        "balance": 1.008773766242484e+26,
+        "block_height": 118857107,
+        "epoch_id": "7TwMSQBie87dfNZeB5qNo1UpUhjAr2jZZBwojKPyk6sX",
+        "next_epoch_id": "GWCbeBuF9h96BJYLTtHLmcPASq5oaybUi4HqJ8H1Ry2G",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5362350068633474e+22
+    },
+    {
+        "timestamp": "2024-05-13T04:03:05.591Z",
+        "balance": 1.0086201427417976e+26,
+        "block_height": 118813907,
+        "epoch_id": "W1hgpXkx9sRtb9WNfd3xTyfaUpRoEHoEEvDqpRfeADb",
+        "next_epoch_id": "7TwMSQBie87dfNZeB5qNo1UpUhjAr2jZZBwojKPyk6sX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.669897400595274e+21
+    },
+    {
+        "timestamp": "2024-05-12T12:01:46.020Z",
+        "balance": 1.0085634437677917e+26,
+        "block_height": 118770707,
+        "epoch_id": "EfYBodnDm9EUo7pEaMXN2oewypGweKtFJfhY3gphh8H8",
+        "next_epoch_id": "W1hgpXkx9sRtb9WNfd3xTyfaUpRoEHoEEvDqpRfeADb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5033382889116221e+22
+    },
+    {
+        "timestamp": "2024-05-11T20:03:50.055Z",
+        "balance": 1.0084131099389005e+26,
+        "block_height": 118727507,
+        "epoch_id": "FvqjY1oTvQHWYBNMmHjsgxbahXj9VXPUmLFXsWNvQ8zC",
+        "next_epoch_id": "EfYBodnDm9EUo7pEaMXN2oewypGweKtFJfhY3gphh8H8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5039016652762685e+22
+    },
+    {
+        "timestamp": "2024-05-11T04:22:39.550Z",
+        "balance": 1.0082627197723729e+26,
+        "block_height": 118684307,
+        "epoch_id": "GSpv4pLm63QUFXiHuf57JwscVSEhWd6br5kABfscvnBN",
+        "next_epoch_id": "FvqjY1oTvQHWYBNMmHjsgxbahXj9VXPUmLFXsWNvQ8zC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4787748395672903e+22
+    },
+    {
+        "timestamp": "2024-05-10T12:41:48.535Z",
+        "balance": 1.0081148422884161e+26,
+        "block_height": 118641107,
+        "epoch_id": "An7nz7unUyMLXgvttbjU3qbeufXTX93Z7wi9R6r8Xw3B",
+        "next_epoch_id": "GSpv4pLm63QUFXiHuf57JwscVSEhWd6br5kABfscvnBN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.1354730184529391e+22
+    },
+    {
+        "timestamp": "2024-05-09T21:14:45.517Z",
+        "balance": 1.0080012949865708e+26,
+        "block_height": 118597907,
+        "epoch_id": "6C9Jn1jrmk42PqetDWei9ibpiuRntJK6tu9Jmr9wWNyr",
+        "next_epoch_id": "An7nz7unUyMLXgvttbjU3qbeufXTX93Z7wi9R6r8Xw3B",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 7.427562740868874e+21
+    },
+    {
+        "timestamp": "2024-05-09T05:54:58.671Z",
+        "balance": 1.0079270193591622e+26,
+        "block_height": 118554707,
+        "epoch_id": "9x6ebXcP2sXvcpxZdjYH4jbPpqv9844in9w82Lsm3BmV",
+        "next_epoch_id": "6C9Jn1jrmk42PqetDWei9ibpiuRntJK6tu9Jmr9wWNyr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 9.694671345356156e+21
+    },
+    {
+        "timestamp": "2024-05-08T14:51:54.616Z",
+        "balance": 1.0078300726457086e+26,
+        "block_height": 118511507,
+        "epoch_id": "4fcBsoKs6DAyTYmCiqUxGvbBJzGRx1qKoBDkVABHgRvH",
+        "next_epoch_id": "9x6ebXcP2sXvcpxZdjYH4jbPpqv9844in9w82Lsm3BmV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4947048543204766e+22
+    },
+    {
+        "timestamp": "2024-05-07T23:54:14.529Z",
+        "balance": 1.0076806021602766e+26,
+        "block_height": 118468307,
+        "epoch_id": "7w9GQ2X5iSifDv6ENzpkBPoh1xbaaFBQPo7LW12wDcao",
+        "next_epoch_id": "4fcBsoKs6DAyTYmCiqUxGvbBJzGRx1qKoBDkVABHgRvH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.69588198614177e+21
+    },
+    {
+        "timestamp": "2024-05-07T08:57:34.451Z",
+        "balance": 1.0076336433404151e+26,
+        "block_height": 118425107,
+        "epoch_id": "54q3Pup7dA3mLq2jbS2KKcTEhAacSDp6RvYqQKyAZWV8",
+        "next_epoch_id": "7w9GQ2X5iSifDv6ENzpkBPoh1xbaaFBQPo7LW12wDcao",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 9.720844679932593e+21
+    },
+    {
+        "timestamp": "2024-05-06T18:10:10.209Z",
+        "balance": 1.0075364348936158e+26,
+        "block_height": 118381907,
+        "epoch_id": "BYs4JSztGfZBKSLz2YhUAtrHTzNBV49P84d15jaCmKhS",
+        "next_epoch_id": "54q3Pup7dA3mLq2jbS2KKcTEhAacSDp6RvYqQKyAZWV8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.7400829097079487e+22
+    },
+    {
+        "timestamp": "2024-05-05T12:32:00.266Z",
+        "balance": 1.007362426602645e+26,
+        "block_height": 118296621,
+        "epoch_id": "JDjhbRayPzAcXpY4MPBKzrcnhcdw4cYngAnrh8P61WdE",
+        "next_epoch_id": "BYs4JSztGfZBKSLz2YhUAtrHTzNBV49P84d15jaCmKhS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-05-05T12:08:21.455Z",
+        "balance": 1.007362426602645e+26,
+        "block_height": 118295507,
+        "epoch_id": "8BJdHWNq69H4PE33wZqcoEV5dXJUpuXKotivLZFSXuV7",
+        "next_epoch_id": "JDjhbRayPzAcXpY4MPBKzrcnhcdw4cYngAnrh8P61WdE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.496542802030814e+22
+    },
+    {
+        "timestamp": "2024-05-04T21:09:07.843Z",
+        "balance": 1.007212772322442e+26,
+        "block_height": 118252307,
+        "epoch_id": "B4mvpNoK5jyy7PsYbCpCFNVgszLFvAHKEnUTXfTw6zrm",
+        "next_epoch_id": "8BJdHWNq69H4PE33wZqcoEV5dXJUpuXKotivLZFSXuV7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5016951987118256e+22
+    },
+    {
+        "timestamp": "2024-05-04T06:13:20.450Z",
+        "balance": 1.0070626028025707e+26,
+        "block_height": 118209107,
+        "epoch_id": "GB5AwvbLDRbAmDXVAAh9RyKeJvvEKdUoxWVK3Z3rMaGg",
+        "next_epoch_id": "B4mvpNoK5jyy7PsYbCpCFNVgszLFvAHKEnUTXfTw6zrm",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.0404641952377036e+22
+    },
+    {
+        "timestamp": "2024-05-03T15:14:51.687Z",
+        "balance": 1.006958556383047e+26,
+        "block_height": 118165907,
+        "epoch_id": "qyLu2YwgZgHvDjCs6daGEuyempAQErgPMQHGVXC6uoG",
+        "next_epoch_id": "GB5AwvbLDRbAmDXVAAh9RyKeJvvEKdUoxWVK3Z3rMaGg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4909004360647902e+22
+    },
+    {
+        "timestamp": "2024-05-02T23:41:35.805Z",
+        "balance": 1.0068094663394405e+26,
+        "block_height": 118122707,
+        "epoch_id": "B1yhwgFsTaB8XvVcN7aVsdJQrHWxcxB7iwsimjUA3Vfs",
+        "next_epoch_id": "qyLu2YwgZgHvDjCs6daGEuyempAQErgPMQHGVXC6uoG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4091203624181848e+22
+    },
+    {
+        "timestamp": "2024-05-02T08:56:45.241Z",
+        "balance": 1.0066685543031987e+26,
+        "block_height": 118079507,
+        "epoch_id": "GY7CfT1SQDhuoAFNoVxZwiUNv6X8jS7NZmZQ7ZQYzpfh",
+        "next_epoch_id": "B1yhwgFsTaB8XvVcN7aVsdJQrHWxcxB7iwsimjUA3Vfs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5192449185316723e+22
+    },
+    {
+        "timestamp": "2024-05-01T11:31:42.849Z",
+        "balance": 1.0065166298113455e+26,
+        "block_height": 118014164,
+        "epoch_id": "A2MvNweQfALBhn4EERLMDAjAnWqUuNvAHP5vtJRxpJEk",
+        "next_epoch_id": "GY7CfT1SQDhuoAFNoVxZwiUNv6X8jS7NZmZQ7ZQYzpfh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.580769382289525e+22
+    },
+    {
+        "timestamp": "2024-05-01T03:56:07.498Z",
+        "balance": 1.0063585528731166e+26,
+        "block_height": 117993107,
+        "epoch_id": "E9cdXo1YaKXuK3u9agVYoRinJsaETYAzk1L2sVQXPxKf",
+        "next_epoch_id": "A2MvNweQfALBhn4EERLMDAjAnWqUuNvAHP5vtJRxpJEk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5314253446005708e+22
+    },
+    {
+        "timestamp": "2024-04-30T12:19:52.078Z",
+        "balance": 1.0062054103386565e+26,
+        "block_height": 117949907,
+        "epoch_id": "9iq6LXXBSJYBhBGyLJkW8fvAJsKC9EDMdfYvaStXpo2v",
+        "next_epoch_id": "E9cdXo1YaKXuK3u9agVYoRinJsaETYAzk1L2sVQXPxKf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5158728599998617e+22
+    },
+    {
+        "timestamp": "2024-04-29T21:00:23.329Z",
+        "balance": 1.0060538230526565e+26,
+        "block_height": 117906707,
+        "epoch_id": "2GDrQEJMhr5ZJwSWZeQBDwFbo8v6GGk7k9WuhAmzp9Fs",
+        "next_epoch_id": "9iq6LXXBSJYBhBGyLJkW8fvAJsKC9EDMdfYvaStXpo2v",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 9.65019738934462e+21
+    },
+    {
+        "timestamp": "2024-04-29T05:50:23.472Z",
+        "balance": 1.005957321078763e+26,
+        "block_height": 117863507,
+        "epoch_id": "FG32HXpSoCUvgXCRpQyDgKx2imsVq4nKL7C3YQdUfsjP",
+        "next_epoch_id": "2GDrQEJMhr5ZJwSWZeQBDwFbo8v6GGk7k9WuhAmzp9Fs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.423642534591649e+22
+    },
+    {
+        "timestamp": "2024-04-28T16:03:46.000Z",
+        "balance": 1.0058149568253039e+26,
+        "block_height": 117820307,
+        "epoch_id": "7qcaLcSLkFfYzRrLXzmqYYfNPHQAj7sNaQ3tE89mreU7",
+        "next_epoch_id": "FG32HXpSoCUvgXCRpQyDgKx2imsVq4nKL7C3YQdUfsjP",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.453526066283223e+22
+    },
+    {
+        "timestamp": "2024-04-28T01:49:40.418Z",
+        "balance": 1.0056696042186756e+26,
+        "block_height": 117777107,
+        "epoch_id": "FEoH4ZhcdeKvWjLpUHxDYcBi2pYdxQf2rKtGgJDEiPj",
+        "next_epoch_id": "7qcaLcSLkFfYzRrLXzmqYYfNPHQAj7sNaQ3tE89mreU7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.421318581816754e+22
+    },
+    {
+        "timestamp": "2024-04-27T11:19:43.664Z",
+        "balance": 1.0055274723604939e+26,
+        "block_height": 117733907,
+        "epoch_id": "BzYNd3DYcSJN2S7keGPaHohWrteqKcUfQ7d1KkLLFBVe",
+        "next_epoch_id": "FEoH4ZhcdeKvWjLpUHxDYcBi2pYdxQf2rKtGgJDEiPj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.094745422554106e+22
+    },
+    {
+        "timestamp": "2024-04-26T21:08:43.266Z",
+        "balance": 1.0054179978182385e+26,
+        "block_height": 117690707,
+        "epoch_id": "3mGCairDJoN5Wwfq2GGw4HaQDp3VoGtq9FWrNbRRHqHs",
+        "next_epoch_id": "BzYNd3DYcSJN2S7keGPaHohWrteqKcUfQ7d1KkLLFBVe",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4368919707431293e+22
+    },
+    {
+        "timestamp": "2024-04-26T06:50:54.087Z",
+        "balance": 1.0052743086211642e+26,
+        "block_height": 117647507,
+        "epoch_id": "4jrdNNLyJRCDiDoLd2YgWgA1AZoiUnAZnYPpjEC7dVqF",
+        "next_epoch_id": "3mGCairDJoN5Wwfq2GGw4HaQDp3VoGtq9FWrNbRRHqHs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4459851161503439e+22
+    },
+    {
+        "timestamp": "2024-04-25T16:31:11.377Z",
+        "balance": 1.0051297101095492e+26,
+        "block_height": 117604307,
+        "epoch_id": "CjZETa66hPYdfesDrHXtzpVkL4Pq7NDUEsGpoKQkSqbQ",
+        "next_epoch_id": "4jrdNNLyJRCDiDoLd2YgWgA1AZoiUnAZnYPpjEC7dVqF",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4774242736200198e+22
+    },
+    {
+        "timestamp": "2024-04-24T19:01:14.109Z",
+        "balance": 1.0049819676821871e+26,
+        "block_height": 117539541,
+        "epoch_id": "CX9sQUHY1DBwc23TQS3iriXPCjDXm2FYwBEcysq1innX",
+        "next_epoch_id": "CjZETa66hPYdfesDrHXtzpVkL4Pq7NDUEsGpoKQkSqbQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.44981309686634e+22
+    },
+    {
+        "timestamp": "2024-04-24T11:22:57.554Z",
+        "balance": 1.0048369863725005e+26,
+        "block_height": 117517907,
+        "epoch_id": "C589TPFXn4SMogMpJy65CFBDzWi2gvkbj1jAh6SKYs6c",
+        "next_epoch_id": "CX9sQUHY1DBwc23TQS3iriXPCjDXm2FYwBEcysq1innX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.261789752577694e+21
+    },
+    {
+        "timestamp": "2024-04-23T20:58:26.006Z",
+        "balance": 1.0047843684749747e+26,
+        "block_height": 117474707,
+        "epoch_id": "65RDCwsUEK2pvgNrqbovrP8cJPufxikzGkU95wMKxhRk",
+        "next_epoch_id": "C589TPFXn4SMogMpJy65CFBDzWi2gvkbj1jAh6SKYs6c",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5039346048321605e+22
+    },
+    {
+        "timestamp": "2024-04-23T05:44:12.755Z",
+        "balance": 1.0046339750144915e+26,
+        "block_height": 117431507,
+        "epoch_id": "HbD2aDcntfHDt7wbUwYEG6xt3TUDwBNtKJW71L8RC1s3",
+        "next_epoch_id": "65RDCwsUEK2pvgNrqbovrP8cJPufxikzGkU95wMKxhRk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4615244224840008e+22
+    },
+    {
+        "timestamp": "2024-04-22T14:52:11.481Z",
+        "balance": 1.0044878225722431e+26,
+        "block_height": 117388307,
+        "epoch_id": "CjzyboFhTbJvcA3wma7VBcA9yaWLfyy7tWXYV1WrYdWr",
+        "next_epoch_id": "HbD2aDcntfHDt7wbUwYEG6xt3TUDwBNtKJW71L8RC1s3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5141507313757787e+22
+    },
+    {
+        "timestamp": "2024-04-22T00:26:42.557Z",
+        "balance": 1.0043364074991055e+26,
+        "block_height": 117345107,
+        "epoch_id": "3CYpF9xcVMXaj4gvcMBmBweQ6bMojTeqxiwhTZ9wUkcJ",
+        "next_epoch_id": "CjzyboFhTbJvcA3wma7VBcA9yaWLfyy7tWXYV1WrYdWr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 6.28644874495099e+21
+    },
+    {
+        "timestamp": "2024-04-21T09:26:55.866Z",
+        "balance": 1.004273543011656e+26,
+        "block_height": 117301907,
+        "epoch_id": "G85kZnKLt45Ztf2YByQV4i2F8yxM1b79VTrqffMX5yyM",
+        "next_epoch_id": "3CYpF9xcVMXaj4gvcMBmBweQ6bMojTeqxiwhTZ9wUkcJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.0307681905272752e+22
+    },
+    {
+        "timestamp": "2024-04-20T18:39:19.660Z",
+        "balance": 1.0041704661926033e+26,
+        "block_height": 117258707,
+        "epoch_id": "8asHVcDzJ5WVoBQZC71uxUipmWC275AL6bpYewMhSLep",
+        "next_epoch_id": "G85kZnKLt45Ztf2YByQV4i2F8yxM1b79VTrqffMX5yyM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.0315538814583708e+22
+    },
+    {
+        "timestamp": "2024-04-20T03:58:44.659Z",
+        "balance": 1.0040673108044575e+26,
+        "block_height": 117215507,
+        "epoch_id": "BwSu5qRbRuAKSij8jzZrpfrqmHbFLhfv6xxQHF6FFP7q",
+        "next_epoch_id": "8asHVcDzJ5WVoBQZC71uxUipmWC275AL6bpYewMhSLep",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 9.949473074067582e+21
+    },
+    {
+        "timestamp": "2024-04-19T12:45:53.257Z",
+        "balance": 1.0039678160737168e+26,
+        "block_height": 117172307,
+        "epoch_id": "DmwqNvGvWpyPYgy5NNBXnn1bmRtnEiTKkNMnVDXoVrEA",
+        "next_epoch_id": "BwSu5qRbRuAKSij8jzZrpfrqmHbFLhfv6xxQHF6FFP7q",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5513461267485392e+22
+    },
+    {
+        "timestamp": "2024-04-18T20:08:32.232Z",
+        "balance": 1.003812681461042e+26,
+        "block_height": 117126468,
+        "epoch_id": "AFBz3fZPkMPQxk3kHhZXN9uVCoGNphLwv8YvxvM62bTt",
+        "next_epoch_id": "DmwqNvGvWpyPYgy5NNBXnn1bmRtnEiTKkNMnVDXoVrEA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5484875078487459e+22
+    },
+    {
+        "timestamp": "2024-04-18T05:48:03.794Z",
+        "balance": 1.003657832710257e+26,
+        "block_height": 117085907,
+        "epoch_id": "GAxxe3Nr1HJNQJy5dRXFBZ8koprdT6KWYgZaQpQWecjd",
+        "next_epoch_id": "AFBz3fZPkMPQxk3kHhZXN9uVCoGNphLwv8YvxvM62bTt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5025716991758426e+22
+    },
+    {
+        "timestamp": "2024-04-17T14:36:50.026Z",
+        "balance": 1.0035075755403395e+26,
+        "block_height": 117042707,
+        "epoch_id": "25cDwcPmuiazBivtWjLRWV3KLmiXPHZXjsquu4b2Sd1B",
+        "next_epoch_id": "GAxxe3Nr1HJNQJy5dRXFBZ8koprdT6KWYgZaQpQWecjd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 225273319597801470
+    },
+    {
+        "timestamp": "2024-04-16T23:46:45.098Z",
+        "balance": 1.0035075732876063e+26,
+        "block_height": 116999507,
+        "epoch_id": "7s3GUtrjMBTNMtvKmKScLzPz5ESwGiPTAQgkzCPU313f",
+        "next_epoch_id": "25cDwcPmuiazBivtWjLRWV3KLmiXPHZXjsquu4b2Sd1B",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 227413192563752960
+    },
+    {
+        "timestamp": "2024-04-16T08:34:44.071Z",
+        "balance": 1.0035075710134744e+26,
+        "block_height": 116956307,
+        "epoch_id": "ATaGK7y1iDRCLrWuH1PU9eW5rf8rnrhCXqkFGzmc7gtw",
+        "next_epoch_id": "7s3GUtrjMBTNMtvKmKScLzPz5ESwGiPTAQgkzCPU313f",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 256721482455973900
+    },
+    {
+        "timestamp": "2024-04-15T04:24:24.580Z",
+        "balance": 1.0035075684462595e+26,
+        "block_height": 116873662,
+        "epoch_id": "Bag1Nc3jtMwXDa2dSAZcSSwBtx5JtSqZbQwtXFxDJbm9",
+        "next_epoch_id": "ATaGK7y1iDRCLrWuH1PU9eW5rf8rnrhCXqkFGzmc7gtw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 230244211666976770
+    },
+    {
+        "timestamp": "2024-04-15T03:03:49.700Z",
+        "balance": 1.0035075661438174e+26,
+        "block_height": 116869907,
+        "epoch_id": "A1qjJXMmRESTMfWu9pZZ6aFPvbtqU9wsBZm12ENjT9pB",
+        "next_epoch_id": "Bag1Nc3jtMwXDa2dSAZcSSwBtx5JtSqZbQwtXFxDJbm9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 222431064860131330
+    },
+    {
+        "timestamp": "2024-04-14T12:27:28.051Z",
+        "balance": 1.0035075639195068e+26,
+        "block_height": 116826707,
+        "epoch_id": "qb87bxXix6hBogt46zdihHJZczS7Y8VLx8Zbe2sWLVz",
+        "next_epoch_id": "A1qjJXMmRESTMfWu9pZZ6aFPvbtqU9wsBZm12ENjT9pB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 212482597752668160
+    },
+    {
+        "timestamp": "2024-04-13T12:06:37.380Z",
+        "balance": 1.0035075617946808e+26,
+        "block_height": 116755251,
+        "epoch_id": "G5LYA2Wtqkvb4QJkQgkM4zAxPeNkDGYBrWhGmk8yzLf7",
+        "next_epoch_id": "qb87bxXix6hBogt46zdihHJZczS7Y8VLx8Zbe2sWLVz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 252479377617453060
+    },
+    {
+        "timestamp": "2024-04-13T06:39:09.567Z",
+        "balance": 1.003507559269887e+26,
+        "block_height": 116740307,
+        "epoch_id": "4eGxYzrNFZ87hLFz2hqW1n4eM1oGZQmLSb42BqnEGAeb",
+        "next_epoch_id": "G5LYA2Wtqkvb4QJkQgkM4zAxPeNkDGYBrWhGmk8yzLf7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 229531281455579140
+    },
+    {
+        "timestamp": "2024-04-12T16:42:01.060Z",
+        "balance": 1.0035075569745742e+26,
+        "block_height": 116697107,
+        "epoch_id": "8h3AB2R4rYtv9uJXVvsqqYNzWzmkGVimAgRcd7SCr2Uo",
+        "next_epoch_id": "4eGxYzrNFZ87hLFz2hqW1n4eM1oGZQmLSb42BqnEGAeb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 208929749265809400
+    },
+    {
+        "timestamp": "2024-04-12T03:04:33.170Z",
+        "balance": 1.0035075548852767e+26,
+        "block_height": 116653907,
+        "epoch_id": "FJuvy46XvyaqbHsXK7ZPmVH6ersLEnxgYV9H9YxiGCcr",
+        "next_epoch_id": "8h3AB2R4rYtv9uJXVvsqqYNzWzmkGVimAgRcd7SCr2Uo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 245362152951513100
+    },
+    {
+        "timestamp": "2024-04-11T12:55:03.137Z",
+        "balance": 1.0035075524316552e+26,
+        "block_height": 116610707,
+        "epoch_id": "HLfSctMMdDZbetVv1jLeZxUCwURYYTxfu2Vzdcddbhxx",
+        "next_epoch_id": "FJuvy46XvyaqbHsXK7ZPmVH6ersLEnxgYV9H9YxiGCcr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 287918578705891330
+    },
+    {
+        "timestamp": "2024-04-10T21:31:46.584Z",
+        "balance": 1.0035075495524694e+26,
+        "block_height": 116567507,
+        "epoch_id": "5frqB5yTGSP1vaYgRbSPNdMBcuMv9vdMTe29wizwmwnA",
+        "next_epoch_id": "HLfSctMMdDZbetVv1jLeZxUCwURYYTxfu2Vzdcddbhxx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 288719538566987800
+    },
+    {
+        "timestamp": "2024-04-10T07:22:42.329Z",
+        "balance": 1.003507546665274e+26,
+        "block_height": 116524307,
+        "epoch_id": "3H7sGYLLVjChNXDAEWjZcwRErXGCPE5D8t1qxFTr6r29",
+        "next_epoch_id": "5frqB5yTGSP1vaYgRbSPNdMBcuMv9vdMTe29wizwmwnA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3660084847491854e+22
+    },
+    {
+        "timestamp": "2024-04-09T17:16:55.699Z",
+        "balance": 1.0033709458167991e+26,
+        "block_height": 116481107,
+        "epoch_id": "BKx9ihnnXimUA7CmFiyrX8YtQVtik9cr71cNQMwWUUFk",
+        "next_epoch_id": "3H7sGYLLVjChNXDAEWjZcwRErXGCPE5D8t1qxFTr6r29",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3869628863306755e+22
+    },
+    {
+        "timestamp": "2024-04-08T16:49:36.985Z",
+        "balance": 1.003232249528166e+26,
+        "block_height": 116406126,
+        "epoch_id": "DmPikjtApR58Qt33oE5tXhkpwtcDWhAFnV8GSbTkdCJL",
+        "next_epoch_id": "BKx9ihnnXimUA7CmFiyrX8YtQVtik9cr71cNQMwWUUFk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 8.7123738502034e+21
+    },
+    {
+        "timestamp": "2024-04-08T12:53:47.159Z",
+        "balance": 1.003145125789664e+26,
+        "block_height": 116394707,
+        "epoch_id": "Mn9K8ymKGF1gGeQTFaBCJ6XrkSGY3CSzsBdqejRTeY9",
+        "next_epoch_id": "DmPikjtApR58Qt33oE5tXhkpwtcDWhAFnV8GSbTkdCJL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 287311957525004300
+    },
+    {
+        "timestamp": "2024-04-07T23:02:41.812Z",
+        "balance": 1.0031451229165444e+26,
+        "block_height": 116351507,
+        "epoch_id": "B7gGUj1aNSLMCsDA82vsM2sfwVSvB4VS1fXXmqSt7cqL",
+        "next_epoch_id": "Mn9K8ymKGF1gGeQTFaBCJ6XrkSGY3CSzsBdqejRTeY9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3507749013516632e+22
+    },
+    {
+        "timestamp": "2024-04-07T09:00:14.113Z",
+        "balance": 1.0030100454264092e+26,
+        "block_height": 116308307,
+        "epoch_id": "7vmnNQfyqYCPkqnTuHy5Eutw3jQdfjjWKDeZE2E8gmYN",
+        "next_epoch_id": "B7gGUj1aNSLMCsDA82vsM2sfwVSvB4VS1fXXmqSt7cqL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 304869319974584300
+    },
+    {
+        "timestamp": "2024-04-06T19:16:01.195Z",
+        "balance": 1.003010042377716e+26,
+        "block_height": 116265107,
+        "epoch_id": "He7VjZpL2VNnjKdu2KHc7ER7frKprjVmU8vXNNBJKwrt",
+        "next_epoch_id": "7vmnNQfyqYCPkqnTuHy5Eutw3jQdfjjWKDeZE2E8gmYN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5445615373301964e+22
+    },
+    {
+        "timestamp": "2024-04-06T04:03:50.740Z",
+        "balance": 1.002855586223983e+26,
+        "block_height": 116221907,
+        "epoch_id": "3FYi4s79NFAJf14SEzwTjs6WowCMnK2pWgaJk7oXrU5K",
+        "next_epoch_id": "He7VjZpL2VNnjKdu2KHc7ER7frKprjVmU8vXNNBJKwrt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.530121190708992e+22
+    },
+    {
+        "timestamp": "2024-04-05T12:10:43.185Z",
+        "balance": 1.0027025741049121e+26,
+        "block_height": 116178707,
+        "epoch_id": "CBpjd66pS1UsZLyH4mHRV8EDG2krV6tzbDPC9BeeNSy9",
+        "next_epoch_id": "3FYi4s79NFAJf14SEzwTjs6WowCMnK2pWgaJk7oXrU5K",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5450690587034382e+22
+    },
+    {
+        "timestamp": "2024-04-04T20:33:23.098Z",
+        "balance": 1.0025480671990418e+26,
+        "block_height": 116135507,
+        "epoch_id": "DEiokvsj2jJHBGiKNHzKmQSaC7kdBQZVgZAE6jD2NAhn",
+        "next_epoch_id": "CBpjd66pS1UsZLyH4mHRV8EDG2krV6tzbDPC9BeeNSy9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.551142087865794e+22
+    },
+    {
+        "timestamp": "2024-04-04T04:50:09.634Z",
+        "balance": 1.0023929529902552e+26,
+        "block_height": 116092307,
+        "epoch_id": "CcGs4B7N4RKnwX7S3aEMzVWpv46Nmdtjb5jBnJkfaGsB",
+        "next_epoch_id": "DEiokvsj2jJHBGiKNHzKmQSaC7kdBQZVgZAE6jD2NAhn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5449748396193188e+22
+    },
+    {
+        "timestamp": "2024-04-03T12:57:44.741Z",
+        "balance": 1.0022384555062933e+26,
+        "block_height": 116049107,
+        "epoch_id": "FcXMkELZvaCi6L5YUL6PWfW462NCwv7mrVZPBQMtQQB4",
+        "next_epoch_id": "CcGs4B7N4RKnwX7S3aEMzVWpv46Nmdtjb5jBnJkfaGsB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5675168054638253e+22
+    },
+    {
+        "timestamp": "2024-04-02T15:41:20.367Z",
+        "balance": 1.0020817038257469e+26,
+        "block_height": 115990974,
+        "epoch_id": "EVcdmjn9GWdDusCGjCJ27waXFwtBNdSMaRHvZoXt1VAG",
+        "next_epoch_id": "FcXMkELZvaCi6L5YUL6PWfW462NCwv7mrVZPBQMtQQB4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 229066548814282750
+    },
+    {
+        "timestamp": "2024-04-01T19:35:49.695Z",
+        "balance": 1.0020817015350814e+26,
+        "block_height": 115936458,
+        "epoch_id": "DZzuNu9c2AVKHku3bimHfvfWmeoYWH2rvAv9KfJSVWxZ",
+        "next_epoch_id": "EVcdmjn9GWdDusCGjCJ27waXFwtBNdSMaRHvZoXt1VAG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 9.668058697318248e+21
+    },
+    {
+        "timestamp": "2024-04-01T13:11:02.474Z",
+        "balance": 1.0019850209481082e+26,
+        "block_height": 115919507,
+        "epoch_id": "7MjypaqsGBaca6osmLfjLBtiskb2wgUfCwBEWySMUJpH",
+        "next_epoch_id": "DZzuNu9c2AVKHku3bimHfvfWmeoYWH2rvAv9KfJSVWxZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 299863844828741600
+    },
+    {
+        "timestamp": "2024-03-31T21:34:03.647Z",
+        "balance": 1.0019850179494698e+26,
+        "block_height": 115876307,
+        "epoch_id": "J9h8BCb7BKLZjoJZt883sFqMDMGJHGBTHvEMf26Qp3co",
+        "next_epoch_id": "7MjypaqsGBaca6osmLfjLBtiskb2wgUfCwBEWySMUJpH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 291537810207277060
+    },
+    {
+        "timestamp": "2024-03-30T19:34:07.321Z",
+        "balance": 1.0019850150340917e+26,
+        "block_height": 115804680,
+        "epoch_id": "8DnB8RqdFM2A8GRbfZ1btymgZGNbhcNSypmNstiRGGqt",
+        "next_epoch_id": "J9h8BCb7BKLZjoJZt883sFqMDMGJHGBTHvEMf26Qp3co",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 342691712516227100
+    },
+    {
+        "timestamp": "2024-03-30T14:04:34.180Z",
+        "balance": 1.0019850116071745e+26,
+        "block_height": 115789907,
+        "epoch_id": "BnRpa5EZToPa98ztpc1y99a2upVuY4REcU9J9ktJqAha",
+        "next_epoch_id": "8DnB8RqdFM2A8GRbfZ1btymgZGNbhcNSypmNstiRGGqt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 295163501339476000
+    },
+    {
+        "timestamp": "2024-03-29T22:52:53.570Z",
+        "balance": 1.0019850086555395e+26,
+        "block_height": 115746707,
+        "epoch_id": "5xrPgcywVfUzek7SYvPDZpk8xzhBNfHDhXD5gEjig4xS",
+        "next_epoch_id": "BnRpa5EZToPa98ztpc1y99a2upVuY4REcU9J9ktJqAha",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5265665223774884e+22
+    },
+    {
+        "timestamp": "2024-03-29T07:24:35.155Z",
+        "balance": 1.0018323520033018e+26,
+        "block_height": 115703507,
+        "epoch_id": "JEFvVg78FLaeLaPDQnrqkmzai38ZdnwJZ1Gjb7f4sxNZ",
+        "next_epoch_id": "5xrPgcywVfUzek7SYvPDZpk8xzhBNfHDhXD5gEjig4xS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.463917378133036e+22
+    },
+    {
+        "timestamp": "2024-03-28T15:53:54.736Z",
+        "balance": 1.0016859602654885e+26,
+        "block_height": 115660307,
+        "epoch_id": "AApgVxaJHaD9SRuGsMmaq8UAvRf4u2CAvVWkEGDEPALn",
+        "next_epoch_id": "JEFvVg78FLaeLaPDQnrqkmzai38ZdnwJZ1Gjb7f4sxNZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4843655481010652e+22
+    },
+    {
+        "timestamp": "2024-03-28T01:07:46.164Z",
+        "balance": 1.0015375237106784e+26,
+        "block_height": 115617107,
+        "epoch_id": "2nQnyVAx9jeCWidMaDhaoeThRp8uGs3uUnxNQzwY9hxK",
+        "next_epoch_id": "AApgVxaJHaD9SRuGsMmaq8UAvRf4u2CAvVWkEGDEPALn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5023523390503948e+22
+    },
+    {
+        "timestamp": "2024-03-27T10:11:39.793Z",
+        "balance": 1.0013872884767733e+26,
+        "block_height": 115573907,
+        "epoch_id": "8iPgJijC4Bu1xVGDGJNtAmuuixgxpTk89HCA6jMxC1Pe",
+        "next_epoch_id": "2nQnyVAx9jeCWidMaDhaoeThRp8uGs3uUnxNQzwY9hxK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 292261082699923460
+    },
+    {
+        "timestamp": "2024-03-26T19:16:08.059Z",
+        "balance": 1.0013872855541625e+26,
+        "block_height": 115530707,
+        "epoch_id": "FhbxXXtGcfjv68eptEVD59P6TjNLEmXP5tuMGaTv9XZY",
+        "next_epoch_id": "8iPgJijC4Bu1xVGDGJNtAmuuixgxpTk89HCA6jMxC1Pe",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 339873526775283700
+    },
+    {
+        "timestamp": "2024-03-26T04:08:20.510Z",
+        "balance": 1.0013872821554272e+26,
+        "block_height": 115487507,
+        "epoch_id": "2HweRkPA4kQzxMDyauLwkyuqMczpbMBLAX8jdDiFnFPM",
+        "next_epoch_id": "FhbxXXtGcfjv68eptEVD59P6TjNLEmXP5tuMGaTv9XZY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 254403522966061060
+    },
+    {
+        "timestamp": "2024-03-25T12:58:29.571Z",
+        "balance": 1.001387279611392e+26,
+        "block_height": 115444307,
+        "epoch_id": "GZaubCVir9sH5eP23KmAFG1y2ZsxqdBcjg8EC6AbL86M",
+        "next_epoch_id": "2HweRkPA4kQzxMDyauLwkyuqMczpbMBLAX8jdDiFnFPM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 255186547043729400
+    },
+    {
+        "timestamp": "2024-03-24T22:37:41.696Z",
+        "balance": 1.0013872770595265e+26,
+        "block_height": 115401107,
+        "epoch_id": "8cynyRyKCJ35ZPAG9x61KYDFZxaeFrJotpcBhgDa7tg9",
+        "next_epoch_id": "GZaubCVir9sH5eP23KmAFG1y2ZsxqdBcjg8EC6AbL86M",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5273413870583944e+22
+    },
+    {
+        "timestamp": "2024-03-24T07:34:52.706Z",
+        "balance": 1.0012345429208207e+26,
+        "block_height": 115357907,
+        "epoch_id": "DQoDeyuBy5CLT1EbuG2ZwNAcHGBzUWz14VKcWeaDHCGH",
+        "next_epoch_id": "8cynyRyKCJ35ZPAG9x61KYDFZxaeFrJotpcBhgDa7tg9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 246589087669026800
+    },
+    {
+        "timestamp": "2024-03-23T16:21:12.061Z",
+        "balance": 1.0012345404549298e+26,
+        "block_height": 115314707,
+        "epoch_id": "5sbGVdziMpAkxKC2NzvhWF3XBiAg3LkxFbzNfx8jB6xX",
+        "next_epoch_id": "DQoDeyuBy5CLT1EbuG2ZwNAcHGBzUWz14VKcWeaDHCGH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 289419686955712500
+    },
+    {
+        "timestamp": "2024-03-23T02:11:35.398Z",
+        "balance": 1.001234537560733e+26,
+        "block_height": 115271507,
+        "epoch_id": "7vzGJjov138MQXSXkXkU2iQg7XogenFQVWuh3VCRmwKX",
+        "next_epoch_id": "5sbGVdziMpAkxKC2NzvhWF3XBiAg3LkxFbzNfx8jB6xX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 342004552108605440
+    },
+    {
+        "timestamp": "2024-03-22T13:30:49.671Z",
+        "balance": 1.0012345341406874e+26,
+        "block_height": 115228307,
+        "epoch_id": "BSphFzth4QR9W3i75AaVeKAypHguWJGWQzrZQDS1hov6",
+        "next_epoch_id": "7vzGJjov138MQXSXkXkU2iQg7XogenFQVWuh3VCRmwKX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 255200771975413760
+    },
+    {
+        "timestamp": "2024-03-21T22:34:02.031Z",
+        "balance": 1.0012345315886797e+26,
+        "block_height": 115185107,
+        "epoch_id": "68NrNfXTK8UE5DaWaUXaeZyZ74jBWrfGQdDKUwQBvwK9",
+        "next_epoch_id": "BSphFzth4QR9W3i75AaVeKAypHguWJGWQzrZQDS1hov6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.4727394262645249e+22
+    },
+    {
+        "timestamp": "2024-03-21T03:52:43.044Z",
+        "balance": 1.0010872576460533e+26,
+        "block_height": 115141907,
+        "epoch_id": "AWM4QhMPpkAkJv9Bu4zaiuYCHNV5pZg1gAsRVxuMF9kg",
+        "next_epoch_id": "68NrNfXTK8UE5DaWaUXaeZyZ74jBWrfGQdDKUwQBvwK9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.3441223553427167e+22
+    },
+    {
+        "timestamp": "2024-03-20T13:37:20.693Z",
+        "balance": 1.000952845410519e+26,
+        "block_height": 115098707,
+        "epoch_id": "XmJV4yW58eiA922uZb3HBc8qr6eZttLawZq7Htysvrd",
+        "next_epoch_id": "AWM4QhMPpkAkJv9Bu4zaiuYCHNV5pZg1gAsRVxuMF9kg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5760069169859954e+22
+    },
+    {
+        "timestamp": "2024-03-20T00:21:07.208Z",
+        "balance": 1.0007952447188204e+26,
+        "block_height": 115055507,
+        "epoch_id": "4BfXvNUqBQZ8Mx7M9RWP9iccs2JTsy34cT1RSGKxDJmU",
+        "next_epoch_id": "XmJV4yW58eiA922uZb3HBc8qr6eZttLawZq7Htysvrd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5507008588574993e+22
+    },
+    {
+        "timestamp": "2024-03-19T08:51:03.031Z",
+        "balance": 1.0006401746329346e+26,
+        "block_height": 115012307,
+        "epoch_id": "JC1G7vFR4TF1T5WT21ms1XJ83pXsJAvHZCqVBQu6F3ep",
+        "next_epoch_id": "4BfXvNUqBQZ8Mx7M9RWP9iccs2JTsy34cT1RSGKxDJmU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.6207458152363713e+22
+    },
+    {
+        "timestamp": "2024-03-18T17:49:24.595Z",
+        "balance": 1.000478100051411e+26,
+        "block_height": 114969107,
+        "epoch_id": "A3VmH3LcYppST4fPzpwbrGBD3gVscnVRqjQcVLWdnXAL",
+        "next_epoch_id": "JC1G7vFR4TF1T5WT21ms1XJ83pXsJAvHZCqVBQu6F3ep",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.646270575176626e+22
+    },
+    {
+        "timestamp": "2024-03-18T02:05:16.005Z",
+        "balance": 1.0003134729938933e+26,
+        "block_height": 114925907,
+        "epoch_id": "AUZrixdSVaRJrCmPkv9nA1idhKyRPZ9Gq7MfvBANq8x4",
+        "next_epoch_id": "A3VmH3LcYppST4fPzpwbrGBD3gVscnVRqjQcVLWdnXAL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.6168672666560458e+22
+    },
+    {
+        "timestamp": "2024-03-17T09:46:06.533Z",
+        "balance": 1.0001517862672277e+26,
+        "block_height": 114882707,
+        "epoch_id": "7agTuuPrVZESojoxwCwk543KJkuKjXFNeu4afKeeKbai",
+        "next_epoch_id": "AUZrixdSVaRJrCmPkv9nA1idhKyRPZ9Gq7MfvBANq8x4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5178626722768433e+22
+    },
+    {
+        "timestamp": "2024-03-15T11:28:33.856Z",
+        "balance": 3.7688536683997414e+26,
+        "block_height": 114753107,
+        "epoch_id": "GHc8yf9W4gGaFp8Czmkump1vaM6gTngQXkwFYo7dnHyj",
+        "next_epoch_id": "C1tJi9GW9uBsjTqmNG7jUaDUVzDTef2LcZtyM3tHvia8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-03-14T19:08:26.913Z",
+        "balance": 3.7688536683997414e+26,
+        "block_height": 114709907,
+        "epoch_id": "7MfKnQGNK5gdUD1koG9ewsP64GYdFm2dYBQ7sndQ5R1p",
+        "next_epoch_id": "GHc8yf9W4gGaFp8Czmkump1vaM6gTngQXkwFYo7dnHyj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2024-03-14T02:44:40.404Z",
+        "balance": 3.7688536683997414e+26,
+        "block_height": 114666707,
+        "epoch_id": "E2GyPCcriuEBTwPFkNpw21fdKjM4jtXTB9X7qa2NuZoP",
+        "next_epoch_id": "7MfKnQGNK5gdUD1koG9ewsP64GYdFm2dYBQ7sndQ5R1p",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2844795228005597000
+    },
+    {
+        "timestamp": "2024-03-13T14:58:15.673Z",
+        "balance": 3.768853639951789e+26,
+        "hash": "8L9herYruWMnDBpsQLmZUWdnpHp529289dtrbmFUCpo7",
+        "block_height": 114634819,
+        "epoch_id": "E2GyPCcriuEBTwPFkNpw21fdKjM4jtXTB9X7qa2NuZoP",
+        "next_epoch_id": "7MfKnQGNK5gdUD1koG9ewsP64GYdFm2dYBQ7sndQ5R1p",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": -1834651218140463000
+    },
+    {
+        "timestamp": "2024-03-13T10:45:05.469Z",
+        "balance": 3.768853658298301e+26,
+        "block_height": 114623507,
+        "epoch_id": "C6mc6SyC1Tweuh8WnnCXAE13XUCPb5P4vAqNJ84vWvaJ",
+        "next_epoch_id": "E2GyPCcriuEBTwPFkNpw21fdKjM4jtXTB9X7qa2NuZoP",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1834651218140463000
+    },
+    {
+        "timestamp": "2024-03-12T18:12:42.212Z",
+        "balance": 3.768853639951789e+26,
+        "block_height": 114580307,
+        "epoch_id": "GK6rGGJyTbMf3KdqG2499VuduiFvqHknmLQzRceDC9FP",
+        "next_epoch_id": "C6mc6SyC1Tweuh8WnnCXAE13XUCPb5P4vAqNJ84vWvaJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.997559329652232e+22
+    },
+    {
+        "timestamp": "2024-03-11T19:28:31.173Z",
+        "balance": 3.768253884018824e+26,
+        "block_height": 114537107,
+        "epoch_id": "A8KmCFGzbsUyABEvAzTWVmU9YmipSSjog74crW4CdbsL",
+        "next_epoch_id": "GK6rGGJyTbMf3KdqG2499VuduiFvqHknmLQzRceDC9FP",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.908272527529635e+22
+    },
+    {
+        "timestamp": "2024-03-11T02:36:28.778Z",
+        "balance": 3.767663056766071e+26,
+        "block_height": 114493907,
+        "epoch_id": "9UYQhdzNMauQmfua644BB1UC2C92wBGq3Km59mTbEPNp",
+        "next_epoch_id": "A8KmCFGzbsUyABEvAzTWVmU9YmipSSjog74crW4CdbsL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 197370514803523600
+    },
+    {
+        "timestamp": "2024-03-10T10:23:21.204Z",
+        "balance": 3.767663054792366e+26,
+        "block_height": 114450707,
+        "epoch_id": "4K6m4GtvmM3wpZZzeZNW1G3dt2YWS62WLNNsE72L3U5E",
+        "next_epoch_id": "9UYQhdzNMauQmfua644BB1UC2C92wBGq3Km59mTbEPNp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.8225457408336676e+22
+    },
+    {
+        "timestamp": "2024-03-09T18:12:46.963Z",
+        "balance": 3.7670808002182824e+26,
+        "block_height": 114407507,
+        "epoch_id": "BFhRUGQZwGNzSQ3i9u7Nu2CkjvE3vNXu2Kmt6fGFVexC",
+        "next_epoch_id": "4K6m4GtvmM3wpZZzeZNW1G3dt2YWS62WLNNsE72L3U5E",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 197800767447367680
+    },
+    {
+        "timestamp": "2024-03-09T01:59:45.229Z",
+        "balance": 3.767080798240275e+26,
+        "block_height": 114364307,
+        "epoch_id": "4QadJ5imr6w3Ygcn4iw8dEmntFfW7aMerCSceo13XgWG",
+        "next_epoch_id": "BFhRUGQZwGNzSQ3i9u7Nu2CkjvE3vNXu2Kmt6fGFVexC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6697912339767293e+21
+    },
+    {
+        "timestamp": "2024-03-08T09:25:03.597Z",
+        "balance": 3.767034100327935e+26,
+        "block_height": 114321107,
+        "epoch_id": "4iyeUnp1LpqyRXYXV1XX3tRhVhPPdTwBAiMVhNb6ZBMo",
+        "next_epoch_id": "4QadJ5imr6w3Ygcn4iw8dEmntFfW7aMerCSceo13XgWG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.893826526023921e+22
+    },
+    {
+        "timestamp": "2024-03-07T17:09:33.808Z",
+        "balance": 3.7664447176753326e+26,
+        "block_height": 114277907,
+        "epoch_id": "8qabxnA6BMPC1XoqY3rCtj9MZQ9VhFuWZ4yV4DLVWzLE",
+        "next_epoch_id": "4iyeUnp1LpqyRXYXV1XX3tRhVhPPdTwBAiMVhNb6ZBMo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.954285890986752e+22
+    },
+    {
+        "timestamp": "2024-03-07T00:38:30.397Z",
+        "balance": 3.765849289086234e+26,
+        "block_height": 114234706,
+        "epoch_id": "FJeAeCRG2RrNGusrpAhtebYnjQXsZ7qrrHr6dVjfUU9j",
+        "next_epoch_id": "8qabxnA6BMPC1XoqY3rCtj9MZQ9VhFuWZ4yV4DLVWzLE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.815882937643954e+22
+    },
+    {
+        "timestamp": "2024-03-06T07:46:46.309Z",
+        "balance": 3.7652677007924695e+26,
+        "block_height": 114191506,
+        "epoch_id": "6XsUTzDjPJ681qsTy7P4XHqh9wV8DsLgLei6ExUARW4F",
+        "next_epoch_id": "FJeAeCRG2RrNGusrpAhtebYnjQXsZ7qrrHr6dVjfUU9j",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.320102229181864e+22
+    },
+    {
+        "timestamp": "2024-03-05T15:02:24.032Z",
+        "balance": 3.764735690569551e+26,
+        "block_height": 114148306,
+        "epoch_id": "9WGjrCT8QqCTdZ1Qh6NfRFzMRPaV51hnLXKgvWr8XFp5",
+        "next_epoch_id": "6XsUTzDjPJ681qsTy7P4XHqh9wV8DsLgLei6ExUARW4F",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.631035764424001e+22
+    },
+    {
+        "timestamp": "2024-03-04T22:50:23.411Z",
+        "balance": 3.764172586993109e+26,
+        "block_height": 114105106,
+        "epoch_id": "7bQYGs3QhiPpWSuNKXVKAZ58PCJL3qR7wGYwA85RSJwa",
+        "next_epoch_id": "9WGjrCT8QqCTdZ1Qh6NfRFzMRPaV51hnLXKgvWr8XFp5",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.598898517734413e+22
+    },
+    {
+        "timestamp": "2024-03-04T06:42:55.171Z",
+        "balance": 3.7636126971413355e+26,
+        "block_height": 114061906,
+        "epoch_id": "9bnmKNcuusKRquGxguR2ZwbxA4TbFMMD2pzfq9BNgMZU",
+        "next_epoch_id": "7bQYGs3QhiPpWSuNKXVKAZ58PCJL3qR7wGYwA85RSJwa",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.611833610321612e+22
+    },
+    {
+        "timestamp": "2024-03-03T14:41:28.848Z",
+        "balance": 3.763051513780303e+26,
+        "block_height": 114018706,
+        "epoch_id": "4u6bQt8dvLR96Z6MV6At9VdKUd7SwDNpo9gPU1u1CNeu",
+        "next_epoch_id": "9bnmKNcuusKRquGxguR2ZwbxA4TbFMMD2pzfq9BNgMZU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.601249799497882e+22
+    },
+    {
+        "timestamp": "2024-03-02T22:35:46.091Z",
+        "balance": 3.7624913888003535e+26,
+        "block_height": 113975506,
+        "epoch_id": "9MvW1c4GSzZpnU4rFd6g1RMyp7EMYTHbjyaHzH6inhVo",
+        "next_epoch_id": "4u6bQt8dvLR96Z6MV6At9VdKUd7SwDNpo9gPU1u1CNeu",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.486416970809974e+22
+    },
+    {
+        "timestamp": "2024-03-02T06:42:17.877Z",
+        "balance": 3.7619427471032725e+26,
+        "block_height": 113932306,
+        "epoch_id": "J8C8MkeKKh7CMj3sVMso7aNeDmxEjT2bv3tPK9E6sZK1",
+        "next_epoch_id": "9MvW1c4GSzZpnU4rFd6g1RMyp7EMYTHbjyaHzH6inhVo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.483270435630142e+22
+    },
+    {
+        "timestamp": "2024-03-01T14:57:16.718Z",
+        "balance": 3.7613944200597095e+26,
+        "block_height": 113889106,
+        "epoch_id": "6qTsmMXjWnoRtZrnHuWAZfo5mda9YpuLtHPaUsjHbwXe",
+        "next_epoch_id": "J8C8MkeKKh7CMj3sVMso7aNeDmxEjT2bv3tPK9E6sZK1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.629024894085576e+22
+    },
+    {
+        "timestamp": "2024-02-29T23:04:55.254Z",
+        "balance": 3.760831517570301e+26,
+        "block_height": 113845906,
+        "epoch_id": "2CA3XqwkEpR1CZHiigJiSPEzrpU6ucrJsxuTiBAKBR5Y",
+        "next_epoch_id": "6qTsmMXjWnoRtZrnHuWAZfo5mda9YpuLtHPaUsjHbwXe",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.271682986673737e+22
+    },
+    {
+        "timestamp": "2024-02-29T06:50:59.897Z",
+        "balance": 3.7603043492716336e+26,
+        "block_height": 113802706,
+        "epoch_id": "5eCLxJf5wojyReVMNbEZmjtieUGGiLi9WBpBWnvov4ke",
+        "next_epoch_id": "2CA3XqwkEpR1CZHiigJiSPEzrpU6ucrJsxuTiBAKBR5Y",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.262306618315432e+22
+    },
+    {
+        "timestamp": "2024-02-28T15:37:18.823Z",
+        "balance": 3.759778118609802e+26,
+        "block_height": 113759506,
+        "epoch_id": "HLz5ymMfivSPBtfECfhaYByWTLAY1b375oBo4sDv7bUG",
+        "next_epoch_id": "5eCLxJf5wojyReVMNbEZmjtieUGGiLi9WBpBWnvov4ke",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.371340337300205e+22
+    },
+    {
+        "timestamp": "2024-02-27T23:55:03.093Z",
+        "balance": 3.759240984576072e+26,
+        "block_height": 113716306,
+        "epoch_id": "APmuq9tsiNgCxsZeNwvaC4HyYMzXmSsNbUVQ5D8J3Z4f",
+        "next_epoch_id": "HLz5ymMfivSPBtfECfhaYByWTLAY1b375oBo4sDv7bUG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6825957437663944e+22
+    },
+    {
+        "timestamp": "2024-02-27T08:06:22.144Z",
+        "balance": 3.7587727250016954e+26,
+        "block_height": 113673106,
+        "epoch_id": "AkMMN43v7Qdyq1dUXzNHpFd6WjgZPNZvYSRYFTo6ATvr",
+        "next_epoch_id": "APmuq9tsiNgCxsZeNwvaC4HyYMzXmSsNbUVQ5D8J3Z4f",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.5520997394078e+22
+    },
+    {
+        "timestamp": "2024-02-26T16:39:47.406Z",
+        "balance": 3.7582175150277546e+26,
+        "block_height": 113629906,
+        "epoch_id": "3WdPshfQtNKCd13hCZ2X3XupoXgY4ELBQkSVwREAKGeg",
+        "next_epoch_id": "AkMMN43v7Qdyq1dUXzNHpFd6WjgZPNZvYSRYFTo6ATvr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.4244265404340795e+22
+    },
+    {
+        "timestamp": "2024-02-26T00:53:49.211Z",
+        "balance": 3.757675072373711e+26,
+        "block_height": 113586706,
+        "epoch_id": "22AZ4pLy84znaEGCW7ZRpUWQdZsRLyqWdWfmcqhYKyd9",
+        "next_epoch_id": "3WdPshfQtNKCd13hCZ2X3XupoXgY4ELBQkSVwREAKGeg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.301520588280541e+22
+    },
+    {
+        "timestamp": "2024-02-25T08:58:00.941Z",
+        "balance": 3.757144920314883e+26,
+        "block_height": 113543506,
+        "epoch_id": "2aZoAiRPcqF9XBEfPih5zgB2DM4b7FgFgdtYvrdDp3jp",
+        "next_epoch_id": "22AZ4pLy84znaEGCW7ZRpUWQdZsRLyqWdWfmcqhYKyd9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.378097628945797e+22
+    },
+    {
+        "timestamp": "2024-02-24T17:25:04.318Z",
+        "balance": 3.7566071105519886e+26,
+        "block_height": 113500306,
+        "epoch_id": "3dD9ExUJDGYfiSjBaUDjruQUkmRngjkyvqRx5SxbcQqZ",
+        "next_epoch_id": "2aZoAiRPcqF9XBEfPih5zgB2DM4b7FgFgdtYvrdDp3jp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.573502175637836e+22
+    },
+    {
+        "timestamp": "2024-02-24T01:57:23.691Z",
+        "balance": 3.756049760334425e+26,
+        "block_height": 113457106,
+        "epoch_id": "apqcZZKHDAaKvEfoX7wyovCoodv4nPFJcvfWTmjMjMV",
+        "next_epoch_id": "3dD9ExUJDGYfiSjBaUDjruQUkmRngjkyvqRx5SxbcQqZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 3.995171374979533e+22
+    },
+    {
+        "timestamp": "2024-02-23T10:12:45.909Z",
+        "balance": 3.755650243196927e+26,
+        "block_height": 113413906,
+        "epoch_id": "6zM95aQcH7ER3KSNuHhRDtPpyf6M4UbWgat4eU8xGjEH",
+        "next_epoch_id": "apqcZZKHDAaKvEfoX7wyovCoodv4nPFJcvfWTmjMjMV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.551251926071453e+22
+    },
+    {
+        "timestamp": "2024-02-22T18:33:45.842Z",
+        "balance": 3.75509511800432e+26,
+        "block_height": 113370706,
+        "epoch_id": "E4XC3pg4fR4crpyhVxkUrYKn5rKeLVKWd7ZeRpwLcw5V",
+        "next_epoch_id": "6zM95aQcH7ER3KSNuHhRDtPpyf6M4UbWgat4eU8xGjEH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.494990926618677e+22
+    },
+    {
+        "timestamp": "2024-02-22T02:45:20.296Z",
+        "balance": 3.754545618911658e+26,
+        "block_height": 113327506,
+        "epoch_id": "9DnEhuYat4zsz1JamxWDgw8pQoeJyPhjimgayRix5aVp",
+        "next_epoch_id": "E4XC3pg4fR4crpyhVxkUrYKn5rKeLVKWd7ZeRpwLcw5V",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.296760579943977e+22
+    },
+    {
+        "timestamp": "2024-02-21T11:26:30.662Z",
+        "balance": 3.7540159428536634e+26,
+        "block_height": 113284306,
+        "epoch_id": "A1NZHmDm8CmYNevmLrVVhVPDSCoPJmKuNhrwiWUW41ea",
+        "next_epoch_id": "9DnEhuYat4zsz1JamxWDgw8pQoeJyPhjimgayRix5aVp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.467887344079166e+22
+    },
+    {
+        "timestamp": "2024-02-20T20:13:02.643Z",
+        "balance": 3.7534691541192555e+26,
+        "block_height": 113241106,
+        "epoch_id": "8RmPjuQFVMqwBDWNMmkTiXPPAujS5rQoPFzzmGstPMhX",
+        "next_epoch_id": "A1NZHmDm8CmYNevmLrVVhVPDSCoPJmKuNhrwiWUW41ea",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.389939392156737e+22
+    },
+    {
+        "timestamp": "2024-02-20T04:14:44.060Z",
+        "balance": 3.75293016018004e+26,
+        "block_height": 113197906,
+        "epoch_id": "F7xxVBdLDZyDuNhL7esUud47BAqxhbYydNNSTccB3riB",
+        "next_epoch_id": "8RmPjuQFVMqwBDWNMmkTiXPPAujS5rQoPFzzmGstPMhX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.2339686416004395e+22
+    },
+    {
+        "timestamp": "2024-02-19T12:59:28.985Z",
+        "balance": 3.75240676331588e+26,
+        "block_height": 113154706,
+        "epoch_id": "7rHPHgsuCpqXYdGGHiDSCEtpcMSFAgBYHPkFowcGH6cN",
+        "next_epoch_id": "F7xxVBdLDZyDuNhL7esUud47BAqxhbYydNNSTccB3riB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.550592689273448e+22
+    },
+    {
+        "timestamp": "2024-02-18T22:09:51.926Z",
+        "balance": 3.7518517040469524e+26,
+        "block_height": 113111506,
+        "epoch_id": "83vvsELB8T4pacVPsUwD88RfXtmfTebeKTvEyzu6oAkV",
+        "next_epoch_id": "7rHPHgsuCpqXYdGGHiDSCEtpcMSFAgBYHPkFowcGH6cN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.250518893544632e+22
+    },
+    {
+        "timestamp": "2024-02-18T06:30:22.397Z",
+        "balance": 3.751326652157598e+26,
+        "block_height": 113068306,
+        "epoch_id": "A14b8tmrBwpRAAvY9k5Ex58XQZdCU5xXZwyWx25tsLRW",
+        "next_epoch_id": "83vvsELB8T4pacVPsUwD88RfXtmfTebeKTvEyzu6oAkV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.274007560763755e+22
+    },
+    {
+        "timestamp": "2024-02-17T15:16:29.719Z",
+        "balance": 3.7507992514015216e+26,
+        "block_height": 113025106,
+        "epoch_id": "BPHo3U39eeoUav2Wzxc7gaB9hYPuNktmEpnBgb46R8PJ",
+        "next_epoch_id": "A14b8tmrBwpRAAvY9k5Ex58XQZdCU5xXZwyWx25tsLRW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.434862547984753e+22
+    },
+    {
+        "timestamp": "2024-02-16T23:58:33.129Z",
+        "balance": 3.750255765146723e+26,
+        "block_height": 112981906,
+        "epoch_id": "G2DPBP6SiM3eZ5TWjAyCrEf2YPNCNevfBRQfQMQCmXKF",
+        "next_epoch_id": "BPHo3U39eeoUav2Wzxc7gaB9hYPuNktmEpnBgb46R8PJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.239214092601364e+22
+    },
+    {
+        "timestamp": "2024-02-16T08:34:50.451Z",
+        "balance": 3.749731843737463e+26,
+        "block_height": 112938706,
+        "epoch_id": "Fv7GMVzA64ym1JCdiqetQahiXDxLwbQcbzRAdjnYtPSs",
+        "next_epoch_id": "G2DPBP6SiM3eZ5TWjAyCrEf2YPNCNevfBRQfQMQCmXKF",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 3.5393956221995088e+22
+    },
+    {
+        "timestamp": "2024-02-15T17:41:11.203Z",
+        "balance": 3.749377904175243e+26,
+        "block_height": 112895506,
+        "epoch_id": "A6aNQbcvuF9ocXh7zYbP5LYWKZZadhokW5vpVLu3jmaA",
+        "next_epoch_id": "Fv7GMVzA64ym1JCdiqetQahiXDxLwbQcbzRAdjnYtPSs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.384709865149072e+22
+    },
+    {
+        "timestamp": "2024-02-15T02:04:00.967Z",
+        "balance": 3.748839433188728e+26,
+        "block_height": 112852306,
+        "epoch_id": "7xvGjLfi6bV1nSHvtzaiVHgDckA4cQ11MS66UX1i6Uhw",
+        "next_epoch_id": "A6aNQbcvuF9ocXh7zYbP5LYWKZZadhokW5vpVLu3jmaA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.237317790790437e+22
+    },
+    {
+        "timestamp": "2024-02-14T10:42:59.397Z",
+        "balance": 3.748315701409649e+26,
+        "block_height": 112809101,
+        "epoch_id": "3kkWfavpUpX8bEEuak2g6DKfYNwGajogwEgvzmL61zZ3",
+        "next_epoch_id": "7xvGjLfi6bV1nSHvtzaiVHgDckA4cQ11MS66UX1i6Uhw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.18811759212488e+22
+    },
+    {
+        "timestamp": "2024-02-13T19:40:44.419Z",
+        "balance": 3.7477968896504366e+26,
+        "block_height": 112765901,
+        "epoch_id": "AMFj6gnUbbBurHUnLrCBUypVidA6N2aXMsxPdHwkMim6",
+        "next_epoch_id": "3kkWfavpUpX8bEEuak2g6DKfYNwGajogwEgvzmL61zZ3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.281267450856714e+22
+    },
+    {
+        "timestamp": "2024-02-13T04:06:03.106Z",
+        "balance": 3.747268762905351e+26,
+        "block_height": 112722701,
+        "epoch_id": "5jVgBqNm1aTopuFzVEFU4NL1BYmq6Mrh4h3Wzo2ecZuR",
+        "next_epoch_id": "AMFj6gnUbbBurHUnLrCBUypVidA6N2aXMsxPdHwkMim6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.2365023414757745e+22
+    },
+    {
+        "timestamp": "2024-02-12T12:48:36.683Z",
+        "balance": 3.7467451126712034e+26,
+        "block_height": 112679501,
+        "epoch_id": "GkDFKsytxVbmTBAJ29ESp4T4DnMJZCKWgpW9K5aaJehs",
+        "next_epoch_id": "5jVgBqNm1aTopuFzVEFU4NL1BYmq6Mrh4h3Wzo2ecZuR",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.056897338472103e+22
+    },
+    {
+        "timestamp": "2024-02-11T21:39:49.854Z",
+        "balance": 3.746239422937356e+26,
+        "block_height": 112636301,
+        "epoch_id": "6WzeLq9dKtsxT9EFBxKutanoqvVWWxb8qNaw5uwV5AnE",
+        "next_epoch_id": "GkDFKsytxVbmTBAJ29ESp4T4DnMJZCKWgpW9K5aaJehs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.926880227149751e+22
+    },
+    {
+        "timestamp": "2024-02-11T07:02:17.785Z",
+        "balance": 3.745746734914641e+26,
+        "block_height": 112593101,
+        "epoch_id": "4TTmH7iTjjB4pLtU4L6YSwCtmnSp2dK35RrNa8bBXUEr",
+        "next_epoch_id": "6WzeLq9dKtsxT9EFBxKutanoqvVWWxb8qNaw5uwV5AnE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.079599853145636e+22
+    },
+    {
+        "timestamp": "2024-02-10T16:44:58.078Z",
+        "balance": 3.7452387749293266e+26,
+        "block_height": 112549901,
+        "epoch_id": "Eeh823C5Q4d2ZVUybJiEPPyehVRSuFNZ3Qav6MMvq4TX",
+        "next_epoch_id": "4TTmH7iTjjB4pLtU4L6YSwCtmnSp2dK35RrNa8bBXUEr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.597055176963649e+22
+    },
+    {
+        "timestamp": "2024-02-10T02:00:08.412Z",
+        "balance": 3.74477906941163e+26,
+        "block_height": 112506701,
+        "epoch_id": "Dk35VdjDhGV5ewoM7eKBtCYVuLsCjVqfki5H2CksyhrZ",
+        "next_epoch_id": "Eeh823C5Q4d2ZVUybJiEPPyehVRSuFNZ3Qav6MMvq4TX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.583790491245599e+22
+    },
+    {
+        "timestamp": "2024-02-09T12:39:03.139Z",
+        "balance": 3.744320690362506e+26,
+        "block_height": 112463501,
+        "epoch_id": "CmAoWQSRkLeDUxsT94gPujHtpC7pmk1ZykuR2GeyAzBC",
+        "next_epoch_id": "Dk35VdjDhGV5ewoM7eKBtCYVuLsCjVqfki5H2CksyhrZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.462534570233885e+22
+    },
+    {
+        "timestamp": "2024-02-08T23:20:56.991Z",
+        "balance": 3.743874436905482e+26,
+        "block_height": 112420301,
+        "epoch_id": "8qzKGcof57izqDFXv61CuYSRWS7ZE5ai7oVjZnMVEiBx",
+        "next_epoch_id": "CmAoWQSRkLeDUxsT94gPujHtpC7pmk1ZykuR2GeyAzBC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.567114538417963e+22
+    },
+    {
+        "timestamp": "2024-02-08T10:24:34.902Z",
+        "balance": 3.7434177254516405e+26,
+        "block_height": 112377101,
+        "epoch_id": "8YYjPFCmupD4dRCe5Q6VLnx39oqhhMRzwpQFoAYV1Ghq",
+        "next_epoch_id": "8qzKGcof57izqDFXv61CuYSRWS7ZE5ai7oVjZnMVEiBx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.904722526095291e+22
+    },
+    {
+        "timestamp": "2024-02-07T21:11:05.492Z",
+        "balance": 3.742927253199031e+26,
+        "block_height": 112333901,
+        "epoch_id": "HUfCaWAGLfAXs1uJ3smiyRbwYDuDtwnozW5eeRQwwLwd",
+        "next_epoch_id": "8YYjPFCmupD4dRCe5Q6VLnx39oqhhMRzwpQFoAYV1Ghq",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7637693846076604e+22
+    },
+    {
+        "timestamp": "2024-02-07T06:57:35.866Z",
+        "balance": 3.74245087626057e+26,
+        "block_height": 112290701,
+        "epoch_id": "6FQtSrgYt41183RoGC1SSV9FgPzdjeX8e8rKrdxfxXz3",
+        "next_epoch_id": "HUfCaWAGLfAXs1uJ3smiyRbwYDuDtwnozW5eeRQwwLwd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.790786957877576e+22
+    },
+    {
+        "timestamp": "2024-02-06T17:08:53.482Z",
+        "balance": 3.7419717975647824e+26,
+        "block_height": 112247501,
+        "epoch_id": "BAfiqzy9a4qgK13vfpXGSV1KXdzahe4yX6AFi5oK1p7m",
+        "next_epoch_id": "6FQtSrgYt41183RoGC1SSV9FgPzdjeX8e8rKrdxfxXz3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.863060573178043e+22
+    },
+    {
+        "timestamp": "2024-02-06T03:18:34.715Z",
+        "balance": 3.7414854915074646e+26,
+        "block_height": 112204301,
+        "epoch_id": "CtpWnmW3ieADouoM5ZG6jCucFb4fjmBtr9yZUX6ABymZ",
+        "next_epoch_id": "BAfiqzy9a4qgK13vfpXGSV1KXdzahe4yX6AFi5oK1p7m",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.848547249413739e+22
+    },
+    {
+        "timestamp": "2024-02-05T13:11:58.334Z",
+        "balance": 3.741000636782523e+26,
+        "block_height": 112161101,
+        "epoch_id": "3Ex4dQt4DQCrCsDBMfFLCswyFqg2yyMz3dtJ3aX8yxhp",
+        "next_epoch_id": "CtpWnmW3ieADouoM5ZG6jCucFb4fjmBtr9yZUX6ABymZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.968138777235971e+22
+    },
+    {
+        "timestamp": "2024-02-04T23:04:22.522Z",
+        "balance": 3.7405038229048e+26,
+        "block_height": 112117900,
+        "epoch_id": "DJGNNGjwBGrrhh8QGt1G4sQ1YT6GfvHX8jiD3pFt26w4",
+        "next_epoch_id": "3Ex4dQt4DQCrCsDBMfFLCswyFqg2yyMz3dtJ3aX8yxhp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.5642612668417884e+22
+    },
+    {
+        "timestamp": "2024-02-04T08:36:09.514Z",
+        "balance": 3.7400473967781155e+26,
+        "block_height": 112074700,
+        "epoch_id": "5SVWnzNh1XAUdBJC4X1ExtX17b6NRFP7UgxWQT7g1pgs",
+        "next_epoch_id": "DJGNNGjwBGrrhh8QGt1G4sQ1YT6GfvHX8jiD3pFt26w4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.466223221250445e+22
+    },
+    {
+        "timestamp": "2024-02-03T19:17:30.550Z",
+        "balance": 3.7396007744559904e+26,
+        "block_height": 112031500,
+        "epoch_id": "9KfbuVkZhwCXtsneMzyEBgjACCjGc8cygwQG3LJ1y6ax",
+        "next_epoch_id": "5SVWnzNh1XAUdBJC4X1ExtX17b6NRFP7UgxWQT7g1pgs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.439471602319822e+22
+    },
+    {
+        "timestamp": "2024-02-03T05:39:25.142Z",
+        "balance": 3.7391568272957585e+26,
+        "block_height": 111988300,
+        "epoch_id": "2TGfEj7EeyheuuV3WgCnWdwrH9XtmxaPHoTYyiDZ57DZ",
+        "next_epoch_id": "9KfbuVkZhwCXtsneMzyEBgjACCjGc8cygwQG3LJ1y6ax",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.681021360405822e+22
+    },
+    {
+        "timestamp": "2024-02-02T16:43:47.237Z",
+        "balance": 3.738688725159718e+26,
+        "block_height": 111945100,
+        "epoch_id": "52U72spZRxRAVH6pV2EFrxiE1FndDnUU99Mv8djrP22o",
+        "next_epoch_id": "2TGfEj7EeyheuuV3WgCnWdwrH9XtmxaPHoTYyiDZ57DZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.343367232368997e+22
+    },
+    {
+        "timestamp": "2024-02-02T03:06:21.431Z",
+        "balance": 3.738254388436481e+26,
+        "block_height": 111901900,
+        "epoch_id": "4c3AEoBnXPoqPM8cQHxqRfXbq5hm6CpJAv9okUSGMMxZ",
+        "next_epoch_id": "52U72spZRxRAVH6pV2EFrxiE1FndDnUU99Mv8djrP22o",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.402918627996338e+22
+    },
+    {
+        "timestamp": "2024-02-01T14:28:04.304Z",
+        "balance": 3.737814096573681e+26,
+        "block_height": 111858700,
+        "epoch_id": "2GMCQDZShYozXyii3ejCjdg7271AouAnrMvFgA5Px3Xg",
+        "next_epoch_id": "4c3AEoBnXPoqPM8cQHxqRfXbq5hm6CpJAv9okUSGMMxZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.483676084300727e+22
+    },
+    {
+        "timestamp": "2024-02-01T01:39:31.393Z",
+        "balance": 3.737365728965251e+26,
+        "block_height": 111815500,
+        "epoch_id": "9MrNGefnSr2uKFbut9Cp1RPmAAMeqgeMDyhUavwRrcPo",
+        "next_epoch_id": "2GMCQDZShYozXyii3ejCjdg7271AouAnrMvFgA5Px3Xg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.342649097076426e+22
+    },
+    {
+        "timestamp": "2024-01-31T12:42:10.117Z",
+        "balance": 3.7369314640555436e+26,
+        "block_height": 111772300,
+        "epoch_id": "5gjEgGSP8W1GEtyanUQeVEjJ4FLnaprwVJzFYXb7N6DV",
+        "next_epoch_id": "9MrNGefnSr2uKFbut9Cp1RPmAAMeqgeMDyhUavwRrcPo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 3.703236385238889e+22
+    },
+    {
+        "timestamp": "2024-01-31T00:07:41.160Z",
+        "balance": 3.73656114041702e+26,
+        "block_height": 111729100,
+        "epoch_id": "FCKt2GEBTp1Uf8ZcreEFRHkNJz78JwRuvcDprChz8nTp",
+        "next_epoch_id": "5gjEgGSP8W1GEtyanUQeVEjJ4FLnaprwVJzFYXb7N6DV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4243019593391035e+22
+    },
+    {
+        "timestamp": "2024-01-30T11:28:07.779Z",
+        "balance": 3.736118710221086e+26,
+        "block_height": 111685900,
+        "epoch_id": "HymgHHvdiKT5vcywbDX5b8sSp9crhRShJyTReJydMbq4",
+        "next_epoch_id": "FCKt2GEBTp1Uf8ZcreEFRHkNJz78JwRuvcDprChz8nTp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.483043814784611e+22
+    },
+    {
+        "timestamp": "2024-01-29T22:56:40.904Z",
+        "balance": 3.7356704058396074e+26,
+        "block_height": 111642700,
+        "epoch_id": "4dSwY8oFquTQhKoArWVeBKAJb8VTcE1jqH3CDCXwUZiW",
+        "next_epoch_id": "HymgHHvdiKT5vcywbDX5b8sSp9crhRShJyTReJydMbq4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.371800505021207e+22
+    },
+    {
+        "timestamp": "2024-01-29T10:15:39.892Z",
+        "balance": 3.735233225789105e+26,
+        "block_height": 111599500,
+        "epoch_id": "8bbGQR8aNc4raaCDTT9p26gQw7Ctea3udmxYpuvCpcWJ",
+        "next_epoch_id": "4dSwY8oFquTQhKoArWVeBKAJb8VTcE1jqH3CDCXwUZiW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.44769819795492e+22
+    },
+    {
+        "timestamp": "2024-01-28T21:52:52.362Z",
+        "balance": 3.73478845596931e+26,
+        "block_height": 111556300,
+        "epoch_id": "5ntCN2bJJkjQd3RvPGX9RZQn4rYK2g2vGUSgSYgdjCRn",
+        "next_epoch_id": "8bbGQR8aNc4raaCDTT9p26gQw7Ctea3udmxYpuvCpcWJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.397443017140341e+22
+    },
+    {
+        "timestamp": "2024-01-28T09:18:03.057Z",
+        "balance": 3.734348711667596e+26,
+        "block_height": 111513100,
+        "epoch_id": "HAuJng8qLkrD97aEAan3Jxm6gbkcyjpHCYLTRhNefEfy",
+        "next_epoch_id": "5ntCN2bJJkjQd3RvPGX9RZQn4rYK2g2vGUSgSYgdjCRn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.278273619938278e+22
+    },
+    {
+        "timestamp": "2024-01-27T10:05:23.367Z",
+        "balance": 3.733920884305602e+26,
+        "block_height": 111433012,
+        "epoch_id": "JDg6EDdhL7Pcii6T9D4ximgBS9KB3vG6e49UhcLGiXN7",
+        "next_epoch_id": "HAuJng8qLkrD97aEAan3Jxm6gbkcyjpHCYLTRhNefEfy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.252394154871997e+22
+    },
+    {
+        "timestamp": "2024-01-27T08:09:12.267Z",
+        "balance": 3.733495644890115e+26,
+        "block_height": 111426700,
+        "epoch_id": "2HgpiAAVJb9RYf8aBz1go5Ah4egE43ME2AYbMrZXgE6M",
+        "next_epoch_id": "JDg6EDdhL7Pcii6T9D4ximgBS9KB3vG6e49UhcLGiXN7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.32609078281204e+22
+    },
+    {
+        "timestamp": "2024-01-26T19:28:44.656Z",
+        "balance": 3.7330630358118335e+26,
+        "block_height": 111383500,
+        "epoch_id": "9Fu24tmUcursMTtRvFQtTBu8fw56QypsNSTHfXHa348a",
+        "next_epoch_id": "2HgpiAAVJb9RYf8aBz1go5Ah4egE43ME2AYbMrZXgE6M",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3940303113472784e+22
+    },
+    {
+        "timestamp": "2024-01-26T06:38:16.624Z",
+        "balance": 3.732623632780699e+26,
+        "block_height": 111340300,
+        "epoch_id": "FJEPdwkdTJo3E4asCwsc9GzybpnTToE3MxR9NQHgBqtw",
+        "next_epoch_id": "9Fu24tmUcursMTtRvFQtTBu8fw56QypsNSTHfXHa348a",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.599110147689544e+22
+    },
+    {
+        "timestamp": "2024-01-25T17:32:40.235Z",
+        "balance": 3.73216372176593e+26,
+        "block_height": 111297100,
+        "epoch_id": "ELqczo4hiCWsiz6UNQ3t8TxRX5L4nhtfocwfPvXvQVvR",
+        "next_epoch_id": "FJEPdwkdTJo3E4asCwsc9GzybpnTToE3MxR9NQHgBqtw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.497838181974184e+22
+    },
+    {
+        "timestamp": "2024-01-25T04:20:12.948Z",
+        "balance": 3.7317139379477324e+26,
+        "block_height": 111253900,
+        "epoch_id": "DhYQCttE7ZViwuWF1bYdKkSf7MkugHtpLQJzympGzNAe",
+        "next_epoch_id": "ELqczo4hiCWsiz6UNQ3t8TxRX5L4nhtfocwfPvXvQVvR",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4779275005447595e+22
+    },
+    {
+        "timestamp": "2024-01-24T15:29:49.934Z",
+        "balance": 3.731266145197678e+26,
+        "block_height": 111210700,
+        "epoch_id": "AVnCmjS9pmC24tzecWpz4R8Qk9NQYkJf9cnjXhkGkuUQ",
+        "next_epoch_id": "DhYQCttE7ZViwuWF1bYdKkSf7MkugHtpLQJzympGzNAe",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.294380730399112e+22
+    },
+    {
+        "timestamp": "2024-01-24T02:43:40.917Z",
+        "balance": 3.730836707124638e+26,
+        "block_height": 111167500,
+        "epoch_id": "Bbe64oVHQDHYnxqxBdtKLjE2MJHgwPEysqtmhkVaCBrD",
+        "next_epoch_id": "AVnCmjS9pmC24tzecWpz4R8Qk9NQYkJf9cnjXhkGkuUQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.400445357802334e+22
+    },
+    {
+        "timestamp": "2024-01-23T14:28:59.093Z",
+        "balance": 3.730396662588858e+26,
+        "block_height": 111124300,
+        "epoch_id": "9DwYHux2uboRX9TKdvi7msd4NFXE8qEb4eoK9H4THnb6",
+        "next_epoch_id": "Bbe64oVHQDHYnxqxBdtKLjE2MJHgwPEysqtmhkVaCBrD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.524735577777934e+22
+    },
+    {
+        "timestamp": "2024-01-23T02:02:51.719Z",
+        "balance": 3.72994418903108e+26,
+        "block_height": 111081100,
+        "epoch_id": "5L8gB29pTvyy5mrAn45EzGiBZXvUDC4nhbXychmMkBj3",
+        "next_epoch_id": "9DwYHux2uboRX9TKdvi7msd4NFXE8qEb4eoK9H4THnb6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.0295229666970755e+22
+    },
+    {
+        "timestamp": "2024-01-22T13:11:25.158Z",
+        "balance": 3.72944123673441e+26,
+        "block_height": 111037900,
+        "epoch_id": "9xtMBA11FmiFSZifW6bMgsQqcEJZwWtMTYBYQkGE3gzC",
+        "next_epoch_id": "5L8gB29pTvyy5mrAn45EzGiBZXvUDC4nhbXychmMkBj3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.526435108685851e+22
+    },
+    {
+        "timestamp": "2024-01-21T22:52:28.106Z",
+        "balance": 3.728988593223542e+26,
+        "block_height": 110994700,
+        "epoch_id": "4CGwPZtyTD7KCiYvTDjPCYyFA9GGjauAS2jEcxzJcaMN",
+        "next_epoch_id": "9xtMBA11FmiFSZifW6bMgsQqcEJZwWtMTYBYQkGE3gzC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.174581146623248e+22
+    },
+    {
+        "timestamp": "2024-01-21T09:58:51.325Z",
+        "balance": 3.7285711351088794e+26,
+        "block_height": 110951500,
+        "epoch_id": "6tAfksHeYTW6esDYvxTWFodNCU7rvqAYBcd6VudKMVeN",
+        "next_epoch_id": "4CGwPZtyTD7KCiYvTDjPCYyFA9GGjauAS2jEcxzJcaMN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.298415429136605e+22
+    },
+    {
+        "timestamp": "2024-01-20T12:47:22.422Z",
+        "balance": 3.728141293565966e+26,
+        "block_height": 110875525,
+        "epoch_id": "ExkTLvX3Fvo9zWaPkp5tonXzSuPmZnk1B35fP9sYfKKD",
+        "next_epoch_id": "6tAfksHeYTW6esDYvxTWFodNCU7rvqAYBcd6VudKMVeN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.487359107487635e+22
+    },
+    {
+        "timestamp": "2024-01-20T09:50:57.571Z",
+        "balance": 3.727692557655217e+26,
+        "block_height": 110865100,
+        "epoch_id": "dBWXZQUoTwzgJWFdp3yvJ2SCCkJeVJ8LJpiRU1qqcRd",
+        "next_epoch_id": "ExkTLvX3Fvo9zWaPkp5tonXzSuPmZnk1B35fP9sYfKKD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.466219782122384e+22
+    },
+    {
+        "timestamp": "2024-01-19T21:02:53.897Z",
+        "balance": 3.727245935677005e+26,
+        "block_height": 110821900,
+        "epoch_id": "CRbiLgThEWqVPuoVuuBY3SWFFzR3drT1Rvkym2ygvqgJ",
+        "next_epoch_id": "dBWXZQUoTwzgJWFdp3yvJ2SCCkJeVJ8LJpiRU1qqcRd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.516402840444251e+22
+    },
+    {
+        "timestamp": "2024-01-19T08:22:02.073Z",
+        "balance": 3.72679429539296e+26,
+        "block_height": 110778700,
+        "epoch_id": "5VE2bm5DtYhWZasGb3pxfXXSztNqe2JUVBLxFuzyjorb",
+        "next_epoch_id": "CRbiLgThEWqVPuoVuuBY3SWFFzR3drT1Rvkym2ygvqgJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.625961319783944e+22
+    },
+    {
+        "timestamp": "2024-01-18T19:29:51.878Z",
+        "balance": 3.726331699260982e+26,
+        "block_height": 110735500,
+        "epoch_id": "Fnpo31qeJS9jVJ3B4DboSWPeJTAXNEvoTQiCCC1NdXMr",
+        "next_epoch_id": "5VE2bm5DtYhWZasGb3pxfXXSztNqe2JUVBLxFuzyjorb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.261553419945242e+22
+    },
+    {
+        "timestamp": "2024-01-18T06:19:12.263Z",
+        "balance": 3.7259055439189874e+26,
+        "block_height": 110692300,
+        "epoch_id": "AgjVJKR2y5aEgTN6Jyq3BA84ysJgEApvJg9d4xvFd3xw",
+        "next_epoch_id": "Fnpo31qeJS9jVJ3B4DboSWPeJTAXNEvoTQiCCC1NdXMr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.368618826357374e+22
+    },
+    {
+        "timestamp": "2024-01-17T18:11:33.826Z",
+        "balance": 3.7254686820363516e+26,
+        "block_height": 110649100,
+        "epoch_id": "5Q5EtpkboSocZTjd1TPBPNSY9mMCxE9JXmTxDyZGqDfk",
+        "next_epoch_id": "AgjVJKR2y5aEgTN6Jyq3BA84ysJgEApvJg9d4xvFd3xw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.446791646102949e+22
+    },
+    {
+        "timestamp": "2024-01-17T05:45:43.086Z",
+        "balance": 3.725024002871741e+26,
+        "block_height": 110605900,
+        "epoch_id": "Fbnr2CUcuCfbvrgYXZPwoJfYagd4fsMsJ5NuyUCuy9cD",
+        "next_epoch_id": "5Q5EtpkboSocZTjd1TPBPNSY9mMCxE9JXmTxDyZGqDfk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.445046799180634e+22
+    },
+    {
+        "timestamp": "2024-01-16T17:05:58.179Z",
+        "balance": 3.724579498191823e+26,
+        "block_height": 110562700,
+        "epoch_id": "J7MppdLy6bfZEFoJDp6jd3EeAnms4SZGVukaAeY23iNG",
+        "next_epoch_id": "Fbnr2CUcuCfbvrgYXZPwoJfYagd4fsMsJ5NuyUCuy9cD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.395529636072416e+22
+    },
+    {
+        "timestamp": "2024-01-16T04:18:35.413Z",
+        "balance": 3.724139945228216e+26,
+        "block_height": 110519500,
+        "epoch_id": "71dtZ8GPL4m5UYn865pprJko9cVCPdhHTyp32jDd7qh",
+        "next_epoch_id": "J7MppdLy6bfZEFoJDp6jd3EeAnms4SZGVukaAeY23iNG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.352747454082625e+22
+    },
+    {
+        "timestamp": "2024-01-15T15:19:21.808Z",
+        "balance": 3.723704670482808e+26,
+        "block_height": 110476300,
+        "epoch_id": "CrST55F9zGVXiDBBnvqggDdxS9PnxbADWBtzrgW5sBH7",
+        "next_epoch_id": "71dtZ8GPL4m5UYn865pprJko9cVCPdhHTyp32jDd7qh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.275260577571557e+22
+    },
+    {
+        "timestamp": "2024-01-15T02:27:49.648Z",
+        "balance": 3.7232771444250506e+26,
+        "block_height": 110433100,
+        "epoch_id": "AMcLDji82La3PBnzy1fpjv8e8YFRk1DxFJR6Tgf1Bv67",
+        "next_epoch_id": "CrST55F9zGVXiDBBnvqggDdxS9PnxbADWBtzrgW5sBH7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.351639655545662e+22
+    },
+    {
+        "timestamp": "2024-01-14T06:26:57.696Z",
+        "balance": 3.722841980459496e+26,
+        "block_height": 110364142,
+        "epoch_id": "9dg2D4gwjaFWFgmnDRwF4iFmDaoQsBACeDBomqADENBL",
+        "next_epoch_id": "AMcLDji82La3PBnzy1fpjv8e8YFRk1DxFJR6Tgf1Bv67",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.336743889641429e+22
+    },
+    {
+        "timestamp": "2024-01-14T01:04:57.193Z",
+        "balance": 3.722408306070532e+26,
+        "block_height": 110346700,
+        "epoch_id": "9zWyG8yvX9B6nrXbo4kvjdrkrPt3V2e6TDe3V89W7Hbc",
+        "next_epoch_id": "9dg2D4gwjaFWFgmnDRwF4iFmDaoQsBACeDBomqADENBL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.546288540063517e+22
+    },
+    {
+        "timestamp": "2024-01-13T12:15:50.187Z",
+        "balance": 3.7219536772165255e+26,
+        "block_height": 110303500,
+        "epoch_id": "44G8FvD4uuZwdfxaNz59WXjEC2FLYorWCKSuxKpTvb5G",
+        "next_epoch_id": "9zWyG8yvX9B6nrXbo4kvjdrkrPt3V2e6TDe3V89W7Hbc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.549634453590081e+22
+    },
+    {
+        "timestamp": "2024-01-12T23:22:23.021Z",
+        "balance": 3.7214987137711665e+26,
+        "block_height": 110260300,
+        "epoch_id": "HDVHBSF2PvdCCc9QD1TgVvncfXJspGbom6TxWKVhFv1j",
+        "next_epoch_id": "44G8FvD4uuZwdfxaNz59WXjEC2FLYorWCKSuxKpTvb5G",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.476446215953575e+22
+    },
+    {
+        "timestamp": "2024-01-12T10:28:25.841Z",
+        "balance": 3.721051069149571e+26,
+        "block_height": 110217100,
+        "epoch_id": "FdSWpLzk9vu2CsQW3dxnWT2ek3GBJKoPf48LdEu8DHQg",
+        "next_epoch_id": "HDVHBSF2PvdCCc9QD1TgVvncfXJspGbom6TxWKVhFv1j",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.560486037524007e+22
+    },
+    {
+        "timestamp": "2024-01-11T21:24:10.388Z",
+        "balance": 3.720595020545819e+26,
+        "block_height": 110173900,
+        "epoch_id": "29qx3fhiRFkJSVXZfjdTVsFgwMaFyVmiQmJBLLwx2EQv",
+        "next_epoch_id": "FdSWpLzk9vu2CsQW3dxnWT2ek3GBJKoPf48LdEu8DHQg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.492492410618372e+22
+    },
+    {
+        "timestamp": "2024-01-11T08:24:41.396Z",
+        "balance": 3.720145771304757e+26,
+        "block_height": 110130700,
+        "epoch_id": "7ZGH1NrTRhhzgRNWEbEuoUwRsgqsE5aZfANNeqneLnDo",
+        "next_epoch_id": "29qx3fhiRFkJSVXZfjdTVsFgwMaFyVmiQmJBLLwx2EQv",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.473198056961564e+22
+    },
+    {
+        "timestamp": "2024-01-10T19:46:16.366Z",
+        "balance": 3.719698451499061e+26,
+        "block_height": 110087500,
+        "epoch_id": "ChpoxWRHVbweSmbGjSW4YzgQCarcVeqtSeDa5hVbfmuM",
+        "next_epoch_id": "7ZGH1NrTRhhzgRNWEbEuoUwRsgqsE5aZfANNeqneLnDo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.451526793011012e+22
+    },
+    {
+        "timestamp": "2024-01-10T07:11:54.284Z",
+        "balance": 3.71925329881976e+26,
+        "block_height": 110044300,
+        "epoch_id": "FxX1vqJjjyiVtSHy2xKThHKn4Eu8RBpuKVKexmMufXjk",
+        "next_epoch_id": "ChpoxWRHVbweSmbGjSW4YzgQCarcVeqtSeDa5hVbfmuM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.547371246102739e+22
+    },
+    {
+        "timestamp": "2024-01-09T18:23:35.727Z",
+        "balance": 3.7187985616951494e+26,
+        "block_height": 110001100,
+        "epoch_id": "96rreXvC4cHyZ1DgGCG44gXi4pSP1ybDLZfZuVf2ET6X",
+        "next_epoch_id": "FxX1vqJjjyiVtSHy2xKThHKn4Eu8RBpuKVKexmMufXjk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.484159264575602e+22
+    },
+    {
+        "timestamp": "2024-01-09T05:36:39.657Z",
+        "balance": 3.718350145768692e+26,
+        "block_height": 109957900,
+        "epoch_id": "Ydiv51eXotAGPdLAiFmtw58x6K63he94NYPhijSicet",
+        "next_epoch_id": "96rreXvC4cHyZ1DgGCG44gXi4pSP1ybDLZfZuVf2ET6X",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.488448249009646e+22
+    },
+    {
+        "timestamp": "2024-01-08T17:00:56.838Z",
+        "balance": 3.717901300943791e+26,
+        "block_height": 109914700,
+        "epoch_id": "Cvy1vn5Lr2Ar45homvaXVMfUqA4kqrLEhgm8gC2W61dh",
+        "next_epoch_id": "Ydiv51eXotAGPdLAiFmtw58x6K63he94NYPhijSicet",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.634289681047605e+22
+    },
+    {
+        "timestamp": "2024-01-07T19:06:40.567Z",
+        "balance": 3.717437871975686e+26,
+        "block_height": 109839780,
+        "epoch_id": "558E8JNHdAiPGKSLzYWBESVaZvrhyNLAUWNbnRGw6G1G",
+        "next_epoch_id": "Cvy1vn5Lr2Ar45homvaXVMfUqA4kqrLEhgm8gC2W61dh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4757186772870936e+22
+    },
+    {
+        "timestamp": "2024-01-07T12:37:06.308Z",
+        "balance": 3.7169903001079574e+26,
+        "block_height": 109817821,
+        "epoch_id": "AbJdpakcsrPL7N46Equ6b1bzZWC9nYVJUQENqGokZF6K",
+        "next_epoch_id": "558E8JNHdAiPGKSLzYWBESVaZvrhyNLAUWNbnRGw6G1G",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.5321593922796434e+22
+    },
+    {
+        "timestamp": "2024-01-07T03:11:30.862Z",
+        "balance": 3.7165370841687294e+26,
+        "block_height": 109785100,
+        "epoch_id": "9vcq28yZLGPtH2CFMhJpm6XBWRYNjX2Ac4XvKCW4ACJr",
+        "next_epoch_id": "AbJdpakcsrPL7N46Equ6b1bzZWC9nYVJUQENqGokZF6K",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.5337706163441085e+22
+    },
+    {
+        "timestamp": "2024-01-06T14:34:59.801Z",
+        "balance": 3.716083707107095e+26,
+        "block_height": 109741900,
+        "epoch_id": "5HKoiHmejnZiNHkfrTkBa86pC6fJ2o41DKUkg3eFsPf",
+        "next_epoch_id": "9vcq28yZLGPtH2CFMhJpm6XBWRYNjX2Ac4XvKCW4ACJr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.584851600725532e+22
+    },
+    {
+        "timestamp": "2024-01-06T01:58:18.723Z",
+        "balance": 3.7156252219470225e+26,
+        "block_height": 109698700,
+        "epoch_id": "5pz3rWoKsNUGDGTVXrFumGFuERNGvQyEBv8sY3pUjqhh",
+        "next_epoch_id": "5HKoiHmejnZiNHkfrTkBa86pC6fJ2o41DKUkg3eFsPf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.493709323630996e+22
+    },
+    {
+        "timestamp": "2024-01-05T13:12:32.250Z",
+        "balance": 3.7151758510146594e+26,
+        "block_height": 109655500,
+        "epoch_id": "Ex6C45VatGBWGmdTG8LUXSyr2odQr9kkEzpLAfgkCyZ",
+        "next_epoch_id": "5pz3rWoKsNUGDGTVXrFumGFuERNGvQyEBv8sY3pUjqhh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.563571407112505e+22
+    },
+    {
+        "timestamp": "2024-01-05T00:45:11.249Z",
+        "balance": 3.714719493873948e+26,
+        "block_height": 109612300,
+        "epoch_id": "Ano2ragReV7QooGfV7so3sTmjUVm3UTtgpH35RGPym1K",
+        "next_epoch_id": "Ex6C45VatGBWGmdTG8LUXSyr2odQr9kkEzpLAfgkCyZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.547042899962385e+22
+    },
+    {
+        "timestamp": "2024-01-04T12:08:04.670Z",
+        "balance": 3.714264789583952e+26,
+        "block_height": 109569100,
+        "epoch_id": "ALu7KjjnLk8Nk991u3gY5oX8ivZR6xEvobhcYZ1TK9sy",
+        "next_epoch_id": "Ano2ragReV7QooGfV7so3sTmjUVm3UTtgpH35RGPym1K",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.612443027331517e+22
+    },
+    {
+        "timestamp": "2024-01-03T23:35:38.246Z",
+        "balance": 3.713803545281219e+26,
+        "block_height": 109525900,
+        "epoch_id": "J1MgmZqB1PiwHedPw3D6VT96guNnqZRACy4MGbqS6sZf",
+        "next_epoch_id": "ALu7KjjnLk8Nk991u3gY5oX8ivZR6xEvobhcYZ1TK9sy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.389661195935167e+22
+    },
+    {
+        "timestamp": "2024-01-03T10:51:42.962Z",
+        "balance": 3.713364579161625e+26,
+        "block_height": 109482700,
+        "epoch_id": "FTZMyWsY6bSodhb4cXMfsJaL8E7fCFGveNjzcWSt9CRM",
+        "next_epoch_id": "J1MgmZqB1PiwHedPw3D6VT96guNnqZRACy4MGbqS6sZf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.411689157826749e+22
+    },
+    {
+        "timestamp": "2024-01-02T22:37:23.195Z",
+        "balance": 3.7129234102458425e+26,
+        "block_height": 109439500,
+        "epoch_id": "AY3AWNj33ZgVLgmT5oco5j3PejHjwVe7L4oSxEAD9pJf",
+        "next_epoch_id": "FTZMyWsY6bSodhb4cXMfsJaL8E7fCFGveNjzcWSt9CRM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4068090497663635e+22
+    },
+    {
+        "timestamp": "2024-01-02T10:20:13.789Z",
+        "balance": 3.712482729340866e+26,
+        "block_height": 109396300,
+        "epoch_id": "Aqee7HQANcuLNgn2iR62TA6DjWSbfZVMzx587hosTMst",
+        "next_epoch_id": "AY3AWNj33ZgVLgmT5oco5j3PejHjwVe7L4oSxEAD9pJf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.481038218913415e+22
+    },
+    {
+        "timestamp": "2024-01-01T18:22:01.526Z",
+        "balance": 3.7120346255189746e+26,
+        "block_height": 109340191,
+        "epoch_id": "4T8VzBdhjAcJp8jtZGq7DjjSHtmjFTybEzcdmnuTAUdK",
+        "next_epoch_id": "Aqee7HQANcuLNgn2iR62TA6DjWSbfZVMzx587hosTMst",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.488876723131585e+22
+    },
+    {
+        "timestamp": "2024-01-01T09:32:59.150Z",
+        "balance": 3.7115857378466614e+26,
+        "block_height": 109309900,
+        "epoch_id": "DN2n3wc4jv1uFizWnHWnXqY2jgTbgJTcaoWrTita7m7z",
+        "next_epoch_id": "4T8VzBdhjAcJp8jtZGq7DjjSHtmjFTybEzcdmnuTAUdK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.486177498199087e+22
+    },
+    {
+        "timestamp": "2023-12-31T21:02:23.992Z",
+        "balance": 3.7111371200968415e+26,
+        "block_height": 109266700,
+        "epoch_id": "5Q4LPFWhkBMPc294USGY3gkYnaZn4SLfoAXY3caDFJkx",
+        "next_epoch_id": "DN2n3wc4jv1uFizWnHWnXqY2jgTbgJTcaoWrTita7m7z",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.563896881617109e+22
+    },
+    {
+        "timestamp": "2023-12-31T08:32:32.504Z",
+        "balance": 3.71068073040868e+26,
+        "block_height": 109223500,
+        "epoch_id": "9FhHDowYaGUrkgjsDB64k2vCBWKoviDV7xxR38vpn9Qi",
+        "next_epoch_id": "5Q4LPFWhkBMPc294USGY3gkYnaZn4SLfoAXY3caDFJkx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.691019095687869e+22
+    },
+    {
+        "timestamp": "2023-12-30T20:08:48.458Z",
+        "balance": 3.710211628499111e+26,
+        "block_height": 109180300,
+        "epoch_id": "B4eT2u6t8VkDGqmchV1GEv3tHEi6g3HAsTdhzKi3sivC",
+        "next_epoch_id": "9FhHDowYaGUrkgjsDB64k2vCBWKoviDV7xxR38vpn9Qi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.36854733352289e+22
+    },
+    {
+        "timestamp": "2023-12-30T07:12:33.749Z",
+        "balance": 3.709674773765759e+26,
+        "block_height": 109137100,
+        "epoch_id": "45GPH3VvaHmace5jwuAiJVBmfXHw8KuPCdrRBqZE8DnM",
+        "next_epoch_id": "B4eT2u6t8VkDGqmchV1GEv3tHEi6g3HAsTdhzKi3sivC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7218225032301426e+22
+    },
+    {
+        "timestamp": "2023-12-29T16:13:21.726Z",
+        "balance": 3.709202591515436e+26,
+        "block_height": 109093900,
+        "epoch_id": "7QfSgeTE4sh7bC2coaVpW3b13AaAivujPVnFhKNyLEcx",
+        "next_epoch_id": "45GPH3VvaHmace5jwuAiJVBmfXHw8KuPCdrRBqZE8DnM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.461583706393432e+22
+    },
+    {
+        "timestamp": "2023-12-29T02:12:06.058Z",
+        "balance": 3.7087564331447964e+26,
+        "block_height": 109050700,
+        "epoch_id": "GTmXn99YLU3FfFirR4NNBvcJPQuNw6wgYSKTf1cTQok5",
+        "next_epoch_id": "7QfSgeTE4sh7bC2coaVpW3b13AaAivujPVnFhKNyLEcx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.554540861219561e+22
+    },
+    {
+        "timestamp": "2023-12-28T13:07:53.950Z",
+        "balance": 3.7083009790586744e+26,
+        "block_height": 109007500,
+        "epoch_id": "55LZmxDnBAGYJMqqXTsjkZqerWQ5HpjNwpNWGtKDgpxH",
+        "next_epoch_id": "GTmXn99YLU3FfFirR4NNBvcJPQuNw6wgYSKTf1cTQok5",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.717846306262804e+22
+    },
+    {
+        "timestamp": "2023-12-27T23:46:15.126Z",
+        "balance": 3.707829194428048e+26,
+        "block_height": 108964300,
+        "epoch_id": "6f9pU2Xa4xMf1xWfxhuAUtQnC5FKhFBwHuWR1d82grRN",
+        "next_epoch_id": "55LZmxDnBAGYJMqqXTsjkZqerWQ5HpjNwpNWGtKDgpxH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.842909252104624e+22
+    },
+    {
+        "timestamp": "2023-12-27T09:57:00.269Z",
+        "balance": 3.7073449035028377e+26,
+        "block_height": 108921100,
+        "epoch_id": "4DHZr9V41VHemWPvJVb7XE5znVP3JNPyngxUDtupzM7T",
+        "next_epoch_id": "6f9pU2Xa4xMf1xWfxhuAUtQnC5FKhFBwHuWR1d82grRN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.669860110319415e+22
+    },
+    {
+        "timestamp": "2023-12-26T07:04:49.481Z",
+        "balance": 3.706877917491806e+26,
+        "block_height": 108838459,
+        "epoch_id": "9zQhCKgEZTsfrfGrSciahcHC8T2JzVpe21paS2YqEtU",
+        "next_epoch_id": "4DHZr9V41VHemWPvJVb7XE5znVP3JNPyngxUDtupzM7T",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.641344144813301e+22
+    },
+    {
+        "timestamp": "2023-12-26T05:54:15.757Z",
+        "balance": 3.7064137830773244e+26,
+        "block_height": 108834700,
+        "epoch_id": "2nNJ5pPufatW72K65831hAn71QegMYP7P6kiunBQTjYN",
+        "next_epoch_id": "9zQhCKgEZTsfrfGrSciahcHC8T2JzVpe21paS2YqEtU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.531630645432287e+22
+    },
+    {
+        "timestamp": "2023-12-25T16:12:42.803Z",
+        "balance": 3.705960620012781e+26,
+        "block_height": 108791500,
+        "epoch_id": "5dEVWDrsdGbNKsEaCZ1p8vcGZFBoYJdenkdfb48ZJe2C",
+        "next_epoch_id": "2nNJ5pPufatW72K65831hAn71QegMYP7P6kiunBQTjYN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.642481050316142e+22
+    },
+    {
+        "timestamp": "2023-12-25T03:01:59.444Z",
+        "balance": 3.7054963719077495e+26,
+        "block_height": 108748300,
+        "epoch_id": "FvRQMaVNEobsCFRtSUxmufp5tj1L2i7Q6aB9ow658JuN",
+        "next_epoch_id": "5dEVWDrsdGbNKsEaCZ1p8vcGZFBoYJdenkdfb48ZJe2C",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.705972477471995e+22
+    },
+    {
+        "timestamp": "2023-12-24T12:06:42.284Z",
+        "balance": 3.705025774660002e+26,
+        "block_height": 108701169,
+        "epoch_id": "AxFiBDDvEegXXD5xTkSWDgi3rwi5F4nr64abeCqpe4Kk",
+        "next_epoch_id": "FvRQMaVNEobsCFRtSUxmufp5tj1L2i7Q6aB9ow658JuN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.489044644601828e+22
+    },
+    {
+        "timestamp": "2023-12-23T23:31:59.757Z",
+        "balance": 3.704576870195542e+26,
+        "block_height": 108661900,
+        "epoch_id": "DjFmbjxBwQdpfG8dmCtkjZEcpq4mfSnL5vkgJnR6y3J3",
+        "next_epoch_id": "AxFiBDDvEegXXD5xTkSWDgi3rwi5F4nr64abeCqpe4Kk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6791016301324115e+22
+    },
+    {
+        "timestamp": "2023-12-23T10:20:34.160Z",
+        "balance": 3.704108960032529e+26,
+        "block_height": 108618700,
+        "epoch_id": "B46AvcfzV8qaNo6C7ZSdc25pFEqMAPFbhGARQGFT4AXx",
+        "next_epoch_id": "DjFmbjxBwQdpfG8dmCtkjZEcpq4mfSnL5vkgJnR6y3J3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.779797800774168e+22
+    },
+    {
+        "timestamp": "2023-12-22T20:34:01.588Z",
+        "balance": 3.7036309802524515e+26,
+        "block_height": 108575500,
+        "epoch_id": "GuM7bVJgaaK4h3UCDGunSTn8pDAVx6HhgKyQY5trMReg",
+        "next_epoch_id": "B46AvcfzV8qaNo6C7ZSdc25pFEqMAPFbhGARQGFT4AXx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.957204679084421e+22
+    },
+    {
+        "timestamp": "2023-12-22T04:39:40.631Z",
+        "balance": 3.703135259784543e+26,
+        "block_height": 108527169,
+        "epoch_id": "8Ujo8fRXknDPGANSGkHwMPQN3NAumhUmK913CFsCHpxn",
+        "next_epoch_id": "GuM7bVJgaaK4h3UCDGunSTn8pDAVx6HhgKyQY5trMReg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.744152916457575e+22
+    },
+    {
+        "timestamp": "2023-12-21T15:41:53.131Z",
+        "balance": 3.702660844492897e+26,
+        "block_height": 108489100,
+        "epoch_id": "2CoJRhJwL1B5Jv5QvMQH5hDEh4L79bc7fgmV6zjzDwph",
+        "next_epoch_id": "8Ujo8fRXknDPGANSGkHwMPQN3NAumhUmK913CFsCHpxn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.617507409424421e+22
+    },
+    {
+        "timestamp": "2023-12-21T01:35:23.592Z",
+        "balance": 3.702199093751955e+26,
+        "block_height": 108445900,
+        "epoch_id": "DQt8Ydj591kJCKmdAxpWNuZMWsRgFj4ShVmY6MgTZhHD",
+        "next_epoch_id": "2CoJRhJwL1B5Jv5QvMQH5hDEh4L79bc7fgmV6zjzDwph",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4779550692801256e+22
+    },
+    {
+        "timestamp": "2023-12-20T11:51:39.401Z",
+        "balance": 3.701751298245027e+26,
+        "block_height": 108402700,
+        "epoch_id": "6edRLngcFw73JjUd88UdukgHpdtFNrpWGQctEZfNhDwe",
+        "next_epoch_id": "DQt8Ydj591kJCKmdAxpWNuZMWsRgFj4ShVmY6MgTZhHD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7228097110013915e+22
+    },
+    {
+        "timestamp": "2023-12-19T22:31:45.728Z",
+        "balance": 3.701279017273927e+26,
+        "block_height": 108359500,
+        "epoch_id": "Bow4CecqyX6fuQQG81nwqQrV3v3bCUXp4meJHNnRZDdT",
+        "next_epoch_id": "6edRLngcFw73JjUd88UdukgHpdtFNrpWGQctEZfNhDwe",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.382785100298975e+22
+    },
+    {
+        "timestamp": "2023-12-19T08:27:11.564Z",
+        "balance": 3.700840738763897e+26,
+        "block_height": 108316300,
+        "epoch_id": "59uVM5ZK3VjwsTAgoBmwUpFbKJVkivrUweMWmemSLepy",
+        "next_epoch_id": "Bow4CecqyX6fuQQG81nwqQrV3v3bCUXp4meJHNnRZDdT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.343893920112825e+22
+    },
+    {
+        "timestamp": "2023-12-18T19:22:44.667Z",
+        "balance": 3.7004063493718855e+26,
+        "block_height": 108273100,
+        "epoch_id": "FogbZduQdPbnTpyqgAVJCkNw9B2uzhB7mjwgDvJwedqd",
+        "next_epoch_id": "59uVM5ZK3VjwsTAgoBmwUpFbKJVkivrUweMWmemSLepy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.243051764474135e+22
+    },
+    {
+        "timestamp": "2023-12-18T06:24:32.979Z",
+        "balance": 3.699982044195438e+26,
+        "block_height": 108229900,
+        "epoch_id": "BxJcgiTVsuE1SsStSRvdG13kvcaMeQLt65pncze3wuv4",
+        "next_epoch_id": "FogbZduQdPbnTpyqgAVJCkNw9B2uzhB7mjwgDvJwedqd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.277828061302301e+22
+    },
+    {
+        "timestamp": "2023-12-17T17:44:40.389Z",
+        "balance": 3.699554261389308e+26,
+        "block_height": 108186700,
+        "epoch_id": "8jdz6VLqC5xJD449BGs9gST3KpXz5bK8bpqWqX3Rq8pY",
+        "next_epoch_id": "BxJcgiTVsuE1SsStSRvdG13kvcaMeQLt65pncze3wuv4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2482257780605545e+22
+    },
+    {
+        "timestamp": "2023-12-17T04:58:54.189Z",
+        "balance": 3.699129438811502e+26,
+        "block_height": 108143500,
+        "epoch_id": "DMSx5tvsEoFqVMQek1X3vQeGz9R9Y25msA3cW8Fahoii",
+        "next_epoch_id": "8jdz6VLqC5xJD449BGs9gST3KpXz5bK8bpqWqX3Rq8pY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.479854398232106e+22
+    },
+    {
+        "timestamp": "2023-12-16T16:17:25.734Z",
+        "balance": 3.6986814533716786e+26,
+        "block_height": 108100300,
+        "epoch_id": "6u4DwRSiR56yq9QP2L8orxSYgfYxwAbzrWTGhF645RST",
+        "next_epoch_id": "DMSx5tvsEoFqVMQek1X3vQeGz9R9Y25msA3cW8Fahoii",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.41103300244444e+22
+    },
+    {
+        "timestamp": "2023-12-16T03:30:55.460Z",
+        "balance": 3.698240350071434e+26,
+        "block_height": 108057100,
+        "epoch_id": "8Y4AKn9NzSTE6142PER2G1Kt2qcDrGXX9Dg1fe5SzgHM",
+        "next_epoch_id": "6u4DwRSiR56yq9QP2L8orxSYgfYxwAbzrWTGhF645RST",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4550444368260485e+22
+    },
+    {
+        "timestamp": "2023-12-15T14:55:52.342Z",
+        "balance": 3.6977948456277516e+26,
+        "block_height": 108013900,
+        "epoch_id": "ESMMzH6hpJrBycVzF2p4NNrG1RaGLhRYnmrS532DdELs",
+        "next_epoch_id": "8Y4AKn9NzSTE6142PER2G1Kt2qcDrGXX9Dg1fe5SzgHM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.482339604483823e+22
+    },
+    {
+        "timestamp": "2023-12-15T02:20:04.359Z",
+        "balance": 3.697346611667303e+26,
+        "block_height": 107970700,
+        "epoch_id": "dYQ6qLhsWFtDjL41g9TiPs5t3QzEfuMaYwEug9zUd4u",
+        "next_epoch_id": "ESMMzH6hpJrBycVzF2p4NNrG1RaGLhRYnmrS532DdELs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.463053650656047e+22
+    },
+    {
+        "timestamp": "2023-12-14T13:39:23.446Z",
+        "balance": 3.6969003063022376e+26,
+        "block_height": 107927500,
+        "epoch_id": "S49cjbZS4waM8Du6e7MNurnyfZcdGGqt9tQZ2UoafjJ",
+        "next_epoch_id": "dYQ6qLhsWFtDjL41g9TiPs5t3QzEfuMaYwEug9zUd4u",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.471961828079133e+22
+    },
+    {
+        "timestamp": "2023-12-14T01:03:44.086Z",
+        "balance": 3.69645311011943e+26,
+        "block_height": 107884300,
+        "epoch_id": "35CiYReJWoAVcy2EXfJGTPQ6hygzYkDjLx6PBZ6cfPeb",
+        "next_epoch_id": "S49cjbZS4waM8Du6e7MNurnyfZcdGGqt9tQZ2UoafjJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.455042055022729e+22
+    },
+    {
+        "timestamp": "2023-12-13T12:27:58.090Z",
+        "balance": 3.6960076059139274e+26,
+        "block_height": 107841100,
+        "epoch_id": "GcVG4W245xNmJ4JWZJNJ8rsDThDrGQRBZrPnBJq8J58A",
+        "next_epoch_id": "35CiYReJWoAVcy2EXfJGTPQ6hygzYkDjLx6PBZ6cfPeb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.575642407523336e+22
+    },
+    {
+        "timestamp": "2023-12-12T23:54:11.583Z",
+        "balance": 3.695550041673175e+26,
+        "block_height": 107797900,
+        "epoch_id": "GryY6XoTN6XNtgX2AT3vd28uyEbQMqSDvqQEj7vxGiqu",
+        "next_epoch_id": "GcVG4W245xNmJ4JWZJNJ8rsDThDrGQRBZrPnBJq8J58A",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4739867766400316e+22
+    },
+    {
+        "timestamp": "2023-12-12T10:59:27.762Z",
+        "balance": 3.695102642995511e+26,
+        "block_height": 107754700,
+        "epoch_id": "C2pFtxCPvPo1jD5pRxWonKKVBuJZJ8AXaiABkkFGqisT",
+        "next_epoch_id": "GryY6XoTN6XNtgX2AT3vd28uyEbQMqSDvqQEj7vxGiqu",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.481206010998627e+22
+    },
+    {
+        "timestamp": "2023-12-11T22:20:20.771Z",
+        "balance": 3.694654522394411e+26,
+        "block_height": 107711500,
+        "epoch_id": "CKQk8zfAbKgtYpbLeYdmAfEv1BR3GcUrADzu62Nnajrx",
+        "next_epoch_id": "C2pFtxCPvPo1jD5pRxWonKKVBuJZJ8AXaiABkkFGqisT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.589501554263475e+22
+    },
+    {
+        "timestamp": "2023-12-11T09:38:54.010Z",
+        "balance": 3.694195572238985e+26,
+        "block_height": 107668300,
+        "epoch_id": "CyD7vrq1hDkvr4tGiVqjZLHauzLpseNXAX9yhL3VRV2S",
+        "next_epoch_id": "CKQk8zfAbKgtYpbLeYdmAfEv1BR3GcUrADzu62Nnajrx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.595765924861395e+22
+    },
+    {
+        "timestamp": "2023-12-10T20:38:38.410Z",
+        "balance": 3.693735995646499e+26,
+        "block_height": 107625100,
+        "epoch_id": "5Gne4mJJ4WWWy3jax6cE6VFsbA24KS5KV51HeT8FwRJP",
+        "next_epoch_id": "CyD7vrq1hDkvr4tGiVqjZLHauzLpseNXAX9yhL3VRV2S",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 8.924874909244207e+22
+    },
+    {
+        "timestamp": "2023-12-09T19:40:58.440Z",
+        "balance": 3.692843508155574e+26,
+        "block_height": 107541063,
+        "epoch_id": "7VCSxVhcEc696MqbBJK67XAr3E96C1gUpcXHwZH4YDnH",
+        "next_epoch_id": "5Gne4mJJ4WWWy3jax6cE6VFsbA24KS5KV51HeT8FwRJP",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2023-12-09T18:59:14.244Z",
+        "balance": 3.692843508155574e+26,
+        "block_height": 107538700,
+        "epoch_id": "6YX8z84L1o3fAizZC2n77tDF1qdsrqLRyLs8box8iGgQ",
+        "next_epoch_id": "7VCSxVhcEc696MqbBJK67XAr3E96C1gUpcXHwZH4YDnH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.59766061988726e+22
+    },
+    {
+        "timestamp": "2023-12-09T06:17:54.051Z",
+        "balance": 3.6923837420935856e+26,
+        "block_height": 107495500,
+        "epoch_id": "4MrEnnyxmj6Bt48dcpzkfF4cdeqoucCGdvMxxTxcJEMh",
+        "next_epoch_id": "6YX8z84L1o3fAizZC2n77tDF1qdsrqLRyLs8box8iGgQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.651728260988293e+22
+    },
+    {
+        "timestamp": "2023-12-08T17:19:51.253Z",
+        "balance": 3.691918569267487e+26,
+        "block_height": 107452300,
+        "epoch_id": "G5nSDb5qc8E9m3kTKB4FnPDFAd1UVv4Hcubm2Ckwyt56",
+        "next_epoch_id": "4MrEnnyxmj6Bt48dcpzkfF4cdeqoucCGdvMxxTxcJEMh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.750160524537203e+22
+    },
+    {
+        "timestamp": "2023-12-08T04:08:33.379Z",
+        "balance": 3.691443553215033e+26,
+        "block_height": 107409100,
+        "epoch_id": "7nRZGaRQ3wWBB4jUCHFeZwsnxKu367GMjJokh1smCKpD",
+        "next_epoch_id": "G5nSDb5qc8E9m3kTKB4FnPDFAd1UVv4Hcubm2Ckwyt56",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.764649530045495e+22
+    },
+    {
+        "timestamp": "2023-12-07T14:42:21.440Z",
+        "balance": 3.6909670882620285e+26,
+        "block_height": 107365900,
+        "epoch_id": "3rN8X8Nx68TprbV2fNmRWNHK3WeCr2LDACBzd2yF7BUQ",
+        "next_epoch_id": "7nRZGaRQ3wWBB4jUCHFeZwsnxKu367GMjJokh1smCKpD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.687392272842096e+22
+    },
+    {
+        "timestamp": "2023-12-07T01:16:26.583Z",
+        "balance": 3.690498349034744e+26,
+        "block_height": 107322700,
+        "epoch_id": "9NeGCKyg6UTLsnKeuA8mWicMBu6LLpsawJoKM4JX58hh",
+        "next_epoch_id": "3rN8X8Nx68TprbV2fNmRWNHK3WeCr2LDACBzd2yF7BUQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.845079970048227e+22
+    },
+    {
+        "timestamp": "2023-12-06T12:08:03.578Z",
+        "balance": 3.6900138410377394e+26,
+        "block_height": 107279500,
+        "epoch_id": "62idP6CosAjEJmbbzLFGkXaPobZfw86Lek2YC5a3GYPy",
+        "next_epoch_id": "9NeGCKyg6UTLsnKeuA8mWicMBu6LLpsawJoKM4JX58hh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.177434024157349e+22
+    },
+    {
+        "timestamp": "2023-12-05T22:36:11.640Z",
+        "balance": 3.689496097635324e+26,
+        "block_height": 107236300,
+        "epoch_id": "B8LJP2Qyqhd11a59SAVvePsC17q5BYaBpNycNCHHzjdg",
+        "next_epoch_id": "62idP6CosAjEJmbbzLFGkXaPobZfw86Lek2YC5a3GYPy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.350365795337164e+22
+    },
+    {
+        "timestamp": "2023-12-05T08:04:30.231Z",
+        "balance": 3.68896106105579e+26,
+        "block_height": 107193100,
+        "epoch_id": "XaaXGwMreD1FpgFEC6bLKCvZrgxVaqy4uyfJeH26G71",
+        "next_epoch_id": "B8LJP2Qyqhd11a59SAVvePsC17q5BYaBpNycNCHHzjdg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.305611307520299e+22
+    },
+    {
+        "timestamp": "2023-12-04T17:02:53.780Z",
+        "balance": 3.688430499925038e+26,
+        "block_height": 107149900,
+        "epoch_id": "cWcdHiArPVupg7RVtjsBwYWTxtPwcmhAKYMtkGP5Xqj",
+        "next_epoch_id": "XaaXGwMreD1FpgFEC6bLKCvZrgxVaqy4uyfJeH26G71",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.315150365597644e+22
+    },
+    {
+        "timestamp": "2023-12-04T02:08:01.590Z",
+        "balance": 3.687898984888478e+26,
+        "block_height": 107106700,
+        "epoch_id": "9pn6Z5AYZubVovHjgbFVJwJWLEtvn461mqJH4MNjuhhg",
+        "next_epoch_id": "cWcdHiArPVupg7RVtjsBwYWTxtPwcmhAKYMtkGP5Xqj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.3996516414642715e+22
+    },
+    {
+        "timestamp": "2023-12-03T11:54:44.991Z",
+        "balance": 3.687359019724332e+26,
+        "block_height": 107063500,
+        "epoch_id": "J1UkWoKkzf7LbEsPLQSwdCX6aXQaWsxfiruD8qHs1qbB",
+        "next_epoch_id": "9pn6Z5AYZubVovHjgbFVJwJWLEtvn461mqJH4MNjuhhg",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.755266010019164e+22
+    },
+    {
+        "timestamp": "2023-12-02T21:23:45.944Z",
+        "balance": 3.68678349312333e+26,
+        "block_height": 107020300,
+        "epoch_id": "AHs8W2ccDunNzeo3v4SdFmbqqxbtZjnQ8c46aEkrWHDo",
+        "next_epoch_id": "J1UkWoKkzf7LbEsPLQSwdCX6aXQaWsxfiruD8qHs1qbB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5777171917282738000
+    },
+    {
+        "timestamp": "2023-12-02T06:04:37.365Z",
+        "balance": 3.686783435351611e+26,
+        "block_height": 106977100,
+        "epoch_id": "FHSQPi6ScaSx1bW25in7PS2qQYvxvCxi8XUq2e8c6yuJ",
+        "next_epoch_id": "AHs8W2ccDunNzeo3v4SdFmbqqxbtZjnQ8c46aEkrWHDo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2394990724799004700
+    },
+    {
+        "timestamp": "2023-12-01T14:36:34.112Z",
+        "balance": 3.6867834114017034e+26,
+        "block_height": 106933900,
+        "epoch_id": "HQxo5YUYXQZNrHkM1EdXqmytc1GjXEfisWSREE5VcbEF",
+        "next_epoch_id": "FHSQPi6ScaSx1bW25in7PS2qQYvxvCxi8XUq2e8c6yuJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1675453479310590000
+    },
+    {
+        "timestamp": "2023-11-30T21:47:32.598Z",
+        "balance": 3.6867833946471686e+26,
+        "block_height": 106890700,
+        "epoch_id": "GRBpmqaeWzeRpRkpepTDxzSXtcY3FqyGPVpAEwNx4kZd",
+        "next_epoch_id": "HQxo5YUYXQZNrHkM1EdXqmytc1GjXEfisWSREE5VcbEF",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 198665395903660030
+    },
+    {
+        "timestamp": "2023-11-30T04:43:54.198Z",
+        "balance": 3.686783392660515e+26,
+        "block_height": 106847500,
+        "epoch_id": "53PzcG1utUtCH1nnRi7UAbfHDgEWZrihisQ725kzsvbR",
+        "next_epoch_id": "GRBpmqaeWzeRpRkpepTDxzSXtcY3FqyGPVpAEwNx4kZd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.064849282940171e+22
+    },
+    {
+        "timestamp": "2023-11-29T11:53:45.341Z",
+        "balance": 3.6862769077322207e+26,
+        "block_height": 106804300,
+        "epoch_id": "A43Urb7gVSeNABJM1KQPaSEEzRNpez2MrHz7BMNdX9pG",
+        "next_epoch_id": "53PzcG1utUtCH1nnRi7UAbfHDgEWZrihisQ725kzsvbR",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.61110123365738e+22
+    },
+    {
+        "timestamp": "2023-11-28T21:29:56.408Z",
+        "balance": 3.685815797608855e+26,
+        "block_height": 106761100,
+        "epoch_id": "5sLjSwFFoLYCe7cnP4KXPFZ5qfkpFLKnUu12aPk7zdqw",
+        "next_epoch_id": "A43Urb7gVSeNABJM1KQPaSEEzRNpez2MrHz7BMNdX9pG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.495495666768106e+22
+    },
+    {
+        "timestamp": "2023-11-28T07:51:01.911Z",
+        "balance": 3.685366248042178e+26,
+        "block_height": 106717900,
+        "epoch_id": "FmhJCyrEcBNg8AyHMU1Fb7es6KHg2xeMZb67HD2m9GUR",
+        "next_epoch_id": "5sLjSwFFoLYCe7cnP4KXPFZ5qfkpFLKnUu12aPk7zdqw",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.30556691251641e+22
+    },
+    {
+        "timestamp": "2023-11-27T18:41:42.063Z",
+        "balance": 3.6849356913509265e+26,
+        "block_height": 106674700,
+        "epoch_id": "HZRGriJSh1DSWxZsoce1tAq3jfjoYMAMWnK2hqgG5Bhd",
+        "next_epoch_id": "FmhJCyrEcBNg8AyHMU1Fb7es6KHg2xeMZb67HD2m9GUR",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.906047904933563e+22
+    },
+    {
+        "timestamp": "2023-11-27T06:04:56.950Z",
+        "balance": 3.684445086560433e+26,
+        "block_height": 106631500,
+        "epoch_id": "85uogWEf7tAAXgHPoCFjiDftiRMA6pQ6Ei26LHrR4Y2B",
+        "next_epoch_id": "HZRGriJSh1DSWxZsoce1tAq3jfjoYMAMWnK2hqgG5Bhd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.979970587860072e+22
+    },
+    {
+        "timestamp": "2023-11-26T15:34:45.753Z",
+        "balance": 3.683947089501647e+26,
+        "block_height": 106588300,
+        "epoch_id": "715E5tD3488RK3umVLnYVUNS2jLaCUBspFrk5XjSQsJH",
+        "next_epoch_id": "85uogWEf7tAAXgHPoCFjiDftiRMA6pQ6Ei26LHrR4Y2B",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.305799729664314e+22
+    },
+    {
+        "timestamp": "2023-11-26T00:51:56.471Z",
+        "balance": 3.683516509528681e+26,
+        "block_height": 106545100,
+        "epoch_id": "t7zFW1ZnfsY8k679tQQLZSJnJBwBku3qyZcPR9uueT2",
+        "next_epoch_id": "715E5tD3488RK3umVLnYVUNS2jLaCUBspFrk5XjSQsJH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.538161773143554e+22
+    },
+    {
+        "timestamp": "2023-11-25T12:15:49.970Z",
+        "balance": 3.683062693351366e+26,
+        "block_height": 106501900,
+        "epoch_id": "6QCNJVPJtiUavJEPYTggu1iQPgGi4NKjy1hju2q99Lz7",
+        "next_epoch_id": "t7zFW1ZnfsY8k679tQQLZSJnJBwBku3qyZcPR9uueT2",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.911685193291324e+22
+    },
+    {
+        "timestamp": "2023-11-24T22:58:59.912Z",
+        "balance": 3.682571524832037e+26,
+        "block_height": 106458700,
+        "epoch_id": "8ARPVha27PijfbG6vfNPgmQJQbbL5ekZCcqBdSchzvXC",
+        "next_epoch_id": "6QCNJVPJtiUavJEPYTggu1iQPgGi4NKjy1hju2q99Lz7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.831720269648033e+22
+    },
+    {
+        "timestamp": "2023-11-24T08:27:59.904Z",
+        "balance": 3.6820883528050724e+26,
+        "block_height": 106415500,
+        "epoch_id": "CNfk2TrXTM2cfoAYvstUCtQ8L7JgxPNYFiDeASv7rXEC",
+        "next_epoch_id": "8ARPVha27PijfbG6vfNPgmQJQbbL5ekZCcqBdSchzvXC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.384939827027927e+22
+    },
+    {
+        "timestamp": "2023-11-23T17:58:42.124Z",
+        "balance": 3.6816498588223696e+26,
+        "block_height": 106372300,
+        "epoch_id": "6EpTKT9iMwqS8o3vwH4uSsisvxgrd89hW6HCfVid7GU6",
+        "next_epoch_id": "CNfk2TrXTM2cfoAYvstUCtQ8L7JgxPNYFiDeASv7rXEC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.475661929554095e+22
+    },
+    {
+        "timestamp": "2023-11-23T05:09:30.127Z",
+        "balance": 3.681202292629414e+26,
+        "block_height": 106329100,
+        "epoch_id": "Cag1V1AymLWjjqNRGcjnHkio4rmgitsPMF7UcCkVzcYs",
+        "next_epoch_id": "6EpTKT9iMwqS8o3vwH4uSsisvxgrd89hW6HCfVid7GU6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.025194260556924e+22
+    },
+    {
+        "timestamp": "2023-11-22T16:03:44.507Z",
+        "balance": 3.6806997732033585e+26,
+        "block_height": 106285900,
+        "epoch_id": "3TyBh46psna1KTkLdY4sLH57FX4SqT3L5AjdsVxVPRmL",
+        "next_epoch_id": "Cag1V1AymLWjjqNRGcjnHkio4rmgitsPMF7UcCkVzcYs",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.934020730181094e+22
+    },
+    {
+        "timestamp": "2023-11-22T01:13:25.371Z",
+        "balance": 3.6802063711303404e+26,
+        "block_height": 106242700,
+        "epoch_id": "DEEZnDyJdnf26Rjp16ij5673cY6bojqPcGhkdtqErjRW",
+        "next_epoch_id": "3TyBh46psna1KTkLdY4sLH57FX4SqT3L5AjdsVxVPRmL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.554499123442061e+22
+    },
+    {
+        "timestamp": "2023-11-21T10:42:37.492Z",
+        "balance": 3.679750921217996e+26,
+        "block_height": 106199500,
+        "epoch_id": "DBtAnhiYSFLYVDS86nZrQor6dc2Z5k71cHHztZFCDnf6",
+        "next_epoch_id": "DEEZnDyJdnf26Rjp16ij5673cY6bojqPcGhkdtqErjRW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.437131289126297e+22
+    },
+    {
+        "timestamp": "2023-11-20T16:30:39.377Z",
+        "balance": 3.6793072080890835e+26,
+        "block_height": 106139438,
+        "epoch_id": "BQXByRZm7w5cq3n8voDajWFNEcbLgUKeaGYjWGzE2wzZ",
+        "next_epoch_id": "DBtAnhiYSFLYVDS86nZrQor6dc2Z5k71cHHztZFCDnf6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.956708057369232e+22
+    },
+    {
+        "timestamp": "2023-11-19T19:43:47.798Z",
+        "balance": 3.6788115372833466e+26,
+        "block_height": 106075146,
+        "epoch_id": "DL9yH2EfnixQ2NvYoyp6GFdzc6V6XNFD5QkFYuhoc5g1",
+        "next_epoch_id": "BQXByRZm7w5cq3n8voDajWFNEcbLgUKeaGYjWGzE2wzZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.9790946913681e+22
+    },
+    {
+        "timestamp": "2023-11-19T16:17:23.330Z",
+        "balance": 3.67831362781421e+26,
+        "block_height": 106064813,
+        "epoch_id": "5rpyJpGTc5rxdEm6ywrNb56tXqACom8ERoucWMQARCcZ",
+        "next_epoch_id": "DL9yH2EfnixQ2NvYoyp6GFdzc6V6XNFD5QkFYuhoc5g1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.338712700320325e+22
+    },
+    {
+        "timestamp": "2023-11-19T03:22:39.890Z",
+        "balance": 3.677879756544178e+26,
+        "block_height": 106026697,
+        "epoch_id": "D8Bmtk9fFDWaiZ8s3c28LYtUHmnJYmUCeYjpAGDsE3gc",
+        "next_epoch_id": "5rpyJpGTc5rxdEm6ywrNb56tXqACom8ERoucWMQARCcZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.540294922300408e+22
+    },
+    {
+        "timestamp": "2023-11-18T14:46:06.634Z",
+        "balance": 3.677425727051948e+26,
+        "block_height": 105983497,
+        "epoch_id": "7aUiMKBFZ5Y9zJGUoPsNAGeAgmkiiT5MnTZGE3ySNLqv",
+        "next_epoch_id": "D8Bmtk9fFDWaiZ8s3c28LYtUHmnJYmUCeYjpAGDsE3gc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.93075526119957e+22
+    },
+    {
+        "timestamp": "2023-11-18T01:35:32.212Z",
+        "balance": 3.676932651525828e+26,
+        "block_height": 105940297,
+        "epoch_id": "AL9jSgQZGhYkmYuye1pXQcMX5Y6HQy5hNtsKc5mtA78F",
+        "next_epoch_id": "7aUiMKBFZ5Y9zJGUoPsNAGeAgmkiiT5MnTZGE3ySNLqv",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.9947582510248845e+22
+    },
+    {
+        "timestamp": "2023-11-17T11:06:33.466Z",
+        "balance": 3.676433175700725e+26,
+        "block_height": 105897097,
+        "epoch_id": "2pdf19UuwaxmP6qShhiRPYSV26gLUzvXKGTEgh6CAAuC",
+        "next_epoch_id": "AL9jSgQZGhYkmYuye1pXQcMX5Y6HQy5hNtsKc5mtA78F",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.529142350549328e+22
+    },
+    {
+        "timestamp": "2023-11-16T20:27:00.131Z",
+        "balance": 3.6759802614656704e+26,
+        "block_height": 105853897,
+        "epoch_id": "7e2y3KW9Q8w9nZsXJFimCPP6ozxpnKWMdpwVYctD8V1v",
+        "next_epoch_id": "2pdf19UuwaxmP6qShhiRPYSV26gLUzvXKGTEgh6CAAuC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.754646086813759e+22
+    },
+    {
+        "timestamp": "2023-11-16T07:46:57.733Z",
+        "balance": 3.675504796856989e+26,
+        "block_height": 105810697,
+        "epoch_id": "8dWFyMuDpEmiRtSF9npKNCMXEFkYCVuHGezXcNoyTLbU",
+        "next_epoch_id": "7e2y3KW9Q8w9nZsXJFimCPP6ozxpnKWMdpwVYctD8V1v",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.393914119970383e+22
+    },
+    {
+        "timestamp": "2023-11-15T18:32:35.745Z",
+        "balance": 3.674965405444992e+26,
+        "block_height": 105767497,
+        "epoch_id": "3pvKP5AGddAHbwKFu6dRPjXiCpyGiryy3gkXkh4tYWoM",
+        "next_epoch_id": "8dWFyMuDpEmiRtSF9npKNCMXEFkYCVuHGezXcNoyTLbU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.424862251397241e+22
+    },
+    {
+        "timestamp": "2023-11-15T02:34:40.072Z",
+        "balance": 3.674422919219852e+26,
+        "block_height": 105724297,
+        "epoch_id": "7Kkssrfx5qmMzVTwRAqku8ViLSHbQ4AiC7LJP5EevbCc",
+        "next_epoch_id": "3pvKP5AGddAHbwKFu6dRPjXiCpyGiryy3gkXkh4tYWoM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5655004943192412e+22
+    },
+    {
+        "timestamp": "2023-11-14T10:32:20.603Z",
+        "balance": 3.67426636917042e+26,
+        "block_height": 105681096,
+        "epoch_id": "3gLGXbixzJGGQ61u9hKtFibzn1S8m7EpPni7KkyGo4Wy",
+        "next_epoch_id": "7Kkssrfx5qmMzVTwRAqku8ViLSHbQ4AiC7LJP5EevbCc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5233273250649509e+22
+    },
+    {
+        "timestamp": "2023-11-13T21:05:17.873Z",
+        "balance": 3.674114036437914e+26,
+        "block_height": 105637896,
+        "epoch_id": "HFok8JunhFcEB2QFg3qYQJnt5FMeTFWt3LvB5s8hZuGE",
+        "next_epoch_id": "3gLGXbixzJGGQ61u9hKtFibzn1S8m7EpPni7KkyGo4Wy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.505435982220056e+22
+    },
+    {
+        "timestamp": "2023-11-12T20:31:29.690Z",
+        "balance": 3.673663492839692e+26,
+        "block_height": 105557754,
+        "epoch_id": "87ZHPhhGgmrSjbvFW9Nh1hwFGEuRqSu5VMmDV5CZBYCo",
+        "next_epoch_id": "HFok8JunhFcEB2QFg3qYQJnt5FMeTFWt3LvB5s8hZuGE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.422451787600368e+22
+    },
+    {
+        "timestamp": "2023-11-12T18:40:46.642Z",
+        "balance": 3.673221247660932e+26,
+        "block_height": 105551496,
+        "epoch_id": "2oYakRFtr3oh9A22xcG8GM25YM1BisdmucVJfNYG948E",
+        "next_epoch_id": "87ZHPhhGgmrSjbvFW9Nh1hwFGEuRqSu5VMmDV5CZBYCo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.463795050700693e+22
+    },
+    {
+        "timestamp": "2023-11-12T05:36:25.989Z",
+        "balance": 3.672774868155862e+26,
+        "block_height": 105508296,
+        "epoch_id": "C7TyM1BnvNngfeTyy6tw94auVpBnLJnFu6Y2U6pD7294",
+        "next_epoch_id": "2oYakRFtr3oh9A22xcG8GM25YM1BisdmucVJfNYG948E",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.46304576554964e+22
+    },
+    {
+        "timestamp": "2023-11-11T16:25:48.695Z",
+        "balance": 3.672328563579307e+26,
+        "block_height": 105465096,
+        "epoch_id": "4ahdM9aD16Z2S4xm1Ny3548mZhstta5QrFuLEiFPuw53",
+        "next_epoch_id": "C7TyM1BnvNngfeTyy6tw94auVpBnLJnFu6Y2U6pD7294",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.395549863306796e+22
+    },
+    {
+        "timestamp": "2023-11-11T03:16:34.935Z",
+        "balance": 3.671889008592976e+26,
+        "block_height": 105421896,
+        "epoch_id": "8hJSZNNyimPvsCA1v3dMr3Hg5ucYeLUbTvEfhr6jaWJy",
+        "next_epoch_id": "4ahdM9aD16Z2S4xm1Ny3548mZhstta5QrFuLEiFPuw53",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.466695547545103e+22
+    },
+    {
+        "timestamp": "2023-11-10T14:19:40.419Z",
+        "balance": 3.6714423390382215e+26,
+        "block_height": 105378696,
+        "epoch_id": "7TgyeAcsejxyrk8jbL4rWBmvP9wy9DJGBq3T6VtriS2T",
+        "next_epoch_id": "8hJSZNNyimPvsCA1v3dMr3Hg5ucYeLUbTvEfhr6jaWJy",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.482412709809363e+22
+    },
+    {
+        "timestamp": "2023-11-10T01:11:26.065Z",
+        "balance": 3.6709940977672406e+26,
+        "block_height": 105335496,
+        "epoch_id": "1461rFj48Zx93F9JaXkEfycu54Szh4QB1NME7ZEu4FiY",
+        "next_epoch_id": "7TgyeAcsejxyrk8jbL4rWBmvP9wy9DJGBq3T6VtriS2T",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.902331366680607e+22
+    },
+    {
+        "timestamp": "2023-11-09T12:00:41.968Z",
+        "balance": 3.6705038646305725e+26,
+        "block_height": 105292296,
+        "epoch_id": "6s9JXdqZ56FXAjvcBpUrGCFxoGYTzXKoGi59DPwZqBa7",
+        "next_epoch_id": "1461rFj48Zx93F9JaXkEfycu54Szh4QB1NME7ZEu4FiY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7526378269289686e+22
+    },
+    {
+        "timestamp": "2023-11-08T21:37:35.379Z",
+        "balance": 3.6700286008478796e+26,
+        "block_height": 105249096,
+        "epoch_id": "CuPwC1hpNBwsDSVVjH5ZAAcxWcCVKnyRjecnWSPDWkm3",
+        "next_epoch_id": "6s9JXdqZ56FXAjvcBpUrGCFxoGYTzXKoGi59DPwZqBa7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.694853004862329e+22
+    },
+    {
+        "timestamp": "2023-11-08T07:37:00.574Z",
+        "balance": 3.6695591155473934e+26,
+        "block_height": 105205896,
+        "epoch_id": "DBJP3NfLyr2rnkk8WrdBSVJ6ZDCM72yn7dZf9DkvQbp9",
+        "next_epoch_id": "CuPwC1hpNBwsDSVVjH5ZAAcxWcCVKnyRjecnWSPDWkm3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.743295347614975e+22
+    },
+    {
+        "timestamp": "2023-11-07T17:40:46.139Z",
+        "balance": 3.669084786012632e+26,
+        "block_height": 105162696,
+        "epoch_id": "4zxZWEBLmXb5PubNS88DDSmBF4Xmvn3UP3mBjPfFoxj1",
+        "next_epoch_id": "DBJP3NfLyr2rnkk8WrdBSVJ6ZDCM72yn7dZf9DkvQbp9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 3.871130321264394e+22
+    },
+    {
+        "timestamp": "2023-11-07T03:35:04.706Z",
+        "balance": 3.6686976729805055e+26,
+        "block_height": 105119496,
+        "epoch_id": "AButo2XNSBqvBfRjWkxp63XjUaPDiqqgN6SAYvbGV6b9",
+        "next_epoch_id": "4zxZWEBLmXb5PubNS88DDSmBF4Xmvn3UP3mBjPfFoxj1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.444357069787026e+22
+    },
+    {
+        "timestamp": "2023-11-06T13:57:44.324Z",
+        "balance": 3.668453237273527e+26,
+        "block_height": 105076296,
+        "epoch_id": "FXcvd7hqftFEeej5rw6KbM2MwvtoCY8kPDfZutWzG1kL",
+        "next_epoch_id": "AButo2XNSBqvBfRjWkxp63XjUaPDiqqgN6SAYvbGV6b9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.761063386246047e+22
+    },
+    {
+        "timestamp": "2023-11-06T00:15:06.793Z",
+        "balance": 3.668177130934902e+26,
+        "block_height": 105033096,
+        "epoch_id": "3PwKJ5H89tNzEJ5RHdajdDGDzj3Qj1foLdBXLAkjFc2T",
+        "next_epoch_id": "FXcvd7hqftFEeej5rw6KbM2MwvtoCY8kPDfZutWzG1kL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.523975799987417e+22
+    },
+    {
+        "timestamp": "2023-11-05T08:09:08.148Z",
+        "balance": 3.6677247333549034e+26,
+        "block_height": 104979959,
+        "epoch_id": "FYkqPPMP75p5eQo2iEqD4d8TJ2P6EoLZESSNFXpNSSVk",
+        "next_epoch_id": "3PwKJ5H89tNzEJ5RHdajdDGDzj3Qj1foLdBXLAkjFc2T",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.419007778766238e+22
+    },
+    {
+        "timestamp": "2023-11-04T21:42:59.045Z",
+        "balance": 3.667282832577027e+26,
+        "block_height": 104946696,
+        "epoch_id": "HRqzbo6Vk1Gk7QrJXcFWrN53G9gmLyr3xWtQoJECiwjx",
+        "next_epoch_id": "FYkqPPMP75p5eQo2iEqD4d8TJ2P6EoLZESSNFXpNSSVk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.5312539022191795e+22
+    },
+    {
+        "timestamp": "2023-11-04T08:30:29.786Z",
+        "balance": 3.666829707186805e+26,
+        "block_height": 104903496,
+        "epoch_id": "AK9TTCRBKPce883gQUhTe85FiYJiWRid7hCUV1y63nmK",
+        "next_epoch_id": "HRqzbo6Vk1Gk7QrJXcFWrN53G9gmLyr3xWtQoJECiwjx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.510634965303226e+22
+    },
+    {
+        "timestamp": "2023-11-03T18:58:31.558Z",
+        "balance": 3.6663786436902746e+26,
+        "block_height": 104860296,
+        "epoch_id": "6N1sa42FvJBQ5QTjBJUqHAg2KEWdiCKnYrHvkPSjoKGt",
+        "next_epoch_id": "AK9TTCRBKPce883gQUhTe85FiYJiWRid7hCUV1y63nmK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.580839499590817e+22
+    },
+    {
+        "timestamp": "2023-11-02T17:33:58.230Z",
+        "balance": 3.6659205597403155e+26,
+        "block_height": 104779005,
+        "epoch_id": "9YYE8S5xH46MxpcWbVwSHDDqHLtPh4Rk4nBbRrGBwWw9",
+        "next_epoch_id": "6N1sa42FvJBQ5QTjBJUqHAg2KEWdiCKnYrHvkPSjoKGt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.603168580835504e+22
+    },
+    {
+        "timestamp": "2023-11-02T15:58:15.253Z",
+        "balance": 3.665460242882232e+26,
+        "block_height": 104773896,
+        "epoch_id": "5YLKhTMoJAPce1azgwaQH8dPp2LrPhtutQBwFQwspZ3V",
+        "next_epoch_id": "9YYE8S5xH46MxpcWbVwSHDDqHLtPh4Rk4nBbRrGBwWw9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.488392292409623e+22
+    },
+    {
+        "timestamp": "2023-11-02T02:13:12.815Z",
+        "balance": 3.665011403652991e+26,
+        "block_height": 104730696,
+        "epoch_id": "9WjQAeq9F9GhPp1AfukVFTeCnDaKPCQt12Vki6cPyCdt",
+        "next_epoch_id": "5YLKhTMoJAPce1azgwaQH8dPp2LrPhtutQBwFQwspZ3V",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.659269728999739e+22
+    },
+    {
+        "timestamp": "2023-11-01T12:48:32.118Z",
+        "balance": 3.664545476680091e+26,
+        "block_height": 104687496,
+        "epoch_id": "EYtCdswhj7dCkWGgEuvN3Zps1DqYnV9u1PUsZD6hPo9Y",
+        "next_epoch_id": "9WjQAeq9F9GhPp1AfukVFTeCnDaKPCQt12Vki6cPyCdt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.761015042813402e+22
+    },
+    {
+        "timestamp": "2023-10-31T22:53:34.022Z",
+        "balance": 3.6640693751758096e+26,
+        "block_height": 104644296,
+        "epoch_id": "GCAeNDQ9JdaVTkuuRWVqHKji1q9BYQDzqQ3gNMSY4wpJ",
+        "next_epoch_id": "EYtCdswhj7dCkWGgEuvN3Zps1DqYnV9u1PUsZD6hPo9Y",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.508648598701553e+22
+    },
+    {
+        "timestamp": "2023-10-31T08:38:47.474Z",
+        "balance": 3.6636185103159395e+26,
+        "block_height": 104601096,
+        "epoch_id": "5hu1dSnYtxFwFy178ZNoSWqrW6Nn65U2qHRwQtkBmYYM",
+        "next_epoch_id": "GCAeNDQ9JdaVTkuuRWVqHKji1q9BYQDzqQ3gNMSY4wpJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.548852696754539e+22
+    },
+    {
+        "timestamp": "2023-10-30T19:10:21.747Z",
+        "balance": 3.663163625046264e+26,
+        "block_height": 104557896,
+        "epoch_id": "3df2DeMZMFa4HM8CCba5pdzw9REef7F2RK84XYg5xgkW",
+        "next_epoch_id": "5hu1dSnYtxFwFy178ZNoSWqrW6Nn65U2qHRwQtkBmYYM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.7262107181075956e+22
+    },
+    {
+        "timestamp": "2023-10-30T05:34:27.534Z",
+        "balance": 3.662991003974453e+26,
+        "block_height": 104514696,
+        "epoch_id": "8gMRJgFyyKXiaxW6iTGHV9DK1tVNbMsMedLE1ZdspTAX",
+        "next_epoch_id": "3df2DeMZMFa4HM8CCba5pdzw9REef7F2RK84XYg5xgkW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7458699201995495e+22
+    },
+    {
+        "timestamp": "2023-10-29T15:39:11.332Z",
+        "balance": 3.662516416982433e+26,
+        "block_height": 104471496,
+        "epoch_id": "J89tuXFznSQBQs4qfNSYPZVWiDkG5vQh5wnPuWVciYK6",
+        "next_epoch_id": "8gMRJgFyyKXiaxW6iTGHV9DK1tVNbMsMedLE1ZdspTAX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.515828343151709e+22
+    },
+    {
+        "timestamp": "2023-10-29T01:29:28.230Z",
+        "balance": 3.662064834148118e+26,
+        "block_height": 104428296,
+        "epoch_id": "3Gn451D7KzvNYSiLD4FpptfM1xbCBXMcG8heZ6aWaBdu",
+        "next_epoch_id": "J89tuXFznSQBQs4qfNSYPZVWiDkG5vQh5wnPuWVciYK6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.844182298044576e+22
+    },
+    {
+        "timestamp": "2023-10-28T11:59:38.761Z",
+        "balance": 3.661580415918314e+26,
+        "block_height": 104385095,
+        "epoch_id": "E9ry4bMVKuDgD7itnjb8TFvfw9YUWUvVjnqCnDWwxATv",
+        "next_epoch_id": "3Gn451D7KzvNYSiLD4FpptfM1xbCBXMcG8heZ6aWaBdu",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.845312012851322e+22
+    },
+    {
+        "timestamp": "2023-10-27T14:44:44.869Z",
+        "balance": 3.6610958847170286e+26,
+        "block_height": 104321308,
+        "epoch_id": "3as7u1WyEL5NZSwEsnZAo1Cd54P7JB7zYVABTSFbkCp3",
+        "next_epoch_id": "E9ry4bMVKuDgD7itnjb8TFvfw9YUWUvVjnqCnDWwxATv",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.161852681252189e+22
+    },
+    {
+        "timestamp": "2023-10-26T19:46:12.773Z",
+        "balance": 3.660579699448903e+26,
+        "block_height": 104266413,
+        "epoch_id": "H8gzG4Rw6hTuPbqyoUzXLyrC5TJWTB5J7xtx5wXugMFj",
+        "next_epoch_id": "3as7u1WyEL5NZSwEsnZAo1Cd54P7JB7zYVABTSFbkCp3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 5.255149660027427e+22
+    },
+    {
+        "timestamp": "2023-10-26T16:03:32.477Z",
+        "balance": 3.6600541844829006e+26,
+        "block_height": 104255495,
+        "epoch_id": "EURXgukqgy6v5ZGqhtS7apriERMjKrGEmuF7zH3nAtxV",
+        "next_epoch_id": "H8gzG4Rw6hTuPbqyoUzXLyrC5TJWTB5J7xtx5wXugMFj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.841306127166504e+22
+    },
+    {
+        "timestamp": "2023-10-26T00:36:07.902Z",
+        "balance": 3.659570053870184e+26,
+        "block_height": 104212295,
+        "epoch_id": "6TXAYsAUfsujXFV6xH8cm1yBTMy3WJEqNrGGuSYvkw96",
+        "next_epoch_id": "EURXgukqgy6v5ZGqhtS7apriERMjKrGEmuF7zH3nAtxV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.862623025411988e+22
+    },
+    {
+        "timestamp": "2023-10-25T10:20:56.918Z",
+        "balance": 3.659083791567643e+26,
+        "block_height": 104169095,
+        "epoch_id": "tincM7uA6thkQtr5rTRvRkgZDXPDDo4PeTX4QugQjBx",
+        "next_epoch_id": "6TXAYsAUfsujXFV6xH8cm1yBTMy3WJEqNrGGuSYvkw96",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.8919585168737268e+22
+    },
+    {
+        "timestamp": "2023-10-24T20:02:21.011Z",
+        "balance": 3.6587945957159554e+26,
+        "block_height": 104125895,
+        "epoch_id": "CbS4oeucYsMNep9hKyZaUWhamsY4JjmHo12YtT21xCt7",
+        "next_epoch_id": "tincM7uA6thkQtr5rTRvRkgZDXPDDo4PeTX4QugQjBx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 2.274508093764824e+22
+    },
+    {
+        "timestamp": "2023-10-24T05:59:59.378Z",
+        "balance": 3.658567144906579e+26,
+        "block_height": 104082695,
+        "epoch_id": "5dCFhmP6r8WRSkQTiALZRBkf2jdHFyfGfv3HKJgjHbDS",
+        "next_epoch_id": "CbS4oeucYsMNep9hKyZaUWhamsY4JjmHo12YtT21xCt7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 1.5153093096168843e+22
+    },
+    {
+        "timestamp": "2023-10-23T05:22:13.969Z",
+        "balance": 3.658415613975617e+26,
+        "block_height": 104009036,
+        "epoch_id": "641dmDs9kztD2xkQfoLbf72HEbGtqk96x2PwDvSpLMXF",
+        "next_epoch_id": "5dCFhmP6r8WRSkQTiALZRBkf2jdHFyfGfv3HKJgjHbDS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 6.628245826190461e+22
+    },
+    {
+        "timestamp": "2023-10-23T01:16:41.956Z",
+        "balance": 3.657752789392998e+26,
+        "block_height": 103996295,
+        "epoch_id": "4WFawBvVLC4xWuWLGufr1qMkXvgiv3a1GNSEZkkWLT6n",
+        "next_epoch_id": "641dmDs9kztD2xkQfoLbf72HEbGtqk96x2PwDvSpLMXF",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 3804015631708193000
+    },
+    {
+        "timestamp": "2023-10-22T11:46:16.850Z",
+        "balance": 3.657752751352842e+26,
+        "block_height": 103953095,
+        "epoch_id": "7DYdDGBo5gXLZTjxnvEgwNJQq2npnWxRRHJnEbKdqdqR",
+        "next_epoch_id": "4WFawBvVLC4xWuWLGufr1qMkXvgiv3a1GNSEZkkWLT6n",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 707237970981158900
+    },
+    {
+        "timestamp": "2023-10-21T21:59:40.919Z",
+        "balance": 3.657752744280462e+26,
+        "block_height": 103909895,
+        "epoch_id": "5n9giJjpMMLFjEqzfCPHf89LBkDZHYHng6r5UqJEBDBh",
+        "next_epoch_id": "7DYdDGBo5gXLZTjxnvEgwNJQq2npnWxRRHJnEbKdqdqR",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 701977701195448300
+    },
+    {
+        "timestamp": "2023-10-21T08:30:49.869Z",
+        "balance": 3.657752737260685e+26,
+        "block_height": 103866695,
+        "epoch_id": "7xauZAB7D2puRxTYWTgyCX3U8MwQpwBAWMzSkUMKLKV9",
+        "next_epoch_id": "5n9giJjpMMLFjEqzfCPHf89LBkDZHYHng6r5UqJEBDBh",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.984811587521936e+22
+    },
+    {
+        "timestamp": "2023-10-20T18:37:05.326Z",
+        "balance": 3.657254256101933e+26,
+        "block_height": 103823495,
+        "epoch_id": "2jBAqak9qszpRfgdR2xg5RrMGccNNyif8mFtUK1tXRC8",
+        "next_epoch_id": "7xauZAB7D2puRxTYWTgyCX3U8MwQpwBAWMzSkUMKLKV9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.0471229160914066e+24
+    },
+    {
+        "timestamp": "2023-10-20T04:14:44.224Z",
+        "balance": 3.616783026941019e+26,
+        "block_height": 103780295,
+        "epoch_id": "GYi3SRbWY3onrAKUwnYXo7xM1tMkz7y9Hmo1d9KHfWxY",
+        "next_epoch_id": "2jBAqak9qszpRfgdR2xg5RrMGccNNyif8mFtUK1tXRC8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 3.6590404677879473e+24
+    },
+    {
+        "timestamp": "2023-10-19T13:51:16.420Z",
+        "balance": 3.5801926222631394e+26,
+        "block_height": 103737095,
+        "epoch_id": "AJF8xJm5vEDTaJd4CLrf19zKK8mWAJRKyfkKVMWVJp9F",
+        "next_epoch_id": "GYi3SRbWY3onrAKUwnYXo7xM1tMkz7y9Hmo1d9KHfWxY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.397201074066543e+22
+    },
+    {
+        "timestamp": "2023-10-19T00:07:51.042Z",
+        "balance": 3.579752902155733e+26,
+        "block_height": 103693895,
+        "epoch_id": "3nho9d3838BLyb8DDHoKWhnkomsK31DVNBu9NVAFP3PT",
+        "next_epoch_id": "AJF8xJm5vEDTaJd4CLrf19zKK8mWAJRKyfkKVMWVJp9F",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.531688213105466e+22
+    },
+    {
+        "timestamp": "2023-10-18T10:28:51.193Z",
+        "balance": 3.579299733334422e+26,
+        "block_height": 103650695,
+        "epoch_id": "ESpVQK2aRhCtZkem1itzvhyfpzeW48TmRiwEDFrfausQ",
+        "next_epoch_id": "3nho9d3838BLyb8DDHoKWhnkomsK31DVNBu9NVAFP3PT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.397287381936008e+22
+    },
+    {
+        "timestamp": "2023-10-17T20:24:54.758Z",
+        "balance": 3.5788600045962286e+26,
+        "block_height": 103607495,
+        "epoch_id": "4v1bbCE1FqmiWtGecAciXvEDNunS51PwoTk7Ba2PnXk8",
+        "next_epoch_id": "ESpVQK2aRhCtZkem1itzvhyfpzeW48TmRiwEDFrfausQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4534429565374215e+22
+    },
+    {
+        "timestamp": "2023-10-17T06:32:26.087Z",
+        "balance": 3.578414660300575e+26,
+        "block_height": 103564295,
+        "epoch_id": "HWuZwyrDesgyTwcdHnYJutCLYdvTMd3fep9XQfdHPqh3",
+        "next_epoch_id": "4v1bbCE1FqmiWtGecAciXvEDNunS51PwoTk7Ba2PnXk8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.445161330242274e+22
+    },
+    {
+        "timestamp": "2023-10-16T16:29:10.863Z",
+        "balance": 3.5779701441675506e+26,
+        "block_height": 103521095,
+        "epoch_id": "4HxpJMnt286Z15wQyqx2Qjnq9dkCe4Gn9gBoVwxh536J",
+        "next_epoch_id": "HWuZwyrDesgyTwcdHnYJutCLYdvTMd3fep9XQfdHPqh3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.204526987130244e+22
+    },
+    {
+        "timestamp": "2023-10-16T02:28:25.444Z",
+        "balance": 3.5775496914688376e+26,
+        "block_height": 103477895,
+        "epoch_id": "9VkgYTM8cyhJDDcHzss8FtrimoUNoZetgM4iv2gQyEMN",
+        "next_epoch_id": "4HxpJMnt286Z15wQyqx2Qjnq9dkCe4Gn9gBoVwxh536J",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.372884107334205e+22
+    },
+    {
+        "timestamp": "2023-10-15T13:11:23.375Z",
+        "balance": 3.577112403058104e+26,
+        "block_height": 103434695,
+        "epoch_id": "CBkQQVqyQsAfqhcAJBAWzJnwwUhqpRZvr7rzYJrN9LHL",
+        "next_epoch_id": "9VkgYTM8cyhJDDcHzss8FtrimoUNoZetgM4iv2gQyEMN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2473115223497965e+22
+    },
+    {
+        "timestamp": "2023-10-14T23:22:27.425Z",
+        "balance": 3.576687671905869e+26,
+        "block_height": 103391495,
+        "epoch_id": "2inr9SLexJEJkmvAVu66q5xnrzcac8u9SJahBd9TVVzN",
+        "next_epoch_id": "CBkQQVqyQsAfqhcAJBAWzJnwwUhqpRZvr7rzYJrN9LHL",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.287320403260886e+22
+    },
+    {
+        "timestamp": "2023-10-14T10:05:50.593Z",
+        "balance": 3.576258939865543e+26,
+        "block_height": 103348295,
+        "epoch_id": "E53mXPYvFSSLh7WiyQjBm1f8eXSWju73ts3SPvV1r1NG",
+        "next_epoch_id": "2inr9SLexJEJkmvAVu66q5xnrzcac8u9SJahBd9TVVzN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.338613190546025e+22
+    },
+    {
+        "timestamp": "2023-10-13T20:41:33.965Z",
+        "balance": 3.5758250785464885e+26,
+        "block_height": 103305095,
+        "epoch_id": "H5eeTE4gSnbyRM74pvALXDPqtnj56UihSr69pWVqvZcj",
+        "next_epoch_id": "E53mXPYvFSSLh7WiyQjBm1f8eXSWju73ts3SPvV1r1NG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.332169068076345e+22
+    },
+    {
+        "timestamp": "2023-10-13T07:06:54.536Z",
+        "balance": 3.575391861639681e+26,
+        "block_height": 103261895,
+        "epoch_id": "9FvVNfvwHedRx1p7ecHv82j5eWzdhmf6et5Zz1N9VdCH",
+        "next_epoch_id": "H5eeTE4gSnbyRM74pvALXDPqtnj56UihSr69pWVqvZcj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.429657321336271e+22
+    },
+    {
+        "timestamp": "2023-10-12T17:34:11.937Z",
+        "balance": 3.574948895907547e+26,
+        "block_height": 103218695,
+        "epoch_id": "AQwyVUzBDaAtDUaD6wh4PCWvpQh8gpiD46kH4PermPSx",
+        "next_epoch_id": "9FvVNfvwHedRx1p7ecHv82j5eWzdhmf6et5Zz1N9VdCH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.314546115078372e+22
+    },
+    {
+        "timestamp": "2023-10-12T03:42:06.067Z",
+        "balance": 3.5745174412960394e+26,
+        "block_height": 103175495,
+        "epoch_id": "CeAzbUa8odFqUznW6Vbt8HCXvabBM2XNhkrSmfJ4ZT5t",
+        "next_epoch_id": "AQwyVUzBDaAtDUaD6wh4PCWvpQh8gpiD46kH4PermPSx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.363582150823619e+22
+    },
+    {
+        "timestamp": "2023-10-11T14:11:07.090Z",
+        "balance": 3.574081083080957e+26,
+        "block_height": 103132295,
+        "epoch_id": "GAXYJ2YvdQnYPgUqSikJtRKEndX3ZDGdCguTA2qhGQZr",
+        "next_epoch_id": "CeAzbUa8odFqUznW6Vbt8HCXvabBM2XNhkrSmfJ4ZT5t",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.302278519377154e+22
+    },
+    {
+        "timestamp": "2023-10-11T00:35:30.439Z",
+        "balance": 3.573650855229019e+26,
+        "block_height": 103089095,
+        "epoch_id": "GPgmf1kKFPqmbxXQexnH2ZFPX8FG3StMQjLuL7Rjhesq",
+        "next_epoch_id": "GAXYJ2YvdQnYPgUqSikJtRKEndX3ZDGdCguTA2qhGQZr",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.511782891128648e+22
+    },
+    {
+        "timestamp": "2023-10-10T10:56:36.114Z",
+        "balance": 3.5731996769399065e+26,
+        "block_height": 103045895,
+        "epoch_id": "ATocmfYagxFxUyVgNtqKtVSSyEjjhVRN6UyEyPk2xPuJ",
+        "next_epoch_id": "GPgmf1kKFPqmbxXQexnH2ZFPX8FG3StMQjLuL7Rjhesq",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.352834488784252e+22
+    },
+    {
+        "timestamp": "2023-10-09T20:38:01.427Z",
+        "balance": 3.572764393491028e+26,
+        "block_height": 103002695,
+        "epoch_id": "Cd2wHdPkxV6ogcqXRr37kZECVx2Fhu559htByMFdGawZ",
+        "next_epoch_id": "ATocmfYagxFxUyVgNtqKtVSSyEjjhVRN6UyEyPk2xPuJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.300748325966146e+22
+    },
+    {
+        "timestamp": "2023-10-09T06:46:48.969Z",
+        "balance": 3.5723343186584314e+26,
+        "block_height": 102959495,
+        "epoch_id": "8apFPV3ucTgNgi88GGRDw2BziDk6xAhKqpa2ayUMMM3o",
+        "next_epoch_id": "Cd2wHdPkxV6ogcqXRr37kZECVx2Fhu559htByMFdGawZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.338779239623558e+22
+    },
+    {
+        "timestamp": "2023-10-08T17:04:28.668Z",
+        "balance": 3.571900440734469e+26,
+        "block_height": 102916295,
+        "epoch_id": "3rV9rL4aKq9JvW5cjetjYXhkLGnPCfmsuQHKwXqW3JxD",
+        "next_epoch_id": "8apFPV3ucTgNgi88GGRDw2BziDk6xAhKqpa2ayUMMM3o",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.201781535987008e+22
+    },
+    {
+        "timestamp": "2023-10-08T03:15:26.515Z",
+        "balance": 3.5714802625808704e+26,
+        "block_height": 102873095,
+        "epoch_id": "J1rE45u3brwE645FNDymDVXtj3PG4VoJEBqk2UQZ82G4",
+        "next_epoch_id": "3rV9rL4aKq9JvW5cjetjYXhkLGnPCfmsuQHKwXqW3JxD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.291226779535618e+22
+    },
+    {
+        "timestamp": "2023-10-07T13:52:23.685Z",
+        "balance": 3.571051139902917e+26,
+        "block_height": 102829895,
+        "epoch_id": "BPq4Kvz5brSf4zXWozVuyRpGiWajzQf2jNG1UGfAtqSf",
+        "next_epoch_id": "J1rE45u3brwE645FNDymDVXtj3PG4VoJEBqk2UQZ82G4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2124204834911966e+22
+    },
+    {
+        "timestamp": "2023-10-07T00:12:37.263Z",
+        "balance": 3.570629897854568e+26,
+        "block_height": 102786695,
+        "epoch_id": "Gfj8xePVu39ZXYk2upfKpYDzomGyPYnUGDcQvjjijjbW",
+        "next_epoch_id": "BPq4Kvz5brSf4zXWozVuyRpGiWajzQf2jNG1UGfAtqSf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.278934736262076e+22
+    },
+    {
+        "timestamp": "2023-10-06T10:47:24.700Z",
+        "balance": 3.5702020043809415e+26,
+        "block_height": 102743495,
+        "epoch_id": "581DEMZcCYRRcMKbpNCc5EuvhPJuE1xEBvfoFbksvcWd",
+        "next_epoch_id": "Gfj8xePVu39ZXYk2upfKpYDzomGyPYnUGDcQvjjijjbW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3447170479700195e+22
+    },
+    {
+        "timestamp": "2023-10-05T21:07:57.288Z",
+        "balance": 3.5697675326761445e+26,
+        "block_height": 102700295,
+        "epoch_id": "3HKLLD8tW2HfHhMfHYVpcxsnm4sJ6pvot49zQ1UQWnFc",
+        "next_epoch_id": "581DEMZcCYRRcMKbpNCc5EuvhPJuE1xEBvfoFbksvcWd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.219385839261165e+22
+    },
+    {
+        "timestamp": "2023-10-05T07:15:14.912Z",
+        "balance": 3.5693455940922184e+26,
+        "block_height": 102657095,
+        "epoch_id": "A3KTb4tBN1UW7q5fYkzwsTJBfg1x6HjGkMbb9Cr3MGXp",
+        "next_epoch_id": "3HKLLD8tW2HfHhMfHYVpcxsnm4sJ6pvot49zQ1UQWnFc",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.360474023990126e+22
+    },
+    {
+        "timestamp": "2023-10-04T17:45:18.499Z",
+        "balance": 3.568909546689819e+26,
+        "block_height": 102613895,
+        "epoch_id": "4BRi8TmwddYLLFBSHsRbYAwezeASpdhSsi9s4ApEtkHD",
+        "next_epoch_id": "A3KTb4tBN1UW7q5fYkzwsTJBfg1x6HjGkMbb9Cr3MGXp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.310750728503254e+22
+    },
+    {
+        "timestamp": "2023-10-04T03:50:22.960Z",
+        "balance": 3.568478471616969e+26,
+        "block_height": 102570695,
+        "epoch_id": "ELQbbiFrH3zgYM3dEBojtePTq48v5t4hEo5Q6W3MiLo7",
+        "next_epoch_id": "4BRi8TmwddYLLFBSHsRbYAwezeASpdhSsi9s4ApEtkHD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.372264249847513e+22
+    },
+    {
+        "timestamp": "2023-10-03T14:04:39.584Z",
+        "balance": 3.568041245191984e+26,
+        "block_height": 102527495,
+        "epoch_id": "6RHK2Lg6D4vyavxvmXT3hnswcZcToLikqucQzivepKu1",
+        "next_epoch_id": "ELQbbiFrH3zgYM3dEBojtePTq48v5t4hEo5Q6W3MiLo7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.370445220655507e+22
+    },
+    {
+        "timestamp": "2023-10-03T00:07:08.613Z",
+        "balance": 3.567604200669919e+26,
+        "block_height": 102484295,
+        "epoch_id": "8Pbz4SAdgjsF6ro4FtpFpt3FP92kncMSjKVkVDwurd2N",
+        "next_epoch_id": "6RHK2Lg6D4vyavxvmXT3hnswcZcToLikqucQzivepKu1",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.319286390356057e+22
+    },
+    {
+        "timestamp": "2023-10-02T10:10:09.978Z",
+        "balance": 3.567172272030883e+26,
+        "block_height": 102441095,
+        "epoch_id": "JDNZPRK2oqrQ9A6s9edr2X3vvw2cKc9VhFZopajLTXiJ",
+        "next_epoch_id": "8Pbz4SAdgjsF6ro4FtpFpt3FP92kncMSjKVkVDwurd2N",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3738164406997504e+22
+    },
+    {
+        "timestamp": "2023-10-01T20:23:03.345Z",
+        "balance": 3.566734890386813e+26,
+        "block_height": 102397895,
+        "epoch_id": "EXW1iUMXX5rBVqjotMYSuEUUTjn84FRjcTG6PH6mr8dK",
+        "next_epoch_id": "JDNZPRK2oqrQ9A6s9edr2X3vvw2cKc9VhFZopajLTXiJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.280108383876976e+22
+    },
+    {
+        "timestamp": "2023-10-01T06:25:28.793Z",
+        "balance": 3.5663068795484254e+26,
+        "block_height": 102354695,
+        "epoch_id": "AQpqn7LUjtwqtbfezsB9WNLetuXu62MqMAUV1VqycbpE",
+        "next_epoch_id": "EXW1iUMXX5rBVqjotMYSuEUUTjn84FRjcTG6PH6mr8dK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.398266012870597e+22
+    },
+    {
+        "timestamp": "2023-09-30T16:45:38.169Z",
+        "balance": 3.5658670529471384e+26,
+        "block_height": 102311495,
+        "epoch_id": "8xNC6CTh3ar5q4kprpQqE6t2wZbNDV4XBf4Nhjobiexk",
+        "next_epoch_id": "AQpqn7LUjtwqtbfezsB9WNLetuXu62MqMAUV1VqycbpE",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.23945344349863e+22
+    },
+    {
+        "timestamp": "2023-09-30T02:43:14.804Z",
+        "balance": 3.5654431076027885e+26,
+        "block_height": 102268295,
+        "epoch_id": "ASNHqLGctjVU1GCYzBmmKG3Czwx1SR1RK7B1AHqbDjsW",
+        "next_epoch_id": "8xNC6CTh3ar5q4kprpQqE6t2wZbNDV4XBf4Nhjobiexk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.29159864981627e+22
+    },
+    {
+        "timestamp": "2023-09-29T13:11:31.868Z",
+        "balance": 3.565013947737807e+26,
+        "block_height": 102225095,
+        "epoch_id": "C9TDDYthANoduoTBZS7WYDsBSe9XCm4M2F9hRoVXVXWY",
+        "next_epoch_id": "ASNHqLGctjVU1GCYzBmmKG3Czwx1SR1RK7B1AHqbDjsW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.313926540743413e+22
+    },
+    {
+        "timestamp": "2023-09-28T23:29:37.704Z",
+        "balance": 3.5645825550837325e+26,
+        "block_height": 102181895,
+        "epoch_id": "2RMQiomr6CSSwUWpmB62YohxHbfadrHfcsaa3FVb4J9x",
+        "next_epoch_id": "C9TDDYthANoduoTBZS7WYDsBSe9XCm4M2F9hRoVXVXWY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.20853298814696e+22
+    },
+    {
+        "timestamp": "2023-09-28T09:44:05.514Z",
+        "balance": 3.564161701784918e+26,
+        "block_height": 102138695,
+        "epoch_id": "FePmx4MgMDCyWffnt5BEhgXnRuKL7VqSLrniaaBfsmq9",
+        "next_epoch_id": "2RMQiomr6CSSwUWpmB62YohxHbfadrHfcsaa3FVb4J9x",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.355543332849201e+22
+    },
+    {
+        "timestamp": "2023-09-27T20:18:24.567Z",
+        "balance": 3.563726147451633e+26,
+        "block_height": 102095495,
+        "epoch_id": "2S6BVRy5d3Dam9HoUEMNvAuwhCgNodpUwo3hhLxdGBq9",
+        "next_epoch_id": "FePmx4MgMDCyWffnt5BEhgXnRuKL7VqSLrniaaBfsmq9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3055524350956245e+22
+    },
+    {
+        "timestamp": "2023-09-27T06:25:32.079Z",
+        "balance": 3.5632955922081234e+26,
+        "block_height": 102052295,
+        "epoch_id": "9CG91yVxDbW1S9dGyARxxuw2KWU6VhUbNdYwyuCq7WgY",
+        "next_epoch_id": "2S6BVRy5d3Dam9HoUEMNvAuwhCgNodpUwo3hhLxdGBq9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.495551291556136e+22
+    },
+    {
+        "timestamp": "2023-09-26T16:42:59.317Z",
+        "balance": 3.562846037078968e+26,
+        "block_height": 102009095,
+        "epoch_id": "8HpHnWmXiXPBgkiDDiSymZw14TGUDsC66k9Qmzh2oTmo",
+        "next_epoch_id": "9CG91yVxDbW1S9dGyARxxuw2KWU6VhUbNdYwyuCq7WgY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.368565145526519e+22
+    },
+    {
+        "timestamp": "2023-09-26T02:20:13.273Z",
+        "balance": 3.562409180564415e+26,
+        "block_height": 101965895,
+        "epoch_id": "DPLpycd9tU6xhtpm8kkdmMfDaWsZ4j5tdYkdAm8db1t5",
+        "next_epoch_id": "8HpHnWmXiXPBgkiDDiSymZw14TGUDsC66k9Qmzh2oTmo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.333279039859888e+22
+    },
+    {
+        "timestamp": "2023-09-25T12:20:37.261Z",
+        "balance": 3.561975852660429e+26,
+        "block_height": 101922695,
+        "epoch_id": "7KQcMo7hKcNbYz8RX76k5iUCFDBXxJDTUYZWaFMvprJV",
+        "next_epoch_id": "DPLpycd9tU6xhtpm8kkdmMfDaWsZ4j5tdYkdAm8db1t5",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.271482035198467e+22
+    },
+    {
+        "timestamp": "2023-09-24T22:27:35.111Z",
+        "balance": 3.561548704456909e+26,
+        "block_height": 101879495,
+        "epoch_id": "FPho7WucSwLqCD8Dyb62b6FDoqx8BX88SFHsszhT5K9D",
+        "next_epoch_id": "7KQcMo7hKcNbYz8RX76k5iUCFDBXxJDTUYZWaFMvprJV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.342352707300076e+22
+    },
+    {
+        "timestamp": "2023-09-24T08:46:28.747Z",
+        "balance": 3.561114469186179e+26,
+        "block_height": 101836295,
+        "epoch_id": "FLXMaP1caeMQw3arXzxtaU3LmpWRfo1W5YbRh4rebkKz",
+        "next_epoch_id": "FPho7WucSwLqCD8Dyb62b6FDoqx8BX88SFHsszhT5K9D",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.458153199995024e+22
+    },
+    {
+        "timestamp": "2023-09-23T15:23:46.487Z",
+        "balance": 3.56066865386618e+26,
+        "block_height": 101782375,
+        "epoch_id": "317TEBw3BBo7wEQEv2YkjmmajiDpFGjNsoTsR1tSkdHi",
+        "next_epoch_id": "FLXMaP1caeMQw3arXzxtaU3LmpWRfo1W5YbRh4rebkKz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.256039197786802e+22
+    },
+    {
+        "timestamp": "2023-09-23T04:34:26.875Z",
+        "balance": 3.560243049946401e+26,
+        "block_height": 101749895,
+        "epoch_id": "FdQEkavzT5rvg519wANZbT5H6YbLQwiPDNHWjGZ9AUff",
+        "next_epoch_id": "317TEBw3BBo7wEQEv2YkjmmajiDpFGjNsoTsR1tSkdHi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.437036409958962e+22
+    },
+    {
+        "timestamp": "2023-09-22T14:55:34.642Z",
+        "balance": 3.559799346305405e+26,
+        "block_height": 101706695,
+        "epoch_id": "DnwrSRbbxXSdQRUE5dosn4Nu1NWg8Yxp9MfcmhM7pGB8",
+        "next_epoch_id": "FdQEkavzT5rvg519wANZbT5H6YbLQwiPDNHWjGZ9AUff",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2703550713423255e+22
+    },
+    {
+        "timestamp": "2023-09-22T00:42:23.148Z",
+        "balance": 3.559372310798271e+26,
+        "block_height": 101663495,
+        "epoch_id": "5YpBVBDx2e7HzbRgNpmoUhdE6217hnEqftuhhXN2Eb76",
+        "next_epoch_id": "DnwrSRbbxXSdQRUE5dosn4Nu1NWg8Yxp9MfcmhM7pGB8",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.270120495889787e+22
+    },
+    {
+        "timestamp": "2023-09-21T11:01:19.623Z",
+        "balance": 3.558945298748682e+26,
+        "block_height": 101620295,
+        "epoch_id": "BymwaahPJGU9sDcqc1yTfkTUVLd6m9hBaEJGdGQZrfDt",
+        "next_epoch_id": "5YpBVBDx2e7HzbRgNpmoUhdE6217hnEqftuhhXN2Eb76",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.342353084020247e+22
+    },
+    {
+        "timestamp": "2023-09-20T21:19:23.508Z",
+        "balance": 3.55851106344028e+26,
+        "block_height": 101577095,
+        "epoch_id": "4Yait96feKATCdH3KeQREtKpDuuqh6BQRY7XFV5ocyJz",
+        "next_epoch_id": "BymwaahPJGU9sDcqc1yTfkTUVLd6m9hBaEJGdGQZrfDt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.248316400702269e+22
+    },
+    {
+        "timestamp": "2023-09-20T07:20:13.081Z",
+        "balance": 3.55808623180021e+26,
+        "block_height": 101533895,
+        "epoch_id": "2ZpTDBCeQ3XBcXjEnsZgWBdRNXZPmtPq1U4oZWbJrQUu",
+        "next_epoch_id": "4Yait96feKATCdH3KeQREtKpDuuqh6BQRY7XFV5ocyJz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3361257554261836e+22
+    },
+    {
+        "timestamp": "2023-09-19T17:42:17.137Z",
+        "balance": 3.557652619224667e+26,
+        "block_height": 101490695,
+        "epoch_id": "DDpNZrX1p6swwvNWB7orn8A8mkEVvtyQYacMZ9NLZsbj",
+        "next_epoch_id": "2ZpTDBCeQ3XBcXjEnsZgWBdRNXZPmtPq1U4oZWbJrQUu",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.465846903081045e+22
+    },
+    {
+        "timestamp": "2023-09-19T03:48:16.940Z",
+        "balance": 3.557206034534359e+26,
+        "block_height": 101447495,
+        "epoch_id": "5neaV4TWTwaBgXoq3HyZi41hW6n6z6uyK75ieSD13gSQ",
+        "next_epoch_id": "DDpNZrX1p6swwvNWB7orn8A8mkEVvtyQYacMZ9NLZsbj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.413235928588313e+22
+    },
+    {
+        "timestamp": "2023-09-18T13:29:00.322Z",
+        "balance": 3.5567647109415e+26,
+        "block_height": 101404295,
+        "epoch_id": "Ce3iGv8nDhww18ieWV4V5AnCpWwPEbRWmkMqGvuVqkPA",
+        "next_epoch_id": "5neaV4TWTwaBgXoq3HyZi41hW6n6z6uyK75ieSD13gSQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.420289977199035e+22
+    },
+    {
+        "timestamp": "2023-09-17T23:23:57.994Z",
+        "balance": 3.55632268194378e+26,
+        "block_height": 101361095,
+        "epoch_id": "ADB25spsjY5EB7Mm64YJEQNWcwxnJYT87S8oG1VRwkjj",
+        "next_epoch_id": "Ce3iGv8nDhww18ieWV4V5AnCpWwPEbRWmkMqGvuVqkPA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.319943879260428e+22
+    },
+    {
+        "timestamp": "2023-09-17T09:18:01.877Z",
+        "balance": 3.555890687555854e+26,
+        "block_height": 101317895,
+        "epoch_id": "3LrNa6ciEzntmZLbGBK2wj7Dome53XLKLH2uL1KfJUU4",
+        "next_epoch_id": "ADB25spsjY5EB7Mm64YJEQNWcwxnJYT87S8oG1VRwkjj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4125500408997605e+22
+    },
+    {
+        "timestamp": "2023-09-16T19:32:13.012Z",
+        "balance": 3.555449432551764e+26,
+        "block_height": 101274695,
+        "epoch_id": "J6iUpd89oaysr42KGD13AGDPqMzrDn7aokS7Qt3r8NAB",
+        "next_epoch_id": "3LrNa6ciEzntmZLbGBK2wj7Dome53XLKLH2uL1KfJUU4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4680894380043095e+22
+    },
+    {
+        "timestamp": "2023-09-16T05:27:58.229Z",
+        "balance": 3.555002623607964e+26,
+        "block_height": 101231495,
+        "epoch_id": "GABeMMm9HncoePJdCHqAkY3cZLX3UyhfpUxYVjKMSSYk",
+        "next_epoch_id": "J6iUpd89oaysr42KGD13AGDPqMzrDn7aokS7Qt3r8NAB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.524354290523787e+22
+    },
+    {
+        "timestamp": "2023-09-15T15:12:52.901Z",
+        "balance": 3.5545501881789114e+26,
+        "block_height": 101188295,
+        "epoch_id": "C7ggKzrbgKcgQT9tgFa2HmtK2RAW3i9GQCcr7WLKTYVF",
+        "next_epoch_id": "GABeMMm9HncoePJdCHqAkY3cZLX3UyhfpUxYVjKMSSYk",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.407050158613202e+22
+    },
+    {
+        "timestamp": "2023-09-14T19:35:45.757Z",
+        "balance": 3.55410948316305e+26,
+        "block_height": 101128445,
+        "epoch_id": "DkHDoCSUQCUj5u6y4251DJnErsdRbRTjBYEDgs3EZHdC",
+        "next_epoch_id": "C7ggKzrbgKcgQT9tgFa2HmtK2RAW3i9GQCcr7WLKTYVF",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.414292566079578e+22
+    },
+    {
+        "timestamp": "2023-09-14T10:41:49.123Z",
+        "balance": 3.553668053906442e+26,
+        "block_height": 101101895,
+        "epoch_id": "2v4fC712vbLUaNEq8vpx1TQQKcRDY2EUU3LxXwvDye1R",
+        "next_epoch_id": "DkHDoCSUQCUj5u6y4251DJnErsdRbRTjBYEDgs3EZHdC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3549295838711566e+22
+    },
+    {
+        "timestamp": "2023-09-13T20:36:20.758Z",
+        "balance": 3.553232560948055e+26,
+        "block_height": 101058695,
+        "epoch_id": "CKTimDySSPoVYSfKPAZsEDfVoMVXD9SduQkVGSf1QoBd",
+        "next_epoch_id": "2v4fC712vbLUaNEq8vpx1TQQKcRDY2EUU3LxXwvDye1R",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.327977009241293e+22
+    },
+    {
+        "timestamp": "2023-09-13T06:42:03.925Z",
+        "balance": 3.552799763247131e+26,
+        "block_height": 101015495,
+        "epoch_id": "8LWp9FvUoSKzGchRQMjspmp3262FcoShugJcDG4dPTSM",
+        "next_epoch_id": "CKTimDySSPoVYSfKPAZsEDfVoMVXD9SduQkVGSf1QoBd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.400245371494392e+22
+    },
+    {
+        "timestamp": "2023-09-12T16:53:57.386Z",
+        "balance": 3.5523597387099815e+26,
+        "block_height": 100972295,
+        "epoch_id": "EfkKwBeEJScwEHJC1QsUohnQqPey3CtFt7K8hS6GAfvZ",
+        "next_epoch_id": "8LWp9FvUoSKzGchRQMjspmp3262FcoShugJcDG4dPTSM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.281442457625712e+22
+    },
+    {
+        "timestamp": "2023-09-12T02:52:27.816Z",
+        "balance": 3.551931594464219e+26,
+        "block_height": 100929095,
+        "epoch_id": "91xf4anmftn1rM4ay9mFDdLmxWPm4TB7ukNttSeBtyJS",
+        "next_epoch_id": "EfkKwBeEJScwEHJC1QsUohnQqPey3CtFt7K8hS6GAfvZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.399134044294762e+22
+    },
+    {
+        "timestamp": "2023-09-11T13:12:56.998Z",
+        "balance": 3.5514916810597894e+26,
+        "block_height": 100885895,
+        "epoch_id": "Ek9d3AP7xgQXc1Zsy13kcJrwu7fmfMduC6hYJgSHtaZp",
+        "next_epoch_id": "91xf4anmftn1rM4ay9mFDdLmxWPm4TB7ukNttSeBtyJS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3463978844177415e+22
+    },
+    {
+        "timestamp": "2023-09-10T23:10:39.061Z",
+        "balance": 3.5510570412713476e+26,
+        "block_height": 100842695,
+        "epoch_id": "21xvXqN4dejSsreNxHVzqzN7gDX5bnz1shjb4WtCXXF4",
+        "next_epoch_id": "Ek9d3AP7xgQXc1Zsy13kcJrwu7fmfMduC6hYJgSHtaZp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.393108241757851e+22
+    },
+    {
+        "timestamp": "2023-09-10T09:19:24.322Z",
+        "balance": 3.550617730447172e+26,
+        "block_height": 100799495,
+        "epoch_id": "3W49t9j5g1wb228NgD6F61eK47zthDTPvGutzAarehQQ",
+        "next_epoch_id": "21xvXqN4dejSsreNxHVzqzN7gDX5bnz1shjb4WtCXXF4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.387057689702108e+22
+    },
+    {
+        "timestamp": "2023-09-09T19:18:55.921Z",
+        "balance": 3.5501790246782017e+26,
+        "block_height": 100756295,
+        "epoch_id": "CgJkXs96WhpW9KYxWGJn4mppWHwnW1HE8J15vY453JtT",
+        "next_epoch_id": "3W49t9j5g1wb228NgD6F61eK47zthDTPvGutzAarehQQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.377406443120749e+22
+    },
+    {
+        "timestamp": "2023-09-09T05:19:49.225Z",
+        "balance": 3.5497412840338896e+26,
+        "block_height": 100713095,
+        "epoch_id": "5LndKLFDRTA9W9uGr3MH7zJTtoYDcKn3oJETa9wLEoLz",
+        "next_epoch_id": "CgJkXs96WhpW9KYxWGJn4mppWHwnW1HE8J15vY453JtT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.509720443393831e+22
+    },
+    {
+        "timestamp": "2023-09-08T15:17:51.016Z",
+        "balance": 3.54929031198955e+26,
+        "block_height": 100669895,
+        "epoch_id": "7XY3WEXy1oQsQhFyys3tFa7CYgm8Bd6bNVFkWyc1Sy65",
+        "next_epoch_id": "5LndKLFDRTA9W9uGr3MH7zJTtoYDcKn3oJETa9wLEoLz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.454339449885223e+22
+    },
+    {
+        "timestamp": "2023-09-08T00:51:00.908Z",
+        "balance": 3.548844878044562e+26,
+        "block_height": 100626695,
+        "epoch_id": "89apPFfAL7ffQDYBxL4j8UaGWzuRpL3ds4uR3XRqhYkG",
+        "next_epoch_id": "7XY3WEXy1oQsQhFyys3tFa7CYgm8Bd6bNVFkWyc1Sy65",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.496106134549191e+22
+    },
+    {
+        "timestamp": "2023-09-07T10:34:31.315Z",
+        "balance": 3.548395267431107e+26,
+        "block_height": 100583495,
+        "epoch_id": "GLio6GPMmHzNqUzJEaCiN5WAgv1BTJXbEf6Dop5KKVqY",
+        "next_epoch_id": "89apPFfAL7ffQDYBxL4j8UaGWzuRpL3ds4uR3XRqhYkG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.61943959979653e+22
+    },
+    {
+        "timestamp": "2023-09-06T20:13:39.044Z",
+        "balance": 3.547933323471127e+26,
+        "block_height": 100540295,
+        "epoch_id": "94rdnY3fY6qvgM5bYopnh2Na6gPMhz9KS8463YuPw92N",
+        "next_epoch_id": "GLio6GPMmHzNqUzJEaCiN5WAgv1BTJXbEf6Dop5KKVqY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.37217552712066e+22
+    },
+    {
+        "timestamp": "2023-09-06T05:26:26.019Z",
+        "balance": 3.547496105918415e+26,
+        "block_height": 100497095,
+        "epoch_id": "D9TbTYV18N3pXS8GMtZshiC2ikS8fPswYLuPsQNDTkKJ",
+        "next_epoch_id": "94rdnY3fY6qvgM5bYopnh2Na6gPMhz9KS8463YuPw92N",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.657010189098359e+22
+    },
+    {
+        "timestamp": "2023-09-05T15:25:51.183Z",
+        "balance": 3.547030404899505e+26,
+        "block_height": 100453895,
+        "epoch_id": "HCLc5revQXzx8fTU1Tq7gyL4QYV3CHbef84iq89FKTuz",
+        "next_epoch_id": "D9TbTYV18N3pXS8GMtZshiC2ikS8fPswYLuPsQNDTkKJ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4737639318701776e+22
+    },
+    {
+        "timestamp": "2023-09-05T00:29:20.733Z",
+        "balance": 3.546583028506318e+26,
+        "block_height": 100410695,
+        "epoch_id": "GH8K8PVGXvjRvQ98mxJikaHVadidvEQqTrGa6fK4BikG",
+        "next_epoch_id": "HCLc5revQXzx8fTU1Tq7gyL4QYV3CHbef84iq89FKTuz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.397587370269605e+22
+    },
+    {
+        "timestamp": "2023-09-04T10:07:04.618Z",
+        "balance": 3.546143269769291e+26,
+        "block_height": 100367495,
+        "epoch_id": "C29sq5qnTvAsgPVNXiYB8MRF3dh6kzB9eCBNSTke7w5u",
+        "next_epoch_id": "GH8K8PVGXvjRvQ98mxJikaHVadidvEQqTrGa6fK4BikG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.4465296174118685e+22
+    },
+    {
+        "timestamp": "2023-09-03T19:59:23.819Z",
+        "balance": 3.54569861680755e+26,
+        "block_height": 100324295,
+        "epoch_id": "4LypgvNUatTmYJrZc68GCM7sP7RQHSjRJWNZsUKwydkq",
+        "next_epoch_id": "C29sq5qnTvAsgPVNXiYB8MRF3dh6kzB9eCBNSTke7w5u",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.431881008582395e+22
+    },
+    {
+        "timestamp": "2023-09-03T05:43:20.614Z",
+        "balance": 3.545255428706692e+26,
+        "block_height": 100281095,
+        "epoch_id": "GgZFRWa3wYU3onArX3W1EvDU6rAnNA1e6w1GAH9MGrPG",
+        "next_epoch_id": "4LypgvNUatTmYJrZc68GCM7sP7RQHSjRJWNZsUKwydkq",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3874207925526315e+22
+    },
+    {
+        "timestamp": "2023-09-02T15:30:51.850Z",
+        "balance": 3.5448166866274365e+26,
+        "block_height": 100237895,
+        "epoch_id": "tt3Q9pYZtEPPautdXBVBYKbQBNsB481AV3isGt5YtaF",
+        "next_epoch_id": "GgZFRWa3wYU3onArX3W1EvDU6rAnNA1e6w1GAH9MGrPG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.28673358864123e+22
+    },
+    {
+        "timestamp": "2023-09-02T01:24:04.483Z",
+        "balance": 3.5443880132685724e+26,
+        "block_height": 100194695,
+        "epoch_id": "L66Umxg3B6WoBrdhoBfV9amhH5KARzoYx3RGL3r9f9g",
+        "next_epoch_id": "tt3Q9pYZtEPPautdXBVBYKbQBNsB481AV3isGt5YtaF",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.291052767506255e+22
+    },
+    {
+        "timestamp": "2023-09-01T11:36:30.768Z",
+        "balance": 3.543958907991822e+26,
+        "block_height": 100151495,
+        "epoch_id": "FN9rbjn3kNbEMXobuf5MYNVnokGhddD4NfxBJdgmQPoa",
+        "next_epoch_id": "L66Umxg3B6WoBrdhoBfV9amhH5KARzoYx3RGL3r9f9g",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.259078110954314e+22
+    },
+    {
+        "timestamp": "2023-08-31T21:49:07.308Z",
+        "balance": 3.5435330001807263e+26,
+        "block_height": 100108295,
+        "epoch_id": "3GG5J89DxWDDRsKkwGVbHPF6NTGFoTdJDEe2awka6Eph",
+        "next_epoch_id": "FN9rbjn3kNbEMXobuf5MYNVnokGhddD4NfxBJdgmQPoa",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.202173012710903e+22
+    },
+    {
+        "timestamp": "2023-08-31T08:07:49.571Z",
+        "balance": 3.543112782879455e+26,
+        "block_height": 100065095,
+        "epoch_id": "2rZGzEXGHDGf1zf3oy4CELZLk4L9aLe9DTnXJk7XdgGn",
+        "next_epoch_id": "3GG5J89DxWDDRsKkwGVbHPF6NTGFoTdJDEe2awka6Eph",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.300987268685742e+22
+    },
+    {
+        "timestamp": "2023-08-30T18:36:33.793Z",
+        "balance": 3.542682684152587e+26,
+        "block_height": 100021895,
+        "epoch_id": "9n8aatTSFqqVgHaCE78Rs19q2z6a5bMhhAezZsdSE8VQ",
+        "next_epoch_id": "2rZGzEXGHDGf1zf3oy4CELZLk4L9aLe9DTnXJk7XdgGn",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2219546966805054e+22
+    },
+    {
+        "timestamp": "2023-08-30T04:46:03.039Z",
+        "balance": 3.5422604886829186e+26,
+        "block_height": 99978695,
+        "epoch_id": "4ntNYZVYq3TNRKpDWCfvAGJ2R9QzYbHuJ8G9t5bCwbmX",
+        "next_epoch_id": "9n8aatTSFqqVgHaCE78Rs19q2z6a5bMhhAezZsdSE8VQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3189299574179455e+22
+    },
+    {
+        "timestamp": "2023-08-29T15:11:34.944Z",
+        "balance": 3.541828595687177e+26,
+        "block_height": 99935495,
+        "epoch_id": "CRnv4iJMgg6zgv8Aq84UgaAJe6VbCn9MLFDyY25N8yc3",
+        "next_epoch_id": "4ntNYZVYq3TNRKpDWCfvAGJ2R9QzYbHuJ8G9t5bCwbmX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.270961877089983e+22
+    },
+    {
+        "timestamp": "2023-08-29T01:18:40.172Z",
+        "balance": 3.541401499499468e+26,
+        "block_height": 99892295,
+        "epoch_id": "GgxCjeXgDuK8t5ZET4ugdavXpPnfENGXcssudCBzXzfq",
+        "next_epoch_id": "CRnv4iJMgg6zgv8Aq84UgaAJe6VbCn9MLFDyY25N8yc3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2566833174887726e+22
+    },
+    {
+        "timestamp": "2023-08-28T11:34:21.434Z",
+        "balance": 3.540975831167719e+26,
+        "block_height": 99849095,
+        "epoch_id": "DeUcMR2y5NQTczuoFoPATw9xDYb8ahJsusHmQjAaQbiH",
+        "next_epoch_id": "GgxCjeXgDuK8t5ZET4ugdavXpPnfENGXcssudCBzXzfq",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3605122497282e+22
+    },
+    {
+        "timestamp": "2023-08-27T18:39:50.701Z",
+        "balance": 3.540539779942746e+26,
+        "block_height": 99796002,
+        "epoch_id": "HnMFcAAMnphzKf8R94VNLj2DLPnMfNVVxyaT2dSHG5H7",
+        "next_epoch_id": "DeUcMR2y5NQTczuoFoPATw9xDYb8ahJsusHmQjAaQbiH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.27290860476503e+22
+    },
+    {
+        "timestamp": "2023-08-27T07:51:37.942Z",
+        "balance": 3.5401124890822696e+26,
+        "block_height": 99762695,
+        "epoch_id": "BkHwFzkzgieP64XAQ6t4oTcTRbXvwQAwXRZbXR3e3f8K",
+        "next_epoch_id": "HnMFcAAMnphzKf8R94VNLj2DLPnMfNVVxyaT2dSHG5H7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.213771281224108e+22
+    },
+    {
+        "timestamp": "2023-08-26T18:07:33.982Z",
+        "balance": 3.539691111954147e+26,
+        "block_height": 99719495,
+        "epoch_id": "6uJ1r7rGZXcqdZ17n7XxvoMHbntoNgcp2kZ4jJpZ96m4",
+        "next_epoch_id": "BkHwFzkzgieP64XAQ6t4oTcTRbXvwQAwXRZbXR3e3f8K",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.229688621743552e+22
+    },
+    {
+        "timestamp": "2023-08-26T04:33:21.063Z",
+        "balance": 3.539268143091973e+26,
+        "block_height": 99676295,
+        "epoch_id": "CJcq2xdYJxVtuDsFwVVtmJPrUXCsosV2Le8HPDNRAKY5",
+        "next_epoch_id": "6uJ1r7rGZXcqdZ17n7XxvoMHbntoNgcp2kZ4jJpZ96m4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.235092569640851e+22
+    },
+    {
+        "timestamp": "2023-08-25T14:56:17.487Z",
+        "balance": 3.538844633835009e+26,
+        "block_height": 99633095,
+        "epoch_id": "2X7cTDfE5dfNKJRSPXbr7kV3kbxNPfKRBaV1YQ99giGx",
+        "next_epoch_id": "CJcq2xdYJxVtuDsFwVVtmJPrUXCsosV2Le8HPDNRAKY5",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2678930349273414e+22
+    },
+    {
+        "timestamp": "2023-08-25T01:19:13.729Z",
+        "balance": 3.538417844531516e+26,
+        "block_height": 99589895,
+        "epoch_id": "CBRftMBkrNaQzdGS6eaogYHm5W87n3gwPfYwf2ds6NKt",
+        "next_epoch_id": "2X7cTDfE5dfNKJRSPXbr7kV3kbxNPfKRBaV1YQ99giGx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2438232810837225e+22
+    },
+    {
+        "timestamp": "2023-08-24T11:43:36.205Z",
+        "balance": 3.537993462203408e+26,
+        "block_height": 99546695,
+        "epoch_id": "EFoCWoNqt3Y15GXqz6L6gsYrgMX3aRysHUPqB9e9yjyU",
+        "next_epoch_id": "CBRftMBkrNaQzdGS6eaogYHm5W87n3gwPfYwf2ds6NKt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.2664549372699825e+22
+    },
+    {
+        "timestamp": "2023-08-23T22:14:03.236Z",
+        "balance": 3.537566816709681e+26,
+        "block_height": 99503495,
+        "epoch_id": "D6kHHbWo5qRS5KSbZ2dsEYRR1HgRpk4UUhVTFF6Ucddf",
+        "next_epoch_id": "EFoCWoNqt3Y15GXqz6L6gsYrgMX3aRysHUPqB9e9yjyU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.330314061805598e+22
+    },
+    {
+        "timestamp": "2023-08-23T08:38:28.149Z",
+        "balance": 3.5371337853035e+26,
+        "block_height": 99460295,
+        "epoch_id": "nNZV13LazX6YYJ9ru4JKMFCvrDoigBTnbuZaiZToNez",
+        "next_epoch_id": "D6kHHbWo5qRS5KSbZ2dsEYRR1HgRpk4UUhVTFF6Ucddf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.384565329608551e+22
+    },
+    {
+        "timestamp": "2023-08-22T19:16:05.609Z",
+        "balance": 3.536695328770539e+26,
+        "block_height": 99417095,
+        "epoch_id": "3AowhNYFEPYZQSg1Yfwv11ZkYQDc6CB7DvVgoZ7QbTDH",
+        "next_epoch_id": "nNZV13LazX6YYJ9ru4JKMFCvrDoigBTnbuZaiZToNez",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.331366646510747e+22
+    },
+    {
+        "timestamp": "2023-08-22T05:43:06.502Z",
+        "balance": 3.536262192105888e+26,
+        "block_height": 99373895,
+        "epoch_id": "8x4fAerzGPd1x5a18ujPYLukf4NACVh9ifQCAKGnPC6c",
+        "next_epoch_id": "3AowhNYFEPYZQSg1Yfwv11ZkYQDc6CB7DvVgoZ7QbTDH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.388264656669986e+22
+    },
+    {
+        "timestamp": "2023-08-21T16:19:39.528Z",
+        "balance": 3.535823365640221e+26,
+        "block_height": 99330695,
+        "epoch_id": "E4uMDDxocRuCase1NAyK3CXveynLCBzCQZXXo2xBCCME",
+        "next_epoch_id": "8x4fAerzGPd1x5a18ujPYLukf4NACVh9ifQCAKGnPC6c",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.392605937106863e+22
+    },
+    {
+        "timestamp": "2023-08-21T02:45:47.677Z",
+        "balance": 3.5353841050465105e+26,
+        "block_height": 99287495,
+        "epoch_id": "5WH3cdYbgfYyE19impvhws8Nx9kdWQAymD9mmSn5fLFC",
+        "next_epoch_id": "E4uMDDxocRuCase1NAyK3CXveynLCBzCQZXXo2xBCCME",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.320608486348102e+22
+    },
+    {
+        "timestamp": "2023-08-20T13:12:25.207Z",
+        "balance": 3.534952044197876e+26,
+        "block_height": 99244295,
+        "epoch_id": "3HsJyUXjs9CKyRP8Q37xj5gbQAr81VVxqu5frxfyRkzx",
+        "next_epoch_id": "5WH3cdYbgfYyE19impvhws8Nx9kdWQAymD9mmSn5fLFC",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.45378337468323e+22
+    },
+    {
+        "timestamp": "2023-08-19T23:53:23.005Z",
+        "balance": 3.5345066658604074e+26,
+        "block_height": 99201095,
+        "epoch_id": "CUAAtYGaPkj18pRvKAAUED1miRuGRs9b6VHJNMazJqvT",
+        "next_epoch_id": "3HsJyUXjs9CKyRP8Q37xj5gbQAr81VVxqu5frxfyRkzx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.354724741872477e+22
+    },
+    {
+        "timestamp": "2023-08-19T10:08:25.082Z",
+        "balance": 3.53407119338622e+26,
+        "block_height": 99157895,
+        "epoch_id": "5GENxjLa414B3ANSVwxDmJC7u5kCPfg1MKCfKPxaYdMK",
+        "next_epoch_id": "CUAAtYGaPkj18pRvKAAUED1miRuGRs9b6VHJNMazJqvT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.442025496719066e+22
+    },
+    {
+        "timestamp": "2023-08-18T20:40:53.423Z",
+        "balance": 3.533626990836548e+26,
+        "block_height": 99114695,
+        "epoch_id": "58yECAoDxRUydEe197LX2Ej1CpyicjRGuHvQHVzfyBU6",
+        "next_epoch_id": "5GENxjLa414B3ANSVwxDmJC7u5kCPfg1MKCfKPxaYdMK",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.413411337540327e+22
+    },
+    {
+        "timestamp": "2023-08-18T06:58:16.003Z",
+        "balance": 3.533185649702794e+26,
+        "block_height": 99071495,
+        "epoch_id": "CWwhgePhYSiCNUz6wwZrQXKLsrnof3zRKvmguVLwLvXu",
+        "next_epoch_id": "58yECAoDxRUydEe197LX2Ej1CpyicjRGuHvQHVzfyBU6",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.446582503598183e+22
+    },
+    {
+        "timestamp": "2023-08-17T17:20:19.040Z",
+        "balance": 3.5327409914524344e+26,
+        "block_height": 99028295,
+        "epoch_id": "Ans9AmeRBtGBPz6EokwM5QJsZb3HMDc1iBpBLmdbmdbz",
+        "next_epoch_id": "CWwhgePhYSiCNUz6wwZrQXKLsrnof3zRKvmguVLwLvXu",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.414136212385628e+22
+    },
+    {
+        "timestamp": "2023-08-16T16:35:46.991Z",
+        "balance": 3.532299577831196e+26,
+        "block_height": 98949734,
+        "epoch_id": "2GtG4z91sdCQTP8LH5g1kau2FV8cP2Su5ENnFjcmGxao",
+        "next_epoch_id": "Ans9AmeRBtGBPz6EokwM5QJsZb3HMDc1iBpBLmdbmdbz",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.363356137233766e+22
+    },
+    {
+        "timestamp": "2023-08-16T13:55:36.608Z",
+        "balance": 3.5318632422174724e+26,
+        "block_height": 98941895,
+        "epoch_id": "FaYGkMoWKFPeE7udF7QRNBFCJTCfz7aNbHYmpWgfc2hj",
+        "next_epoch_id": "2GtG4z91sdCQTP8LH5g1kau2FV8cP2Su5ENnFjcmGxao",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.427924400376778e+22
+    },
+    {
+        "timestamp": "2023-08-16T00:26:18.141Z",
+        "balance": 3.531420449777435e+26,
+        "block_height": 98898695,
+        "epoch_id": "7M7qpKxfTjypBAfCqkyLW75n8DfptNgbsNcYMbENxEAi",
+        "next_epoch_id": "FaYGkMoWKFPeE7udF7QRNBFCJTCfz7aNbHYmpWgfc2hj",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.327088431044054e+22
+    },
+    {
+        "timestamp": "2023-08-15T10:49:16.611Z",
+        "balance": 3.5309877409343303e+26,
+        "block_height": 98855495,
+        "epoch_id": "4mKpkfKaznoyoo6QyvoJ8ytm2Npepkjaoq9GkEFf3w6h",
+        "next_epoch_id": "7M7qpKxfTjypBAfCqkyLW75n8DfptNgbsNcYMbENxEAi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6019107555243505e+22
+    },
+    {
+        "timestamp": "2023-08-14T21:24:06.547Z",
+        "balance": 3.530527549858778e+26,
+        "block_height": 98812295,
+        "epoch_id": "cjd4UXVpJRpyYfNmHJzhhVBaxiQtLb77rRx2W87sWJG",
+        "next_epoch_id": "4mKpkfKaznoyoo6QyvoJ8ytm2Npepkjaoq9GkEFf3w6h",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.369320362769578e+22
+    },
+    {
+        "timestamp": "2023-08-14T07:08:17.946Z",
+        "balance": 3.530090617822501e+26,
+        "block_height": 98769095,
+        "epoch_id": "5vYm97W8SQAHAEo39jQ1RremGAGQuhrFJNUS9SGa3xFW",
+        "next_epoch_id": "cjd4UXVpJRpyYfNmHJzhhVBaxiQtLb77rRx2W87sWJG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.5045889058519936e+22
+    },
+    {
+        "timestamp": "2023-08-13T17:41:55.960Z",
+        "balance": 3.529640158931916e+26,
+        "block_height": 98725895,
+        "epoch_id": "EAZF7Gq17AtNkE5kKiNE7YRxMUncC9EUpj7nBCx1Aoq7",
+        "next_epoch_id": "5vYm97W8SQAHAEo39jQ1RremGAGQuhrFJNUS9SGa3xFW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7649366549108084e+22
+    },
+    {
+        "timestamp": "2023-08-13T03:50:55.736Z",
+        "balance": 3.529163665266425e+26,
+        "block_height": 98682695,
+        "epoch_id": "2noD4kyA6a5iwojfxPdABA2LNqRtrqY1kUDmpu94Tth7",
+        "next_epoch_id": "EAZF7Gq17AtNkE5kKiNE7YRxMUncC9EUpj7nBCx1Aoq7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.739920302060541e+22
+    },
+    {
+        "timestamp": "2023-08-12T13:05:14.060Z",
+        "balance": 3.5286896732362186e+26,
+        "block_height": 98639495,
+        "epoch_id": "BRhr4jg4xhYJAVCzHkAsduSeQjkJwd17Smef42ExN4uo",
+        "next_epoch_id": "2noD4kyA6a5iwojfxPdABA2LNqRtrqY1kUDmpu94Tth7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.506190689454647e+22
+    },
+    {
+        "timestamp": "2023-08-11T22:24:30.266Z",
+        "balance": 3.528239054167273e+26,
+        "block_height": 98596295,
+        "epoch_id": "73mPwzPk9XMe2ppbrTLWbdJGMWefFn4Gn66GnQVTxkER",
+        "next_epoch_id": "BRhr4jg4xhYJAVCzHkAsduSeQjkJwd17Smef42ExN4uo",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.426317650197639e+22
+    },
+    {
+        "timestamp": "2023-08-11T08:33:46.520Z",
+        "balance": 3.5277964224022534e+26,
+        "block_height": 98553095,
+        "epoch_id": "71Kd9r8ivviYEVwESLqFiF81gnbWNyvqGR3y3gRj43CT",
+        "next_epoch_id": "73mPwzPk9XMe2ppbrTLWbdJGMWefFn4Gn66GnQVTxkER",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.840606749796565e+22
+    },
+    {
+        "timestamp": "2023-08-10T18:52:11.960Z",
+        "balance": 3.527312361727274e+26,
+        "block_height": 98509526,
+        "epoch_id": "8qDGzWHHbWfW2JaEFfQbMGWVmosV1ecdnH6iZrjSTsyW",
+        "next_epoch_id": "71Kd9r8ivviYEVwESLqFiF81gnbWNyvqGR3y3gRj43CT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.820602527243609e+22
+    },
+    {
+        "timestamp": "2023-08-10T04:02:55.264Z",
+        "balance": 3.5268303014745494e+26,
+        "block_height": 98466695,
+        "epoch_id": "7WAWWFLhrAEdE51dn2kBganC6JChXMRF88Hc6hGjA2oQ",
+        "next_epoch_id": "8qDGzWHHbWfW2JaEFfQbMGWVmosV1ecdnH6iZrjSTsyW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.3921817367453895e+22
+    },
+    {
+        "timestamp": "2023-08-09T13:10:26.583Z",
+        "balance": 3.526391083300875e+26,
+        "block_height": 98423495,
+        "epoch_id": "48fsk8XhxZ4rnruG7iNMeK7kftJ2oEzrhJc3mRAK8MkX",
+        "next_epoch_id": "7WAWWFLhrAEdE51dn2kBganC6JChXMRF88Hc6hGjA2oQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.451487706224766e+22
+    },
+    {
+        "timestamp": "2023-08-08T23:44:14.271Z",
+        "balance": 3.5259459345302524e+26,
+        "block_height": 98380295,
+        "epoch_id": "4b8sbCTdPrxbWy4MBSxCnyJYcyHpWFTn3Hi1H5Ppj26Y",
+        "next_epoch_id": "48fsk8XhxZ4rnruG7iNMeK7kftJ2oEzrhJc3mRAK8MkX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7861509269743385e+22
+    },
+    {
+        "timestamp": "2023-08-08T10:07:11.800Z",
+        "balance": 3.525467319437555e+26,
+        "block_height": 98337095,
+        "epoch_id": "9s7fYFhayZK69kLSU1Ahvkukex3nPHUMCrZ5svu69Zsa",
+        "next_epoch_id": "4b8sbCTdPrxbWy4MBSxCnyJYcyHpWFTn3Hi1H5Ppj26Y",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.799194568324722e+22
+    },
+    {
+        "timestamp": "2023-08-07T19:17:19.818Z",
+        "balance": 3.5249873999807225e+26,
+        "block_height": 98293895,
+        "epoch_id": "2ecgMwsMGdWBdfFzc211LJCzQ6KwiFFQrEfSPnicjmae",
+        "next_epoch_id": "9s7fYFhayZK69kLSU1Ahvkukex3nPHUMCrZ5svu69Zsa",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.468214231776916e+22
+    },
+    {
+        "timestamp": "2023-08-07T04:23:53.920Z",
+        "balance": 3.524540578557545e+26,
+        "block_height": 98250695,
+        "epoch_id": "UuYssXwxFmu55V3bDovqhxJ8wPpGxPrx6CpmqctHcPS",
+        "next_epoch_id": "2ecgMwsMGdWBdfFzc211LJCzQ6KwiFFQrEfSPnicjmae",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.449900728205888e+22
+    },
+    {
+        "timestamp": "2023-08-06T14:39:15.520Z",
+        "balance": 3.524095588484724e+26,
+        "block_height": 98207495,
+        "epoch_id": "H4yiwRfrsQqZTXJCUFnUvWMGNuycy7w3XR8XSvnMQcNM",
+        "next_epoch_id": "UuYssXwxFmu55V3bDovqhxJ8wPpGxPrx6CpmqctHcPS",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.8141649757783976e+22
+    },
+    {
+        "timestamp": "2023-08-06T00:59:00.588Z",
+        "balance": 3.523614171987146e+26,
+        "block_height": 98164295,
+        "epoch_id": "DZmyFt6R5NZ5ze5bn9Z7Xdz2ApCHUmw5hZ7iUJghS3JX",
+        "next_epoch_id": "H4yiwRfrsQqZTXJCUFnUvWMGNuycy7w3XR8XSvnMQcNM",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.742158905308896e+22
+    },
+    {
+        "timestamp": "2023-08-05T10:02:53.763Z",
+        "balance": 3.5231399560966154e+26,
+        "block_height": 98121095,
+        "epoch_id": "7nyaixzip8iFRR1yvwpzTTme9BbPgFUeVahkr3BsxFxX",
+        "next_epoch_id": "DZmyFt6R5NZ5ze5bn9Z7Xdz2ApCHUmw5hZ7iUJghS3JX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.480942675909063e+22
+    },
+    {
+        "timestamp": "2023-08-04T19:19:15.288Z",
+        "balance": 3.5226918618290245e+26,
+        "block_height": 98077895,
+        "epoch_id": "64NED9VeWrkXmMnZ9MrkXaXngcQLMViJ48p63QNXjbNA",
+        "next_epoch_id": "7nyaixzip8iFRR1yvwpzTTme9BbPgFUeVahkr3BsxFxX",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 8588972519325696
+    },
+    {
+        "timestamp": "2023-08-04T05:33:29.820Z",
+        "balance": 3.522691861743135e+26,
+        "block_height": 98034695,
+        "epoch_id": "475MQYzy2Sx86acsCAo9q58H3jDXUSMKXUA4GaWbDive",
+        "next_epoch_id": "64NED9VeWrkXmMnZ9MrkXaXngcQLMViJ48p63QNXjbNA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.851959438917373e+22
+    },
+    {
+        "timestamp": "2023-08-03T16:05:21.026Z",
+        "balance": 3.522206665799243e+26,
+        "block_height": 97991495,
+        "epoch_id": "HN8cpm6TLDYHScK4aN5TtkRB4DAmje8jCAn2UUjbyrWG",
+        "next_epoch_id": "475MQYzy2Sx86acsCAo9q58H3jDXUSMKXUA4GaWbDive",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 8725724278030336
+    },
+    {
+        "timestamp": "2023-08-02T18:10:18.954Z",
+        "balance": 3.522206665711986e+26,
+        "block_height": 97929411,
+        "epoch_id": "4WpSuocLbFvTgFpt9Am8BsSwrKPymykXZqtnakkMBHRi",
+        "next_epoch_id": "HN8cpm6TLDYHScK4aN5TtkRB4DAmje8jCAn2UUjbyrWG",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.339547889256576e+22
+    },
+    {
+        "timestamp": "2023-08-02T09:03:08.750Z",
+        "balance": 3.52177271092306e+26,
+        "block_height": 97905095,
+        "epoch_id": "4VFLmmagNDBMWEaLU6pJx3uB5hykhqtdy7aezXx6rnz4",
+        "next_epoch_id": "4WpSuocLbFvTgFpt9Am8BsSwrKPymykXZqtnakkMBHRi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.419985093317403e+22
+    },
+    {
+        "timestamp": "2023-08-01T19:41:37.444Z",
+        "balance": 3.5213307124137284e+26,
+        "block_height": 97861895,
+        "epoch_id": "8aGPHV3DLmqcZYhGztJZVriL8uEJDmMXreL9M1GboARb",
+        "next_epoch_id": "4VFLmmagNDBMWEaLU6pJx3uB5hykhqtdy7aezXx6rnz4",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.414149613061549e+22
+    },
+    {
+        "timestamp": "2023-08-01T06:05:36.357Z",
+        "balance": 3.520889297452422e+26,
+        "block_height": 97818695,
+        "epoch_id": "4Kgkx1FBg1PmpFDhf47z9VkmwNGmKj5yhvgqEYepLrvH",
+        "next_epoch_id": "8aGPHV3DLmqcZYhGztJZVriL8uEJDmMXreL9M1GboARb",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.404738137132042e+22
+    },
+    {
+        "timestamp": "2023-07-31T16:35:16.799Z",
+        "balance": 3.520448823638709e+26,
+        "block_height": 97775495,
+        "epoch_id": "BeairHWLBmt8Y1ezZWhL96Zft8TpHKTuwezCV3pPzp7t",
+        "next_epoch_id": "4Kgkx1FBg1PmpFDhf47z9VkmwNGmKj5yhvgqEYepLrvH",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.363629589507061e+22
+    },
+    {
+        "timestamp": "2023-07-31T03:06:14.685Z",
+        "balance": 3.5200124606797584e+26,
+        "block_height": 97732295,
+        "epoch_id": "8qTVTm4q2XK1oaABrJKi364skXToyBVDttzgp1qFNLJB",
+        "next_epoch_id": "BeairHWLBmt8Y1ezZWhL96Zft8TpHKTuwezCV3pPzp7t",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.341844225077366e+22
+    },
+    {
+        "timestamp": "2023-07-30T13:45:38.786Z",
+        "balance": 3.5195782762572506e+26,
+        "block_height": 97689095,
+        "epoch_id": "9JrnFmZrMmTMSaxk63NCJSxr8caVZPmKdCuFoLcPPRRm",
+        "next_epoch_id": "8qTVTm4q2XK1oaABrJKi364skXToyBVDttzgp1qFNLJB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.375105431667993e+22
+    },
+    {
+        "timestamp": "2023-07-30T00:27:59.991Z",
+        "balance": 3.519140765714084e+26,
+        "block_height": 97645895,
+        "epoch_id": "6tBSLkmvnVZDLh5U3kgbjXRQmgvXz3DhVL1k39FtvK6U",
+        "next_epoch_id": "9JrnFmZrMmTMSaxk63NCJSxr8caVZPmKdCuFoLcPPRRm",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.565710566811519e+22
+    },
+    {
+        "timestamp": "2023-07-29T11:03:28.657Z",
+        "balance": 3.518684194657403e+26,
+        "block_height": 97602695,
+        "epoch_id": "7appb59vhAmdn7qNdnYjkZyHcAEQgNs15UCbc2yk3E2V",
+        "next_epoch_id": "6tBSLkmvnVZDLh5U3kgbjXRQmgvXz3DhVL1k39FtvK6U",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.645769808465771e+22
+    },
+    {
+        "timestamp": "2023-07-28T18:51:39.571Z",
+        "balance": 3.518219617676556e+26,
+        "block_height": 97550364,
+        "epoch_id": "9MxJA9FxdnJAuksShU87omdfRBRVSrTKeHiVrXYkCQkB",
+        "next_epoch_id": "7appb59vhAmdn7qNdnYjkZyHcAEQgNs15UCbc2yk3E2V",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.620349081592727e+22
+    },
+    {
+        "timestamp": "2023-07-28T08:13:22.367Z",
+        "balance": 3.517757582768397e+26,
+        "block_height": 97516295,
+        "epoch_id": "9K1wjQFnxQGxgwg4io48CzegFTvJRaVd76oNX28X8yug",
+        "next_epoch_id": "9MxJA9FxdnJAuksShU87omdfRBRVSrTKeHiVrXYkCQkB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.658622467532627e+22
+    },
+    {
+        "timestamp": "2023-07-27T18:51:16.454Z",
+        "balance": 3.5172917205216436e+26,
+        "block_height": 97473095,
+        "epoch_id": "12t1en4ptFywv3criNhG3ARvtEWrWNudJqccRUU7sK5L",
+        "next_epoch_id": "9K1wjQFnxQGxgwg4io48CzegFTvJRaVd76oNX28X8yug",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.654040763670717e+22
+    },
+    {
+        "timestamp": "2023-07-27T05:23:18.464Z",
+        "balance": 3.5168263164452765e+26,
+        "block_height": 97429895,
+        "epoch_id": "5Zr4JP7Gky6ie7NyGJPtMHsHPKJK8JjYfyPJDiFaEJP",
+        "next_epoch_id": "12t1en4ptFywv3criNhG3ARvtEWrWNudJqccRUU7sK5L",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.760515925495439e+22
+    },
+    {
+        "timestamp": "2023-07-26T15:53:21.849Z",
+        "balance": 3.516350264852727e+26,
+        "block_height": 97386695,
+        "epoch_id": "FgPi74FdgS4swH5PVbe1ripFqYPZ6oFjUR8MREs49VMi",
+        "next_epoch_id": "5Zr4JP7Gky6ie7NyGJPtMHsHPKJK8JjYfyPJDiFaEJP",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.676025244007461e+22
+    },
+    {
+        "timestamp": "2023-07-26T02:11:45.170Z",
+        "balance": 3.515882662328326e+26,
+        "block_height": 97343495,
+        "epoch_id": "22rUR8e8nHNGioWtJkhG4bT4ZEpmX5reYPKbuhwVTWC3",
+        "next_epoch_id": "FgPi74FdgS4swH5PVbe1ripFqYPZ6oFjUR8MREs49VMi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.640388582979564e+22
+    },
+    {
+        "timestamp": "2023-07-25T12:44:27.242Z",
+        "balance": 3.515418623470028e+26,
+        "block_height": 97300295,
+        "epoch_id": "7k6PBNQ3A9e127Ms9eoeihGqyx5C2fzqKFwM7MM2KvxA",
+        "next_epoch_id": "22rUR8e8nHNGioWtJkhG4bT4ZEpmX5reYPKbuhwVTWC3",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6660613315653825e+22
+    },
+    {
+        "timestamp": "2023-07-24T23:22:29.730Z",
+        "balance": 3.514952017336872e+26,
+        "block_height": 97257095,
+        "epoch_id": "DnwDhLXtAWZqCDbHxAggtbW42j1iVHU77E29tcNhAMS7",
+        "next_epoch_id": "7k6PBNQ3A9e127Ms9eoeihGqyx5C2fzqKFwM7MM2KvxA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.647691165906439e+22
+    },
+    {
+        "timestamp": "2023-07-24T09:56:30.359Z",
+        "balance": 3.514487248220281e+26,
+        "block_height": 97213895,
+        "epoch_id": "AwAEE7VvXtRVMjisivVJmdhuqmbNbL45d9gR3nY9PNRd",
+        "next_epoch_id": "DnwDhLXtAWZqCDbHxAggtbW42j1iVHU77E29tcNhAMS7",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.689047564370529e+22
+    },
+    {
+        "timestamp": "2023-07-23T20:34:06.583Z",
+        "balance": 3.514018343463844e+26,
+        "block_height": 97170695,
+        "epoch_id": "HjmGaEGNocC641htyJgJqnnbfo5V1dvgybH5ayko9whU",
+        "next_epoch_id": "AwAEE7VvXtRVMjisivVJmdhuqmbNbL45d9gR3nY9PNRd",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.706448840259381e+22
+    },
+    {
+        "timestamp": "2023-07-23T07:05:09.977Z",
+        "balance": 3.513547698579818e+26,
+        "block_height": 97127495,
+        "epoch_id": "8czQ2o1aSHVtftHUHhnwwj3a5vX8ERzemS2AyeAhE4fT",
+        "next_epoch_id": "HjmGaEGNocC641htyJgJqnnbfo5V1dvgybH5ayko9whU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.7085364428205055e+22
+    },
+    {
+        "timestamp": "2023-07-22T10:18:14.827Z",
+        "balance": 3.513076844935536e+26,
+        "block_height": 97061369,
+        "epoch_id": "u1vhZ44ybxbf8TvS9oE4HZnq8Yh74R42VKSBW4o54eA",
+        "next_epoch_id": "8czQ2o1aSHVtftHUHhnwwj3a5vX8ERzemS2AyeAhE4fT",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6636260218110405e+22
+    },
+    {
+        "timestamp": "2023-07-22T03:58:53.420Z",
+        "balance": 3.512610482333355e+26,
+        "block_height": 97041095,
+        "epoch_id": "8fsjJpuszoY3ArfhGvbpJPEj6VV9QfRY29Y7dagGZKmZ",
+        "next_epoch_id": "u1vhZ44ybxbf8TvS9oE4HZnq8Yh74R42VKSBW4o54eA",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6292433427101706e+22
+    },
+    {
+        "timestamp": "2023-07-21T14:32:39.994Z",
+        "balance": 3.512147557999084e+26,
+        "block_height": 96997895,
+        "epoch_id": "HN1pppK3yMNXTYQ1cdQMPftTPsrGLutKsn5P1Ho4b5vt",
+        "next_epoch_id": "8fsjJpuszoY3ArfhGvbpJPEj6VV9QfRY29Y7dagGZKmZ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.673280197848717e+22
+    },
+    {
+        "timestamp": "2023-07-21T01:11:11.050Z",
+        "balance": 3.511680229979299e+26,
+        "block_height": 96954695,
+        "epoch_id": "J9LdeJd22Sccxf8uSV15EPSB3MsrpToW4dMRHP7sYGhU",
+        "next_epoch_id": "HN1pppK3yMNXTYQ1cdQMPftTPsrGLutKsn5P1Ho4b5vt",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.660993900945923e+22
+    },
+    {
+        "timestamp": "2023-07-20T11:23:27.511Z",
+        "balance": 3.5112141305892044e+26,
+        "block_height": 96910487,
+        "epoch_id": "C34mTetDSGWXiDkDfd6nEf6zH3Q2rQMnzowvVrx2ZbjB",
+        "next_epoch_id": "J9LdeJd22Sccxf8uSV15EPSB3MsrpToW4dMRHP7sYGhU",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.712827978987392e+22
+    },
+    {
+        "timestamp": "2023-07-19T22:16:02.336Z",
+        "balance": 3.510742847791306e+26,
+        "block_height": 96868295,
+        "epoch_id": "6ZU5JMm1cwsTmDQSD1gNxiMXQgJuct3gbVMMjXg2HdLp",
+        "next_epoch_id": "C34mTetDSGWXiDkDfd6nEf6zH3Q2rQMnzowvVrx2ZbjB",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.647348969788481e+22
+    },
+    {
+        "timestamp": "2023-07-19T08:41:24.244Z",
+        "balance": 3.510278112894327e+26,
+        "block_height": 96825095,
+        "epoch_id": "E9aR677vWBmjVch7rY95oVQbHAf6eatwEPktzD77pLGW",
+        "next_epoch_id": "6ZU5JMm1cwsTmDQSD1gNxiMXQgJuct3gbVMMjXg2HdLp",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.684532399255224e+22
+    },
+    {
+        "timestamp": "2023-07-18T19:19:04.152Z",
+        "balance": 3.509809659654401e+26,
+        "block_height": 96781895,
+        "epoch_id": "ARM7YfXgAgdernetnWtHscu8Nw19spSEAWARSFAjCwxm",
+        "next_epoch_id": "E9aR677vWBmjVch7rY95oVQbHAf6eatwEPktzD77pLGW",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.757868808542414e+22
+    },
+    {
+        "timestamp": "2023-07-18T05:09:08.232Z",
+        "balance": 3.509333872773547e+26,
+        "block_height": 96736455,
+        "epoch_id": "4q2ipMr4nQQfexmEzdinhjRE92SKSsFTYwAm5cDUKNDY",
+        "next_epoch_id": "ARM7YfXgAgdernetnWtHscu8Nw19spSEAWARSFAjCwxm",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.770677982487892e+22
+    },
+    {
+        "timestamp": "2023-07-17T16:09:42.390Z",
+        "balance": 3.508856804975298e+26,
+        "block_height": 96695495,
+        "epoch_id": "7p1S4pYHKStuGeRDsH58AstgC1nuBoR58uJmwE4khS5N",
+        "next_epoch_id": "4q2ipMr4nQQfexmEzdinhjRE92SKSsFTYwAm5cDUKNDY",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.652058043929211e+22
+    },
+    {
+        "timestamp": "2023-07-16T15:50:52.405Z",
+        "balance": 3.5083915991709054e+26,
+        "block_height": 96618048,
+        "epoch_id": "FV1doHy8zZv2znLYSdw1YDyeQPsyGqA1FmE3XkG2Th1n",
+        "next_epoch_id": "7p1S4pYHKStuGeRDsH58AstgC1nuBoR58uJmwE4khS5N",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.64608353266828e+22
+    },
+    {
+        "timestamp": "2023-07-16T13:03:02.608Z",
+        "balance": 3.5079269908176386e+26,
+        "block_height": 96609095,
+        "epoch_id": "6Tiwj36A5PQjibqG1vykEEzHa6ATG6qd5MhAGpG53g7j",
+        "next_epoch_id": "FV1doHy8zZv2znLYSdw1YDyeQPsyGqA1FmE3XkG2Th1n",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.666511896964995e+22
+    },
+    {
+        "timestamp": "2023-07-15T23:39:58.636Z",
+        "balance": 3.507460339627942e+26,
+        "block_height": 96565895,
+        "epoch_id": "2rvJXida3G6LQ1uB3zubN1XavoHEGe3Hhwyzx8yySskf",
+        "next_epoch_id": "6Tiwj36A5PQjibqG1vykEEzHa6ATG6qd5MhAGpG53g7j",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.667100161400684e+22
+    },
+    {
+        "timestamp": "2023-07-15T06:38:30.141Z",
+        "balance": 3.506993629611802e+26,
+        "block_height": 96511157,
+        "epoch_id": "F1aJs24CqYA1fu2NJs3xeLa4zmDe5BYWJ8YURPa2AnRD",
+        "next_epoch_id": "2rvJXida3G6LQ1uB3zubN1XavoHEGe3Hhwyzx8yySskf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.667056689665859e+22
+    },
+    {
+        "timestamp": "2023-07-14T20:47:09.648Z",
+        "balance": 3.5065269239428354e+26,
+        "block_height": 96479495,
+        "epoch_id": "6gxVz7mV7SxughMjh7VQ5tqxTYWh1fHpVEZ7mt3t313X",
+        "next_epoch_id": "F1aJs24CqYA1fu2NJs3xeLa4zmDe5BYWJ8YURPa2AnRD",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.646470328778047e+22
+    },
+    {
+        "timestamp": "2023-07-14T07:20:31.125Z",
+        "balance": 3.5060622769099576e+26,
+        "block_height": 96436295,
+        "epoch_id": "FQDnstBdj7WoJxhof3jYAdXEtSR5F6xhasV9BSAbNiHV",
+        "next_epoch_id": "6gxVz7mV7SxughMjh7VQ5tqxTYWh1fHpVEZ7mt3t313X",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6690891005778154e+22
+    },
+    {
+        "timestamp": "2023-07-13T17:15:50.639Z",
+        "balance": 3.5055953679999e+26,
+        "block_height": 96390912,
+        "epoch_id": "AnFNPP1FPyuGZHQjk5hfTEBhzDRcoJN6noEJ4s8tgX9x",
+        "next_epoch_id": "FQDnstBdj7WoJxhof3jYAdXEtSR5F6xhasV9BSAbNiHV",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.686475517364164e+22
+    },
+    {
+        "timestamp": "2023-07-13T04:27:41.995Z",
+        "balance": 3.5051267204481634e+26,
+        "block_height": 96349895,
+        "epoch_id": "AcRbTn754y4GFXAK7whdisM5CdZKhD167XryG35u1JA2",
+        "next_epoch_id": "AnFNPP1FPyuGZHQjk5hfTEBhzDRcoJN6noEJ4s8tgX9x",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.647239420229198e+22
+    },
+    {
+        "timestamp": "2023-07-12T12:09:08.316Z",
+        "balance": 3.5046619965061405e+26,
+        "block_height": 96297794,
+        "epoch_id": "5ubZ8bcMKfxf73MEdmAECVnwMK4DEraitLBGv51DAXCi",
+        "next_epoch_id": "AcRbTn754y4GFXAK7whdisM5CdZKhD167XryG35u1JA2",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.704177981291238e+22
+    },
+    {
+        "timestamp": "2023-07-12T01:34:04.214Z",
+        "balance": 3.5041915787080114e+26,
+        "block_height": 96263495,
+        "epoch_id": "3jv3vJZwj1QRff1zc3bVmsBioF9EvGiGfjiGaLieXD8z",
+        "next_epoch_id": "5ubZ8bcMKfxf73MEdmAECVnwMK4DEraitLBGv51DAXCi",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.700922334728121e+22
+    },
+    {
+        "timestamp": "2023-07-11T11:57:19.696Z",
+        "balance": 3.5037214864745385e+26,
+        "block_height": 96220295,
+        "epoch_id": "9iTVrcwp9ozw3aqoZef48tSV1EehCopP6vvyTeeaQQp9",
+        "next_epoch_id": "3jv3vJZwj1QRff1zc3bVmsBioF9EvGiGfjiGaLieXD8z",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6691774843870815e+22
+    },
+    {
+        "timestamp": "2023-07-10T22:20:42.384Z",
+        "balance": 3.5032545687261e+26,
+        "block_height": 96177095,
+        "epoch_id": "D2eU4ZhJcCtK3N6jGhUcj6ARQWRKuPdg46iaj4ZV4MyN",
+        "next_epoch_id": "9iTVrcwp9ozw3aqoZef48tSV1EehCopP6vvyTeeaQQp9",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.6284862168386205e+22
+    },
+    {
+        "timestamp": "2023-07-10T08:50:04.800Z",
+        "balance": 3.502791720104416e+26,
+        "block_height": 96133895,
+        "epoch_id": "A4HFnMw2ckQ3X9A98Rrga4hP8CzqTg4DtiYzUFyCTVYx",
+        "next_epoch_id": "D2eU4ZhJcCtK3N6jGhUcj6ARQWRKuPdg46iaj4ZV4MyN",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.667303657727698e+22
+    },
+    {
+        "timestamp": "2023-07-09T19:26:37.795Z",
+        "balance": 3.502324989738643e+26,
+        "block_height": 96090695,
+        "epoch_id": "4Y3tfnoNyZpTRvvAxQ51AjjJ9C85pWbb2mcAnLjte1cf",
+        "next_epoch_id": "A4HFnMw2ckQ3X9A98Rrga4hP8CzqTg4DtiYzUFyCTVYx",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.725271012750194e+22
+    },
+    {
+        "timestamp": "2023-07-08T17:59:27.679Z",
+        "balance": 3.501852462637368e+26,
+        "block_height": 96009929,
+        "epoch_id": "G8S1ivZEzEwZwkPD6ZasHAomrpjHz6uiM4RWn9mSCMSQ",
+        "next_epoch_id": "4Y3tfnoNyZpTRvvAxQ51AjjJ9C85pWbb2mcAnLjte1cf",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.631991180439602e+22
+    },
+    {
+        "timestamp": "2023-07-08T16:14:46.128Z",
+        "balance": 3.501389263519324e+26,
+        "block_height": 96004295,
+        "epoch_id": "4sLyVWca5HCv77daRmwGL9pNTRm8ZCSfr2HhFev4kaY2",
+        "next_epoch_id": "G8S1ivZEzEwZwkPD6ZasHAomrpjHz6uiM4RWn9mSCMSQ",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.61856675559694e+22
+    },
+    {
+        "timestamp": "2023-07-08T02:51:01.912Z",
+        "balance": 3.5009274068437645e+26,
+        "block_height": 95961095,
+        "epoch_id": "2z5shiFjhpUHKUgE79J3qxgyQrTZHwQVSJJ4wMvetq6i",
+        "next_epoch_id": "4sLyVWca5HCv77daRmwGL9pNTRm8ZCSfr2HhFev4kaY2",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.628546613287212e+22
+    },
+    {
+        "timestamp": "2023-07-07T05:09:31.436Z",
+        "balance": 3.500464552182436e+26,
+        "block_height": 95891100,
+        "epoch_id": "jRZdRPTSGuVvesj4TEMcd6bUEp8BK5eU8BS5Jtx1rPv",
+        "next_epoch_id": "2z5shiFjhpUHKUgE79J3qxgyQrTZHwQVSJJ4wMvetq6i",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 4.64552182435898e+22
+    },
+    {
+        "timestamp": "2023-07-07T00:06:29.458Z",
+        "balance": 3.5e+26,
+        "block_height": 95874695,
+        "epoch_id": "2bWW8xbB5Tcs4WNZUkyP2ep27T2nzAr8mTKzKX4WEc3a",
+        "next_epoch_id": "jRZdRPTSGuVvesj4TEMcd6bUEp8BK5eU8BS5Jtx1rPv",
+        "deposit": 0,
+        "withdrawal": 0,
+        "earnings": 0
+    },
+    {
+        "timestamp": "2023-07-06T18:36:31.697Z",
+        "balance": 3.5e+26,
+        "hash": "Af2ZfAHULc4Eh3KpctLtLARViaqo2c7aXgo5okkLJ7pz",
+        "block_height": 95857053,
+        "epoch_id": "2bWW8xbB5Tcs4WNZUkyP2ep27T2nzAr8mTKzKX4WEc3a",
+        "next_epoch_id": "jRZdRPTSGuVvesj4TEMcd6bUEp8BK5eU8BS5Jtx1rPv",
+        "deposit": 3.5e+26,
+        "withdrawal": 0,
+        "earnings": 0
+    }
+];

@@ -168,20 +168,29 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             } else {
                 block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
             }
-            if (!stakingBalanceEntries.find(sbe => sbe.epoch_id === block.header.epoch_id)) {
-                const stakingBalance = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 4);
-                const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
-                stakingBalanceEntries.push({
-                    timestamp,
-                    balance: stakingBalance,
-                    hash: stakingTransaction.hash,
-                    block_height: block.header.height,
-                    epoch_id: block.header.epoch_id,
-                    next_epoch_id: block.header.next_epoch_id,
-                    deposit: stakingTransaction.signer_id == account_id ? parseInt(stakingTransaction.args.deposit) : 0,
-                    withdrawal: stakingTransaction.signer_id == stakingpool_id ? parseInt(stakingTransaction.args.deposit) : 0
-                });
+            
+            const stakingBalanceBeforeTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 1);
+            const stakingBalanceAfterTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height + 10), 1);
+
+            const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
+            let withdrawal = 0;
+            if (stakingTransaction.args.method_name === 'withdraw_all') {
+                withdrawal = stakingBalanceBeforeTransaction - stakingBalanceAfterTransaction;                
             }
+            let deposit = 0;
+            if (stakingTransaction.args.method_name === 'deposit_and_stake') {
+                deposit = stakingBalanceAfterTransaction - stakingBalanceBeforeTransaction;
+            }
+            stakingBalanceEntries.push({
+                timestamp,
+                balance: stakingBalanceAfterTransaction,
+                hash: stakingTransaction.hash,
+                block_height: block.header.height,
+                epoch_id: block.header.epoch_id,
+                next_epoch_id: block.header.next_epoch_id,
+                deposit,
+                withdrawal
+            });
         }
     }
 
