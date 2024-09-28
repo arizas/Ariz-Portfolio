@@ -293,5 +293,6 @@ export async function getAccountBalanceAfterTransaction(account_id, tx_hash, blo
     if (!balance) {
         balance = (await viewAccount(blockdata.block.header.hash, account_id)).amount;
     }
-    return { transaction: transactionInFirstBlock, balance };
+
+    return { transaction: transactionInFirstBlock, balance, blockdata };
 }

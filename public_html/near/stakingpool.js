@@ -1,5 +1,6 @@
 import { getTransactionsForAccount } from '../storage/domainobjectstore.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
+import { getAccountBalanceAfterTransaction } from './account.js';
 import { retry } from './retry.js';
 import { queryMultipleRPC } from './rpc.js';
 
@@ -170,7 +171,9 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
             }
             
             const stakingBalanceBeforeTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 1);
-            const stakingBalanceAfterTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height + 10), 1);
+            const { blockdata } = await getAccountBalanceAfterTransaction(account_id, stakingTransaction.hash, block.header.height);
+
+            const stakingBalanceAfterTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, blockdata.block.header.height), 1);
 
             const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
             let withdrawal = 0;
