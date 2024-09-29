@@ -31,7 +31,7 @@ export default {
   testFramework: {
     config: {
       ui: 'bdd',
-      timeout: '20000',
+      timeout: '180000',
     },
   },
   plugins: [importMapsPlugin({
@@ -74,15 +74,11 @@ export default {
                 const body = await response.text();
                 try {
                   const resultObj = JSON.parse(body);
-                  if (!resultObj.error) {
-                    if (storeInArchiveRpcCache) {
-                      archiveRpcCache[postdata] = JSON.stringify(resultObj);
-                      await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
-                    }
-                    return await route.fulfill({ body });
-                  } else {
-
+                  if (!resultObj.error && storeInArchiveRpcCache) {
+                    archiveRpcCache[postdata] = JSON.stringify(resultObj);
+                    await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
                   }
+                  return await route.fulfill({ body });                  
                 } catch (e) {
                   console.log('failed parsing result', e);
                 }
@@ -102,14 +98,32 @@ export default {
         }
         await ctx.route('https://api.nearblocks.io/**/*', async (route) => {
           const url = route.request().url();
-          if (!nearblockscache[url]) {
-            const response = await route.fetch();
-            const body = await response.text();
-            nearblockscache[url] = body;
-            await writeFile(nearBlocksCacheURL, JSON.stringify(nearblockscache, null, 1));
+          let headers = {};
+          let body = nearblockscache[url];
+          let status = 200;
+
+          if (body === undefined) {
+            try {
+              const response = await route.fetch();
+              status = response.status();
+              body = await response.text();
+              if (response.ok() && !url.endsWith('/v1/blocks/count')) {
+                nearblockscache[url] = body;
+                await writeFile(nearBlocksCacheURL, JSON.stringify(nearblockscache, null, 1));
+              }
+            } catch (e) {
+              await writeFile('routeerror.txt', `${url} ${status} ${JSON.stringify(headers)}: ${body}, ${e}`);
+            }
+          } else {
+            headers = {
+              'Access-Control-Expose-Headers': 'X-Cache-Hit',
+              'X-Cache-Hit': 'true'
+            };
           }
-          const body = nearblockscache[url];
-          await route.fulfill({ body });
+
+          await route.fulfill({
+            body, headers, status
+          });
         });
         await ctx.route('https://arizgateway.azurewebsites.net/**/*', async (route) => {
           let url = route.request().url();

@@ -1,4 +1,5 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
+import { getFromNearBlocks } from "../near/nearblocks.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { modalAlert, modalYesNo } from "../ui/modal.js";
 
@@ -21,7 +22,7 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "near",
 }
 
 export async function fetchNEARHistoricalPricesFromNearBlocks() {
-    const chartdata = await fetch('https://api.nearblocks.io/v1/charts').then(r => r.json());
+    const chartdata = await getFromNearBlocks('/v1/charts');
     const pricedata = await getHistoricalPriceData(defaultToken, 'USD');
     chartdata.charts.forEach(dayEntry => pricedata[dayEntry.date.substring(0, 'yyyy-MM-dd'.length)] = Number(dayEntry.near_price));
     await setHistoricalPriceData(defaultToken, 'USD', pricedata);

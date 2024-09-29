@@ -21,7 +21,6 @@ describe('year-report-table-renderer', () => {
     });
 
     it('should render table for year report', async function () {
-        this.timeout(2 * 60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
@@ -54,7 +53,6 @@ describe('year-report-table-renderer', () => {
     });
 
     it('should render table for period report', async function () {
-        this.timeout(2 * 60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
@@ -85,7 +83,6 @@ describe('year-report-table-renderer', () => {
     });
 
     it('should render table for period report', async function () {
-        this.timeout(2 * 60000);
         const account = 'psalomo.near';
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
