@@ -216,83 +216,11 @@ export async function getTransactionStatus(txhash, account_id) {
 }
 
 export async function getAccountBalanceAfterTransaction(account_id, tx_hash, block_height) {
-    const given_block_height = block_height;
-    let transactionInFirstBlock;
-    let numberOfBlocksWithoutATrace = 0;
-    let balance;
-    let receiptForTransactionFound;
-    let block_height_bn;
-    let blockdata;
+    const txStatus = await getTransactionStatus(tx_hash, account_id);
+    const block_hash = txStatus.receipts_outcome[txStatus.receipts_outcome.length-1].block_hash;
+    const blockdata = await getBlockInfo(block_hash);
+    console.log(blockdata);
+    const accountStatus = await viewAccount(block_hash, account_id);
 
-    while (!transactionInFirstBlock) {
-        block_height_bn = BigInt(block_height);
-        blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
-
-        blockdata.shards.forEach(shard => {
-            const transaction = shard.chunk?.transactions?.find(transaction => transaction.transaction.hash === tx_hash);
-            if (transaction) {
-                transactionInFirstBlock = transaction;
-            } else {
-                const receipt_execution_outcomes = shard.receipt_execution_outcomes?.filter(receipt_execution_outcome => receipt_execution_outcome.tx_hash === tx_hash);
-
-                if (receipt_execution_outcomes && receipt_execution_outcomes.length > 0) {
-                    receiptForTransactionFound = receipt_execution_outcomes.map(receipt_execution_outcome => receipt_execution_outcome.receipt.receipt_id).length > 0;
-                }
-            }
-
-            const account_update = shard.state_changes.find(state_change =>
-                state_change.type === 'account_update' &&
-                state_change.cause.tx_hash === tx_hash &&
-                state_change.change.account_id === account_id
-            );
-            if (account_update) {
-                balance = account_update.change.amount;
-            }
-        });
-        if (transactionInFirstBlock) {
-            break;
-        }
-        if (!receiptForTransactionFound) {
-            numberOfBlocksWithoutATrace++;
-            if (numberOfBlocksWithoutATrace === 10) {
-                throw new Error(`No transaction or receipts found for transaction ${tx_hash} by ${account_id} in block ${given_block_height}`);
-            }
-        } else {
-            numberOfBlocksWithoutATrace = 0;
-        }
-        block_height_bn--;
-        block_height = block_height_bn.toString();
-    }
-
-    let receipt_ids = transactionInFirstBlock.outcome.execution_outcome.outcome.receipt_ids;
-
-    while (receipt_ids.length > 0) {
-        receipt_ids.forEach(receipt_id => {
-            blockdata?.shards?.forEach(shard => {
-                const receipt_execution_outcome = shard.receipt_execution_outcomes.find(receipt_execution_outcome => receipt_execution_outcome.execution_outcome.id === receipt_id);
-                const account_update = shard.state_changes.find(state_change =>
-                    state_change.type === 'account_update' &&
-                    receipt_ids.includes(state_change.cause.receipt_hash) &&
-                    state_change.change.account_id === account_id
-                );
-
-                if (account_update) {
-                    balance = account_update.change.amount;
-                }
-
-                if (receipt_execution_outcome) {
-                    receipt_ids = receipt_ids.filter(id => id !== receipt_id).concat(receipt_execution_outcome.execution_outcome.outcome.receipt_ids);
-                }
-            });
-        });
-        if (receipt_ids.length > 0) {
-            block_height_bn += 1n;
-            blockdata = await fetch(`https://mainnet.neardata.xyz/v0/block/${block_height_bn.toString()}`).then(r => r.json());
-        }
-    }
-    if (!balance) {
-        balance = (await viewAccount(blockdata.block.header.hash, account_id)).amount;
-    }
-
-    return { transaction: transactionInFirstBlock, balance, blockdata };
+    return { transaction: txStatus, balance: accountStatus.amount, blockdata };
 }

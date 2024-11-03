@@ -1,4 +1,4 @@
-import { TRANSACTION_DATA_API_PIKESPEAKAI, fixTransactionsWithoutBalance, getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionsToDate, setTransactionDataApi } from './account.js';
+import { TRANSACTION_DATA_API_PIKESPEAKAI, fixTransactionsWithoutBalance, getAccountBalanceAfterTransaction, getNearblocksAccountHistory, getPikespeakaiAccountHistory, getTransactionStatus, getTransactionsToDate, setTransactionDataApi, viewAccount } from './account.js';
 import { getTransactionsForAccount, fetchTransactionsForAccount } from '../storage/domainobjectstore.js';
 import { getFromNearBlocks } from './nearblocks.js';
 

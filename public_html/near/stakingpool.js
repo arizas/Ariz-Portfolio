@@ -91,7 +91,7 @@ export async function fetchEarlierStakingEarnings() {
 }
 
 export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakingBalanceEntries, maxStartBlock = 'final') {
-    let block = await getBlockData(maxStartBlock);
+    let block = await getBlockInfo(maxStartBlock);
 
     const stakingTransactions = (await getTransactionsForAccount(account_id))
         .filter(t => (t.receiver_id === stakingpool_id || t.signer_id === stakingpool_id)
@@ -106,11 +106,8 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
     console.log(`staking pool ${stakingpool_id} balance for account ${account_id} in block ${block.header.height} is ${latestBalance}`);
     if (latestBalance === 0) {
         console.log(`Looking for block for last staking transaction from date ${new Date(stakingTransactions[0].block_timestamp / 1_000_000)}`);
-        if (stakingTransactions[0].block_height) {
-            block = await getBlockData(stakingTransactions[0].block_height);
-        } else {
-            block = await getBlockInfo(stakingTransactions[0].block_hash);
-        }
+        block = await getBlockInfo(stakingTransactions[0].block_hash);
+
         latestBalance = stakingBalanceEntries.find(sbe => sbe.epoch_id === block.header.epoch_id)?.balance;
         if (latestBalance === undefined) {
             latestBalance = await getAccountBalanceInPool(stakingpool_id, account_id, block.header.height);
@@ -164,16 +161,12 @@ export async function fetchAllStakingEarnings(stakingpool_id, account_id, stakin
 
     for (let stakingTransaction of stakingTransactions) {
         if (!stakingBalanceEntries.find(sbe => sbe.hash === stakingTransaction.hash)) {
-            if (stakingTransaction.block_height) {
-                block = await retry(() => getBlockData(stakingTransaction.block_height));
-            } else {
-                block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
-            }
+            block = await retry(() => getBlockInfo(stakingTransaction.block_hash));
             
             const stakingBalanceBeforeTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, block.header.height), 1);
             const { blockdata } = await getAccountBalanceAfterTransaction(account_id, stakingTransaction.hash, block.header.height);
 
-            const stakingBalanceAfterTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, blockdata.block.header.height), 1);
+            const stakingBalanceAfterTransaction = await retry(() => getAccountBalanceInPool(stakingpool_id, account_id, blockdata.header.height), 1);
 
             const timestamp = new Date(stakingTransaction.block_timestamp / 1_000_000);
             let withdrawal = 0;

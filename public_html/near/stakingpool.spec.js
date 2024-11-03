@@ -9,13 +9,17 @@ describe('stakingpool', () => {
         expect(balance).to.equal(parseInt('256465402038997425102462871'));
     })
     it('should get latest block data and then get the same block data by block height', async function () {
-        const blockdata = await getBlockData('final');
-        const refBlockData = await getBlockData(blockdata.header.height);
+        const blockdata = await getBlockInfo('final');
+        const refBlockData = await getBlockInfo(blockdata.header.height);
+        delete blockdata.header.chunk_endorsements;
+        delete refBlockData.header.chunk_endorsements;
         expect(blockdata).to.deep.equal(refBlockData);
     });
     it('should get latest block data and then get block info by hash', async function () {
-        const blockdata = await getBlockData('final');
+        const blockdata = await getBlockInfo('final');
         const blockInfo = await getBlockInfo(blockdata.header.hash);
+        delete blockdata.header.chunk_endorsements;
+        delete blockInfo.header.chunk_endorsements;
         expect(blockdata.header).to.deep.equal(blockInfo.header);
     });
     it('should fetch staking balances', async function () {

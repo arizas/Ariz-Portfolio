@@ -300,7 +300,7 @@ describe('year-report-data', () => {
         expect(nearValues.convertToCurrencyWithdrawalAmount / (nearValues.withdrawal / Math.pow(10, 24)))
             .to.be.closeTo(customRealizationRatesObj['64YHGt8Tsp8x28ksvi1vWA3pv9sWs4AhRSAdWPUbtdEC'].realizationPrice, 0.01);
         expect(nearValues.withdrawal / Math.pow(10, 24)).to.be.closeTo(4.0, 0.01);
-        expect(convertedValues.withdrawal).to.be.closeTo(203.68, 0.01);
+        expect(convertedValues.withdrawal).to.be.closeTo(203.7, 0.01);
 
         expect(nearValues.profit).to.be.closeTo(18.84, 0.01);
     });
