@@ -154,7 +154,12 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
         }
 
         page++;
-        accountHistory = await getAccountHistory(page);
+        try {
+            accountHistory = await getAccountHistory(page);
+        } catch(e) {
+            console.error("Error getting account history", e);
+            accountHistory = [];
+        }
     }
 
     await fixTransactionsWithoutBalance({ account, transactions });

@@ -13,7 +13,7 @@ describe('year-report-table-renderer', () => {
 
     it('should calculate period start and end date for current year', () => {
         const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(new Date().getFullYear(), 0, 12);
-        expect(periodStartDate.toJSON()).to.equal('2024-01-01T00:00:00.000Z');
+        expect(periodStartDate.toJSON()).to.equal(`${new Date().getFullYear()}-01-01T00:00:00.000Z`);
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
 

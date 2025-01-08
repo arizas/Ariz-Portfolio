@@ -14,13 +14,10 @@ export async function getFromNearBlocks(path) {
         lastCountStartTime = new Date().getTime();
         countSinceStartTime = 0;
     }
-    const fetchFunc = async () => await fetch(`https://api.nearblocks.io${path}`, { mode: 'cors' });
 
-    let response = await fetchFunc();
+    let response = await fetch(`https://api.nearblocks.io${path}`, { mode: 'cors' });
     if (response.status === 429) {
-        console.error('too many requests', response, 'retry in 60 seconds');
-        await new Promise(resolve => setTimeout(() => resolve(), 60_000));
-        response = await fetchFunc();
+        throw new Error(`Too many requests to nearblocks. Try again after a minute.\n${response.status}: ${await response.text()}`);
     }
 
     if (response.status === 200) {
