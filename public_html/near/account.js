@@ -1,4 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
+import { getAccountTransactionsMetaData } from './fastnear.js';
 import { getFromNearBlocks } from './nearblocks.js';
 import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
@@ -8,11 +9,12 @@ const PIKESPEAKAI_API_LOCALSTORAGE_KEY = 'pikespeakai_api_key';
 const TRANSACTION_DATA_API_LOCALSTORAGE_KEY = 'near_transactiondata_api';
 export const TRANSACTION_DATA_API_NEARBLOCKS = 'nearblocks';
 export const TRANSACTION_DATA_API_PIKESPEAKAI = 'pikespeakai';
+export const TRANSACTION_DATA_API_FASTNEAR = 'fastnear';
 
 export function getTransactionDataApi() {
     const transactionDataApi = localStorage.getItem(TRANSACTION_DATA_API_LOCALSTORAGE_KEY);
     if (transactionDataApi == null) {
-        return TRANSACTION_DATA_API_NEARBLOCKS;
+        return TRANSACTION_DATA_API_FASTNEAR;
     } else {
         return transactionDataApi;
     }
@@ -114,21 +116,21 @@ export async function getNearblocksAccountHistory(account_id, maxentries = 25, p
     return mappedResult;
 }
 
-export async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 25, startPage = 1) {
+export async function getTransactionsToDate(account, offset_timestamp, transactions = [], CHUNK_SIZE = 25, startPage = 1, maxBlockHeight) {
     CHUNK_SIZE = 25;
     let page = startPage;
 
-    const getAccountHistory = async (page) => {
+    const getAccountHistory = async (page, maxBlockHeight) => {
         switch (getTransactionDataApi()) {
+            case TRANSACTION_DATA_API_FASTNEAR:
+                return await getAccountTransactionsMetaData(account,maxBlockHeight);
             case TRANSACTION_DATA_API_NEARBLOCKS:
                 return await getNearblocksAccountHistory(account, CHUNK_SIZE, page);
-                break;
             case TRANSACTION_DATA_API_PIKESPEAKAI:
                 return await getPikespeakaiAccountHistory(account, CHUNK_SIZE, page);
-                break;
         }
     };
-    let accountHistory = await getAccountHistory(page);
+    let accountHistory = await getAccountHistory(page, maxBlockHeight);
     let insertIndex = 0;
 
     while (accountHistory.length > 0) {
@@ -155,7 +157,8 @@ export async function getTransactionsToDate(account, offset_timestamp, transacti
 
         page++;
         try {
-            accountHistory = await getAccountHistory(page);
+            maxBlockHeight = accountHistory.length > 0 ? accountHistory[accountHistory.length - 1].block_height : transactions[transactions.length - 1].block_height;
+            accountHistory = await getAccountHistory(page, maxBlockHeight);
         } catch(e) {
             console.error("Error getting account history", e);
             accountHistory = [];
