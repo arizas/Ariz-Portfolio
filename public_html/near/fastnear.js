@@ -1,5 +1,4 @@
 export async function getAccountTransactionsMetaData(accountId, maxBlockHeight = null) {
-    console.log('acc', accountId, maxBlockHeight);
     const url = 'https://explorer.main.fastnear.com/v0/account';
     const body = { account_id: accountId };
     if (maxBlockHeight) {

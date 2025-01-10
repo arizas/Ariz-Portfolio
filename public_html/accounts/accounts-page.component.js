@@ -33,7 +33,7 @@ customElements.define('accounts-page',
                         for (const stakingAccount of stakingAccounts) {
                             await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
                         }
-                        await fetchFungibleTokenTransactionsForAccount(account);
+                        //await fetchFungibleTokenTransactionsForAccount(account);
                     }
                     setProgressbarValue(null);
                 } catch (e) {

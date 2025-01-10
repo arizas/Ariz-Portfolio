@@ -224,6 +224,10 @@ export async function getTransactionStatus(txhash, account_id) {
 }
 
 export async function getAccountBalanceAfterTransaction(account_id, tx_hash, block_height) {
+    
+}
+
+export async function getAccountBalanceAfterTransaction2(account_id, tx_hash, block_height) {
     const given_block_height = block_height;
     let transactionInFirstBlock;
     let numberOfBlocksWithoutATrace = 0;
