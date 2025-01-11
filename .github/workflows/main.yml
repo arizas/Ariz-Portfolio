@@ -17,6 +17,9 @@ jobs:
   test_wtr:
     name: Test web components
     runs-on: ubuntu-latest
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
@@ -24,7 +27,7 @@ jobs:
           yarn install
           yarn playwright install-deps
           yarn playwright install
-      - name: Test web components
+      - name: Run tests
         run: |
           yarn test
   test_bos:

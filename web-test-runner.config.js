@@ -40,7 +40,7 @@ export default {
     },
   })],
   testRunnerHtml: testRunnerImport =>
-    `<html lang="en-US">
+    `<html>
       <body>
         <script type="module">
             import { expect, assert} from 'https://cdn.jsdelivr.net/npm/chai@5.0.0/+esm';
