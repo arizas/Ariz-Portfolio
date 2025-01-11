@@ -25,7 +25,7 @@
     "web4contract:deploy": "near contract deploy arizportfolio.near use-file web4contract/web4contract.wasm without-init-call network-config mainnet sign-with-keychain send"
   },
   "devDependencies": {
-    "@playwright/test": "^1.41.2",
+    "@playwright/test": "^1.49.1",
     "@surma/rollup-plugin-off-main-thread": "^2.2.3",
     "@web/dev-server-import-maps": "^0.2.1",
     "@web/rollup-plugin-html": "^1.10.1",
