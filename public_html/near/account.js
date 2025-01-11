@@ -3,6 +3,7 @@ import { getAccountTransactionsMetaData, getAndCacheTransactions } from './fastn
 import { getFromNearBlocks } from './nearblocks.js';
 import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
+import { queryMultipleRPC } from './rpc.js';
 import { getBlockInfo } from './stakingpool.js';
 
 const PIKESPEAKAI_API_LOCALSTORAGE_KEY = 'pikespeakai_api_key';
@@ -46,7 +47,7 @@ export async function getAccountChanges(block_id, account_ids) {
 }
 
 export async function viewAccount(block_id, account_id) {
-    return (await fetch(getArchiveNodeUrl(), {
+    const viewAccountQuery = async (rpcUrl) => await fetch(rpcUrl, {
         method: 'POST',
         headers: {
             'content-type': 'application/json'
@@ -63,7 +64,8 @@ export async function viewAccount(block_id, account_id) {
             }
         }
         )
-    }).then(r => r.json())).result;
+    });
+    return (await queryMultipleRPC(viewAccountQuery)).result;
 }
 
 export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, page = 1) {
