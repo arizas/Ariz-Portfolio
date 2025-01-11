@@ -7,7 +7,7 @@ on:
 jobs:
   detectonly:
     name: Detect use of .only
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-jammy
     steps:
       - uses: actions/checkout@v2
       - name: Detect use of .only
@@ -16,7 +16,7 @@ jobs:
           exit 0
   test_wtr:
     name: Test web components
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-jammy
     steps:
       - uses: actions/checkout@v2
       - name: Test web components
@@ -27,7 +27,7 @@ jobs:
           yarn test
   test_bos:
     name: Test BOS E2E
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-jammy
     steps:
       - uses: actions/checkout@v2
       - name: Test BOS E2E
