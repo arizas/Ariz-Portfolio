@@ -1,12 +1,13 @@
 let rpcIndex = 0;
 
 export const rpcs = [
+    'https://rpc.mainnet.fastnear.com/',
     'https://free.rpc.fastnear.com',
-    'https://rpc.mainnet.near.org',
     'https://1rpc.io/near',
     'https://near.lava.build',
     'https://archival-rpc.mainnet.near.org',
-    'https://archival-rpc.mainnet.pagoda.co'
+    'https://archival-rpc.mainnet.pagoda.co',
+    'https://archival-rpc.mainnet.fastnear.com'
 ];
 
 export async function queryMultipleRPC(queryFunction) {

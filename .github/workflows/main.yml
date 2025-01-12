@@ -17,24 +17,31 @@ jobs:
   test_wtr:
     name: Test web components
     runs-on: ubuntu-latest
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     steps:
       - uses: actions/checkout@v2
-      - name: Test web components
+      - name: Install dependencies
         run: |
           yarn install
           yarn playwright install-deps
           yarn playwright install
+      - name: Run tests
+        run: |
           yarn test
   test_bos:
     name: Test BOS E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Test BOS E2E
+      - name: install dependencies
         run: |
           curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mpeterdev/bos-loader/releases/download/v0.11.0/bos-loader-v0.11.0-installer.sh | sh
           yarn install
           yarn playwright install-deps
           yarn playwright install
+      - name: Test BOS E2E
+        run: |
           yarn dist
           yarn test:e2e

@@ -27,7 +27,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     let decimalConversionValue = Math.pow(10, -24);
 
     for (let account of accounts) {
-        const transactions = await getTransactionsForAccount(account, fungibleTokenSymbol);
+        const transactions = (await getTransactionsForAccount(account, fungibleTokenSymbol)).filter(tx => tx.balance !== undefined);
         const fungbleTokenTxMap = await getAllFungibleTokenTransactionsByTxHash(account);
 
         if (fungibleTokenSymbol && transactions.length > 0) {

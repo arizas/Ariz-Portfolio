@@ -61,6 +61,7 @@ test('should create year report', async ({page, context}) => {
   await restoreIndexedDBSnapshot(page, 'testdata/indexeddbsnapshot-1.json');
   await page.reload();
   await page.getByRole('link', { name: 'Year report' }).click();
+  await page.getByLabel('Select start year').selectOption("2024");
   await page.getByLabel('Select start month').selectOption("June");
   const numberOfMonths = await page.getByLabel('Number of months')
   await numberOfMonths.focus();
@@ -74,6 +75,7 @@ test('should create year report', async ({page, context}) => {
   await expect(await lastRow.locator('.dailybalancerow_datetime').innerText()).toBe('2024-06-01');
   await expect(await lastRow.locator('.dailybalancerow_totalbalance').innerText()).toBe('0');
   await page.getByRole('button', { name: 'Print (all tokens)' }).click();
+  await page.waitForTimeout(500);
   await expect(await context.pages().length).toBe(2);
 
   const reportPage = await context.pages()[1];
