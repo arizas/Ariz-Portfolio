@@ -1,7 +1,6 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccountTransactionsMetaData, getAndCacheTransactions } from './fastnear.js';
 import { getFromNearBlocks } from './nearblocks.js';
-import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
 import { queryMultipleRPC } from './rpc.js';
 import { getBlockInfo } from './stakingpool.js';
@@ -210,7 +209,7 @@ export async function fixTransactionsWithoutBalance({ account, transactions }) {
 }
 
 export async function getTransactionStatus(txhash, account_id) {
-    return (await fetch(getArchiveNodeUrl(), {
+    const createTransactionStatusQuery = async (rpcUrl) => fetch(rpcUrl, {
         method: 'POST',
         headers: {
             'content-type': 'application/json'
@@ -222,11 +221,12 @@ export async function getTransactionStatus(txhash, account_id) {
             "params": [txhash, account_id]
         }
         )
-    }).then(r => r.json())).result;
+    });
+    return (await queryMultipleRPC(createTransactionStatusQuery)).result;
 }
 
 export async function getTransactionStatusWithReceipts(tx_hash, sender_account_id) {
-    return (await fetch(getArchiveNodeUrl(), {
+    const createTransactionStatusWithReceiptsQuery = async (rpcUrl) => fetch(rpcUrl, {
         method: 'POST',
         headers: {
             'content-type': 'application/json'
@@ -238,11 +238,12 @@ export async function getTransactionStatusWithReceipts(tx_hash, sender_account_i
             "params": {
                 tx_hash,
                 sender_account_id,
-                "wait_until": "EXECUTED"
+                "wait_until": "NONE"
             }
         }
         )
-    }).then(r => r.json())).result;
+    });
+    return (await queryMultipleRPC(createTransactionStatusWithReceiptsQuery)).result;
 }
 
 
