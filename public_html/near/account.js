@@ -1,7 +1,6 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccountTransactionsMetaData, getAndCacheTransactions } from './fastnear.js';
 import { getFromNearBlocks } from './nearblocks.js';
-import { getArchiveNodeUrl } from './network.js';
 import { retry } from './retry.js';
 import { queryMultipleRPC } from './rpc.js';
 import { getBlockInfo } from './stakingpool.js';
@@ -15,7 +14,7 @@ export const TRANSACTION_DATA_API_FASTNEAR = 'fastnear';
 export function getTransactionDataApi() {
     const transactionDataApi = localStorage.getItem(TRANSACTION_DATA_API_LOCALSTORAGE_KEY);
     if (transactionDataApi == null) {
-        return TRANSACTION_DATA_API_FASTNEAR;
+        return TRANSACTION_DATA_API_NEARBLOCKS;
     } else {
         return transactionDataApi;
     }
@@ -210,7 +209,7 @@ export async function fixTransactionsWithoutBalance({ account, transactions }) {
 }
 
 export async function getTransactionStatus(txhash, account_id) {
-    return (await fetch(getArchiveNodeUrl(), {
+    const createTransactionStatusQuery = async (rpcUrl) => fetch(rpcUrl, {
         method: 'POST',
         headers: {
             'content-type': 'application/json'
@@ -222,16 +221,39 @@ export async function getTransactionStatus(txhash, account_id) {
             "params": [txhash, account_id]
         }
         )
-    }).then(r => r.json())).result;
+    });
+    return (await queryMultipleRPC(createTransactionStatusQuery)).result;
 }
 
+export async function getTransactionStatusWithReceipts(tx_hash, sender_account_id) {
+    const createTransactionStatusWithReceiptsQuery = async (rpcUrl) => fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            "jsonrpc": "2.0",
+            "id": "dontcare",
+            "method": "tx",
+            "params": {
+                tx_hash,
+                sender_account_id,
+                "wait_until": "NONE"
+            }
+        }
+        )
+    });
+    return (await queryMultipleRPC(createTransactionStatusWithReceiptsQuery)).result;
+}
+
+
 function findDeepestReceipt(transactionData) {
-    const receipts = transactionData.receipts;
+    const receipts = transactionData.receipts_outcome;
 
     // Create a map of receipts by their IDs for quick lookup
     const receiptMap = new Map();
     receipts.forEach((receipt) => {
-        receiptMap.set(receipt.execution_outcome.id, receipt);
+        receiptMap.set(receipt.id, receipt);
     });
 
     // Helper function to traverse receipts and calculate depth
@@ -240,7 +262,7 @@ function findDeepestReceipt(transactionData) {
         if (!receipt) return [];
 
         // Traverse child receipts
-        const childReceiptIds = receipt.execution_outcome.outcome.receipt_ids || [];
+        const childReceiptIds = receipt.outcome.receipt_ids || [];
         const childTraversals = childReceiptIds.flatMap((childId) =>
             traverseReceipt(childId, depth + 1)
         );
@@ -250,7 +272,7 @@ function findDeepestReceipt(transactionData) {
     }
 
     // Start traversal from the root receipt(s)
-    const rootReceiptIds = transactionData.execution_outcome.outcome.receipt_ids || [];
+    const rootReceiptIds = transactionData.transaction_outcome.outcome.receipt_ids || [];
     const allReceipts = rootReceiptIds.flatMap((id) => traverseReceipt(id));
 
     // Find the receipt with the maximum depth and latest position in the array
@@ -267,10 +289,10 @@ function findDeepestReceipt(transactionData) {
 }
 
 
-export async function getAccountBalanceAfterTransaction(account_id, tx_hash, block_height) {
-    const transaction = await getAndCacheTransactions(account_id, tx_hash, block_height);
+export async function getAccountBalanceAfterTransaction(account_id, tx_hash) {
+    const transaction = await getTransactionStatusWithReceipts(tx_hash, account_id);
     const finalReceipt = findDeepestReceipt(transaction);
-    const balance = (await viewAccount(finalReceipt.receipt.execution_outcome.block_hash, account_id)).amount;
+    const balance = (await viewAccount(finalReceipt.receipt.block_hash, account_id)).amount;
     return { transaction, balance };
 }
 

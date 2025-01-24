@@ -19,7 +19,7 @@ const importMapStart = indexHtml.indexOf('<script type="importmap">') + '<script
 const importMapEnd = indexHtml.indexOf('</script>', importMapStart);
 const importMap = JSON.parse(indexHtml.substring(importMapStart, importMapEnd));
 
-const storeInArchiveRpcCache = false;
+const storeInArchiveRpcCache = process.env.STORE_IN_ARCHIVE_RPC_CACHE;
 
 export default {
   files: [
@@ -89,6 +89,7 @@ export default {
             }
           } catch (e) {
             console.error('failed to handle route', e);
+            return await route.abort("connectionfailed");
           }
         };
 

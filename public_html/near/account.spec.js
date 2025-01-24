@@ -5,9 +5,7 @@ import { getFromNearBlocks } from './nearblocks.js';
 describe('nearaccount transactions petersalomonsen.near', function () {
     const account = 'petersalomonsen.near';
     const getBalanceForTxHash = async (txHash, accountId) => {
-        const transaction = await getFromNearBlocks(`/v1/txns/${txHash}`);
-        const block_height = transaction.txns[0].block.block_height;
-        const { balance } = await getAccountBalanceAfterTransaction(accountId, txHash, block_height);
+        const { balance } = await getAccountBalanceAfterTransaction(accountId, txHash);
         return balance;
     };
 
