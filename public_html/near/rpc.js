@@ -5,9 +5,7 @@ export const rpcs = [
     'https://free.rpc.fastnear.com',
     'https://1rpc.io/near',
     'https://archival-rpc.mainnet.fastnear.com/',
-    'https://archival-rpc.mainnet.near.org',
-    'https://archival-rpc.mainnet.pagoda.co',
-    'https://archival-rpc.mainnet.fastnear.com'
+    'https://archival-rpc.mainnet.near.org'
 ];
 
 export async function queryMultipleRPC(queryFunction) {
