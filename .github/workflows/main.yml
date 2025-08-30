@@ -30,18 +30,17 @@ jobs:
       - name: Run tests
         run: |
           yarn test
-  test_bos:
-    name: Test BOS E2E
+  test_e2e:
+    name: Test E2E with Playwright
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: install dependencies
+      - name: Install dependencies
         run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mpeterdev/bos-loader/releases/download/v0.11.0/bos-loader-v0.11.0-installer.sh | sh
           yarn install
           yarn playwright install-deps
           yarn playwright install
-      - name: Test BOS E2E
+      - name: Run E2E tests
         run: |
           yarn dist
           yarn test:e2e
