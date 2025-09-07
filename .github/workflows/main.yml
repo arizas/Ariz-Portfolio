@@ -17,6 +17,8 @@ jobs:
   test_wtr:
     name: Test web components
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-noble
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
@@ -32,15 +34,14 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       
-      - name: Setup Playwright
-        run: npx playwright install --with-deps chromium
-      
       - name: Run tests
         run: yarn test
         
   test_e2e:
     name: Test E2E with Playwright
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-noble
     steps:
       - uses: actions/checkout@v4
       
@@ -52,9 +53,6 @@ jobs:
       
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-      
-      - name: Setup Playwright
-        run: npx playwright install --with-deps chromium
       
       - name: Run E2E tests
         run: |
