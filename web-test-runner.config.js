@@ -25,7 +25,8 @@ export default {
   files: [
     '**/*.spec.js', // include `.spec.ts` files
     '!./node_modules/**/*', // exclude any node modules
-    '!./playwright_tests/**/*' // exclude playwright tests
+    '!./playwright_tests/**/*', // exclude playwright tests
+    '!./ariz-gateway/**/*' // exclude ariz-gateway folder
   ],
   watch: false,
   testFramework: {
