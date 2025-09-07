@@ -68,6 +68,7 @@ test('should create year report', async ({page, context}) => {
   await numberOfMonths.fill("2");
   await numberOfMonths.blur();
 
+  await page.waitForTimeout(500);
   await expect(await await page.locator("#dailybalancestable tr").first().locator('.dailybalancerow_datetime').innerText()).toBe('2024-07-31');
   await expect(await await page.locator("#dailybalancestable tr").first().locator('.dailybalancerow_totalbalance').innerText()).toBe('3.288');
 

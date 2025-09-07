@@ -3,3 +3,4 @@ dist
 .DS_STORE
 test-results
 ./indexeddbsnapshot-*.json
+ariz-gateway/

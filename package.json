@@ -21,6 +21,7 @@
     "create:car": "ipfs-car pack dist/index.html --output dist/index.car",
     "upload:car": "NODE_ENV=mainnet node ./node_modules/nearfs/scripts/upload-car.js dist/index.car",
     "serve:dist": "http-server -p 8081 dist/",
+    "serve:test": "node test_server.js",
     "web4contract": "node web4contract/web4contract.wat.js && wat2wasm web4contract/web4contract.wat -o web4contract/web4contract.wasm",
     "web4contract:deploy": "near contract deploy arizportfolio.near use-file web4contract/web4contract.wasm without-init-call network-config mainnet sign-with-keychain send"
   },
