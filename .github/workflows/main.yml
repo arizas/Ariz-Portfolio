@@ -9,7 +9,7 @@ jobs:
     name: Detect use of .only
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Detect use of .only
         run: |
           grep -rq --include '*.spec.js' \.only\( . && echo 'You have .only() in your tests!' && exit 1
@@ -21,25 +21,41 @@ jobs:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      
       - name: Install dependencies
-        run: |
-          yarn install
-          yarn playwright install-deps
-          yarn playwright install
+        run: yarn install --frozen-lockfile
+      
+      - name: Setup Playwright
+        run: npx playwright install --with-deps chromium
+      
       - name: Run tests
-        run: |
-          yarn test
+        run: yarn test
+        
   test_e2e:
     name: Test E2E with Playwright
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      
       - name: Install dependencies
-        run: |
-          yarn install
-          yarn playwright install-deps
-          yarn playwright install
+        run: yarn install --frozen-lockfile
+      
+      - name: Setup Playwright
+        run: npx playwright install --with-deps chromium
+      
       - name: Run E2E tests
         run: |
           yarn dist
