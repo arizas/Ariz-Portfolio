@@ -145,7 +145,12 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
             row.querySelector('.inforow').remove();
         }
 
+        const periodStartDateString = periodStartDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+        const periodEndDateString = periodEndDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+        
         if (datestring.endsWith('12-31') || datestring.endsWith('01-01') ||
+            datestring === periodStartDateString ||
+            datestring === periodEndDateString ||
             rowdata.totalChange !== 0 ||
             received !== 0 ||
             deposit !== 0 ||

@@ -9,7 +9,7 @@ jobs:
     name: Detect use of .only
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Detect use of .only
         run: |
           grep -rq --include '*.spec.js' \.only\( . && echo 'You have .only() in your tests!' && exit 1
@@ -17,31 +17,44 @@ jobs:
   test_wtr:
     name: Test web components
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-noble
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      
       - name: Install dependencies
-        run: |
-          yarn install
-          yarn playwright install-deps
-          yarn playwright install
+        run: yarn install --frozen-lockfile
+      
       - name: Run tests
-        run: |
-          yarn test
-  test_bos:
-    name: Test BOS E2E
+        run: yarn test
+        
+  test_e2e:
+    name: Test E2E with Playwright
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-noble
     steps:
-      - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mpeterdev/bos-loader/releases/download/v0.11.0/bos-loader-v0.11.0-installer.sh | sh
-          yarn install
-          yarn playwright install-deps
-          yarn playwright install
-      - name: Test BOS E2E
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Run E2E tests
         run: |
           yarn dist
           yarn test:e2e

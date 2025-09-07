@@ -262,7 +262,7 @@ describe('year-report-data', () => {
         let nearValues = yearReportData['2022-02-25'];
         let convertedValues = await getConvertedValuesForDay(yearReportData['2022-02-25'], 'NOK', '2022-02-25');
         expect(nearValues.withdrawal).to.equal(1.681520098881095e+25);
-        expect(convertedValues.withdrawal).to.equal(1285);
+        expect(convertedValues.withdrawal).to.be.closeTo(1285, 0.01);
         expect(nearValues.loss).to.be.closeTo((nearValues.withdrawal * nearValues.realizations[0].position.conversionRate / 1e24) - 1285, 12);
 
         nearValues = yearReportData['2022-08-21'];

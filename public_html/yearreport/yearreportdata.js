@@ -313,7 +313,7 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
     const received = (conversionRate * (Number(rowdata.received) / 1e+24));
     const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
-    const withdrawal = rowdata.convertToCurrencyWithdrawalAmount;
+    const withdrawal = convertToCurrencyIsNEAR ? (rowdata.withdrawal / 1e+24)  : rowdata.convertToCurrencyWithdrawalAmount;
 
     return { stakingReward, received, deposit, withdrawal, conversionRate };
 }

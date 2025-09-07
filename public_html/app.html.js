@@ -33,6 +33,15 @@ export default /*html*/ `
             </div>
         </div>
     </div>
+    
+</nav>
+
+<nav class="navbar navbar-light bg-light small">
+    <div id="attributions" class="container">
+        <div class="navbar-text">
+            Powered by <a href="https://nearblocks.io">Nearblocks.io</a> APIs, <a href="https://fastnear.com">FastNEAR</a> and <a href="https://1rpc.io">1rpc.io</a> RPCs.
+        </div>
+    </div>
 </nav>
 <br />
 <div class="container" id="mainContainer">
