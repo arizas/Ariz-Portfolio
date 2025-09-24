@@ -2,7 +2,10 @@ import { playwrightLauncher } from '@web/test-runner-playwright';
 import { readFile, writeFile, mkdir, stat } from 'fs/promises';
 import { importMapsPlugin } from '@web/dev-server-import-maps';
 import { mockWalletRequests } from './testdata/rpcmock.js';
-import { rpcs } from './public_html/near/rpc.js';
+// import { rpcs } from './public_html/near/rpc.js'; // Commented out - HTTPS imports not supported in Node
+
+// Define rpcs inline for test runner
+const rpcs = ['https://near-rpc-proxy-production.arizportfolio.workers.dev'];
 
 const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.url);
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
@@ -48,6 +51,8 @@ export default {
             globalThis.assert = assert;
             globalThis.expect = expect;
             localStorage.setItem('pikespeakai_api_key','API_KEY');
+            // Set test RPC endpoint from environment
+            window.TEST_RPC_ENDPOINT = '${process.env.TEST_RPC_ENDPOINT || 'https://rpc.mainnet.near.org'}';
         </script>        
         <script type="module" src="${testRunnerImport}"></script>
       </body>

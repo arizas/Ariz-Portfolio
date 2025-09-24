@@ -24,6 +24,7 @@
     "web4contract:deploy": "near contract deploy arizportfolio.near use-file web4contract/web4contract.wasm without-init-call network-config mainnet sign-with-keychain send"
   },
   "devDependencies": {
+    "@near-js/jsonrpc-client": "^1.3.4",
     "@playwright/test": "^1.55.0",
     "@surma/rollup-plugin-off-main-thread": "^2.2.3",
     "@web/dev-server-import-maps": "^0.2.1",

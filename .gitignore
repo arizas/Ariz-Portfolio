@@ -4,3 +4,4 @@ dist
 test-results
 ./indexeddbsnapshot-*.json
 ariz-gateway/
+.env

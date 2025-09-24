@@ -36,6 +36,38 @@ Use balance tracking to discover WHEN transactions happened, then fetch ONLY tho
       intents: await getIntentsBalances(account_id, block_id)
     };
   }
+
+  // Get NEAR Intents balances (multi-token standard)
+  async function getIntentsBalances(account_id, block_id) {
+    // First get tokens owned by the account
+    const tokens = await callViewFunction('intents.near', 'mt_tokens_for_owner', {
+      account_id,
+      from_index: '0',
+      limit: 100
+    }, block_id);
+
+    if (!tokens || tokens.length === 0) return {};
+
+    // Then get balances for those token IDs
+    const tokenIds = tokens.map(t => t.token_id);
+    const balances = await callViewFunction('intents.near', 'mt_batch_balance_of', {
+      account_id,
+      token_ids: tokenIds
+    }, block_id);
+
+    // Combine tokens with their balances
+    const intents = {};
+    tokens.forEach((token, index) => {
+      if (balances[index] && balances[index] !== '0') {
+        intents[token.token_id] = {
+          balance: balances[index],
+          metadata: token.metadata,
+          token: token
+        };
+      }
+    });
+    return intents;
+  }
   
   // Compare two balance snapshots
   function detectBalanceChanges(balance1, balance2) {
