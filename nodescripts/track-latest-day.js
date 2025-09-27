@@ -45,21 +45,82 @@ async function findLatestChange() {
 
         console.log(`   Range:       ${endBlock - startBlock} blocks`);
 
-        // Find the latest balance change
-        console.log(`\n⏳ Searching for latest balance change before block ${endBlock}...`);
+        // Find the last 10 balance changes
+        console.log(`\n⏳ Searching for the last 10 balance changes before block ${endBlock}...`);
         const startSearchTime = Date.now();
-        const change = await findLatestBalanceChangeWithExpansion(accountId, startBlock, endBlock);
+
+        const changes = [];
+        let currentEndBlock = endBlock;
+        let currentStartBlock = startBlock;
+        const maxChanges = 10;
+
+        while (changes.length < maxChanges && currentEndBlock > 0) {
+            console.log(`\n🔍 Looking for change #${changes.length + 1}...`);
+
+            const change = await findLatestBalanceChangeWithExpansion(
+                accountId,
+                Math.max(0, currentEndBlock - 100), // Start with 100 block window
+                currentEndBlock
+            );
+
+            if (change.hasChanges) {
+                changes.push(change);
+                console.log(`   ✓ Found change at block ${change.block}`);
+
+                // Display change details
+                if (change.nearChanged) {
+                    console.log(`     - NEAR: ${formatBalance(change.nearDiff.toString())} change`);
+                }
+                if (change.tokensChanged && Object.keys(change.tokensChanged).length > 0) {
+                    Object.entries(change.tokensChanged).forEach(([token, info]) => {
+                        console.log(`     - ${getTokenName(token)}: ${formatTokenBalance(info.diff.toString(), token)} change`);
+                    });
+                }
+                if (change.intentsChanged && Object.keys(change.intentsChanged).length > 0) {
+                    Object.entries(change.intentsChanged).forEach(([token, info]) => {
+                        console.log(`     - Intent ${token}: ${info.diff} change`);
+                    });
+                }
+
+                // Move to search before this change
+                currentEndBlock = change.block - 1;
+            } else {
+                console.log(`   ✗ No more changes found`);
+                break;
+            }
+        }
+
         const duration = ((Date.now() - startSearchTime) / 1000).toFixed(2);
 
         // Display results
         console.log(`\n✅ Search completed in ${duration} seconds`);
         console.log('━'.repeat(50));
 
-        if (!change) {
-            console.log(`\n📊 No balance changes detected between blocks ${startBlock} and ${endBlock}.`);
+        if (changes.length === 0) {
+            console.log(`\n📊 No balance changes detected.`);
         } else {
-            console.log(`\n📊 Latest balance change found:\n`);
-            console.log(change);
+            console.log(`\n📊 Found ${changes.length} balance change${changes.length === 1 ? '' : 's'}:\n`);
+
+            changes.forEach((change, index) => {
+                console.log(`${index + 1}. Block ${change.block}:`);
+                if (change.nearChanged) {
+                    const diff = change.nearDiff;
+                    console.log(`   - NEAR: ${diff > 0 ? '+' : ''}${formatBalance(diff.toString())}`);
+                }
+                if (change.tokensChanged && Object.keys(change.tokensChanged).length > 0) {
+                    Object.entries(change.tokensChanged).forEach(([token, info]) => {
+                        const diff = info.diff;
+                        console.log(`   - ${getTokenName(token)}: ${diff > 0 ? '+' : ''}${formatTokenBalance(diff.toString(), token)}`);
+                    });
+                }
+                if (change.intentsChanged && Object.keys(change.intentsChanged).length > 0) {
+                    Object.entries(change.intentsChanged).forEach(([token, info]) => {
+                        const diff = info.diff;
+                        console.log(`   - Intent ${token}: ${diff > 0 ? '+' : ''}${diff}`);
+                    });
+                }
+                console.log();
+            });
         }
 
         console.log('━'.repeat(50));
