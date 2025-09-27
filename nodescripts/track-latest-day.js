@@ -51,7 +51,7 @@ async function findLatestChange() {
 
         const changes = [];
         let currentEndBlock = endBlock;
-        let currentStartBlock = startBlock;
+        let lastSearchWindow = 100; // Initial search window
         const maxChanges = 10;
 
         while (changes.length < maxChanges && currentEndBlock > 0) {
@@ -59,9 +59,15 @@ async function findLatestChange() {
 
             const change = await findLatestBalanceChangeWithExpansion(
                 accountId,
-                Math.max(0, currentEndBlock - 100), // Start with 100 block window
+                Math.max(0, currentEndBlock - lastSearchWindow),
                 currentEndBlock
             );
+
+            // Use the expanded window size for the next search if available
+            if (change.searchStart !== undefined) {
+                lastSearchWindow = currentEndBlock - change.searchStart;
+                console.log(`   📏 Using window size of ${lastSearchWindow} blocks for next search`);
+            }
 
             if (change.hasChanges) {
                 changes.push(change);

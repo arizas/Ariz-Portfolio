@@ -100,6 +100,69 @@ export async function withClient(fn) {
     return await fn(client);
 }
 
+// Get the RPC endpoint for legacy compatibility
+function getEndpoint() {
+    // Check if we're in test mode
+    const testEndpoint = (typeof process !== 'undefined' && process.env?.TEST_RPC_ENDPOINT) || window.TEST_RPC_ENDPOINT;
+
+    if (testEndpoint) {
+        return testEndpoint;
+    }
+
+    // Default to the proxy endpoint
+    return 'https://near-rpc-proxy-production.arizportfolio.workers.dev';
+}
+
+// Legacy compatibility function for existing code
+export async function queryMultipleRPC(query) {
+    const endpoint = getEndpoint();
+
+    try {
+        // Get headers with authorization if needed
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+
+        // Add authorization for production endpoint
+        if (!window.TEST_RPC_ENDPOINT) {
+            const accessToken = await getAccessToken();
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(query)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error.message || 'RPC Error');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('queryMultipleRPC error:', error);
+        throw error;
+    }
+}
+
+// Legacy function for transaction status
+export async function getTransactionStatusWithReceipts(txHash, accountId) {
+    const query = {
+        jsonrpc: "2.0",
+        id: "1",
+        method: "tx",
+        params: [txHash, accountId]
+    };
+    return queryMultipleRPC(query);
+}
+
 // Export status and other utilities
 export {
     status,

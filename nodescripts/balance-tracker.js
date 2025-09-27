@@ -2,10 +2,14 @@ import { NearRpcClient, viewFunctionAsJson, viewAccount as viewAccountRpc, statu
 
 // Configuration
 const RPC_URL = process.env.NEAR_RPC_URL || 'https://archival-rpc.mainnet.fastnear.com';
-const RPC_DELAY_MS = process.env.RPC_DELAY_MS ? parseInt(process.env.RPC_DELAY_MS) : 500;
+const RPC_DELAY_MS = process.env.RPC_DELAY_MS ? parseInt(process.env.RPC_DELAY_MS) : 100;
 
 // Cache for block heights at specific dates to reduce RPC calls
 const blockHeightCache = new Map();
+
+// Cache for balance snapshots to avoid redundant RPC calls
+// Key format: `${accountId}:${blockId}:${tokenContracts}:${intentsTokens}:${checkNear}`
+const balanceCache = new Map();
 
 // Create client instance
 const client = new NearRpcClient(RPC_URL);
@@ -288,18 +292,32 @@ export async function getIntentsBalances(accountId, blockId, tokenIds = undefine
  * @returns {Promise<Object>} All balances
  */
 export async function getAllBalances(accountId, blockId, tokenContracts = undefined, intentsTokens = undefined, checkNear = true) {
+    // Create cache key
+    const cacheKey = `${accountId}:${blockId}:${JSON.stringify(tokenContracts)}:${JSON.stringify(intentsTokens)}:${checkNear}`;
+
+    // Check cache first
+    if (balanceCache.has(cacheKey)) {
+        console.log("getAllBalances", blockId, "[CACHED]");
+        return balanceCache.get(cacheKey);
+    }
+
     console.log("getAllBalances", blockId, "tokenContracts:", tokenContracts, "intentsTokens:", intentsTokens, "checkNear:", checkNear);
     // Fetch sequentially to avoid rate limits
     const near = checkNear ? await getAccountBalanceAtBlock(accountId, blockId) : null;
     const fungibleTokens = tokenContracts !== null ? await getFungibleTokenBalances(accountId, blockId, tokenContracts) : null;
     const intents = intentsTokens !== null ? await getIntentsBalances(accountId, blockId, intentsTokens) : null;
 
-    return {
+    const result = {
         near,
         fungibleTokens,
         intents,
         blockId
     };
+
+    // Cache the result
+    balanceCache.set(cacheKey, result);
+
+    return result;
 }
 
 /**
@@ -448,7 +466,26 @@ export async function findLatestBalanceChangeTransaction(accountId, firstBlock, 
     let currentEndBalance = endBalance;
 
     while (currentLast - currentFirst > 1) {
-        const middleBlock = currentLast - Math.floor((currentLast - currentFirst) / 2);
+        const interval = currentLast - currentFirst;
+        let middleBlock = currentLast - Math.floor(interval / 2);
+
+        // Align middleBlock to improve cache hits
+        // Use power of 2 alignment based on interval size
+        // For interval of 1000, alignment would be 512 (2^9)
+        // For interval of 100, alignment would be 64 (2^6)
+        // For interval of 50, alignment would be 32 (2^5)
+        const alignment = Math.pow(2, Math.floor(Math.log2(interval / 2)));
+
+        // Round middleBlock down to nearest alignment boundary
+        middleBlock = Math.floor(middleBlock / alignment) * alignment;
+
+        // Ensure middleBlock is still within valid range and different from boundaries
+        if (middleBlock <= currentFirst) {
+            middleBlock = currentFirst + 1;
+        }
+        if (middleBlock >= currentLast) {
+            middleBlock = currentLast - 1;
+        }
 
         // Get balance at middle block (only for changed tokens/NEAR)
         const middleBalance = await getAllBalances(
@@ -497,10 +534,12 @@ export async function findLatestBalanceChangeWithExpansion(accountId, startBlock
         const change = await findLatestBalanceChangeTransaction(accountId, currentStart, currentEnd);
 
         if (change.hasChanges) {
+            // Include the search window size for reuse
+            change.searchStart = currentStart;
             return change;
         }
 
-        // No changes found, expand search backwards
+        // No changes found, expand search backwards by doubling
         const interval = currentEnd - currentStart;
         const newInterval = interval * 2;
         const newStart = Math.max(0, currentStart - newInterval);
@@ -513,13 +552,14 @@ export async function findLatestBalanceChangeWithExpansion(accountId, startBlock
             currentEnd = newEnd;
         } else {
             // Can't expand further (reached block 0)
+            change.searchStart = currentStart;
             return change;
         }
     }
 
     // Reached max expansions
     console.log(`Reached maximum expansions (${maxExpansions}), returning last result`);
-    return { hasChanges: false, block: currentStart };
+    return { hasChanges: false, block: currentStart, searchStart: currentStart };
 }
 
 // Keep the old function as a wrapper that finds all changes in a range

@@ -298,67 +298,116 @@ export function detectBalanceChanges(balance1, balance2) {
 }
 
 /**
- * Find dates with transactions by checking daily balance changes
+ * Find exact blocks where token balances changed using binary search
  * @param {string} accountId - Account to check
- * @param {Date|string} startDate - Start date
- * @param {Date|string} endDate - End date
+ * @param {number} startBlock - Start block height
+ * @param {number} endBlock - End block height
  * @param {string[]} tokenContracts - Optional list of token contracts to check
- * @returns {Promise<Array>} Array of dates with balance changes
+ * @returns {Promise<Array>} Array of balance change objects with exact blocks
  */
-export async function findTransactionDates(accountId, startDate, endDate, tokenContracts = []) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const daysWithChanges = [];
-    
-    // Iterate through each day
-    const currentDate = new Date(start);
-    while (currentDate <= end) {
-        const dayStart = new Date(currentDate);
-        dayStart.setHours(0, 0, 0, 0);
-        
-        const dayEnd = new Date(currentDate);
-        dayEnd.setHours(23, 59, 59, 999);
-        
-        // Skip if day is in the future
-        if (dayStart > new Date()) {
-            currentDate.setDate(currentDate.getDate() + 1);
-            continue;
+export async function findTransactionDates(accountId, startBlock, endBlock, tokenContracts = []) {
+    const changes = [];
+
+    // Don't process if blocks are the same or adjacent
+    if (endBlock - startBlock <= 1) {
+        return changes;
+    }
+
+    try {
+        // Get balances at start and end blocks
+        const [startBalance, endBalance] = await Promise.all([
+            getAllBalances(accountId, startBlock, tokenContracts),
+            getAllBalances(accountId, endBlock, tokenContracts)
+        ]);
+
+        // Detect what changed
+        const detectedChanges = detectBalanceChanges(startBalance, endBalance);
+
+        if (!detectedChanges.hasChanges) {
+            return changes;
         }
-        
-        try {
-            // Get block heights for start and end of day
-            const startBlock = await getBlockHeightAtDate(dayStart);
-            const endBlock = dayEnd > new Date() ? 'final' : await getBlockHeightAtDate(dayEnd);
-            
-            // Get balances at start and end of day
-            const [startBalance, endBalance] = await Promise.all([
-                getAllBalances(accountId, startBlock, tokenContracts),
-                getAllBalances(accountId, endBlock, tokenContracts)
-            ]);
-            
-            // Detect changes
-            const changes = detectBalanceChanges(startBalance, endBalance);
-            
-            if (changes.hasChanges) {
-                daysWithChanges.push({
-                    date: currentDate.toISOString().split('T')[0],
-                    startBlock,
-                    endBlock,
-                    changes,
-                    startBalance,
-                    endBalance
+
+        // If blocks are adjacent, we found the exact change
+        if (endBlock - startBlock === 2) {
+            const middleBlock = startBlock + 1;
+            const middleBalance = await getAllBalances(accountId, middleBlock, tokenContracts);
+
+            // Check if change is at middle block
+            const firstChange = detectBalanceChanges(startBalance, middleBalance);
+            const secondChange = detectBalanceChanges(middleBalance, endBalance);
+
+            if (firstChange.hasChanges) {
+                changes.push({
+                    block: middleBlock,
+                    timestamp: new Date().toISOString(), // Could fetch actual block timestamp if needed
+                    nearChanged: firstChange.nearChanged,
+                    nearBefore: startBalance.near,
+                    nearAfter: middleBalance.near,
+                    tokensChanged: firstChange.tokensChanged,
+                    intentsChanged: firstChange.intentsChanged
                 });
             }
-        } catch (error) {
-            console.error(`Error checking date ${currentDate.toISOString()}:`, error);
+            if (secondChange.hasChanges) {
+                changes.push({
+                    block: endBlock,
+                    timestamp: new Date().toISOString(),
+                    nearChanged: secondChange.nearChanged,
+                    nearBefore: middleBalance.near,
+                    nearAfter: endBalance.near,
+                    tokensChanged: secondChange.tokensChanged,
+                    intentsChanged: secondChange.intentsChanged
+                });
+            }
+            return changes;
         }
-        
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
+
+        // Binary search: divide the range in half
+        const middleBlock = Math.floor((startBlock + endBlock) / 2);
+
+        // Recursively search both halves, but only for tokens that changed
+        const changedTokens = [];
+
+        // Track NEAR if it changed
+        if (detectedChanges.nearChanged) {
+            changedTokens.push('__NEAR__'); // Special marker for NEAR
+        }
+
+        // Track changed fungible tokens
+        Object.keys(detectedChanges.tokensChanged || {}).forEach(token => {
+            if (!changedTokens.includes(token)) {
+                changedTokens.push(token);
+            }
+        });
+
+        // Track changed intents
+        Object.keys(detectedChanges.intentsChanged || {}).forEach(token => {
+            if (!changedTokens.includes(token)) {
+                changedTokens.push(token);
+            }
+        });
+
+        // Filter token contracts to only check the ones that changed
+        const filteredTokens = tokenContracts.length > 0
+            ? tokenContracts.filter(t => changedTokens.includes(t))
+            : changedTokens.filter(t => t !== '__NEAR__');
+
+        // Search both halves in parallel
+        const [leftChanges, rightChanges] = await Promise.all([
+            findTransactionDates(accountId, startBlock, middleBlock, filteredTokens),
+            findTransactionDates(accountId, middleBlock, endBlock, filteredTokens)
+        ]);
+
+        changes.push(...leftChanges, ...rightChanges);
+
+    } catch (error) {
+        console.error(`Error checking blocks ${startBlock}-${endBlock}:`, error);
     }
-    
-    return daysWithChanges;
+
+    return changes.sort((a, b) => a.block - b.block);
 }
+
+// Export alias for integration with domainobjectstore
+export { findTransactionDates as trackBalanceChanges };
 
 /**
  * Discover valuable tokens for an account
@@ -368,18 +417,8 @@ export async function findTransactionDates(accountId, startDate, endDate, tokenC
 export async function discoverValuableTokens(accountId) {
     // Popular tokens on NEAR mainnet
     const popularTokens = [
-        'usdt.tether-token.near',
         '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1',  // USDC (hex contract)
-        'usdc.portalbridge.near',  // USDC (old/alternative)
-        'dai.portalbridge.near',
-        'wrap.near',
-        'wbtc.portalbridge.near',
-        'aurora',
-        'meta-pool.near',
-        'linear-protocol.near',
-        'token.burrow.near',
-        'token.v2.ref-finance.near',
-        'mpdao-token.near'
+        'wrap.near'
     ];
     
     const valuableTokens = [];

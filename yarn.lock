@@ -1173,6 +1173,20 @@
     js-sha3 "^0.8.0"
     multiformats "^9.5.4"
 
+"@near-js/jsonrpc-client@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@near-js/jsonrpc-client/-/jsonrpc-client-1.4.0.tgz#cdf6cfd63f0fc1b7f150a31fcb141275e263e35d"
+  integrity sha512-lozIZT9DH1Aq3nZyKtq38u/53DmNvf74pjQGwkF1F2UCSdhkffv1QtRksU+dKs2hx055XTtizC4qMVnawJRr0A==
+  dependencies:
+    "@near-js/jsonrpc-types" "1.4.0"
+
+"@near-js/jsonrpc-types@1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@near-js/jsonrpc-types/-/jsonrpc-types-1.4.0.tgz#f0674dc32e8179923f11e8bcbd1395e7bb262f99"
+  integrity sha512-QE4EhXdBhWLbl3+ZwuYzcZjLZOQ1R80RYVrSkCo2yhOsQrmjJDW+wlTyBEJrMSElwoJ9wGUxdjQrSn88lBMtLA==
+  dependencies:
+    zod "^4.0.5"
+
 "@noble/ed25519@^1.3.0":
   version "1.7.3"
   resolved "https://registry.yarnpkg.com/@noble/ed25519/-/ed25519-1.7.3.tgz#57e1677bf6885354b466c38e2b620c62f45a7123"
@@ -7370,3 +7384,8 @@ zod@3.23.8:
   version "3.23.8"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.23.8.tgz#e37b957b5d52079769fb8097099b592f0ef4067d"
   integrity sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==
+
+zod@^4.0.5:
+  version "4.1.11"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-4.1.11.tgz#4aab62f76cfd45e6c6166519ba31b2ea019f75f5"
+  integrity sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==
