@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { findLatestBalanceChangeTransaction, getBlockHeightAtDate } from './balance-tracker.js';
+import { findLatestBalanceChangeWithExpansion, getBlockHeightAtDate } from './balance-tracker.js';
 
 /**
  * Main function to find the latest balance change transaction
@@ -48,7 +48,7 @@ async function findLatestChange() {
         // Find the latest balance change
         console.log(`\n⏳ Searching for latest balance change before block ${endBlock}...`);
         const startSearchTime = Date.now();
-        const change = await findLatestBalanceChangeTransaction(accountId, startBlock, endBlock);
+        const change = await findLatestBalanceChangeWithExpansion(accountId, startBlock, endBlock);
         const duration = ((Date.now() - startSearchTime) / 1000).toFixed(2);
 
         // Display results

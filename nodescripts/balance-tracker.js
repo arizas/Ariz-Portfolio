@@ -471,6 +471,49 @@ export async function findLatestBalanceChangeTransaction(accountId, firstBlock, 
     }
 }
 
+/**
+ * Find the latest balance change with expanding search if needed
+ * This wrapper will expand the search window backwards if no changes are found
+ * @param {string} accountId - Account to check
+ * @param {number} startBlock - Initial start block
+ * @param {number} endBlock - End block (fixed)
+ * @param {number} maxExpansions - Maximum number of expansions (default 10)
+ * @returns {Promise<Object>} Balance change object
+ */
+export async function findLatestBalanceChangeWithExpansion(accountId, startBlock, endBlock, maxExpansions = 10) {
+    let currentStart = startBlock;
+    let currentEnd = endBlock;
+    let expansions = 0;
+
+    while (expansions < maxExpansions && currentStart > 0) {
+        const change = await findLatestBalanceChangeTransaction(accountId, currentStart, currentEnd);
+
+        if (change.hasChanges) {
+            return change;
+        }
+
+        // No changes found, expand search backwards
+        const interval = currentEnd - currentStart;
+        const newInterval = interval * 2;
+        const newStart = Math.max(0, currentStart - newInterval);
+        const newEnd = currentStart;
+
+        if (newStart < currentStart) {
+            expansions++;
+            console.log(`No changes found in blocks ${currentStart}-${currentEnd}, expanding to ${newStart}-${newEnd} (expansion ${expansions})`);
+            currentStart = newStart;
+            currentEnd = newEnd;
+        } else {
+            // Can't expand further (reached block 0)
+            return change;
+        }
+    }
+
+    // Reached max expansions
+    console.log(`Reached maximum expansions (${maxExpansions}), returning last result`);
+    return { hasChanges: false, block: currentStart };
+}
+
 // Keep the old function as a wrapper that finds all changes in a range
 export async function findBalanceChanges(accountId, startBlock, endBlock, tokenContracts = []) {
     const changes = [];
