@@ -45,14 +45,14 @@ async function findLatestChange() {
 
         console.log(`   Range:       ${endBlock - startBlock} blocks`);
 
-        // Find the last 10 balance changes
-        console.log(`\n⏳ Searching for the last 10 balance changes before block ${endBlock}...`);
+        // Find the last 5 balance changes
+        console.log(`\n⏳ Searching for the last 5 balance changes before block ${endBlock}...`);
         const startSearchTime = Date.now();
 
         const changes = [];
         let currentEndBlock = endBlock;
-        let lastSearchWindow = 100; // Initial search window
-        const maxChanges = 10;
+        let lastSearchWindow = 86400; // Initial search window (24 hours)
+        const maxChanges = 5; // Limit to 5 to avoid RPC rate limits
 
         while (changes.length < maxChanges && currentEndBlock > 0) {
             console.log(`\n🔍 Looking for change #${changes.length + 1}...`);
