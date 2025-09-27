@@ -2,7 +2,7 @@ import { NearRpcClient, viewFunctionAsJson, viewAccount as viewAccountRpc, statu
 
 // Configuration
 const RPC_URL = process.env.NEAR_RPC_URL || 'https://archival-rpc.mainnet.fastnear.com';
-const RPC_DELAY_MS = process.env.RPC_DELAY_MS ? parseInt(process.env.RPC_DELAY_MS) : 100;
+const RPC_DELAY_MS = process.env.RPC_DELAY_MS ? parseInt(process.env.RPC_DELAY_MS) : 500;
 
 // Cache for block heights at specific dates to reduce RPC calls
 const blockHeightCache = new Map();
@@ -84,6 +84,11 @@ export async function viewAccount(accountId, blockId) {
         const result = await viewAccountRpc(client, params);
         return result;
     } catch (error) {
+        // Handle server errors by retrying with a different block
+        if (error.message?.includes('Server error') && blockId !== 'final' && typeof blockId === 'number') {
+            console.warn(`Server error at block ${blockId}, retrying with block ${blockId - 1}`);
+            return await viewAccount(accountId, blockId - 1);
+        }
         // Re-throw with cleaner error message
         if (error.message?.includes('does not exist')) {
             throw new Error(`Account ${accountId} does not exist at block ${blockId}`);
@@ -142,6 +147,11 @@ export async function callViewFunction(contractId, methodName, args, blockId) {
         await delay(RPC_DELAY_MS);
         return await viewFunctionAsJson(client, params);
     } catch (error) {
+        // Handle server errors by retrying with a different block
+        if (error.message?.includes('Server error') && blockId !== 'final' && typeof blockId === 'number') {
+            console.warn(`Server error at block ${blockId} for ${methodName} on ${contractId}, retrying with block ${blockId - 1}`);
+            return await callViewFunction(contractId, methodName, args, blockId - 1);
+        }
         console.warn(`Failed to call ${methodName} on ${contractId}:`, error.message);
         throw error;
     }
