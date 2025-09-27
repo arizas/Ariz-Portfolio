@@ -406,69 +406,77 @@ export function detectBalanceChanges(balance1, balance2) {
  * @returns {Promise<Object|null>} Balance change object with exact block or null if no changes
  */
 export async function findLatestBalanceChangeTransaction(accountId, firstBlock, lastBlock, tokenContracts = undefined, intentsTokens = undefined, checkNear = true) {
-    const numBlocks = lastBlock-firstBlock;
-    console.log("findLatestBalanceChangeTransaction", firstBlock, numBlocks, tokenContracts, intentsTokens, checkNear);
+    const initialNumBlocks = lastBlock - firstBlock;
+    console.log("findLatestBalanceChangeTransaction", firstBlock, initialNumBlocks, tokenContracts, intentsTokens, checkNear);
 
-    // Get balances at start and end blocks
-    const startBalance = await getAllBalances(accountId, firstBlock, tokenContracts, intentsTokens, checkNear);
-    const endBalance = await getAllBalances(accountId, lastBlock, tokenContracts, intentsTokens, checkNear);
+    // Get initial balances at start and end blocks
+    let startBalance = await getAllBalances(accountId, firstBlock, tokenContracts, intentsTokens, checkNear);
+    let endBalance = await getAllBalances(accountId, lastBlock, tokenContracts, intentsTokens, checkNear);
 
-    // Detect what changed
-    const detectedChanges = detectBalanceChanges(startBalance, endBalance);
+    // Detect what changed in the full range
+    const initialChanges = detectBalanceChanges(startBalance, endBalance);
 
-    if (!detectedChanges.hasChanges || numBlocks === 1) {
-        detectedChanges.block = firstBlock;
-        return detectedChanges;
+    if (!initialChanges.hasChanges || initialNumBlocks === 1) {
+        initialChanges.block = firstBlock;
+        return initialChanges;
     }
 
-    const middleBlock = lastBlock - Math.floor(numBlocks / 2);
+    // Determine what to check in the binary search (only those that changed)
+    const nearToCheck = initialChanges.nearChanged || false;
+    const tokensToCheck = [];
+    const intentsToCheck = [];
 
-    // Determine what to check in recursion
-    const nearChanged = detectedChanges.nearChanged || false;
-
-    // Build list of tokens to check in recursion (only those that changed)
-    const changedTokens = [];
-
-    // Add fungible tokens that changed
-    if (detectedChanges.tokensChanged) {
-        Object.keys(detectedChanges.tokensChanged).forEach(token => {
-            if (!changedTokens.includes(token)) {
-                changedTokens.push(token);
+    // Build list of tokens that changed
+    if (initialChanges.tokensChanged) {
+        Object.keys(initialChanges.tokensChanged).forEach(token => {
+            if (!tokensToCheck.includes(token)) {
+                tokensToCheck.push(token);
             }
         });
     }
 
     // Build list of intents tokens that changed
-    const changedIntentsTokens = [];
-    if (detectedChanges.intentsChanged) {
-        Object.keys(detectedChanges.intentsChanged).forEach(token => {
-            changedIntentsTokens.push(token);
+    if (initialChanges.intentsChanged) {
+        Object.keys(initialChanges.intentsChanged).forEach(token => {
+            intentsToCheck.push(token);
         });
     }
 
-    // Recursive call with only the tokens/balances that changed
-    // If no tokens changed, pass null to skip checking
-    const lastHalfChanges = await findLatestBalanceChangeTransaction(
-        accountId,
-        middleBlock,
-        lastBlock,
-        changedTokens.length > 0 ? changedTokens : null,
-        changedIntentsTokens.length > 0 ? changedIntentsTokens : null,
-        nearChanged  // Only check NEAR if it changed in outer call
-    );
+    // Binary search using iteration, reusing the endBalance
+    let currentFirst = firstBlock;
+    let currentLast = lastBlock;
+    let currentEndBalance = endBalance;
 
-    if (lastHalfChanges.hasChanges) {
-        return lastHalfChanges;
-    } else {
-        return await findLatestBalanceChangeTransaction(
+    while (currentLast - currentFirst > 1) {
+        const middleBlock = currentLast - Math.floor((currentLast - currentFirst) / 2);
+
+        // Get balance at middle block (only for changed tokens/NEAR)
+        const middleBalance = await getAllBalances(
             accountId,
-            firstBlock,
             middleBlock,
-            changedTokens.length > 0 ? changedTokens : null,
-            changedIntentsTokens.length > 0 ? changedIntentsTokens : null,
-            nearChanged  // Only check NEAR if it changed in outer call
+            tokensToCheck.length > 0 ? tokensToCheck : null,
+            intentsToCheck.length > 0 ? intentsToCheck : null,
+            nearToCheck
         );
+
+        // Check if changes occur in the second half (middle to last)
+        const secondHalfChanges = detectBalanceChanges(middleBalance, currentEndBalance);
+
+        if (secondHalfChanges.hasChanges) {
+            // Changes in second half, continue searching there
+            currentFirst = middleBlock;
+            startBalance = middleBalance;
+        } else {
+            // No changes in second half, search first half
+            currentLast = middleBlock;
+            currentEndBalance = middleBalance;
+        }
     }
+
+    // Found the exact block where change occurred
+    const finalChanges = detectBalanceChanges(startBalance, currentEndBalance);
+    finalChanges.block = currentFirst;
+    return finalChanges;
 }
 
 /**
