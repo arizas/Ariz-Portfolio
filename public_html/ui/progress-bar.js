@@ -77,13 +77,18 @@ customElements.define('progress-bar', class ProgressBar extends HTMLElement {
         this.attachShadow({ mode: 'open' });
         this.shadowRoot.innerHTML = progressbarhtml;
         this.stopButton = this.shadowRoot.getElementById('stopbutton');
+        this.stopButtonClicked = false;  // Initialize to false
 
         this.stopButton.addEventListener('click', () =>  {
             this.stopButtonClicked = true;
+            console.log('Stop button clicked - search will stop');
         });
     }
 
     setValue(val, extratext, allowStop = false) {
+        // Don't reset stop button if it was already clicked
+        // The stopButtonClicked state persists until the progress bar is removed
+
         if (val == 'indeterminate') {
             this.shadowRoot.querySelector('.progress-text').innerHTML = `<div style="margin-top: 10px">${extratext}</div>`;
             this.shadowRoot.querySelector('.progress-fill').style.width = `10%`;
@@ -108,11 +113,25 @@ export function setProgressbarValue(val, extratext, allowStop) {
             document.documentElement.appendChild(progressbar);
         }
         progressbar.setValue(val, extratext, allowStop);
+        // Return the actual current state of the stop button
+        const state = progressbar?.stopButtonClicked || false;
+        return { stopButtonClicked: state };
     } else if (progressbar) {
+        const wasClicked = progressbar.stopButtonClicked;
         progressbar.remove();
         progressbar = null;
+        return { stopButtonClicked: wasClicked };
     }
-    return { stopButtonClicked: progressbar?.stopButtonClicked };
+    return { stopButtonClicked: false };
+}
+
+// Helper function to check if stop was clicked without updating progress
+export function isStopRequested() {
+    const stopped = progressbar?.stopButtonClicked || false;
+    if (stopped) {
+        console.log('isStopRequested: YES, stop was clicked');
+    }
+    return stopped;
 }
 
 export function isProgressBarVisible() {

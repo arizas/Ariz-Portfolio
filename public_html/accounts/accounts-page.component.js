@@ -1,5 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount } from '../storage/domainobjectstore.js';
+import { fetchTransactionsForAccount, fetchTransactionsUsingBalanceTracker, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
@@ -28,17 +28,27 @@ customElements.define('accounts-page',
                 setProgressbarValue(0);
                 try {
                     for (const account of this.getAccounts()) {
-                        const transactions = await fetchTransactionsForAccount(account);
-                        const stakingAccounts = await findStakingPoolsInTransactions(transactions);
-                        for (const stakingAccount of stakingAccounts) {
-                            await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
+                        setProgressbarValue(0.1, `Starting balance-based search for ${account}...`);
+
+                        // Use balance tracker for efficient transaction discovery
+                        const result = await fetchTransactionsUsingBalanceTracker(account);
+
+                        console.log(`Loaded ${result.newTransactionsCount} new transactions for ${account}`);
+                        console.log(`Loaded ${result.newFtTransactionsCount} new token transactions`);
+
+                        // Process staking pools if we found transactions
+                        if (result.transactions.length > 0) {
+                            const stakingAccounts = await findStakingPoolsInTransactions(result.transactions);
+                            for (const stakingAccount of stakingAccounts) {
+                                await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
+                            }
                         }
-                        await fetchFungibleTokenTransactionsForAccount(account);
                     }
                     setProgressbarValue(null);
                 } catch (e) {
                     setProgressbarValue(null);
                     modalAlert('Error fetching data', e.message);
+                    console.error('Error:', e);
                 }
 
                 this.dispatchChangeEvent();
