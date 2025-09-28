@@ -3,7 +3,6 @@ import { fixTransactionsWithoutBalance, getTransactionsToDate } from '../near/ac
 import { writeFile } from './gitstorage.js';
 import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
-import { trackBalanceChanges } from '../near/balance-tracker.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -117,35 +116,6 @@ async function makeAccountDataDirs(account) {
 export async function fetchTransactionsForAccount(account, max_timestamp = new Date().getTime() * 1_000_000) {
     let transactions = await getTransactionsForAccount(account);
     transactions = await getTransactionsToDate(account, max_timestamp, transactions);
-
-    await writeTransactions(account, transactions);
-    return transactions;
-}
-
-export async function fetchTransactionsUsingBalanceTracker(account, startDate, endDate) {
-    // Convert dates to block heights
-    const { getBlockHeightAtDate } = await import('../near/balance-tracker.js');
-
-    const startBlock = await getBlockHeightAtDate(startDate);
-    const endBlock = endDate > new Date() ?
-        await getBlockHeightAtDate(new Date()) :
-        await getBlockHeightAtDate(endDate);
-
-    // Use balance tracker to find exact blocks with balance changes
-    const balanceChanges = await trackBalanceChanges(account, startBlock, endBlock);
-
-    // For now, just return an empty array if no changes detected
-    // In a full implementation, you would fetch transactions from nearblocks
-    // for the specific blocks where changes occurred
-    const transactions = [];
-
-    if (balanceChanges.length > 0) {
-        console.log(`Found balance changes for ${account} at ${balanceChanges.length} blocks:`,
-            balanceChanges.map(c => `Block ${c.block}`));
-
-        // TODO: Fetch actual transactions for blocks with balance changes
-        // This would involve using nearblocks API or RPC to get transactions at specific blocks
-    }
 
     await writeTransactions(account, transactions);
     return transactions;

@@ -2,7 +2,7 @@ import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccountTransactionsMetaData, getAndCacheTransactions } from './fastnear.js';
 import { getFromNearBlocks } from './nearblocks.js';
 import { retry } from './retry.js';
-import { queryMultipleRPC, viewAccount as rpcViewAccount, getTransactionStatusWithReceipts as rpcGetTransactionStatusWithReceipts } from './rpc.js';
+import { queryMultipleRPC } from './rpc.js';
 import { getBlockInfo } from './stakingpool.js';
 
 const PIKESPEAKAI_API_LOCALSTORAGE_KEY = 'pikespeakai_api_key';
@@ -46,7 +46,25 @@ export async function getAccountChanges(block_id, account_ids) {
 }
 
 export async function viewAccount(block_id, account_id) {
-    return await rpcViewAccount(account_id, block_id);
+    const viewAccountQuery = async (rpcUrl) => await fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            "jsonrpc": "2.0",
+            "id": "dontcare",
+            "method": "query",
+            "params": {
+                "request_type": "view_account",
+                "account_id": account_id,
+                "block_id": block_id === 'final' ? undefined : block_id,
+                "finality": block_id === 'final' ? block_id : undefined
+            }
+        }
+        )
+    });
+    return (await queryMultipleRPC(viewAccountQuery)).result;
 }
 
 export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, page = 1) {
@@ -208,7 +226,24 @@ export async function getTransactionStatus(txhash, account_id) {
 }
 
 export async function getTransactionStatusWithReceipts(tx_hash, sender_account_id) {
-    return await rpcGetTransactionStatusWithReceipts(tx_hash, sender_account_id);
+    const createTransactionStatusWithReceiptsQuery = async (rpcUrl) => fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            "jsonrpc": "2.0",
+            "id": "dontcare",
+            "method": "tx",
+            "params": {
+                tx_hash,
+                sender_account_id,
+                "wait_until": "NONE"
+            }
+        }
+        )
+    });
+    return (await queryMultipleRPC(createTransactionStatusWithReceiptsQuery)).result;
 }
 
 
@@ -257,11 +292,7 @@ function findDeepestReceipt(transactionData) {
 export async function getAccountBalanceAfterTransaction(account_id, tx_hash) {
     const transaction = await getTransactionStatusWithReceipts(tx_hash, account_id);
     const finalReceipt = findDeepestReceipt(transaction);
-    const accountData = await viewAccount(finalReceipt.receipt.block_hash, account_id);
-    if (!accountData || accountData.error) {
-        throw new Error(`Failed to fetch account data for ${account_id}: ${accountData?.error || 'Account not found'}`);
-    }
-    const balance = accountData.amount;
+    const balance = (await viewAccount(finalReceipt.receipt.block_hash, account_id)).amount;
     return { transaction, balance };
 }
 
@@ -341,11 +372,7 @@ export async function getAccountBalanceAfterTransactionByTraversingBlocks(accoun
         }
     }
     if (!balance) {
-        const accountData = await viewAccount(blockdata.block.header.hash, account_id);
-        if (!accountData || accountData.error) {
-            throw new Error(`Failed to fetch account data for ${account_id}: ${accountData?.error || 'Account not found'}`);
-        }
-        balance = accountData.amount;
+        balance = (await viewAccount(blockdata.block.header.hash, account_id)).amount;
     }
 
     return { transaction: transactionInFirstBlock, balance, blockdata };

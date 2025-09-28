@@ -1,5 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount, fetchTransactionsUsingBalanceTracker } from '../storage/domainobjectstore.js';
+import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
@@ -44,35 +44,6 @@ customElements.define('accounts-page',
                 this.dispatchChangeEvent();
             });
 
-            this.shadowRoot.getElementById('loadwithbalancetrackerbutton').addEventListener('click', async () => {
-                setProgressbarValue(0);
-                try {
-                    const now = new Date();
-                    const yesterday = new Date(now);
-                    yesterday.setDate(yesterday.getDate() - 1);
-
-                    for (const account of this.getAccounts()) {
-                        setProgressbarValue(0.5, `${account} - Fetching today's data`);
-
-                        // Fetch transactions for the last day using balance tracker
-                        const transactions = await fetchTransactionsUsingBalanceTracker(account, yesterday, now);
-
-                        // Process staking and fungible tokens
-                        const stakingAccounts = await findStakingPoolsInTransactions(transactions);
-                        for (const stakingAccount of stakingAccounts) {
-                            await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
-                        }
-                        await fetchFungibleTokenTransactionsForAccount(account);
-                    }
-                    setProgressbarValue(null);
-                } catch (e) {
-                    setProgressbarValue(null);
-                    modalAlert('Error fetching data with balance tracker', e.message);
-                }
-
-                this.dispatchChangeEvent();
-            });
-
             this.shadowRoot.getElementById('fixtransactionswithoutbalancesbutton').addEventListener('click', async () => {
                 setProgressbarValue(0);
                 try {
@@ -86,7 +57,7 @@ customElements.define('accounts-page',
                 }
                 this.dispatchChangeEvent();
             });
-
+            
             if (await exists(accountsconfigfile)) {
                 this.setAccounts(await getAccounts());
             }
