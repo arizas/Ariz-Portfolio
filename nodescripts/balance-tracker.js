@@ -1,8 +1,8 @@
-import { NearRpcClient, viewFunctionAsJson, viewAccount as viewAccountRpc, status } from '@near-js/jsonrpc-client';
+import { NearRpcClient, viewFunctionAsJson, viewAccount as viewAccountRpc, status, block, chunk } from '@near-js/jsonrpc-client';
 
 // Configuration
 const RPC_URL = process.env.NEAR_RPC_URL || 'https://archival-rpc.mainnet.fastnear.com';
-const RPC_DELAY_MS = process.env.RPC_DELAY_MS ? parseInt(process.env.RPC_DELAY_MS) : 100;
+const RPC_DELAY_MS = process.env.RPC_DELAY_MS ? parseInt(process.env.RPC_DELAY_MS) : 10;
 
 // Cache for block heights at specific dates to reduce RPC calls
 const blockHeightCache = new Map();
@@ -434,8 +434,15 @@ export async function findLatestBalanceChangingBlock(accountId, firstBlock, last
     // Detect what changed
     const detectedChanges = detectBalanceChanges(startBalance, endBalance);
 
-    if (!detectedChanges.hasChanges || numBlocks === 1) {
+    if (!detectedChanges.hasChanges) {
         detectedChanges.block = firstBlock;
+        return detectedChanges;
+    }
+
+    if (numBlocks === 1) {
+        // Balance changed between firstBlock and lastBlock
+        // Return lastBlock as that's where the change occurred
+        detectedChanges.block = lastBlock;
         return detectedChanges;
     }
 
@@ -486,6 +493,144 @@ export async function findLatestBalanceChangingBlock(accountId, firstBlock, last
             changedIntentsTokens.length > 0 ? changedIntentsTokens : null,
             nearChanged  // Only check NEAR if it changed in outer call
         );
+    }
+}
+
+/**
+ * Finds the transaction that caused a balance change
+ * @param {string} accountId - Account to check
+ * @param {number} balanceChangeBlock - Block where balance changed (from findLatestBalanceChangingBlock)
+ * @param {number} maxBlocksBack - Maximum blocks to search backwards (default 10)
+ * @returns {Promise<Object>} Object with transaction details and the block it was found in
+ */
+export async function findBalanceChangingTransaction(accountId, balanceChangeBlock, maxBlocksBack = 10) {
+    const client = new NearRpcClient(RPC_URL);
+
+    // Search backwards from the balance change block to find the originating transaction
+    // Start from the balance change block itself (in case it's a single-block transaction)
+    for (let blockOffset = 0; blockOffset <= maxBlocksBack; blockOffset++) {
+        const searchBlock = balanceChangeBlock - blockOffset;
+        if (searchBlock < 0) break;
+
+        try {
+            // Get the block
+            const blockResult = await block(client, { blockId: searchBlock });
+
+            const relevantTransactions = [];
+
+            // Check all chunks in the block
+            for (const chunkHeader of blockResult.chunks) {
+                const chunkResult = await chunk(client, {
+                    blockId: blockResult.header.hash,
+                    chunkId: chunkHeader.chunkHash,
+                    shardId: chunkHeader.shardId
+                });
+
+                // Find transactions that involve the account
+                for (const tx of chunkResult.transactions) {
+                    // Check if transaction involves the account (as signer or receiver)
+                    if (tx.signerId === accountId || tx.receiverId === accountId) {
+                        relevantTransactions.push(tx);
+                    }
+
+                    // Also check for intents.near transactions that might affect the account
+                    if (tx.receiverId === 'intents.near') {
+                        // Check if the transaction contains the account in the intents payload
+                        for (const action of tx.actions) {
+                            if (action.FunctionCall && action.FunctionCall.methodName === 'execute_intents') {
+                                try {
+                                    // Decode the args to check if it involves our account
+                                    const decodedArgs = JSON.parse(Buffer.from(action.FunctionCall.args, 'base64').toString());
+                                    if (decodedArgs.signed) {
+                                        for (const signedIntent of decodedArgs.signed) {
+                                            if (signedIntent.payload && signedIntent.payload.message) {
+                                                const message = JSON.parse(signedIntent.payload.message);
+                                                if (message.signer_id === accountId) {
+                                                    relevantTransactions.push(tx);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (e) {
+                                    // If we can't decode, skip
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If we found transactions, return them with the block number
+            if (relevantTransactions.length > 0) {
+                return {
+                    transactions: relevantTransactions,
+                    transactionBlock: searchBlock,
+                    receiptBlock: balanceChangeBlock
+                };
+            }
+        } catch (error) {
+            console.error(`Error checking block ${searchBlock}:`, error.message);
+            // Continue searching in earlier blocks
+        }
+    }
+
+    // No transactions found
+    return {
+        transactions: [],
+        transactionBlock: null,
+        receiptBlock: balanceChangeBlock
+    };
+}
+
+/**
+ * Finds the latest transaction that changed the account's balance
+ * Combines findLatestBalanceChangingBlock and findBalanceChangingTransaction
+ * @param {string} accountId - Account to check
+ * @param {number} firstBlock - Start block height
+ * @param {number} lastBlock - End block height
+ * @param {string[]} tokenContracts - Optional list of token contracts to check
+ * @param {string[]} intentsTokens - Optional list of intents tokens to check
+ * @param {boolean} checkNear - Whether to check NEAR balance
+ * @returns {Promise<Object>} Object with balance change info and transactions
+ */
+export async function findLatestBalanceChangingTransaction(accountId, firstBlock, lastBlock, tokenContracts = undefined, intentsTokens = undefined, checkNear = true) {
+    // First find the block where the balance changed
+    const balanceChange = await findLatestBalanceChangingBlock(
+        accountId,
+        firstBlock,
+        lastBlock,
+        tokenContracts,
+        intentsTokens,
+        checkNear
+    );
+
+    if (!balanceChange || !balanceChange.hasChanges) {
+        return {
+            ...balanceChange,
+            transactions: [],
+            transactionBlock: null,
+            receiptBlock: balanceChange ? balanceChange.block : null
+        };
+    }
+
+    // Then find the transaction (searching backwards from the receipt block)
+    try {
+        const txResult = await findBalanceChangingTransaction(accountId, balanceChange.block);
+        return {
+            ...balanceChange,
+            receiptBlock: balanceChange.block,
+            ...txResult
+        };
+    } catch (error) {
+        console.error('Error finding transactions for balance change:', error);
+        return {
+            ...balanceChange,
+            transactions: [],
+            transactionBlock: null,
+            receiptBlock: balanceChange.block,
+            transactionError: error.message
+        };
     }
 }
 
