@@ -414,7 +414,7 @@ export function detectBalanceChanges(balance1, balance2) {
 }
 
 /**
- * Find the latest balance change transaction before a specified block
+ * Find the latest block where a balance change occurred
  * @param {string} accountId - Account to check
  * @param {number} firstBlock - Start block height (moving boundary)
  * @param {number} lastBlock - End block height (fixed)
@@ -423,9 +423,9 @@ export function detectBalanceChanges(balance1, balance2) {
  * @param {boolean} checkNear - Whether to check NEAR balance (for optimization)
  * @returns {Promise<Object|null>} Balance change object with exact block or null if no changes
  */
-export async function findLatestBalanceChangeTransaction(accountId, firstBlock, lastBlock, tokenContracts = undefined, intentsTokens = undefined, checkNear = true) {
+export async function findLatestBalanceChangingBlock(accountId, firstBlock, lastBlock, tokenContracts = undefined, intentsTokens = undefined, checkNear = true) {
     const numBlocks = lastBlock - firstBlock;
-    console.log("findLatestBalanceChangeTransaction", firstBlock, numBlocks, tokenContracts, intentsTokens, checkNear);
+    console.log("findLatestBalanceChangingBlock", firstBlock, numBlocks, tokenContracts, intentsTokens, checkNear);
 
     // Get balances at start and end blocks
     const startBalance = await getAllBalances(accountId, firstBlock, tokenContracts, intentsTokens, checkNear);
@@ -466,7 +466,7 @@ export async function findLatestBalanceChangeTransaction(accountId, firstBlock, 
 
     // Recursive call with only the tokens/balances that changed
     // If no tokens changed, pass null to skip checking
-    const lastHalfChanges = await findLatestBalanceChangeTransaction(
+    const lastHalfChanges = await findLatestBalanceChangingBlock(
         accountId,
         middleBlock,
         lastBlock,
@@ -478,7 +478,7 @@ export async function findLatestBalanceChangeTransaction(accountId, firstBlock, 
     if (lastHalfChanges.hasChanges) {
         return lastHalfChanges;
     } else {
-        return await findLatestBalanceChangeTransaction(
+        return await findLatestBalanceChangingBlock(
             accountId,
             firstBlock,
             middleBlock,
@@ -504,7 +504,7 @@ export async function findLatestBalanceChangeWithExpansion(accountId, startBlock
     let expansions = 0;
 
     while (expansions < maxExpansions && currentStart > 0) {
-        const change = await findLatestBalanceChangeTransaction(accountId, currentStart, currentEnd);
+        const change = await findLatestBalanceChangingBlock(accountId, currentStart, currentEnd);
 
         if (change.hasChanges) {
             // Include the search window size for reuse
@@ -541,7 +541,7 @@ export async function findBalanceChanges(accountId, startBlock, endBlock, tokenC
     let currentStart = startBlock;
 
     while (currentStart < endBlock) {
-        const change = await findLatestBalanceChangeTransaction(accountId, currentStart, endBlock, tokenContracts);
+        const change = await findLatestBalanceChangingBlock(accountId, currentStart, endBlock, tokenContracts);
 
         if (change) {
             changes.push(change);
