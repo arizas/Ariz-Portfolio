@@ -13,7 +13,11 @@ export default /*html*/ `
     </div>
     <div class="card-footer">
         <button id="addAccountButton" class="btn btn-primary">Add account</button>
-        <button type="button" class="btn btn-primary" id="loaddatabutton">load data</button>
+        <div class="d-inline-block ms-2">
+            <label for="startBlockInput" class="me-2">Load up to block:</label>
+            <input type="text" id="startBlockInput" class="form-control d-inline-block" style="width: 150px;" value="final" placeholder="final or block ID">
+        </div>
+        <button type="button" class="btn btn-primary ms-2" id="loaddatabutton">load data</button>
         <button type="button" class="btn btn-primary" id="fixtransactionswithoutbalancesbutton">correct transactions without balance</button>
     </div>
 </div>

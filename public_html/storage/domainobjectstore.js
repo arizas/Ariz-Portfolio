@@ -144,19 +144,53 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
     // Reset stop signal at the beginning
     setStopSignal(false);
 
-    if (!endDate) endDate = new Date();
-    if (!startDate) {
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - 1); // Default to last 24 hours
+    let startBlock, endBlock;
+
+    // Handle block ID input (can be 'final', a number, or a date)
+    if (typeof endDate === 'string' && (endDate === 'final' || !isNaN(parseInt(endDate)))) {
+        // endDate is actually a block ID
+        if (endDate === 'final') {
+            endBlock = await getBlockHeightAtDate(new Date()); // Get current block height
+            console.log(`Fetching transactions for ${account} using balance tracker`);
+            console.log(`To block: final (${endBlock})`);
+        } else {
+            endBlock = parseInt(endDate);
+            console.log(`Fetching transactions for ${account} using balance tracker`);
+            console.log(`To block: ${endBlock}`);
+        }
+
+        // For start, handle different input types
+        if (!startDate) {
+            // Default: 24 hours before the end block
+            startBlock = Math.max(0, endBlock - 86400); // 24 hours worth of blocks before endBlock
+            console.log(`From block: ${startBlock} (24 hours before block ${endBlock})`);
+        } else if (typeof startDate === 'number') {
+            // startDate is already adjusted to be after the receipt block
+            startBlock = startDate;
+            console.log(`From block: ${startBlock} (after last existing transaction receipt)`);
+        } else if (typeof startDate === 'string' && !isNaN(parseInt(startDate))) {
+            startBlock = parseInt(startDate);
+            console.log(`From block: ${startBlock}`);
+        } else if (startDate instanceof Date) {
+            startBlock = await getBlockHeightAtDate(startDate);
+            console.log(`From: ${startDate.toISOString()} (block ${startBlock})`);
+        }
+    } else {
+        // Traditional date-based input
+        if (!endDate) endDate = new Date();
+        if (!startDate) {
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - 1); // Default to last 24 hours
+        }
+
+        console.log(`Fetching transactions for ${account} using balance tracker`);
+        console.log(`From: ${startDate.toISOString()}`);
+        console.log(`To: ${endDate.toISOString()}`);
+
+        // Get block heights
+        startBlock = await getBlockHeightAtDate(startDate);
+        endBlock = await getBlockHeightAtDate(endDate);
     }
-
-    console.log(`Fetching transactions for ${account} using balance tracker`);
-    console.log(`From: ${startDate.toISOString()}`);
-    console.log(`To: ${endDate.toISOString()}`);
-
-    // Get block heights
-    const startBlock = await getBlockHeightAtDate(startDate);
-    const endBlock = await getBlockHeightAtDate(endDate);
 
     console.log(`Start block: ${startBlock}`);
     console.log(`End block: ${endBlock}`);
@@ -177,9 +211,8 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
     const newTransactions = [];
     const newFtTransactions = [];
 
-    // TEMPORARY: Only find one transaction for testing
-    const maxTransactionsToFind = 1;
-    let transactionsFound = 0;
+    // Track if we've reached existing transactions
+    let reachedExistingTransactions = false;
 
     while (currentEndBlock > startBlock && iteration < maxIterations) {
         iteration++;
@@ -218,9 +251,9 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
 
             if (!change.hasChanges) {
                 console.log(`No changes found in blocks ${currentStartBlock}-${currentEndBlock}, moving to earlier blocks`);
-                // If we only wanted one transaction and expansion didn't find it, stop
-                if (maxTransactionsToFind === 1 && transactionsFound === 0) {
-                    console.log('No transactions found in expanded search, stopping');
+                // If this was the first iteration and no changes found, stop
+                if (iteration === 1 && newTransactions.length === 0) {
+                    console.log('No transactions found in initial search, stopping');
                     break;
                 }
                 currentEndBlock = currentStartBlock - 1;
@@ -246,11 +279,11 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
             // Get the primary transaction
             const tx = txData.transactions[0];
 
-            // Skip if we already have this transaction
+            // Check if we already have this transaction
             if (existingHashes.has(tx.hash)) {
-                console.log(`Skipping duplicate transaction ${tx.hash}`);
-                currentEndBlock = (txData.transactionBlock || change.block) - 1;
-                continue;
+                console.log(`Found existing transaction ${tx.hash}, stopping search`);
+                reachedExistingTransactions = true;
+                break; // Stop searching as we've reached transactions we already have
             }
 
             // Get balance after this transaction
@@ -285,15 +318,8 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
 
             newTransactions.push(transaction);
             existingHashes.add(tx.hash);
-            transactionsFound++;
 
-            console.log(`Found transaction ${transactionsFound}/${maxTransactionsToFind}, stopping after ${maxTransactionsToFind}`);
-
-            // Stop after finding the desired number of transactions
-            if (transactionsFound >= maxTransactionsToFind) {
-                console.log('Reached transaction limit, stopping search');
-                break;
-            }
+            console.log(`Found new transaction ${tx.hash} at block ${transaction.block_height}`);
 
             // Process fungible token changes (including intents tokens)
             if (change.tokensChanged) {
@@ -374,6 +400,11 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
             // Move to before the transaction block for next search
             currentEndBlock = (txData.transactionBlock || change.block) - 1;
 
+            // Check if we should stop after this transaction
+            if (reachedExistingTransactions) {
+                break; // Break out of the main while loop
+            }
+
         } catch (error) {
             // Check if it's a rate limit error
             if (error instanceof RateLimitError || error.statusCode === 429 ||
@@ -407,14 +438,18 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
     await writeTransactions(account, allTransactions);
     await writeFungibleTokenTransactions(account, allFtTransactions);
 
-    // Check if we were stopped
-    const wasStopped = isStopRequested() || getStopSignal();
-
+    // Report results and reason for stopping
     console.log(`Found ${newTransactions.length} new NEAR transactions`);
     console.log(`Found ${newFtTransactions.length} new fungible token transactions`);
 
-    if (wasStopped) {
-        console.log('Search was stopped early');
+    if (reachedExistingTransactions) {
+        console.log('Search stopped: Reached existing transactions');
+    } else if (isStopRequested() || getStopSignal()) {
+        console.log('Search stopped: User requested');
+    } else if (iteration >= maxIterations) {
+        console.log('Search stopped: Maximum iterations reached');
+    } else {
+        console.log('Search completed: Reached start block');
     }
 
     setProgressbarValue(null);
@@ -423,7 +458,10 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
         transactions: allTransactions,
         ftTransactions: allFtTransactions,
         newTransactionsCount: newTransactions.length,
-        newFtTransactionsCount: newFtTransactions.length
+        newFtTransactionsCount: newFtTransactions.length,
+        stoppedReason: reachedExistingTransactions ? 'existing_transactions' :
+                       (isStopRequested() || getStopSignal()) ? 'user_stopped' :
+                       iteration >= maxIterations ? 'max_iterations' : 'completed'
     };
 }
 

@@ -39,56 +39,70 @@ export function getStopSignal() {
 
 // Helper to check for rate limit errors
 function checkRateLimitError(error) {
-    // Check various error formats
+    // In browser, we can't reliably detect 429 errors - they come as JsonRpcNetworkError
+    // So we treat any network error as potential rate limiting to be safe
+    if (error.name === 'JsonRpcNetworkError' ||
+        error.message?.includes('JsonRpcNetworkError') ||
+        error.message?.includes('Network request failed') ||
+        error.message?.includes('ERR_FAILED')) {
+        console.error('Network error detected (likely rate limit), stopping search:', error);
+        stopSignal = true; // Stop all further calls
+        throw new RateLimitError('Network error - stopping to prevent rate limiting');
+    }
+
+    // Still check for explicit 429s in case they come through
     if (error.statusCode === 429 ||
         error.code === 429 ||
         error.status === 429 ||
-        (error.message && (error.message.includes('429') || error.message.includes('Too Many Requests') || error.message.includes('ERR_FAILED'))) ||
+        (error.message && (error.message.includes('429') || error.message.includes('Too Many Requests'))) ||
         (error.cause && error.cause.status === 429) ||
         (error.cause && error.cause.code === 429)) {
-        console.error('Rate limit detected, throwing RateLimitError');
-        throw new RateLimitError();
-    }
-
-    // Also check if it's a network error that might be rate limiting
-    if (error.message && error.message.includes('ERR_FAILED') && error.message.includes('429')) {
-        console.error('Network 429 detected, throwing RateLimitError');
+        console.error('Rate limit detected, throwing RateLimitError', error);
+        stopSignal = true; // Also set stop signal to prevent further calls
         throw new RateLimitError();
     }
 }
 
 // Create client instance
 const client = new NearRpcClient(RPC_URL);
+client.retries = 0;
 
 // Wrapper for RPC calls to catch network-level 429s
 async function wrapRpcCall(rpcFunction, ...args) {
+    // Check stop signal before making the call
+    if (stopSignal) {
+        throw new Error('Operation cancelled - rate limit detected');
+    }
+
     try {
         const result = await rpcFunction(...args);
         return result;
     } catch (error) {
+        // In browser, JsonRpcNetworkError is what we get for network issues including 429
+        if (error.name === 'JsonRpcNetworkError' ||
+            JSON.stringify(error).includes('JsonRpcNetworkError')) {
+            console.error('JsonRpcNetworkError detected - stopping to prevent rate limiting:', error);
+            stopSignal = true; // Set stop signal
+            throw new RateLimitError('Network error - stopping to prevent rate limiting');
+        }
+
         // Check if error message contains ERR_FAILED which might be 429
         if (error.message && error.message.includes('ERR_FAILED')) {
             console.warn('Network error detected (possibly rate limit), stopping search');
-            // For now, treat all ERR_FAILED as potential rate limits
+            stopSignal = true; // Set stop signal
             throw new RateLimitError('Network error - possible rate limit');
         }
 
-        // Check if it's a 429 at any level
+        // Check if it's a 429 at any level (might still work in some environments)
         const errorStr = JSON.stringify(error);
         if (errorStr.includes('429') || errorStr.includes('Too Many Requests')) {
             console.error('Detected 429 in RPC response');
+            stopSignal = true; // Set stop signal
             throw new RateLimitError();
         }
 
-        // Check the response object if it exists
-        if (error.response && error.response.status === 429) {
-            throw new RateLimitError();
-        }
-
-        // Check for fetch errors that might indicate rate limiting
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            console.warn('Fetch error - might be rate limiting');
-        }
+        // Always check for other rate limit patterns
+        checkRateLimitError(error);
 
         throw error;
     }
