@@ -1,10 +1,10 @@
 // Balance tracker for efficient transaction discovery using binary search
 // Ported from nodescripts/balance-tracker.js for browser use
 
-import { NearRpcClient, viewFunctionAsJson, viewAccount as viewAccountRpc, status as statusRpc, block as blockRpc, chunk as chunkRpc } from '@near-js/jsonrpc-client';
+import { viewFunctionAsJson, viewAccount as viewAccountRpc, status as statusRpc, block as blockRpc, chunk as chunkRpc } from '@near-js/jsonrpc-client';
+import { getProxyClient } from './rpc.js';
 
 // Configuration
-const RPC_URL = 'https://archival-rpc.mainnet.fastnear.com';
 const RPC_DELAY_MS = 10;
 
 // Cache for block heights at specific dates to reduce RPC calls
@@ -63,19 +63,15 @@ function checkRateLimitError(error) {
     }
 }
 
-// Create client instance
-const client = new NearRpcClient(RPC_URL);
-client.retries = 0;
-
-// Wrapper for RPC calls to catch network-level 429s
-async function wrapRpcCall(rpcFunction, ...args) {
+// Wrapper for RPC calls to catch network-level 429s and use proxy client
+async function wrapRpcCall(rpcFunction, client, ...args) {
     // Check stop signal before making the call
     if (stopSignal) {
         throw new Error('Operation cancelled - rate limit detected');
     }
 
     try {
-        const result = await rpcFunction(...args);
+        const result = await rpcFunction(client, ...args);
         return result;
     } catch (error) {
         // In browser, JsonRpcNetworkError is what we get for network issues including 429
@@ -108,9 +104,9 @@ async function wrapRpcCall(rpcFunction, ...args) {
     }
 }
 
-// Get RPC client
-function getRpcClient() {
-    return client;
+// Get RPC client using proxy
+async function getRpcClient() {
+    return await getProxyClient();
 }
 
 /**
@@ -123,7 +119,7 @@ async function getCurrentBlockHeight() {
     }
 
     try {
-        const client = getRpcClient();
+        const client = await getRpcClient();
         const result = await wrapRpcCall(statusRpc, client);
 
         // The jsonrpc-client returns camelCase properties
@@ -169,7 +165,7 @@ export async function getBlockHeightAtDate(date) {
  * @param {number|string} blockId - Block height or 'final'
  */
 export async function viewAccount(accountId, blockId) {
-    const client = getRpcClient();
+    const client = await getRpcClient();
 
     const params = {
         accountId,
@@ -210,7 +206,7 @@ export async function viewAccount(accountId, blockId) {
  * @returns {Promise<Object>} Map of token contract to balance
  */
 async function getFungibleTokenBalances(accountId, blockId, tokenContracts = []) {
-    const client = getRpcClient();
+    const client = await getRpcClient();
     const balances = {};
 
     for (const token of tokenContracts) {
@@ -244,7 +240,7 @@ async function getFungibleTokenBalances(accountId, blockId, tokenContracts = [])
  * @returns {Promise<Object>} Map of token to balance
  */
 async function getIntentsBalances(accountId, blockId) {
-    const client = getRpcClient();
+    const client = await getRpcClient();
     const balances = {};
 
     if (stopSignal) {
@@ -377,7 +373,7 @@ export async function getAllBalances(accountId, blockId, tokenContracts = undefi
                     throw new Error('Operation cancelled by user');
                 }
 
-                const client = getRpcClient();
+                const client = await getRpcClient();
                 await delay(RPC_DELAY_MS);
                 const batchBalances = await wrapRpcCall(viewFunctionAsJson, client, {
                     accountId: 'intents.near',
@@ -426,9 +422,8 @@ function detectBalanceChanges(startBalance, endBalance) {
     const changes = {
         hasChanges: false,
         nearChanged: false,
-        nearDiff: 0n,
-        tokensChanged: null,
-        intentsChanged: null
+        tokensChanged: {},
+        intentsChanged: {}
     };
 
     // Check NEAR balance
@@ -438,6 +433,9 @@ function detectBalanceChanges(startBalance, endBalance) {
         changes.hasChanges = true;
         changes.nearChanged = true;
         changes.nearDiff = endNear - startNear;
+    } else {
+        // Don't include nearDiff if no change
+        delete changes.nearDiff;
     }
 
     // Check fungible tokens
@@ -451,7 +449,6 @@ function detectBalanceChanges(startBalance, endBalance) {
         const endAmount = BigInt(endBalance.fungibleTokens?.[token] || '0');
         if (startAmount !== endAmount) {
             changes.hasChanges = true;
-            if (!changes.tokensChanged) changes.tokensChanged = {};
             changes.tokensChanged[token] = {
                 start: startAmount.toString(),
                 end: endAmount.toString(),
@@ -471,7 +468,6 @@ function detectBalanceChanges(startBalance, endBalance) {
         const endAmount = BigInt(endBalance.intentsTokens?.[token] || '0');
         if (startAmount !== endAmount) {
             changes.hasChanges = true;
-            if (!changes.intentsChanged) changes.intentsChanged = {};
             changes.intentsChanged[token] = {
                 start: startAmount.toString(),
                 end: endAmount.toString(),
@@ -564,7 +560,7 @@ export async function findLatestBalanceChangingBlock(accountId, firstBlock, last
  * Searches backwards from receipt block to find originating transaction
  */
 export async function findBalanceChangingTransaction(accountId, balanceChangeBlock, maxBlocksBack = 10) {
-    const client = getRpcClient();
+    const client = await getRpcClient();
 
     // Search backwards from the balance change block
     for (let blockOffset = 0; blockOffset <= maxBlocksBack; blockOffset++) {
