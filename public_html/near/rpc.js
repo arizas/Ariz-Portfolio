@@ -5,7 +5,8 @@ import {
     viewAccount as nearViewAccount,
     tx,
     status,
-    viewFunction
+    viewFunction,
+    experimentalChanges
 } from '@near-js/jsonrpc-client';
 import { getAccessToken } from '../arizgateway/arizgatewayaccess.js';
 
@@ -83,6 +84,17 @@ export async function callViewFunction(contractId, methodName, args, blockId) {
     }
 
     return result;
+}
+
+// Get account changes (experimental)
+export async function getAccountChanges(blockId, accountIds) {
+    const client = await getProxyClient();
+    return await experimentalChanges(client, {
+        changesType: 'account_changes',
+        accountIds: accountIds,
+        finality: blockId === 'final' ? 'final' : undefined,
+        blockId: blockId === 'final' ? undefined : blockId
+    });
 }
 
 // Send transaction

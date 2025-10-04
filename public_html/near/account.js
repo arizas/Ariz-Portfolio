@@ -2,7 +2,7 @@ import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccountTransactionsMetaData, getAndCacheTransactions } from './fastnear.js';
 import { getFromNearBlocks } from './nearblocks.js';
 import { retry } from './retry.js';
-import { queryMultipleRPC } from './rpc.js';
+import { queryMultipleRPC, viewAccount as rpcViewAccount, getAccountChanges as rpcGetAccountChanges } from './rpc.js';
 import { getBlockInfo } from './stakingpool.js';
 
 const PIKESPEAKAI_API_LOCALSTORAGE_KEY = 'pikespeakai_api_key';
@@ -25,46 +25,11 @@ export function setTransactionDataApi(api_name) {
 }
 
 export async function getAccountChanges(block_id, account_ids) {
-    return (await fetch(getArchiveNodeUrl(), {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            "jsonrpc": "2.0",
-            "id": "dontcare",
-            "method": "EXPERIMENTAL_changes",
-            "params": {
-                "changes_type": "account_changes",
-                "account_ids": account_ids,
-                "block_id": block_id === 'final' ? undefined : block_id,
-                "finality": block_id === 'final' ? block_id : undefined
-            }
-        }
-        )
-    }).then(r => r.json())).result;
+    return await rpcGetAccountChanges(block_id, account_ids);
 }
 
 export async function viewAccount(block_id, account_id) {
-    const viewAccountQuery = async (rpcUrl) => await fetch(rpcUrl, {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            "jsonrpc": "2.0",
-            "id": "dontcare",
-            "method": "query",
-            "params": {
-                "request_type": "view_account",
-                "account_id": account_id,
-                "block_id": block_id === 'final' ? undefined : block_id,
-                "finality": block_id === 'final' ? block_id : undefined
-            }
-        }
-        )
-    });
-    return (await queryMultipleRPC(viewAccountQuery)).result;
+    return await rpcViewAccount(account_id, block_id);
 }
 
 export async function getPikespeakaiAccountHistory(account_id, maxentries = 50, page = 1) {
