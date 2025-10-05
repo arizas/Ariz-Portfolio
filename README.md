@@ -37,6 +37,12 @@ A must-have for modern single page web apps is bundling into compact javascript/
 
 ## Tests
 
-The tests (karma/jasmine) loads real NEAR account data for verification on some of my own use cases and calculation. This will be improved by storing the RPC responses so that each test run does not have to load data from RPC.
+The project uses two testing frameworks:
+
+- **Web Test Runner (WTR)** - For unit tests of individual modules and functions. Test files are located alongside the source files with a `.spec.js` extension (e.g., `balance-tracker.spec.js`). Run with `npm test`.
+
+- **Playwright** - For end-to-end (e2e) tests that test the full application flow in a browser. Test files are located in `playwright_tests/tests/`. Run with `npm run test:e2e`.
+
+The tests load real NEAR account data for verification on actual use cases and calculations. This will be improved by storing the RPC responses so that each test run does not have to load data from RPC.
 
 

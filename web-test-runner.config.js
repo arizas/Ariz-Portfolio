@@ -52,7 +52,7 @@ export default {
             globalThis.expect = expect;
             localStorage.setItem('pikespeakai_api_key','API_KEY');
             // Set test RPC endpoint from environment
-            window.TEST_RPC_ENDPOINT = '${process.env.TEST_RPC_ENDPOINT || 'https://rpc.mainnet.near.org'}';
+            window.TEST_RPC_ENDPOINT = '${process.env.TEST_RPC_ENDPOINT || 'https://archival-rpc.mainnet.fastnear.com'}';
         </script>        
         <script type="module" src="${testRunnerImport}"></script>
       </body>
