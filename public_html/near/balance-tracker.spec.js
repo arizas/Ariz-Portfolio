@@ -83,7 +83,7 @@ describe('Balance Tracker', function () {
 
         // The tx_hash comes from the receipt execution outcome
         const txHash = result?.transactionHashes?.[0] || result?.transactions?.[0]?.hash;
-        expect(txHash).to.not.be.undefined;
+        expect(txHash).to.equal('4AHtMX7uRSrbqnyk2QnKArpnmrRNYVFn5s8xN6uVPugt');
 
         console.log('Found transaction:', txHash);
     });
