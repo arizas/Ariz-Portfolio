@@ -1,7 +1,7 @@
 // Balance tracker for efficient transaction discovery using binary search
 // Ported from nodescripts/balance-tracker.js for browser use
 
-import { viewFunctionAsJson, viewAccount as viewAccountRpc, status as statusRpc, block as blockRpc, chunk as chunkRpc } from '@near-js/jsonrpc-client';
+import { viewFunctionAsJson, viewAccount as viewAccountRpc, status as statusRpc } from '@near-js/jsonrpc-client';
 import { getProxyClient } from './rpc.js';
 
 // Configuration
@@ -557,90 +557,110 @@ export async function findLatestBalanceChangingBlock(accountId, firstBlock, last
 
 /**
  * Find transaction that caused a balance change
- * Searches backwards from receipt block to find originating transaction
+ * Uses the neardata.xyz API to get block data with receipt execution outcomes
+ * @param {string} targetAccountId - The account whose balance changed
+ * @param {number} balanceChangeBlock - The block where the balance changed (receipt block)
  */
-export async function findBalanceChangingTransaction(accountId, balanceChangeBlock, maxBlocksBack = 10) {
-    const client = await getRpcClient();
+export async function findBalanceChangingTransaction(targetAccountId, balanceChangeBlock) {
+    if (stopSignal) {
+        throw new Error('Operation cancelled by user');
+    }
 
-    // Search backwards from the balance change block
-    for (let blockOffset = 0; blockOffset <= maxBlocksBack; blockOffset++) {
-        if (stopSignal) {
-            throw new Error('Operation cancelled by user');
+    try {
+        // Fetch block data from neardata.xyz API
+        const blockDataUrl = `https://a2.mainnet.neardata.xyz/v0/block/${balanceChangeBlock}`;
+        console.log(`Fetching block data from ${blockDataUrl}`);
+
+        const response = await fetch(blockDataUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch block data: ${response.status}`);
         }
 
-        const searchBlock = balanceChangeBlock - blockOffset;
-        if (searchBlock < 0) break;
+        const blockData = await response.json();
+        const blockTimestamp = blockData.block?.header?.timestamp;
 
-        try {
-            // Get the block
-            const blockResult = await wrapRpcCall(blockRpc, client, { blockId: searchBlock });
+        console.log(`Searching for receipts affecting ${targetAccountId} in block ${balanceChangeBlock}`);
 
-            const relevantTransactions = [];
-            const blockTimestamp = blockResult.header.timestamp;
+        const matchingTxHashes = new Set();
+        const transactions = [];
 
-            // Check all chunks in the block
-            for (const chunkHeader of blockResult.chunks) {
-                if (stopSignal) {
-                    throw new Error('Operation cancelled by user');
+        // Check all shards for receipt execution outcomes
+        for (const shard of blockData.shards || []) {
+            for (const receiptOutcome of shard.receipt_execution_outcomes || []) {
+                const receipt = receiptOutcome.receipt;
+                const executionOutcome = receiptOutcome.execution_outcome;
+                const txHash = receiptOutcome.tx_hash;
+
+                const receiverId = receipt.receiver_id;
+                const predecessorId = receipt.predecessor_id;
+                const logs = executionOutcome?.outcome?.logs || [];
+
+                let affectsTargetAccount = false;
+
+                // Check if receipt directly involves the target account
+                if (receiverId === targetAccountId || predecessorId === targetAccountId) {
+                    affectsTargetAccount = true;
                 }
 
-                const chunkResult = await wrapRpcCall(chunkRpc, client, {
-                    blockId: blockResult.header.hash,
-                    chunkId: chunkHeader.chunkHash,
-                    shardId: chunkHeader.shardId
-                });
-
-                // Find transactions that involve the account
-                for (const tx of chunkResult.transactions) {
-                    // Check if transaction involves the account
-                    if (tx.signerId === accountId || tx.receiverId === accountId) {
-                        relevantTransactions.push(tx);
-                    }
-
-                    // Check for intents.near transactions
-                    if (tx.receiverId === 'intents.near') {
-                        for (const action of tx.actions) {
-                            if (action.FunctionCall && action.FunctionCall.methodName === 'execute_intents') {
-                                try {
-                                    const decodedArgs = JSON.parse(atob(action.FunctionCall.args));
-                                    if (decodedArgs.signed) {
-                                        for (const signedIntent of decodedArgs.signed) {
-                                            if (signedIntent.payload && signedIntent.payload.message) {
-                                                const message = JSON.parse(signedIntent.payload.message);
-                                                if (message.signer_id === accountId) {
-                                                    relevantTransactions.push(tx);
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                } catch (e) {
-                                    // Skip if can't decode
+                // Check receipt logs for EVENT_JSON entries mentioning the account
+                if (!affectsTargetAccount) {
+                    for (const log of logs) {
+                        if (log.startsWith('EVENT_JSON:')) {
+                            try {
+                                const eventData = JSON.parse(log.substring('EVENT_JSON:'.length));
+                                const eventStr = JSON.stringify(eventData);
+                                if (eventStr.includes(targetAccountId)) {
+                                    affectsTargetAccount = true;
+                                    console.log('Found EVENT mentioning target account:', eventData);
+                                    break;
                                 }
+                            } catch (e) {
+                                // Skip invalid JSON
+                            }
+                        }
+                    }
+                }
+
+                if (affectsTargetAccount && txHash && !matchingTxHashes.has(txHash)) {
+                    console.log('Found receipt affecting target account:');
+                    console.log('  tx_hash:', txHash);
+                    console.log('  receiverId:', receiverId);
+                    console.log('  predecessorId:', predecessorId);
+                    console.log('  receiptId:', receipt.receipt_id);
+
+                    matchingTxHashes.add(txHash);
+
+                    // Find the transaction in the shards
+                    for (const txShard of blockData.shards || []) {
+                        for (const tx of txShard.chunk?.transactions || []) {
+                            if (tx.hash === txHash) {
+                                transactions.push(tx);
+                                break;
                             }
                         }
                     }
                 }
             }
-
-            // If we found transactions, return them with block info
-            if (relevantTransactions.length > 0) {
-                return {
-                    transactions: relevantTransactions,
-                    transactionBlock: searchBlock,
-                    receiptBlock: balanceChangeBlock,
-                    blockTimestamp: blockTimestamp
-                };
-            }
-        } catch (error) {
-            checkRateLimitError(error);
-            console.error(`Error checking block ${searchBlock}:`, error.message);
         }
+
+        if (transactions.length > 0 || matchingTxHashes.size > 0) {
+            return {
+                transactions: transactions,
+                transactionHashes: Array.from(matchingTxHashes),
+                transactionBlock: balanceChangeBlock, // May be in earlier block
+                receiptBlock: balanceChangeBlock,
+                blockTimestamp: blockTimestamp
+            };
+        }
+    } catch (error) {
+        console.error(`Error fetching block data from neardata.xyz:`, error.message);
+        // Don't check rate limit error since this is a different API
     }
 
     // No transactions found
     return {
         transactions: [],
+        transactionHashes: [],
         transactionBlock: null,
         receiptBlock: balanceChangeBlock,
         blockTimestamp: null
