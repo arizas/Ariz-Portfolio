@@ -87,4 +87,46 @@ describe('Balance Tracker', function () {
 
         console.log('Found transaction:', txHash);
     });
+
+    it.only('finds USDT fungible token transaction E5cSF9ESvGi41fxDzLDTPCwcz2RrFxXVoTSZKWEC5jpB', async function () {
+        const accountId = 'ariz-treasury.sputnik-dao.near';
+        const receiptBlock = 156307922; // Block where the receipt executed
+        const searchStartBlock = receiptBlock - 1000; // Start searching 1000 blocks before receipt
+        const endBlock = receiptBlock + 100; // Search from 100 blocks ahead
+
+        // Find the balance change by searching backwards from 100 blocks ahead
+        const balanceChange = await findLatestBalanceChangeWithExpansion(
+            accountId,
+            searchStartBlock,
+            endBlock
+        );
+
+        console.log('Balance change:', balanceChange);
+
+        // Verify we found the receipt block
+        expect(balanceChange.block).to.equal(receiptBlock);
+        expect(balanceChange.hasChanges).to.be.true;
+
+        // Verify the USDT token changed
+        expect(balanceChange.tokensChanged).to.have.property('usdt.tether-token.near');
+        const usdtChange = balanceChange.tokensChanged['usdt.tether-token.near'];
+        console.log('USDT change:', usdtChange);
+
+        // Verify it's a deposit of 995 USDT (995000000 with 6 decimals)
+        expect(usdtChange.diff).to.equal('995000000');
+
+        // Search for transaction
+        const result = await findBalanceChangingTransaction(
+            accountId,
+            balanceChange.block
+        );
+
+        console.log('Transaction result:', result);
+
+        // The tx_hash comes from the receipt execution outcome
+        const txHash = result?.transactionHashes?.[0] || result?.transactions?.[0]?.hash;
+        expect(txHash).to.equal('E5cSF9ESvGi41fxDzLDTPCwcz2RrFxXVoTSZKWEC5jpB');
+
+        console.log('Found transaction:', txHash);
+    });
 });

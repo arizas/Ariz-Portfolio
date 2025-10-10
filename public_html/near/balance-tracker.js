@@ -352,7 +352,8 @@ export async function getAllBalances(accountId, blockId, tokenContracts = undefi
         // Undefined means use default tokens
         const defaultTokens = [
             '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1', // USDC
-            'wrap.near' // wNEAR
+            'wrap.near', // wNEAR
+            'usdt.tether-token.near' // USDT
         ];
         console.log(`checking DEFAULT tokens at ${blockId}:`, defaultTokens);
         result.fungibleTokens = await getFungibleTokenBalances(accountId, blockId, defaultTokens);
