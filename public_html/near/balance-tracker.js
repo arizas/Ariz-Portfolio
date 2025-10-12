@@ -185,15 +185,30 @@ export async function viewAccount(accountId, blockId) {
         // Check for rate limit first
         checkRateLimitError(error);
 
-        // Handle server errors by retrying with a different block
+        // Check if account doesn't exist (gone before creation or after deletion)
+        if (error.message?.includes('does not exist') ||
+            error.cause?.name === 'UNKNOWN_ACCOUNT' ||
+            (error.message?.includes('Server error') && error.data?.includes('does not exist'))) {
+            // Return a balance of 0 to indicate account doesn't exist at this block
+            // This will be treated as "no balance" by the caller
+            console.log(`Account ${accountId} does not exist at block ${blockId}`);
+            return {
+                amount: '0',
+                block_height: blockId,
+                block_hash: '',
+                locked: '0',
+                code_hash: '11111111111111111111111111111111',
+                storage_usage: 0,
+                storage_paid_at: 0
+            };
+        }
+
+        // Handle other server errors by retrying with a different block
         if (error.message?.includes('Server error') && blockId !== 'final' && typeof blockId === 'number') {
             console.warn(`Server error at block ${blockId}, retrying with block ${blockId - 1}`);
             return await viewAccount(accountId, blockId - 1);
         }
-        // Re-throw with cleaner error message
-        if (error.message?.includes('does not exist')) {
-            throw new Error(`Account ${accountId} does not exist at block ${blockId}`);
-        }
+
         throw error;
     }
 }
