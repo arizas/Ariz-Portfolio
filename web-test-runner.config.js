@@ -74,7 +74,7 @@ export default {
               const cachedBody = archiveRpcCache[postdata];
               return await route.fulfill({ json: JSON.parse(cachedBody) });
             } else {
-              console.log("not in cache", request.url(), postdata);
+              console.log("not in cache", postdata);
               const response = await route.fetch();
               if (response.ok()) {
                 const body = await response.text();
@@ -83,6 +83,9 @@ export default {
                   if (!resultObj.error && storeInArchiveRpcCache) {
                     archiveRpcCache[postdata] = JSON.stringify(resultObj);
                     await writeFile(archiveRpcCacheURL, JSON.stringify(archiveRpcCache, null, 1));
+                    console.log("stored in cache", request.url(), postdata);
+                  } else if (resultObj.error) {
+                    console.log("error in result", resultObj.error);
                   }
                   return await route.fulfill({ body });                  
                 } catch (e) {
@@ -99,7 +102,13 @@ export default {
           }
         };
 
-        for (let rpc of rpcs) {
+        // Cache both production RPC and test RPC endpoints
+        const allRpcEndpoints = [
+          ...rpcs,
+          process.env.TEST_RPC_ENDPOINT || 'https://archival-rpc.mainnet.fastnear.com'
+        ];
+
+        for (let rpc of allRpcEndpoints) {
           console.log('setting up archival rpc route for', rpc);
           await ctx.route(rpc, archivalRpcCache);
         }
@@ -147,7 +156,7 @@ export default {
           await route.fulfill({ body });
         });
 
-        await ctx.route('https://mainnet.neardata.xyz/v0/block/*', async (route) => {
+        const handleNeardataRoute = async (route) => {
           const url = route.request().url();
           const pathParts = url.split('/');
           const block = pathParts[pathParts.length - 1];
@@ -166,7 +175,9 @@ export default {
             await writeFile(blockFile, body);
             await route.fulfill({ body });
           }
-        });
+        };
+        await ctx.route('https://mainnet.neardata.xyz/v0/block/*', handleNeardataRoute);
+        await ctx.route('https://a2.mainnet.neardata.xyz/v0/block/*', handleNeardataRoute);
         await mockWalletRequests(ctx);
         await ctx.route('https://dumptoconsole', async (route) => {
           console.log(route.request().postData());
