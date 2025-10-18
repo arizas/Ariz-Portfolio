@@ -7,6 +7,15 @@ test.describe('Balance-based Transaction Discovery', () => {
         // Set a longer timeout for this comprehensive test
         test.setTimeout(180000); // 3 minutes
 
+        // Capture console logs for debugging
+        page.on('console', msg => {
+            if (msg.type() === 'error') {
+                console.log('BROWSER ERROR:', msg.text());
+            } else if (msg.text().includes('Found') || msg.text().includes('Searching') || msg.text().includes('Error')) {
+                console.log('BROWSER:', msg.text());
+            }
+        });
+
         // Load RPC cache
         const archiveRpcCachePath = path.join(process.cwd(), 'testdata', 'archiverpccache.json');
         let archiveRpcCache = {};

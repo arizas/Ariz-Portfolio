@@ -229,8 +229,13 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
     let existingTransactions = await getTransactionsForAccount(account);
     let existingFtTransactions = await getAllFungibleTokenTransactions(account);
 
-    const existingHashes = new Set(existingTransactions.map(tx => tx.hash));
-    const existingFtHashes = new Set(existingFtTransactions.map(tx => tx.transaction_hash));
+    // Keep original hashes separate - only stop when we find these
+    const originalExistingHashes = new Set(existingTransactions.map(tx => tx.hash));
+    const originalExistingFtHashes = new Set(existingFtTransactions.map(tx => tx.transaction_hash));
+
+    // Track all hashes (original + newly found) to avoid duplicates within this search
+    const allHashes = new Set(originalExistingHashes);
+    const allFtHashes = new Set(originalExistingFtHashes);
 
     // Find balance changes incrementally
     let currentEndBlock = endBlock;
@@ -309,11 +314,18 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
             // Get the primary transaction (now fetched by balance tracker)
             const tx = txData.transactions[0];
 
-            // Check if we already have this transaction
-            if (existingHashes.has(tx.hash)) {
+            // Check if this transaction existed BEFORE we started this search
+            if (originalExistingHashes.has(tx.hash)) {
                 console.log(`Found existing transaction ${tx.hash}, stopping search`);
                 reachedExistingTransactions = true;
                 break; // Stop searching as we've reached transactions we already have
+            }
+
+            // Skip if we already found this transaction in THIS search session
+            if (allHashes.has(tx.hash)) {
+                console.log(`Already found transaction ${tx.hash} in this search, skipping duplicate`);
+                currentEndBlock = change.block - 1;
+                continue;
             }
 
             // Get balance after this transaction
@@ -347,7 +359,7 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
             }
 
             newTransactions.push(transaction);
-            existingHashes.add(tx.hash);
+            allHashes.add(tx.hash);
 
             console.log(`Found new transaction ${tx.hash} at block ${transaction.block_height}`);
 
@@ -378,9 +390,9 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
                         }
                     }
 
-                    if (!existingFtHashes.has(`${tx.hash}-${tokenContract}`)) {
+                    if (!allFtHashes.has(`${tx.hash}-${tokenContract}`)) {
                         newFtTransactions.push(ftTx);
-                        existingFtHashes.add(`${tx.hash}-${tokenContract}`);
+                        allFtHashes.add(`${tx.hash}-${tokenContract}`);
                     }
                 }
             }
@@ -415,9 +427,9 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
                         }
                     }
 
-                    if (!existingFtHashes.has(ftTx.transaction_hash)) {
+                    if (!allFtHashes.has(ftTx.transaction_hash)) {
                         newFtTransactions.push(ftTx);
-                        existingFtHashes.add(ftTx.transaction_hash);
+                        allFtHashes.add(ftTx.transaction_hash);
                     }
                 }
             }
