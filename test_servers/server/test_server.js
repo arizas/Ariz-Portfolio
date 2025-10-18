@@ -6,16 +6,17 @@ import { startServer as startGitServer } from './githttpserver.js';
 startGitServer();
 console.log('Git server listening on port 15000');
 
-// Start the HTTP server for dist folder
+// Start the HTTP server - use public_html for development, dist for CI
+const serverRoot = process.env.TEST_SERVER_ROOT || "dist";
 const appserver = httpServer.createServer({
-  root: path.join(process.cwd(), "dist"),
+  root: path.join(process.cwd(), serverRoot),
   cors: true,
   cache: -1,
   proxy: 'http://localhost:8081?'  // SPA support - serve index.html for all routes
 });
 
 appserver.listen(8081, () => {
-  console.log("App HTTP server serving dist/ on port 8081");
+  console.log(`App HTTP server serving ${serverRoot}/ on port 8081`);
 });
 
 // Verify servers are running

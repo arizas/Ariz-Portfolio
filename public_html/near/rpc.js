@@ -164,15 +164,14 @@ export async function queryMultipleRPC(query) {
     }
 }
 
-// Legacy function for transaction status
+// Get transaction status with receipts
 export async function getTransactionStatusWithReceipts(txHash, accountId) {
-    const query = {
-        jsonrpc: "2.0",
-        id: "1",
-        method: "tx",
-        params: [txHash, accountId]
-    };
-    return queryMultipleRPC(query);
+    const client = await getProxyClient();
+    return await tx(client, {
+        txHash,
+        senderAccountId: accountId,
+        waitUntil: 'NONE'
+    });
 }
 
 // Export status and other utilities

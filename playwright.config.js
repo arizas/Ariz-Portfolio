@@ -87,7 +87,11 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "yarn dist && yarn serve:test",
+    // In CI: build dist and serve from dist
+    // Locally: serve from public_html for easier debugging (no build step)
+    command: process.env.CI
+      ? "yarn dist && yarn serve:test"
+      : "TEST_SERVER_ROOT=public_html yarn serve:test",
     port: 8081,
     reuseExistingServer: !process.env.CI,
   },

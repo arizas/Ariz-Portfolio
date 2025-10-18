@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { findLatestBalanceChangeWithExpansion, getBlockHeightAtDate, findBalanceChangingTransaction } from './balance-tracker.js';
+// Use the browser version of balance-tracker for consistency
+import { findLatestBalanceChangeWithExpansion, getBlockHeightAtDate, findBalanceChangingTransaction, setStopSignal } from '../public_html/near/balance-tracker.js';
 import readline from 'readline';
 
 // Create readline interface for prompts
@@ -237,6 +238,13 @@ function getTokenName(tokenContract) {
     if (tokenContract === 'wrap.near') return 'wNEAR';
     return tokenContract;
 }
+
+// Handle Ctrl+C gracefully
+process.on('SIGINT', () => {
+    console.log('\n\nStopping search...');
+    setStopSignal(true);
+    setTimeout(() => process.exit(0), 100); // Give time for cleanup
+});
 
 // Run the main function
 findTransactionsInteractive().catch(error => {

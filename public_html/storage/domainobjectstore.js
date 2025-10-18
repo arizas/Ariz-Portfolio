@@ -161,9 +161,39 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
 
         // For start, handle different input types
         if (!startDate) {
-            // Default: 24 hours before the end block
-            startBlock = Math.max(0, endBlock - 86400); // 24 hours worth of blocks before endBlock
-            console.log(`From block: ${startBlock} (24 hours before block ${endBlock})`);
+            // Default: Fetch account creation block from NearBlocks API
+            console.log(`Fetching account creation block from NearBlocks API for ${account}...`);
+            try {
+                const accountInfoResponse = await fetch(`https://api.nearblocks.io/v1/account/${account}`);
+                const accountInfo = await accountInfoResponse.json();
+                const creationTxHash = accountInfo.account[0]?.created?.transaction_hash;
+
+                if (creationTxHash) {
+                    // Fetch the transaction to get the block height
+                    const txResponse = await fetch(`https://api.nearblocks.io/v1/txns/${creationTxHash}`);
+                    const txInfo = await txResponse.json();
+                    const creationBlock = txInfo.txns[0]?.block?.block_height;
+
+                    if (creationBlock) {
+                        // Start 100 blocks before account creation for safety
+                        startBlock = Math.max(9820210, creationBlock - 100);
+                        console.log(`From block: ${startBlock} (100 blocks before account creation at ${creationBlock})`);
+                    } else {
+                        // Fallback to genesis if we can't get creation block
+                        startBlock = 9820210; // Genesis block
+                        console.log(`From block: ${startBlock} (genesis - couldn't determine creation block)`);
+                    }
+                } else {
+                    // Fallback to genesis if account info not found
+                    startBlock = 9820210;
+                    console.log(`From block: ${startBlock} (genesis - account not found in NearBlocks)`);
+                }
+            } catch (error) {
+                console.warn('Error fetching account creation from NearBlocks:', error.message);
+                // Fallback to genesis on error
+                startBlock = 9820210;
+                console.log(`From block: ${startBlock} (genesis - NearBlocks API error)`);
+            }
         } else if (typeof startDate === 'number') {
             // startDate is already adjusted to be after the receipt block
             startBlock = startDate;
@@ -276,7 +306,7 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
                 continue;
             }
 
-            // Get the primary transaction
+            // Get the primary transaction (now fetched by balance tracker)
             const tx = txData.transactions[0];
 
             // Check if we already have this transaction

@@ -2,7 +2,7 @@
 // Ported from nodescripts/balance-tracker.js for browser use
 
 import { viewFunctionAsJson, viewAccount as viewAccountRpc, status as statusRpc } from '@near-js/jsonrpc-client';
-import { getProxyClient } from './rpc.js';
+import { getProxyClient, getTransactionStatusWithReceipts } from './rpc.js';
 
 // Configuration
 const RPC_DELAY_MS = 10;
@@ -660,8 +660,39 @@ export async function findBalanceChangingTransaction(targetAccountId, balanceCha
         }
 
         if (transactions.length > 0 || matchingTxHashes.size > 0) {
+            // Fetch full transaction details using RPC for each transaction hash
+            const fetchedTransactions = [];
+
+            for (const shard of blockData.shards || []) {
+                for (const receiptOutcome of shard.receipt_execution_outcomes || []) {
+                    const txHash = receiptOutcome.tx_hash;
+                    const receipt = receiptOutcome.receipt;
+
+                    if (matchingTxHashes.has(txHash) && receipt.receipt?.Action?.signer_id) {
+                        const signerId = receipt.receipt.Action.signer_id;
+
+                        try {
+                            console.log(`Fetching transaction ${txHash} with signer ${signerId}`);
+                            const txResult = await getTransactionStatusWithReceipts(txHash, signerId);
+
+                            if (txResult?.transaction) {
+                                const txInfo = txResult.transaction;
+                                fetchedTransactions.push({
+                                    hash: txHash,
+                                    signerId: txInfo.signerId,
+                                    receiverId: txInfo.receiverId,
+                                    actions: txInfo.actions || []
+                                });
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching transaction ${txHash}:`, error.message);
+                        }
+                    }
+                }
+            }
+
             return {
-                transactions: transactions,
+                transactions: fetchedTransactions.length > 0 ? fetchedTransactions : transactions,
                 transactionHashes: Array.from(matchingTxHashes),
                 transactionBlock: balanceChangeBlock, // May be in earlier block
                 receiptBlock: balanceChangeBlock,
