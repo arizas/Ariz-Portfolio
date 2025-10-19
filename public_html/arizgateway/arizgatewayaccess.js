@@ -11,7 +11,7 @@ const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
 
 
 const nearConfig = {
-    nodeUrl: 'https://rpc.mainnet.near.org',
+    nodeUrl: 'https://rpc.mainnet.fastnear.com',
     walletUrl: 'https://app.mynearwallet.com',
     networkId: 'mainnet',
     keyStore
@@ -47,11 +47,10 @@ export async function logout() {
 }
 
 export function isTokenValidForAccount(accountId, tokenPayload) {
-    return accountId == tokenPayload.accountId && tokenPayload.iat <= new Date().getTime() &&
-        tokenPayload.iat > (new Date().getTime() - TOKEN_EXPIRY_MILLIS)
+    return accountId == tokenPayload.accountId && tokenPayload.iat <= new Date().getTime();
 }
 
-export async function getAccessToken() {
+export async function getAccessToken(skipCreation = false) {
     const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
 
     if (storedAccessToken) {
@@ -67,17 +66,17 @@ export async function getAccessToken() {
         const registeredAccountIdForToken = await account.viewFunction({ contractId, methodName: 'get_account_id_for_token', args: { token_hash: Array.from(token_hash_bytes) } });
         if (isTokenValidForAccount(registeredAccountIdForToken, token_payload_obj)) {
             return storedAccessToken;
-        } else if (registeredAccountIdForToken === account.accountId) {
-            setProgressbarValue('indeterminate', 'Renewing Ariz gateway access token');
-            const renewedAccessToken = await createAccessToken(token_hash_bytes);
-            setProgressbarValue(null);
-            return renewedAccessToken;
         }
+    }
+
+    if (skipCreation) {
+        return null;
     }
 
     setProgressbarValue('indeterminate', 'Create Ariz gateway access token');
     await createAccessToken();
     setProgressbarValue(null);
+    return await getAccessToken(true); // Get the newly created token
 }
 
 export async function uint8ArrayToBase64(uint8Array) {
@@ -123,6 +122,36 @@ export async function createAccessTokenPayload() {
     return { token, tokenHash, signatureBytes, publicKeyBytes: keyPair.getPublicKey().data, walletConnection };
 }
 
+export async function renewAccessToken() {
+    const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+
+    if (!storedAccessToken) {
+        throw new Error('No access token found to renew');
+    }
+
+    const token_parts = storedAccessToken.split('.');
+    const token_payload = atob(token_parts[0], 'base64');
+    const token_payload_bytes = new TextEncoder().encode(token_payload);
+    const token_hash_bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", token_payload_bytes));
+
+    if (await modalYesNo('Renew access token', `
+        <p>Your Ariz Gateway access token has expired and needs to be renewed.</p>
+        <p>Do you want to renew the token now? This will only cost gas for the smart contract call.</p>
+    `)) {
+        setProgressbarValue('indeterminate', 'Renewing Ariz gateway access token');
+        try {
+            const renewedAccessToken = await createAccessToken(token_hash_bytes);
+            setProgressbarValue(null);
+            return renewedAccessToken;
+        } catch (e) {
+            setProgressbarValue(null);
+            throw e;
+        }
+    } else {
+        throw new Error('User declined to renew access token');
+    }
+}
+
 export async function createAccessToken(oldTokenHash) {
     const { token, tokenHash, signatureBytes, publicKeyBytes, walletConnection } = await createAccessTokenPayload();
 
@@ -153,6 +182,7 @@ export async function createAccessToken(oldTokenHash) {
             ) {
                 localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
             }
+            throw e;
         }
     } else {
         localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
@@ -171,11 +201,34 @@ export async function fetchFromArizGateway(path) {
         try {
             const arizGatewayAccessToken = await getAccessToken();
             setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
-            const result = await fetch(`${arizgatewayhost}${path}`, {
+            const response = await fetch(`${arizgatewayhost}${path}`, {
                 headers: {
                     "authorization": `Bearer ${arizGatewayAccessToken}`
                 }
-            }).then(r => r.json());
+            });
+
+            // Check for 401 Unauthorized
+            if (response.status === 401) {
+                setProgressbarValue(null);
+                console.warn('Received 401 Unauthorized from Ariz Gateway');
+
+                // Prompt user to renew token
+                const renewedToken = await renewAccessToken();
+
+                // Retry the request with renewed token
+                setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
+                const retryResponse = await fetch(`${arizgatewayhost}${path}`, {
+                    headers: {
+                        "authorization": `Bearer ${renewedToken}`
+                    }
+                });
+
+                const result = await retryResponse.json();
+                setProgressbarValue(null);
+                return result;
+            }
+
+            const result = await response.json();
             setProgressbarValue(null);
             return result;
         } catch(e) {

@@ -3,6 +3,7 @@
 
 import { viewFunctionAsJson, viewAccount as viewAccountRpc, status as statusRpc } from '@near-js/jsonrpc-client';
 import { getProxyClient, getTransactionStatusWithReceipts, invalidateProxyClient } from './rpc.js';
+import { renewAccessToken } from '../arizgateway/arizgatewayaccess.js';
 
 // Configuration
 const RPC_DELAY_MS = 10;
@@ -49,12 +50,7 @@ export function getStopSignal() {
 // Helper to check for auth and rate limit errors
 function checkRateLimitError(error) {
     // Check for 401 Unauthorized first - this needs token renewal, not a stop
-    if (error.statusCode === 401 ||
-        error.code === 401 ||
-        error.status === 401 ||
-        (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) ||
-        (error.cause && error.cause.status === 401) ||
-        (error.cause && error.cause.code === 401)) {
+    if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
         console.warn('Unauthorized (401) detected - access token needs renewal');
         throw new UnauthorizedError();
     }
@@ -71,12 +67,7 @@ function checkRateLimitError(error) {
     }
 
     // Still check for explicit 429s in case they come through
-    if (error.statusCode === 429 ||
-        error.code === 429 ||
-        error.status === 429 ||
-        (error.message && (error.message.includes('429') || error.message.includes('Too Many Requests'))) ||
-        (error.cause && error.cause.status === 429) ||
-        (error.cause && error.cause.code === 429)) {
+    if (error.message && (error.message.includes('429') || error.message.includes('Too Many Requests'))) {
         console.error('Rate limit detected, throwing RateLimitError', error);
         stopSignal = true; // Also set stop signal to prevent further calls
         throw new RateLimitError();
@@ -95,9 +86,10 @@ async function wrapRpcCall(rpcFunction, client, ...args) {
         return result;
     } catch (error) {
         // Check for 401 Unauthorized first - needs special handling
-        const errorStr = JSON.stringify(error);
-        if (errorStr.includes('401') || errorStr.includes('Unauthorized')) {
-            console.warn('Detected 401 Unauthorized - invalidating proxy client and retrying');
+        if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
+            console.warn('Detected 401 Unauthorized - prompting user to renew token');
+            // Prompt user to renew the access token
+            await renewAccessToken();
             // Invalidate the current proxy client so it gets recreated with fresh token
             invalidateProxyClient();
             // Get a new client with fresh access token
@@ -114,6 +106,7 @@ async function wrapRpcCall(rpcFunction, client, ...args) {
         }
 
         // In browser, JsonRpcNetworkError is what we get for network issues including 429
+        const errorStr = JSON.stringify(error);
         if (error.name === 'JsonRpcNetworkError' ||
             errorStr.includes('JsonRpcNetworkError')) {
             console.error('JsonRpcNetworkError detected - stopping to prevent rate limiting:', error);
