@@ -5,6 +5,7 @@ import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 import { getBlockHeightAtDate, findLatestBalanceChangeWithExpansion, findBalanceChangingTransaction, RateLimitError, setStopSignal, getStopSignal } from '../near/balance-tracker.js';
 import { setProgressbarValue, isStopRequested } from '../ui/progress-bar.js';
+import { callViewFunction } from '../near/rpc.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -16,6 +17,9 @@ export const customrealizationratesfile = 'realizations.json';
 export const pricedatadir = 'pricehistory';
 
 const allFungibleTokenSymbols = {};
+
+// Cache for token metadata (symbol, decimals, icon)
+const tokenMetadataCache = {};
 
 export async function getAllFungibleTokenSymbols() {
     const accounts = await getAccounts();
@@ -366,6 +370,9 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
             // Process fungible token changes (including intents tokens)
             if (change.tokensChanged) {
                 for (const [tokenContract, tokenInfo] of Object.entries(change.tokensChanged)) {
+                    // Fetch token metadata (will throw error if it fails)
+                    const metadata = await getTokenMetadata(tokenContract);
+
                     const ftTx = {
                         transaction_hash: tx.hash,
                         block_height: txData.transactionBlock || change.block,
@@ -373,10 +380,11 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
                         account_id: account,
                         delta_amount: tokenInfo.diff,
                         involved_account_id: tx.signerId === account ? tx.receiverId : tx.signerId,
+                        balance: tokenInfo.end, // Balance after transaction from balance tracker
                         ft: {
                             contract_id: tokenContract,
-                            symbol: getTokenSymbol(tokenContract),
-                            icon: null
+                            symbol: metadata.symbol,
+                            decimals: metadata.decimals
                         },
                         args: {} // Always include args field
                     };
@@ -403,6 +411,9 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
                     // Extract contract ID from token format (e.g., "nep141:wrap.near" -> "wrap.near")
                     const contractId = token.replace('nep141:', '');
 
+                    // Fetch token metadata (will throw error if it fails)
+                    const metadata = await getTokenMetadata(contractId);
+
                     const ftTx = {
                         transaction_hash: `${tx.hash}-intents-${contractId}`,
                         block_height: txData.transactionBlock || change.block,
@@ -410,10 +421,11 @@ export async function fetchTransactionsUsingBalanceTracker(account, startDate = 
                         account_id: account,
                         delta_amount: tokenInfo.diff,
                         involved_account_id: 'intents.near',
+                        balance: tokenInfo.end, // Balance after transaction from balance tracker
                         ft: {
                             contract_id: contractId,
-                            symbol: getTokenSymbol(contractId),
-                            icon: null
+                            symbol: metadata.symbol,
+                            decimals: metadata.decimals
                         },
                         args: {} // Always include args field
                     };
@@ -527,7 +539,31 @@ function detectActionKind(tx) {
     }
 }
 
-// Helper function to get token symbol
+// Helper function to get token metadata (symbol, decimals)
+async function getTokenMetadata(contractId) {
+    // Check cache first
+    if (tokenMetadataCache[contractId]) {
+        return tokenMetadataCache[contractId];
+    }
+
+    // Call ft_metadata on the token contract
+    const metadata = await callViewFunction(contractId, 'ft_metadata', {}, 'final');
+
+    if (!metadata || metadata.decimals === undefined) {
+        throw new Error(`Failed to fetch valid metadata for token contract ${contractId}. Missing decimals field.`);
+    }
+
+    const result = {
+        symbol: metadata.symbol,
+        decimals: metadata.decimals
+    };
+
+    // Cache the result
+    tokenMetadataCache[contractId] = result;
+    return result;
+}
+
+// Legacy helper function for backward compatibility
 function getTokenSymbol(contractId) {
     const symbols = {
         '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1': 'USDC',
