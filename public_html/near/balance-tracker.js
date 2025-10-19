@@ -2,7 +2,7 @@
 // Ported from nodescripts/balance-tracker.js for browser use
 
 import { viewFunctionAsJson, viewAccount as viewAccountRpc, status as statusRpc } from '@near-js/jsonrpc-client';
-import { getProxyClient, getTransactionStatusWithReceipts } from './rpc.js';
+import { getProxyClient, getTransactionStatusWithReceipts, invalidateProxyClient } from './rpc.js';
 
 // Configuration
 const RPC_DELAY_MS = 10;
@@ -26,6 +26,15 @@ export class RateLimitError extends Error {
     }
 }
 
+// Custom error class for unauthorized (401) - signals token renewal needed
+export class UnauthorizedError extends Error {
+    constructor(message = 'Unauthorized (401) - access token needs renewal') {
+        super(message);
+        this.name = 'UnauthorizedError';
+        this.statusCode = 401;
+    }
+}
+
 // Stop signal for cancellation
 let stopSignal = false;
 
@@ -37,8 +46,19 @@ export function getStopSignal() {
     return stopSignal;
 }
 
-// Helper to check for rate limit errors
+// Helper to check for auth and rate limit errors
 function checkRateLimitError(error) {
+    // Check for 401 Unauthorized first - this needs token renewal, not a stop
+    if (error.statusCode === 401 ||
+        error.code === 401 ||
+        error.status === 401 ||
+        (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) ||
+        (error.cause && error.cause.status === 401) ||
+        (error.cause && error.cause.code === 401)) {
+        console.warn('Unauthorized (401) detected - access token needs renewal');
+        throw new UnauthorizedError();
+    }
+
     // In browser, we can't reliably detect 429 errors - they come as JsonRpcNetworkError
     // So we treat any network error as potential rate limiting to be safe
     if (error.name === 'JsonRpcNetworkError' ||
@@ -63,7 +83,7 @@ function checkRateLimitError(error) {
     }
 }
 
-// Wrapper for RPC calls to catch network-level 429s and use proxy client
+// Wrapper for RPC calls to catch network-level 429s, handle 401s, and use proxy client
 async function wrapRpcCall(rpcFunction, client, ...args) {
     // Check stop signal before making the call
     if (stopSignal) {
@@ -74,9 +94,28 @@ async function wrapRpcCall(rpcFunction, client, ...args) {
         const result = await rpcFunction(client, ...args);
         return result;
     } catch (error) {
+        // Check for 401 Unauthorized first - needs special handling
+        const errorStr = JSON.stringify(error);
+        if (errorStr.includes('401') || errorStr.includes('Unauthorized')) {
+            console.warn('Detected 401 Unauthorized - invalidating proxy client and retrying');
+            // Invalidate the current proxy client so it gets recreated with fresh token
+            invalidateProxyClient();
+            // Get a new client with fresh access token
+            const newClient = await getProxyClient();
+            // Retry the call once with the new client
+            try {
+                const result = await rpcFunction(newClient, ...args);
+                return result;
+            } catch (retryError) {
+                // If it still fails, check if it's still a 401
+                checkRateLimitError(retryError);
+                throw retryError;
+            }
+        }
+
         // In browser, JsonRpcNetworkError is what we get for network issues including 429
         if (error.name === 'JsonRpcNetworkError' ||
-            JSON.stringify(error).includes('JsonRpcNetworkError')) {
+            errorStr.includes('JsonRpcNetworkError')) {
             console.error('JsonRpcNetworkError detected - stopping to prevent rate limiting:', error);
             stopSignal = true; // Set stop signal
             throw new RateLimitError('Network error - stopping to prevent rate limiting');
@@ -90,7 +129,6 @@ async function wrapRpcCall(rpcFunction, client, ...args) {
         }
 
         // Check if it's a 429 at any level (might still work in some environments)
-        const errorStr = JSON.stringify(error);
         if (errorStr.includes('429') || errorStr.includes('Too Many Requests')) {
             console.error('Detected 429 in RPC response');
             stopSignal = true; // Set stop signal

@@ -13,6 +13,12 @@ import { getAccessToken } from '../arizgateway/arizgatewayaccess.js';
 // Initialize RPC client with authorization
 let proxyClient = null;
 
+// Invalidate the proxy client (e.g., when access token expires)
+export function invalidateProxyClient() {
+    console.log('Invalidating proxy client - will be recreated with fresh access token');
+    proxyClient = null;
+}
+
 // Initialize or get the proxy client with current access token
 export async function getProxyClient() {
     if (!proxyClient) {
