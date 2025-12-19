@@ -1,5 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount } from '../storage/domainobjectstore.js';
+import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount, fetchTransactionsFromAccountingExport } from '../storage/domainobjectstore.js';
 import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
@@ -55,6 +55,26 @@ customElements.define('accounts-page',
                     setProgressbarValue(null);
                     modalAlert('Error fixing transactions without balance', e.message);
                 }
+                this.dispatchChangeEvent();
+            });
+
+            this.shadowRoot.getElementById('loadfromexportbutton').addEventListener('click', async () => {
+                try {
+                    for (const account of this.getAccounts()) {
+                        setProgressbarValue('indeterminate', `Downloading transaction history for ${account} from server...`);
+                        const result = await fetchTransactionsFromAccountingExport(account, { merge: true });
+
+                        console.log(`Loaded ${result.newTransactionsCount} NEAR transactions from server`);
+                        console.log(`Loaded ${result.newFtTransactionsCount} token transactions from server`);
+                        console.log(`Loaded staking data for ${result.stakingPools?.length || 0} pools from server`);
+                    }
+                    setProgressbarValue(null);
+                } catch (e) {
+                    setProgressbarValue(null);
+                    modalAlert('Error fetching from accounting export', e.message);
+                    console.error('Error:', e);
+                }
+
                 this.dispatchChangeEvent();
             });
             

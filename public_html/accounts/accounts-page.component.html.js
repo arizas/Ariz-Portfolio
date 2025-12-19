@@ -14,6 +14,7 @@ export default /*html*/ `
     <div class="card-footer">
         <button id="addAccountButton" class="btn btn-primary">Add account</button>
         <button type="button" class="btn btn-primary" id="loaddatabutton">load data</button>
+        <button type="button" class="btn btn-success ms-2" id="loadfromexportbutton" title="Download complete transaction history from server">load from server</button>
         <button type="button" class="btn btn-primary" id="fixtransactionswithoutbalancesbutton">correct transactions without balance</button>
     </div>
 </div>
