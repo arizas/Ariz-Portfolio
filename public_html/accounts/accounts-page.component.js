@@ -1,6 +1,5 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsForAccount, fetchStakingRewardsForAccountAndPool, fetchFungibleTokenTransactionsForAccount, fixTransactionsBalancesForAccount, fetchTransactionsFromAccountingExport } from '../storage/domainobjectstore.js';
-import { findStakingPoolsInTransactions } from '../near/stakingpool.js';
+import { fetchTransactionsFromAccountingExport } from '../storage/domainobjectstore.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domainobjectstore.js';
@@ -23,40 +22,6 @@ customElements.define('accounts-page',
                 await this.storeAccounts();
             }
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
-
-            this.shadowRoot.getElementById('loaddatabutton').addEventListener('click', async () => {
-                setProgressbarValue(0);
-                try {
-                    for (const account of this.getAccounts()) {
-                        const transactions = await fetchTransactionsForAccount(account);
-                        const stakingAccounts = await findStakingPoolsInTransactions(transactions);
-                        for (const stakingAccount of stakingAccounts) {
-                            await fetchStakingRewardsForAccountAndPool(account, stakingAccount);
-                        }
-                        await fetchFungibleTokenTransactionsForAccount(account);
-                    }
-                    setProgressbarValue(null);
-                } catch (e) {
-                    setProgressbarValue(null);
-                    modalAlert('Error fetching data', e.message);
-                }
-
-                this.dispatchChangeEvent();
-            });
-
-            this.shadowRoot.getElementById('fixtransactionswithoutbalancesbutton').addEventListener('click', async () => {
-                setProgressbarValue(0);
-                try {
-                    for (const account of this.getAccounts()) {
-                        await fixTransactionsBalancesForAccount(account);
-                    }
-                    setProgressbarValue(null);
-                } catch (e) {
-                    setProgressbarValue(null);
-                    modalAlert('Error fixing transactions without balance', e.message);
-                }
-                this.dispatchChangeEvent();
-            });
 
             this.shadowRoot.getElementById('loadfromexportbutton').addEventListener('click', async () => {
                 try {
