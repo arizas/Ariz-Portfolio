@@ -142,6 +142,7 @@ describe('accounting-export integration', function () {
                     'nep141:wrap.near': '800000000000000000000000',
                     'nep141:eth.omft.near': '15000000000000000', // Was 5000... in old data, 10000 deposited June 16, then July 23 += 5000
                 },
+                fungibleTokens: {}, // No ARIZ yet (received Oct 16, 2025)
                 stakingPools: null, // Staking started 2025-08-24
             },
             '2025-09-01': {
@@ -151,6 +152,7 @@ describe('accounting-export integration', function () {
                     'nep141:eth.omft.near': '15000000000000000', // Still 15000... from July 23, next change Sept 5
                     'nep141:btc.omft.near': '477858',
                 },
+                fungibleTokens: {}, // No ARIZ yet (received Oct 16, 2025)
                 stakingPools: {
                     'astro-stakers.poolv1.near': '1001874328671208459830101360', // ~1001.87 NEAR
                 },
@@ -162,6 +164,7 @@ describe('accounting-export integration', function () {
                     'nep141:eth.omft.near': '35015088429776132',
                     'nep141:btc.omft.near': '544253',
                 },
+                fungibleTokens: {}, // No ARIZ yet (received Oct 16, 2025, this is Oct 1)
                 stakingPools: {
                     'astro-stakers.poolv1.near': '1010065916953990921991392585', // ~1010.07 NEAR
                 },
@@ -181,6 +184,10 @@ describe('accounting-export integration', function () {
                     'nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near': '22543646',
                     'nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near': '9999980',
                     'nep245:v2_1.omni.hot.tg:43114_11111111111111111111': '1514765442315238852',
+                },
+                // ARIZ: 3M received Oct 16, -400K Dec 15, -100K Dec 24 = 2.5M
+                fungibleTokens: {
+                    'arizcredits.near': '2500000',
                 },
                 stakingPools: {
                     'astro-stakers.poolv1.near': '1026465729513509931106759271', // ~1026.47 NEAR
@@ -204,6 +211,14 @@ describe('accounting-export integration', function () {
                 ).to.equal(amount);
             }
             
+            // Check fungible tokens (e.g., ARIZ)
+            for (const [token, amount] of Object.entries(expected.fungibleTokens || {})) {
+                expect(
+                    reconstructed.fungibleTokens[token],
+                    `${dateStr}: fungibleTokens[${token}]`
+                ).to.equal(amount);
+            }
+            
             // Check staking
             if (expected.stakingPools === null) {
                 expect(Object.keys(reconstructed.stakingPools).length, `${dateStr}: should have no staking`).to.equal(0);
@@ -216,7 +231,8 @@ describe('accounting-export integration', function () {
                 }
             }
             
-            console.log(`${dateStr}: NEAR=${expected.near}, IntentsCount=${Object.keys(reconstructed.intentsTokens).length}, Staking=${expected.stakingPools ? Object.values(expected.stakingPools)[0] : 'none'}`);
+            const ftCount = Object.keys(reconstructed.fungibleTokens).length;
+            console.log(`${dateStr}: NEAR=${expected.near}, IntentsCount=${Object.keys(reconstructed.intentsTokens).length}, FT=${ftCount}, Staking=${expected.stakingPools ? Object.values(expected.stakingPools)[0] : 'none'}`);
         }
     });
 
@@ -270,10 +286,8 @@ describe('accounting-export integration', function () {
         console.log('ARIZ transfers found:', arizTransfers.length);
         console.log('Expected ARIZ balance from transfers:', expectedArizBalance);
         
-        // NOTE: Currently fungibleTokens balances are NOT populated in sparse data
-        // This is a known gap - the server extracts ft transfers but doesn't query
-        // ft_balance_of for those tokens. When this is fixed, we should add:
-        // const reconstructed = reconstructBalancesAtTimestamp(jsonData.transactions, new Date('2026-01-01').getTime() * 1_000_000);
-        // expect(reconstructed.fungibleTokens['arizcredits.near']).to.equal('2500000');
+        // Verify the reconstructed balance matches transfer calculation
+        const reconstructed = reconstructBalancesAtTimestamp(jsonData.transactions, new Date('2026-01-01').getTime() * 1_000_000);
+        expect(reconstructed.fungibleTokens['arizcredits.near']).to.equal('2500000');
     });
 });
