@@ -1656,8 +1656,8 @@
     }
   ],
   "stakingPools": {
-    "astro-stakers.poolv1.near": 433
+    "astro-stakers.poolv1.near": 436
   },
-  "rawEntriesCount": 634,
-  "entriesWithStakingPools": 434
+  "rawEntriesCount": 637,
+  "entriesWithStakingPools": 437
 }

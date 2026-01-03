@@ -219,4 +219,61 @@ describe('accounting-export integration', function () {
             console.log(`${dateStr}: NEAR=${expected.near}, IntentsCount=${Object.keys(reconstructed.intentsTokens).length}, Staking=${expected.stakingPools ? Object.values(expected.stakingPools)[0] : 'none'}`);
         }
     });
+
+    it('should track fungible token (ARIZ) transfers correctly', function () {
+        // ARIZ token transfers timeline:
+        // - Oct 16, 2025 (block 168568481): +3,000,000 (received from arizcredits.near)
+        // - Dec 15, 2025 (block 176950912): -400,000 (sent to bulkpayment.near)
+        // - Dec 24, 2025 (block 178148635): -100,000 (sent to arizcredits.near)
+        // Expected final balance: 2,500,000 ARIZ
+        
+        // Find all FT transfers
+        const ftTransfers = [];
+        for (const tx of jsonData.transactions) {
+            for (const transfer of tx.transfers || []) {
+                if (transfer.type === 'ft') {
+                    ftTransfers.push({
+                        block: tx.block,
+                        timestamp: tx.timestamp,
+                        direction: transfer.direction,
+                        amount: transfer.amount,
+                        tokenId: transfer.tokenId,
+                        counterparty: transfer.counterparty
+                    });
+                }
+            }
+        }
+        
+        // Verify we found all 3 ARIZ transfers
+        expect(ftTransfers.length).to.equal(3);
+        
+        const arizTransfers = ftTransfers.filter(t => t.tokenId === 'arizcredits.near');
+        expect(arizTransfers.length).to.equal(3);
+        
+        // Verify transfer amounts and directions
+        const arizIn = arizTransfers.filter(t => t.direction === 'in');
+        const arizOut = arizTransfers.filter(t => t.direction === 'out');
+        
+        expect(arizIn.length).to.equal(1);
+        expect(arizOut.length).to.equal(2);
+        
+        expect(arizIn[0].amount).to.equal('3000000'); // +3M ARIZ
+        expect(arizOut.map(t => t.amount).sort()).to.deep.equal(['100000', '400000']); // -400K and -100K
+        
+        // Calculate expected balance from transfers
+        const totalIn = arizIn.reduce((sum, t) => sum + BigInt(t.amount), 0n);
+        const totalOut = arizOut.reduce((sum, t) => sum + BigInt(t.amount), 0n);
+        const expectedArizBalance = (totalIn - totalOut).toString();
+        
+        expect(expectedArizBalance).to.equal('2500000'); // 3M - 400K - 100K = 2.5M ARIZ
+        
+        console.log('ARIZ transfers found:', arizTransfers.length);
+        console.log('Expected ARIZ balance from transfers:', expectedArizBalance);
+        
+        // NOTE: Currently fungibleTokens balances are NOT populated in sparse data
+        // This is a known gap - the server extracts ft transfers but doesn't query
+        // ft_balance_of for those tokens. When this is fixed, we should add:
+        // const reconstructed = reconstructBalancesAtTimestamp(jsonData.transactions, new Date('2026-01-01').getTime() * 1_000_000);
+        // expect(reconstructed.fungibleTokens['arizcredits.near']).to.equal('2500000');
+    });
 });

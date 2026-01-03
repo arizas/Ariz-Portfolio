@@ -1,7 +1,7 @@
 {
   "accountId": "webassemblymusic-treasury.sputnik-dao.near",
   "createdAt": "2026-01-03T13:31:49.866Z",
-  "updatedAt": "2026-01-03T14:37:23.545Z",
+  "updatedAt": "2026-01-03T18:07:02.558Z",
   "transactions": [
     {
       "block": 148439687,
@@ -19378,20 +19378,30 @@
       ],
       "balanceBefore": {
         "near": "27006097228965446399999978",
-        "fungibleTokens": {},
+        "fungibleTokens": {
+          "arizcredits.near": "0"
+        },
         "intentsTokens": {},
         "stakingPools": {}
       },
       "balanceAfter": {
         "near": "26506178251711684599999978",
-        "fungibleTokens": {},
+        "fungibleTokens": {
+          "arizcredits.near": "3000000"
+        },
         "intentsTokens": {},
         "stakingPools": {}
       },
       "changes": {
         "nearChanged": true,
         "nearDiff": "-499918977253761800000000",
-        "tokensChanged": {},
+        "tokensChanged": {
+          "arizcredits.near": {
+            "start": "0",
+            "end": "3000000",
+            "diff": "3000000"
+          }
+        },
         "intentsChanged": {}
       }
     },
@@ -30191,20 +30201,30 @@
       ],
       "balanceBefore": {
         "near": "26570255713106331999999977",
-        "fungibleTokens": {},
+        "fungibleTokens": {
+          "arizcredits.near": "3000000"
+        },
         "intentsTokens": {},
         "stakingPools": {}
       },
       "balanceAfter": {
         "near": "26445338627379869499999976",
-        "fungibleTokens": {},
+        "fungibleTokens": {
+          "arizcredits.near": "2600000"
+        },
         "intentsTokens": {},
         "stakingPools": {}
       },
       "changes": {
         "nearChanged": true,
         "nearDiff": "-124917085726462500000001",
-        "tokensChanged": {},
+        "tokensChanged": {
+          "arizcredits.near": {
+            "start": "3000000",
+            "end": "2600000",
+            "diff": "-400000"
+          }
+        },
         "intentsChanged": {}
       }
     },
@@ -31816,20 +31836,30 @@
       ],
       "balanceBefore": {
         "near": "26669294970221347299999976",
-        "fungibleTokens": {},
+        "fungibleTokens": {
+          "arizcredits.near": "2600000"
+        },
         "intentsTokens": {},
         "stakingPools": {}
       },
       "balanceAfter": {
         "near": "26669369671395456899999975",
-        "fungibleTokens": {},
+        "fungibleTokens": {
+          "arizcredits.near": "2500000"
+        },
         "intentsTokens": {},
         "stakingPools": {}
       },
       "changes": {
         "nearChanged": true,
         "nearDiff": "74701174109599999999",
-        "tokensChanged": {},
+        "tokensChanged": {
+          "arizcredits.near": {
+            "start": "2600000",
+            "end": "2500000",
+            "diff": "-100000"
+          }
+        },
         "intentsChanged": {}
       }
     },
@@ -33559,12 +33589,147 @@
           }
         }
       }
+    },
+    {
+      "block": 179582400,
+      "transactionBlock": null,
+      "timestamp": 1767460214779272400,
+      "transactionHashes": [],
+      "transactions": [],
+      "transfers": [
+        {
+          "type": "staking_reward",
+          "direction": "in",
+          "amount": "1026836006149670122259131124",
+          "counterparty": "astro-stakers.poolv1.near",
+          "tokenId": "astro-stakers.poolv1.near",
+          "memo": "staking_reward"
+        }
+      ],
+      "balanceBefore": {
+        "near": "0",
+        "fungibleTokens": {},
+        "intentsTokens": {},
+        "stakingPools": {
+          "astro-stakers.poolv1.near": "1026836006149670122259131124"
+        }
+      },
+      "balanceAfter": {
+        "near": "0",
+        "fungibleTokens": {},
+        "intentsTokens": {},
+        "stakingPools": {
+          "astro-stakers.poolv1.near": "1026836006149670122259131124"
+        }
+      },
+      "changes": {
+        "nearChanged": false,
+        "tokensChanged": {},
+        "intentsChanged": {},
+        "stakingChanged": {
+          "astro-stakers.poolv1.near": {
+            "start": "0",
+            "end": "1026836006149670122259131124",
+            "diff": "1026836006149670122259131124"
+          }
+        }
+      }
+    },
+    {
+      "block": 179586339,
+      "transactionBlock": null,
+      "timestamp": 1767462638263230700,
+      "transactionHashes": [],
+      "transactions": [],
+      "transfers": [
+        {
+          "type": "staking_reward",
+          "direction": "in",
+          "amount": "1026836006149670122259131124",
+          "counterparty": "astro-stakers.poolv1.near",
+          "tokenId": "astro-stakers.poolv1.near",
+          "memo": "staking_reward"
+        }
+      ],
+      "balanceBefore": {
+        "near": "0",
+        "fungibleTokens": {},
+        "intentsTokens": {},
+        "stakingPools": {
+          "astro-stakers.poolv1.near": "1026836006149670122259131124"
+        }
+      },
+      "balanceAfter": {
+        "near": "0",
+        "fungibleTokens": {},
+        "intentsTokens": {},
+        "stakingPools": {
+          "astro-stakers.poolv1.near": "1026836006149670122259131124"
+        }
+      },
+      "changes": {
+        "nearChanged": false,
+        "tokensChanged": {},
+        "intentsChanged": {},
+        "stakingChanged": {
+          "astro-stakers.poolv1.near": {
+            "start": "0",
+            "end": "1026836006149670122259131124",
+            "diff": "1026836006149670122259131124"
+          }
+        }
+      }
+    },
+    {
+      "block": 179587921,
+      "transactionBlock": null,
+      "timestamp": 1767463618375698200,
+      "transactionHashes": [],
+      "transactions": [],
+      "transfers": [
+        {
+          "type": "staking_reward",
+          "direction": "in",
+          "amount": "1026836006149670122259131124",
+          "counterparty": "astro-stakers.poolv1.near",
+          "tokenId": "astro-stakers.poolv1.near",
+          "memo": "staking_reward"
+        }
+      ],
+      "balanceBefore": {
+        "near": "0",
+        "fungibleTokens": {},
+        "intentsTokens": {},
+        "stakingPools": {
+          "astro-stakers.poolv1.near": "1026836006149670122259131124"
+        }
+      },
+      "balanceAfter": {
+        "near": "0",
+        "fungibleTokens": {},
+        "intentsTokens": {},
+        "stakingPools": {
+          "astro-stakers.poolv1.near": "1026836006149670122259131124"
+        }
+      },
+      "changes": {
+        "nearChanged": false,
+        "tokensChanged": {},
+        "intentsChanged": {},
+        "stakingChanged": {
+          "astro-stakers.poolv1.near": {
+            "start": "0",
+            "end": "1026836006149670122259131124",
+            "diff": "1026836006149670122259131124"
+          }
+        }
+      }
     }
   ],
   "metadata": {
     "firstBlock": 148439687,
-    "lastBlock": 179567214,
-    "totalTransactions": 634,
+    "lastBlock": 179586339,
+    "totalTransactions": 637,
     "historyComplete": true
   },
   "stakingPools": [
