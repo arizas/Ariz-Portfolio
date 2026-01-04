@@ -32,9 +32,9 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
         if (fungibleTokenSymbol && transactions.length > 0) {
             const tx = transactions[0];
-            if (!fungibleTokenData[tx.ft.symbol]) {
-                fungibleTokenData[tx.ft.symbol] = tx.ft;
-                fungibleTokenData[tx.ft.symbol].decimalConversionValue = Math.pow(10, -fungibleTokenData[tx.ft.symbol].decimals);
+            if (!fungibleTokenData[tx.ft.contract_id]) {
+                fungibleTokenData[tx.ft.contract_id] = tx.ft;
+                fungibleTokenData[tx.ft.contract_id].decimalConversionValue = Math.pow(10, -fungibleTokenData[tx.ft.contract_id].decimals);
             }
         }
         for (let n = 0; n < transactions.length; n++) {

@@ -181,6 +181,7 @@ function convertToFungibleTokenTransaction(transfer, entry, accountId, tokenMeta
 /**
  * Get token symbol from contract ID (supports both regular FTs and intents tokens)
  * Uses cached metadata from intents API when available
+ * Returns raw symbol - use getDisplaySymbol() to add NEAR Intents prefix for display
  */
 function getTokenSymbol(contractId, tokenMetadata) {
     // Check intents token cache first (with original ID including prefix)

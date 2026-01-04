@@ -1,6 +1,7 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
-import { getAllFungibleTokenSymbols } from '../storage/domainobjectstore.js';
+import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
+import { resolveDisplaySymbol } from '../near/intents-tokens.js';
 import { renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
 
 customElements.define('year-report-page',
@@ -53,12 +54,15 @@ customElements.define('year-report-page',
             });
 
             const tokenselect = this.shadowRoot.querySelector('#tokenselect');
-            (await getAllFungibleTokenSymbols()).forEach(symbol => {
+            const tokenEntries = await getAllFungibleTokenEntries();
+            for (const entry of tokenEntries) {
                 const symboloption = document.createElement('option');
-                symboloption.value = symbol;
-                symboloption.text = symbol;
+                // Use contract_id as value to ensure uniqueness
+                symboloption.value = entry.contractId;
+                // Display with network info for intents tokens
+                symboloption.text = await resolveDisplaySymbol(entry.contractId, entry.symbol);
                 tokenselect.appendChild(symboloption);
-            });
+            }
 
             const currencyselect = this.shadowRoot.querySelector('#currencyselect');
             (await getCurrencyList()).forEach(currency => {
