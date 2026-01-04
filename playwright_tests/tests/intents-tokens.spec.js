@@ -152,7 +152,42 @@ test('Intents tokens in year report - full flow', async ({ page }) => {
     expect(rowCount).toBeGreaterThan(0);
   }
   
-  // === SCENARIO 5: Select ETH token and verify ===
+  // === SCENARIO 5: Select USDC (NEAR native) and verify year-end balance ===
+  let usdcNearOptionValue = null;
+  for (let i = 0; i < optionCount; i++) {
+    const value = await allOptions.nth(i).getAttribute('value');
+    // USDC (NEAR native) has contract_id: nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1
+    if (value && value.includes('17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1')) {
+      const text = await allOptions.nth(i).textContent();
+      usdcNearOptionValue = value;
+      console.log(`Found USDC (NEAR) option: "${text}" with value: ${usdcNearOptionValue}`);
+      break;
+    }
+  }
+
+  if (usdcNearOptionValue) {
+    await tokenSelect.selectOption(usdcNearOptionValue);
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: 'test-results/07-usdc-near-selected.png' });
+
+    rows = page.locator('#dailybalancestable tr');
+    rowCount = await rows.count();
+    console.log(`USDC (NEAR) transaction rows: ${rowCount}`);
+    expect(rowCount).toBeGreaterThan(0);
+
+    // Verify year-end balance (2025-12-31)
+    // Expected from accounting-export-integration.spec.js: 119000000 (with 6 decimals = 119 USDC)
+    const yearEndRow = page.locator('#dailybalancestable tr').filter({ hasText: '2025-12-31' });
+    if (await yearEndRow.count() > 0) {
+      const balanceText = await yearEndRow.locator('td').nth(1).textContent(); // total balance column
+      const balance = parseFloat(balanceText.trim().replace(/,/g, ''));
+      console.log(`USDC (NEAR) balance on 2025-12-31: ${balance}`);
+      // Expected: 119 USDC
+      expect(balance).toBe(119);
+    }
+  }
+
+  // === SCENARIO 6: Select ETH token and verify ===
   let ethOptionValue = null;
   for (let i = 0; i < optionCount; i++) {
     const text = await allOptions.nth(i).textContent();
@@ -162,12 +197,12 @@ test('Intents tokens in year report - full flow', async ({ page }) => {
       break;
     }
   }
-  
+
   if (ethOptionValue) {
     await tokenSelect.selectOption(ethOptionValue);
     await page.waitForTimeout(1000);
-    await page.screenshot({ path: 'test-results/06-eth-selected.png' });
-    
+    await page.screenshot({ path: 'test-results/08-eth-selected.png' });
+
     rows = page.locator('#dailybalancestable tr');
     rowCount = await rows.count();
     console.log(`ETH transaction rows: ${rowCount}`);
