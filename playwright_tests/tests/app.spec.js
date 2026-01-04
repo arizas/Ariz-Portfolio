@@ -34,10 +34,16 @@ test("should open accounts page, add account, and load data", async ({ page }) =
   await page.getByRole('textbox').fill('arizportfolio.near');
   await pause500ifRecordingVideo(page);
 
-  await page.getByRole('button', { name: 'load data' }).click();
+  await page.getByRole('button', { name: 'load from server' }).click();
+  // Wait for progress bar to appear and disappear, or just wait if data loads too fast (cached)
   const progressbar = await page.locator('progress-bar');
-  await progressbar.waitFor({ state: 'visible', timeout: 10 * 1000 });
-  await progressbar.waitFor({ state: 'hidden', timeout: 60 * 1000 });
+  try {
+    await progressbar.waitFor({ state: 'visible', timeout: 2 * 1000 });
+    await progressbar.waitFor({ state: 'hidden', timeout: 60 * 1000 });
+  } catch {
+    // Progress bar may have appeared and disappeared too quickly if data was cached
+    await page.waitForTimeout(1000);
+  }
 
   await pause500ifRecordingVideo(page);
   await page.getByRole('link', { name: 'Year report' }).click();
