@@ -437,9 +437,13 @@ export function mergeFungibleTokenTransactions(existingFtTx, newFtTx) {
     }
 
     // Add or update with new transactions
+    // Keep the transaction with the highest block_height when there are duplicates
     for (const tx of newFtTx) {
         const key = `${tx.transaction_hash}-${tx.ft.contract_id}`;
-        existingByKey.set(key, tx);
+        const existing = existingByKey.get(key);
+        if (!existing || tx.block_height > existing.block_height) {
+            existingByKey.set(key, tx);
+        }
     }
 
     // Convert back to array and sort by block height descending
