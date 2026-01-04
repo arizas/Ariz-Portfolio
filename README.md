@@ -35,6 +35,18 @@ For storage it's also different, as it does not rely on a server. All data is st
 
 A must-have for modern single page web apps is bundling into compact javascript/html for deployment to production. Mostly this is provided out of the box for frameworks like React/Angular, but since this app is not using such a framework, it's using [rollup](rollup.config.js) for creating the app bundles. Just to show that it's possible it also packs everything into one html file. This includes html templates, javascript modules and also the webworker for [wasm-git](public_html/storage/wasmgitworker.js).
 
+## Deployment
+
+The app is deployed to NEAR's [web4](https://web4.near.page/) protocol, which hosts websites on-chain. The deployment process:
+
+1. **Build the bundle**: `npm run dist` - Creates a single `dist/index.html` file with all JS inlined
+2. **Build the web4 contract**: `npm run web4contract` - Generates a WASM contract that embeds the HTML as base64
+3. **Deploy to NEAR**: `npm run web4contract:deploy` - Deploys the contract to `arizportfolio.near`
+
+The contract serves the app directly from chain storage - no external hosting required.
+
+**Live at**: https://arizportfolio.near.page
+
 ## Tests
 
 The tests (karma/jasmine) loads real NEAR account data for verification on some of my own use cases and calculation. This will be improved by storing the RPC responses so that each test run does not have to load data from RPC.
