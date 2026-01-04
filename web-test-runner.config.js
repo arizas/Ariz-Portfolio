@@ -8,6 +8,7 @@ const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
 const arizGatewayCacheURL = new URL('testdata/arizgatewaycache.json', import.meta.url);
 const blockdatadir = new URL('testdata/blockdata/', import.meta.url);
+const accountingExportDir = new URL('testdata/accountingexport/', import.meta.url);
 
 const nearblockscache = JSON.parse((await readFile(nearBlocksCacheURL)).toString());
 
@@ -140,6 +141,32 @@ export default {
           }
           const body = arizGatewayCache[url];
           await route.fulfill({ body });
+        });
+
+        // Accounting export route - cache each URL as a separate file
+        await ctx.route('https://near-accounting-export.fly.dev/**/*', async (route) => {
+          const url = route.request().url();
+          // Convert URL to safe filename: extract path after /api/
+          const urlPath = new URL(url).pathname.replace('/api/', '').replace(/\//g, '_');
+          const cacheFile = new URL(`${urlPath}.json`, accountingExportDir);
+          
+          try {
+            await stat(accountingExportDir);
+          } catch {
+            await mkdir(accountingExportDir, { recursive: true });
+          }
+          
+          try {
+            const body = await readFile(cacheFile);
+            await route.fulfill({ body, headers: { 'X-Cache-Hit': 'true' } });
+          } catch {
+            const response = await route.fetch();
+            const body = await response.text();
+            if (response.ok()) {
+              await writeFile(cacheFile, body);
+            }
+            await route.fulfill({ body, status: response.status() });
+          }
         });
 
         await ctx.route('https://mainnet.neardata.xyz/v0/block/*', async (route) => {

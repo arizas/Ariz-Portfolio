@@ -1,4 +1,4 @@
-import { getTransactionsForAccount } from '../storage/domainobjectstore.js';
+import { getTransactionsForAccount, getStoredStakingPools } from '../storage/domainobjectstore.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccountBalanceAfterTransactionByTraversingBlocks } from './account.js';
 import { retry } from './retry.js';
@@ -71,16 +71,21 @@ export async function getAccountBalanceInPool(stakingpool_id, account_id, block_
 }
 
 export async function getStakingAccounts(account) {
+    // Get pools from transactions (traditional discovery)
     const transactions = await getTransactionsForAccount(account);
     const stakingTransactions = transactions.filter(t => t.action_kind === 'FUNCTION_CALL' && t.args.method_name === 'deposit_and_stake');
 
-    const stakingAccounts = [];
+    const stakingAccounts = new Set();
     stakingTransactions.forEach(t => {
-        if (!stakingAccounts.find(a => a == t.receiver_id)) {
-            stakingAccounts.push(t.receiver_id);
-        }
+        stakingAccounts.add(t.receiver_id);
     });
-    return stakingAccounts;
+
+    // Also include pools from stored staking data files
+    // (these may come from accounting export or other sources)
+    const storedPools = await getStoredStakingPools(account);
+    storedPools.forEach(pool => stakingAccounts.add(pool));
+
+    return Array.from(stakingAccounts);
 }
 
 export async function fetchEarlierStakingEarnings() {

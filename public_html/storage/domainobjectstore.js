@@ -1,8 +1,10 @@
-import { readTextFile, exists, mkdir } from './gitstorage.js';
+import { readTextFile, exists, mkdir, readdir } from './gitstorage.js';
 import { fixTransactionsWithoutBalance, getTransactionsToDate } from '../near/account.js';
 import { writeFile } from './gitstorage.js';
 import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
+import { setProgressbarValue } from '../ui/progress-bar.js';
+import { fetchAndConvertAccountingExport, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -283,4 +285,99 @@ export async function getCustomExchangeRatesAsTable() {
         });
     });
     return customExchangeRatesTable;
+}
+
+/**
+ * Get list of staking pools that have stored data files
+ * @param {string} account - Account ID
+ * @returns {Promise<string[]>} Array of pool IDs
+ */
+export async function getStoredStakingPools(account) {
+    const stakingDataDir = getStakingDataDir(account);
+    if (!(await exists(stakingDataDir))) {
+        return [];
+    }
+    const files = await readdir(stakingDataDir);
+    // Filter out . and .. and extract pool ID from filename
+    return files
+        .filter(f => f.endsWith('.json'))
+        .map(f => f.replace('.json', ''));
+}
+
+/**
+ * Fetch transactions from accounting export server and store them
+ * @param {string} account - Account ID
+ * @param {Object} options - Options
+ * @param {boolean} options.merge - Whether to merge with existing transactions (default: true)
+ * @returns {Promise<Object>} Result with transactions, ftTransactions, stakingPools, and counts
+ */
+export async function fetchTransactionsFromAccountingExport(account, options = { merge: true }) {
+    setProgressbarValue('indeterminate', `Fetching accounting data for ${account}...`);
+
+    try {
+        // Fetch and convert from accounting export API
+        const { transactions: newTransactions, ftTransactions: newFtTransactions, stakingData: newStakingData } =
+            await fetchAndConvertAccountingExport(account);
+
+        let finalTransactions;
+        let finalFtTransactions;
+
+        if (options.merge) {
+            // Load existing transactions
+            const existingTransactions = await getTransactionsForAccount(account);
+            const existingFtTransactions = await getAllFungibleTokenTransactions(account);
+
+            // Merge with existing
+            finalTransactions = mergeTransactions(existingTransactions, newTransactions);
+            finalFtTransactions = mergeFungibleTokenTransactions(existingFtTransactions, newFtTransactions);
+        } else {
+            finalTransactions = newTransactions;
+            finalFtTransactions = newFtTransactions;
+        }
+
+        // Save transactions to git storage
+        await writeTransactions(account, finalTransactions);
+        await writeFungibleTokenTransactions(account, finalFtTransactions);
+
+        // Process and save staking data for each pool
+        let totalStakingEntries = 0;
+        const stakingPools = [];
+        for (const [poolId, newEntries] of newStakingData) {
+            stakingPools.push(poolId);
+            let finalEntries;
+
+            if (options.merge) {
+                const existingEntries = await getStakingRewardsForAccountAndPool(account, poolId);
+                finalEntries = mergeStakingEntries(existingEntries, newEntries);
+            } else {
+                finalEntries = newEntries;
+            }
+
+            await writeStakingData(account, poolId, finalEntries);
+            totalStakingEntries += newEntries.length;
+        }
+
+        setProgressbarValue(null);
+
+        console.log(`Fetched ${newTransactions.length} NEAR transactions from accounting export`);
+        console.log(`Fetched ${newFtTransactions.length} fungible token transactions from accounting export`);
+        console.log(`Fetched ${totalStakingEntries} staking entries for ${stakingPools.length} pools from accounting export`);
+        if (stakingPools.length > 0) {
+            console.log(`Staking pools: ${stakingPools.join(', ')}`);
+        }
+
+        return {
+            transactions: finalTransactions,
+            ftTransactions: finalFtTransactions,
+            stakingPools: stakingPools,
+            newTransactionsCount: newTransactions.length,
+            newFtTransactionsCount: newFtTransactions.length,
+            newStakingEntriesCount: totalStakingEntries,
+            source: 'accounting-export'
+        };
+    } catch (error) {
+        setProgressbarValue(null);
+        console.error('Error fetching from accounting export:', error);
+        throw error;
+    }
 }
