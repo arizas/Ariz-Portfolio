@@ -173,8 +173,8 @@ const sampleJSONWithStaking = {
 
 describe('accounting-export (JSON)', () => {
     describe('convertAccountingExportToTransactions', () => {
-        it('should convert JSON entries to transaction format', () => {
-            const { transactions, ftTransactions } = convertAccountingExportToTransactions('test.near', sampleJSON);
+        it('should convert JSON entries to transaction format', async () => {
+            const { transactions, ftTransactions } = await convertAccountingExportToTransactions('test.near', sampleJSON);
 
             // Should have NEAR transactions
             expect(transactions.length).to.be.greaterThan(0);
@@ -201,15 +201,15 @@ describe('accounting-export (JSON)', () => {
             expect(ftTx.ft).to.have.property('decimals');
         });
 
-        it('should set correct action_kind for transfer', () => {
-            const { transactions } = convertAccountingExportToTransactions('test.near', sampleJSON);
+        it('should set correct action_kind for transfer', async () => {
+            const { transactions } = await convertAccountingExportToTransactions('test.near', sampleJSON);
 
             const transferTx = transactions.find(tx => tx.hash === '313xyjsV4BoP3jfwU4U4Vsy3zRvyWDeUwofriQQxhyks');
             expect(transferTx.action_kind).to.equal('TRANSFER');
         });
 
-        it('should include signer and receiver from transaction details', () => {
-            const { transactions } = convertAccountingExportToTransactions('test.near', sampleJSON);
+        it('should include signer and receiver from transaction details', async () => {
+            const { transactions } = await convertAccountingExportToTransactions('test.near', sampleJSON);
 
             const tx = transactions.find(tx => tx.hash === '313xyjsV4BoP3jfwU4U4Vsy3zRvyWDeUwofriQQxhyks');
             expect(tx.signer_id).to.equal('test.near');
@@ -259,8 +259,8 @@ describe('accounting-export (JSON)', () => {
     });
 
     describe('staking data extraction', () => {
-        it('should extract staking data from JSON', () => {
-            const { transactions, ftTransactions, stakingData } = convertAccountingExportToTransactions('test.near', sampleJSONWithStaking);
+        it('should extract staking data from JSON', async () => {
+            const { transactions, ftTransactions, stakingData } = await convertAccountingExportToTransactions('test.near', sampleJSONWithStaking);
 
             // Should have no NEAR transactions (only staking)
             expect(transactions.length).to.equal(0);
@@ -284,8 +284,8 @@ describe('accounting-export (JSON)', () => {
             expect(entry._isStakingReward).to.be.true;
         });
 
-        it('should calculate earnings correctly', () => {
-            const { stakingData } = convertAccountingExportToTransactions('test.near', sampleJSONWithStaking);
+        it('should calculate earnings correctly', async () => {
+            const { stakingData } = await convertAccountingExportToTransactions('test.near', sampleJSONWithStaking);
 
             const poolEntries = stakingData.get('binancestaking.poolv1.near');
 

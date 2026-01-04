@@ -9,7 +9,7 @@ describe('accounting-export integration', function () {
     before(async function () {
         this.timeout(60000);
         jsonData = await fetchAccountingExportJSON(accountId);
-        result = convertAccountingExportToTransactions(accountId, jsonData);
+        result = await convertAccountingExportToTransactions(accountId, jsonData);
         
         // Load snapshot
         const snapshotResponse = await fetch(`/testdata/accountingexport/${accountId}.snapshot.json`);

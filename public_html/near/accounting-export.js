@@ -2,6 +2,54 @@
 // This provides pre-computed balance history without needing client-side balance tracking
 
 const ACCOUNTING_EXPORT_API_BASE = 'https://near-accounting-export.fly.dev/api';
+const INTENTS_TOKENS_API = 'https://1click.chaindefuser.com/v0/tokens';
+
+// Cache for intents token metadata
+let intentsTokenCache = null;
+
+/**
+ * Fetch and cache intents token metadata from the API
+ * @returns {Promise<Map<string, {symbol: string, decimals: number}>>}
+ */
+async function getIntentsTokenMetadata() {
+    if (intentsTokenCache) {
+        return intentsTokenCache;
+    }
+    
+    try {
+        const response = await fetch(INTENTS_TOKENS_API);
+        if (!response.ok) {
+            console.warn('Failed to fetch intents token metadata, using fallback');
+            return new Map();
+        }
+        
+        const tokens = await response.json();
+        intentsTokenCache = new Map();
+        
+        for (const token of tokens) {
+            // Store by assetId (e.g., "nep141:eth.omft.near")
+            intentsTokenCache.set(token.assetId, {
+                symbol: token.symbol,
+                decimals: token.decimals
+            });
+            
+            // Also store by contract address without prefix for legacy lookups
+            // Extract contract address from assetId (e.g., "nep141:eth.omft.near" -> "eth.omft.near")
+            const contractAddress = token.assetId?.replace(/^nep1[43][15]:/, '');
+            if (contractAddress && contractAddress !== token.assetId) {
+                intentsTokenCache.set(contractAddress, {
+                    symbol: token.symbol,
+                    decimals: token.decimals
+                });
+            }
+        }
+        
+        return intentsTokenCache;
+    } catch (e) {
+        console.warn('Error fetching intents token metadata:', e);
+        return new Map();
+    }
+}
 
 /**
  * Fetch JSON data from accounting export API
@@ -89,9 +137,10 @@ function convertToNearTransaction(entry, accountId) {
  * @param {Object} transfer - Transfer object from JSON API
  * @param {Object} entry - Parent transaction entry
  * @param {string} accountId - Account ID
+ * @param {Map} tokenMetadata - Token metadata from intents API
  * @returns {Object} Fungible token transaction
  */
-function convertToFungibleTokenTransaction(transfer, entry, accountId) {
+function convertToFungibleTokenTransaction(transfer, entry, accountId, tokenMetadata) {
     const isIncoming = transfer.direction === 'in';
     const amount = BigInt(transfer.amount || '0');
     const deltaAmount = isIncoming ? amount.toString() : (-amount).toString();
@@ -99,15 +148,16 @@ function convertToFungibleTokenTransaction(transfer, entry, accountId) {
     // Get contract ID from tokenId field
     const contractId = transfer.tokenId || transfer.counterparty || '';
 
-    // Get balance from entry's balance state
+    // Get balance from entry's balance state (check both fungibleTokens and intentsTokens)
     const tokenBalances = entry.balanceAfter?.fungibleTokens || {};
-    const balance = tokenBalances[contractId] || '0';
+    const intentsBalances = entry.balanceAfter?.intentsTokens || {};
+    const balance = tokenBalances[contractId] || intentsBalances[contractId] || '0';
 
-    // Map known contract addresses to symbols
-    const symbol = getTokenSymbol(contractId) || contractId.split('.')[0].toUpperCase();
+    // Map known contract addresses to symbols (using API metadata when available)
+    const symbol = getTokenSymbol(contractId, tokenMetadata) || contractId.split('.')[0].toUpperCase();
 
-    // Estimate decimals (most NEAR tokens use 24, stablecoins use 6-8)
-    const decimals = getTokenDecimals(contractId);
+    // Get decimals (using API metadata when available)
+    const decimals = getTokenDecimals(contractId, tokenMetadata);
 
     return {
         transaction_hash: entry.transactionHashes?.[0] || `block-${entry.block}`,
@@ -129,30 +179,70 @@ function convertToFungibleTokenTransaction(transfer, entry, accountId) {
 }
 
 /**
- * Get token symbol from contract ID
+ * Get token symbol from contract ID (supports both regular FTs and intents tokens)
+ * Uses cached metadata from intents API when available
  */
-function getTokenSymbol(contractId) {
+function getTokenSymbol(contractId, tokenMetadata) {
+    // Check intents token cache first (with original ID including prefix)
+    if (tokenMetadata?.has(contractId)) {
+        return tokenMetadata.get(contractId).symbol;
+    }
+    
+    // Strip nep141:/nep245: prefix if present (intents tokens)
+    const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+    
+    // Check cache with normalized ID
+    if (tokenMetadata?.has(normalizedId)) {
+        return tokenMetadata.get(normalizedId).symbol;
+    }
+    
+    // Fallback static mappings for common tokens
     const symbols = {
         '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1': 'USDC',
         'wrap.near': 'wNEAR',
         'btc.omft.near': 'BTC',
+        'eth.omft.near': 'ETH',
         'eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near': 'USDT',
-        'usdt.tether-token.near': 'USDT'
+        'usdt.tether-token.near': 'USDT',
+        'eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near': 'USDC.e',
+        'xrp.omft.near': 'XRP',
+        'sol.omft.near': 'SOL',
+        'base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near': 'USDC.base'
     };
-    return symbols[contractId];
+    return symbols[normalizedId];
 }
 
 /**
- * Get token decimals from contract ID
+ * Get token decimals from contract ID (supports both regular FTs and intents tokens)
+ * Uses cached metadata from intents API when available
  */
-function getTokenDecimals(contractId) {
+function getTokenDecimals(contractId, tokenMetadata) {
+    // Check intents token cache first (with original ID including prefix)
+    if (tokenMetadata?.has(contractId)) {
+        return tokenMetadata.get(contractId).decimals;
+    }
+    
+    // Strip nep141:/nep245: prefix if present (intents tokens)
+    const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+    
+    // Check cache with normalized ID
+    if (tokenMetadata?.has(normalizedId)) {
+        return tokenMetadata.get(normalizedId).decimals;
+    }
+    
+    // Fallback static mappings for common tokens
     const decimals = {
         '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1': 6, // USDC
         'wrap.near': 24,
         'usdt.tether-token.near': 6,
-        'btc.omft.near': 8
+        'btc.omft.near': 8,
+        'eth.omft.near': 18,
+        'eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near': 6, // USDC.e
+        'xrp.omft.near': 6,
+        'sol.omft.near': 9,
+        'base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near': 6 // USDC.base
     };
-    return decimals[contractId] || 24; // Default to 24 for NEAR ecosystem tokens
+    return decimals[normalizedId] || 24; // Default to 24 for NEAR ecosystem tokens
 }
 
 /**
@@ -257,13 +347,16 @@ function extractStakingData(entries) {
  * Convert accounting export JSON to transaction formats used by this app
  * @param {string} accountId - NEAR account ID
  * @param {Object} jsonData - Parsed JSON from API
- * @returns {Object} Object with transactions, ftTransactions, and stakingData
+ * @returns {Promise<Object>} Object with transactions, ftTransactions, and stakingData
  */
-export function convertAccountingExportToTransactions(accountId, jsonData) {
+export async function convertAccountingExportToTransactions(accountId, jsonData) {
     const entries = jsonData.transactions || [];
     const transactions = [];
     const ftTransactions = [];
     const processedHashes = new Set();
+
+    // Fetch intents token metadata for symbol/decimals resolution
+    const tokenMetadata = await getIntentsTokenMetadata();
 
     for (const entry of entries) {
         // Process NEAR transactions
@@ -273,10 +366,10 @@ export function convertAccountingExportToTransactions(accountId, jsonData) {
             processedHashes.add(nearTx.hash);
         }
 
-        // Process fungible token transfers
+        // Process fungible token transfers (both regular FT and intents/multi-token)
         for (const transfer of entry.transfers) {
-            if (transfer.type === 'ft') {
-                ftTransactions.push(convertToFungibleTokenTransaction(transfer, entry, accountId));
+            if (transfer.type === 'ft' || transfer.type === 'mt') {
+                ftTransactions.push(convertToFungibleTokenTransaction(transfer, entry, accountId, tokenMetadata));
             }
         }
     }
@@ -299,7 +392,7 @@ export function convertAccountingExportToTransactions(accountId, jsonData) {
  */
 export async function fetchAndConvertAccountingExport(accountId) {
     const jsonData = await fetchAccountingExportJSON(accountId);
-    return convertAccountingExportToTransactions(accountId, jsonData);
+    return await convertAccountingExportToTransactions(accountId, jsonData);
 }
 
 /**
