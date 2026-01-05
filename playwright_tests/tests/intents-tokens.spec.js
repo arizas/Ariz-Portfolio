@@ -30,6 +30,7 @@ test('Intents tokens in year report - full flow', async ({ page }) => {
     console.log('BROWSER ERROR:', err.message);
   });
 
+
   // Start at home page with empty IndexedDB
   await page.goto('/');
   
@@ -150,6 +151,17 @@ test('Intents tokens in year report - full flow', async ({ page }) => {
 
     // Expected: At least 1 row (some transactions may be outside the 2025 date range)
     expect(rowCount).toBeGreaterThan(0);
+
+    // Verify year-end balance (2025-12-31)
+    // Expected: 2500000 (with 0 decimals = 2.5M ARIZ, displayed as 2.5)
+    const arizYearEndRow = page.locator('#dailybalancestable tr').filter({ hasText: '2025-12-31' });
+    if (await arizYearEndRow.count() > 0) {
+      const arizBalanceText = await arizYearEndRow.locator('td').nth(1).textContent(); // total balance column
+      const arizBalance = parseFloat(arizBalanceText.trim().replace(/,/g, ''));
+      console.log(`ARIZCREDITS balance on 2025-12-31: ${arizBalance}`);
+      // Expected: 2.5 (2.5M with 6 decimals display)
+      expect(arizBalance).toBe(2.5);
+    }
   }
   
   // === SCENARIO 5: Select USDC (NEAR native) and verify year-end balance ===

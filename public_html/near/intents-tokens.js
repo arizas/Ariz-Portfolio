@@ -163,22 +163,51 @@ export async function resolveDisplaySymbol(contractId, fallbackSymbol) {
 }
 
 /**
- * Resolve decimals for a token from intents API
+ * Resolve decimals for a token from intents API or token metadata cache
  * @param {string} contractId - Contract ID
  * @param {number} fallbackDecimals - Fallback decimals if not found
  * @returns {Promise<number>} Token decimals
  */
 export async function resolveDecimals(contractId, fallbackDecimals = 24) {
     const metadata = await getIntentsTokenMetadata();
-    
+
     if (metadata.has(contractId)) {
+        console.log(`resolveDecimals(${contractId}): found in intents metadata = ${metadata.get(contractId).decimals}`);
         return metadata.get(contractId).decimals;
     }
-    
+
     const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
     if (metadata.has(normalizedId)) {
+        console.log(`resolveDecimals(${contractId}): found in intents metadata (normalized) = ${metadata.get(normalizedId).decimals}`);
         return metadata.get(normalizedId).decimals;
     }
-    
+
+    // Check token metadata cache (populated from ft_metadata RPC calls)
+    try {
+        const { getCachedTokenMetadata, cacheTokenMetadata } = await import('../storage/token-metadata-cache.js');
+        const cachedMetadata = await getCachedTokenMetadata(normalizedId);
+        if (cachedMetadata) {
+            console.log(`resolveDecimals(${contractId}): found in git cache = ${cachedMetadata.decimals}`);
+            return cachedMetadata.decimals;
+        }
+
+        // Fetch from RPC if not in any cache
+        const { fetchFtMetadata } = await import('./rpc.js');
+        console.log(`resolveDecimals(${contractId}): fetching from RPC...`);
+        const ftMetadata = await fetchFtMetadata(normalizedId);
+        if (ftMetadata) {
+            console.log(`resolveDecimals(${contractId}): fetched from RPC = ${ftMetadata.decimals}`);
+            await cacheTokenMetadata(normalizedId, {
+                symbol: ftMetadata.symbol,
+                decimals: ftMetadata.decimals,
+                name: ftMetadata.name
+            });
+            return ftMetadata.decimals;
+        }
+    } catch (e) {
+        console.warn(`resolveDecimals(${contractId}): error fetching metadata:`, e);
+    }
+
+    console.log(`resolveDecimals(${contractId}): using fallback = ${fallbackDecimals}`);
     return fallbackDecimals;
 }
