@@ -26,7 +26,7 @@ export async function mockWalletRequests(ctx) {
     let last_receiver_id;
     let lastViewedAccessKey;
     await ctx.route(
-        'https://rpc.mainnet.near.org',
+        'https://rpc.mainnet.fastnear.com',
         async (route) => {            
             const request = await route.request();
             const requestPostData = request.postDataJSON();

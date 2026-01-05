@@ -34,11 +34,14 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         if (fungibleTokenSymbol && transactions.length > 0) {
             const tx = transactions[0];
             // Always resolve correct decimals from cache/RPC (don't trust stored transaction data)
-            const decimals = await resolveDecimals(tx.ft.contract_id, tx.ft.decimals);
-            fungibleTokenData[tx.ft.contract_id] = { ...tx.ft, decimals };
-            fungibleTokenData[tx.ft.contract_id].decimalConversionValue = Math.pow(10, -decimals);
-            // Update local decimalConversionValue for use in the loop below
-            decimalConversionValue = fungibleTokenData[tx.ft.contract_id].decimalConversionValue;
+            // Guard against missing ft data (older transaction format)
+            if (tx.ft?.contract_id) {
+                const decimals = await resolveDecimals(tx.ft.contract_id, tx.ft.decimals);
+                fungibleTokenData[tx.ft.contract_id] = { ...tx.ft, decimals };
+                fungibleTokenData[tx.ft.contract_id].decimalConversionValue = Math.pow(10, -decimals);
+                // Update local decimalConversionValue for use in the loop below
+                decimalConversionValue = fungibleTokenData[tx.ft.contract_id].decimalConversionValue;
+            }
         }
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
