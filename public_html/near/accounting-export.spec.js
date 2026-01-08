@@ -1,4 +1,5 @@
 import { convertAccountingExportToTransactions, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from './accounting-export.js';
+import treasuryTestData from '../../testdata/accountingexport/accounts_webassemblymusic-treasury.sputnik-dao.near_download_json.json' with { type: 'json' };
 
 // Sample JSON data based on actual API response
 const sampleJSON = {
@@ -324,6 +325,94 @@ describe('accounting-export (JSON)', () => {
             expect(merged[2].block_height).to.equal(90);
             // New entry should overwrite existing at block 100
             expect(merged[1].balance).to.equal(1050);
+        });
+    });
+
+    describe('ARIZCREDITS balance calculation using real test data', () => {
+        // Uses the actual cached API response from testdata/accountingexport/
+        // This tests against real data structure including entries with transfers but no balanceAfter
+
+        it('should use balanceAfter for FT balance when available', async () => {
+            const { ftTransactions } = await convertAccountingExportToTransactions(
+                treasuryTestData.accountId,
+                treasuryTestData
+            );
+
+            // Filter only arizcredits.near transactions
+            const arizTx = ftTransactions.filter(tx => tx.ft.contract_id === 'arizcredits.near');
+
+            // Should have 3 FT transactions for arizcredits.near
+            // (blocks 168568481, 176950912, 178148635 based on actual test data)
+            expect(arizTx.length).to.equal(3);
+
+            // Transactions are sorted by block_height descending (newest first)
+            // Most recent transaction should have balance 2500000 (from balanceAfter)
+            expect(arizTx[0].block_height).to.equal(178148635);
+            expect(arizTx[0].balance).to.equal('2500000');
+
+            // Second transaction should have balance 2600000
+            expect(arizTx[1].block_height).to.equal(176950912);
+            expect(arizTx[1].balance).to.equal('2600000');
+
+            // Third transaction should have balance 3000000
+            expect(arizTx[2].block_height).to.equal(168568481);
+            expect(arizTx[2].balance).to.equal('3000000');
+        });
+
+        it('should use accumulated balanceAfter even when transfer entry has empty balance', async () => {
+            const { ftTransactions } = await convertAccountingExportToTransactions(
+                treasuryTestData.accountId,
+                treasuryTestData
+            );
+
+            // Block 151386565 has an ETH withdrawal but empty balanceAfter in THAT entry
+            // The balance at this point is from the PREVIOUS balanceAfter (5000000000000000)
+            // The post-withdrawal balance (0) appears in block 151386566
+            const ethWithdrawal = ftTransactions.find(
+                tx => tx.block_height === 151386565 && tx.ft.contract_id === 'nep141:eth.omft.near'
+            );
+
+            expect(ethWithdrawal).to.exist;
+            expect(ethWithdrawal.delta_amount).to.equal('-5000000000000000');
+            // Balance is the last known balance from accumulated balanceAfter data
+            // This is the balance BEFORE this withdrawal (the result appears in next block)
+            expect(ethWithdrawal.balance).to.equal('5000000000000000');
+        });
+
+        it('should show updated balance after multi-block transaction completes', async () => {
+            const { ftTransactions } = await convertAccountingExportToTransactions(
+                treasuryTestData.accountId,
+                treasuryTestData
+            );
+
+            // Block 151386566 is the continuation of the withdrawal transaction
+            // This entry has the actual balanceAfter showing the result (0)
+            const ethPostWithdrawal = ftTransactions.find(
+                tx => tx.block_height === 151386566 && tx.ft.contract_id === 'nep141:eth.omft.near'
+            );
+
+            expect(ethPostWithdrawal).to.exist;
+            // This entry shows the balance after the withdrawal completed
+            expect(ethPostWithdrawal.balance).to.equal('0');
+        });
+
+        it('should handle intents tokens with nep141: prefix', async () => {
+            const { ftTransactions } = await convertAccountingExportToTransactions(
+                treasuryTestData.accountId,
+                treasuryTestData
+            );
+
+            // Check that intents tokens are processed correctly
+            const intentsTokens = ftTransactions.filter(tx =>
+                tx.ft.contract_id.startsWith('nep141:')
+            );
+
+            expect(intentsTokens.length).to.be.greaterThan(0);
+
+            // All intents tokens should have valid balance (not undefined)
+            for (const tx of intentsTokens) {
+                expect(tx.balance).to.not.be.undefined;
+            }
         });
     });
 });

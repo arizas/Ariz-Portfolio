@@ -98,6 +98,8 @@ function convertToNearTransaction(entry, accountId) {
  * @param {Object} entry - Parent transaction entry
  * @param {string} accountId - Account ID
  * @param {Map} tokenMetadata - Token metadata from intents API
+ * @param {Object} runningFungibleBalances - Running balance state for sparse FT data
+ * @param {Object} runningIntentsBalances - Running balance state for sparse intents data
  * @returns {Object} Fungible token transaction
  */
 function convertToFungibleTokenTransaction(transfer, entry, accountId, tokenMetadata, runningFungibleBalances = {}, runningIntentsBalances = {}) {
@@ -419,6 +421,7 @@ export async function convertAccountingExportToTransactions(accountId, jsonData)
         }
 
         // Process fungible token transfers (both regular FT and intents/multi-token)
+        // Balance comes from accumulated balanceAfter data (updated at start of loop)
         for (const transfer of entry.transfers || []) {
             if (transfer.type === 'ft' || transfer.type === 'mt') {
                 ftTransactions.push(convertToFungibleTokenTransaction(
