@@ -1,11 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { readFile } from 'fs/promises';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const accountingExportDir = join(__dirname, '../../testdata/accountingexport/');
 
 /**
  * Test intents tokens display in year report.
@@ -35,21 +28,6 @@ test('Intents tokens in year report - full flow', async ({ page }) => {
   // Capture console errors
   page.on('pageerror', err => {
     console.log('BROWSER ERROR:', err.message);
-  });
-
-  // Route accounting export API to use cached test data
-  await page.route('https://near-accounting-export.fly.dev/**/*', async (route) => {
-    const url = route.request().url();
-    const urlPath = new URL(url).pathname.replace('/api/', '').replace(/\//g, '_');
-    const cacheFile = join(accountingExportDir, `${urlPath}.json`);
-
-    try {
-      const body = await readFile(cacheFile, 'utf-8');
-      await route.fulfill({ body, contentType: 'application/json' });
-    } catch {
-      // If no cache file, let request through
-      await route.continue();
-    }
   });
 
   // Start at home page with empty IndexedDB
