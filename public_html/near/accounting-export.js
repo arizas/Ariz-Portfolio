@@ -3,60 +3,13 @@
 
 import { getCachedTokenMetadata, cacheTokenMetadata } from '../storage/token-metadata-cache.js';
 import { fetchFtMetadata } from './rpc.js';
+import { getIntentsTokenMetadata } from './intents-tokens.js';
 
 const ACCOUNTING_EXPORT_API_BASE = 'https://near-accounting-export.fly.dev/api';
-const INTENTS_TOKENS_API = 'https://1click.chaindefuser.com/v0/tokens';
-
-// Cache for intents token metadata
-let intentsTokenCache = null;
 
 // In-memory cache for token metadata fetched during this session
 // Keyed by contract ID, values are {symbol, decimals}
 const sessionTokenMetadataCache = new Map();
-
-/**
- * Fetch and cache intents token metadata from the API
- * @returns {Promise<Map<string, {symbol: string, decimals: number}>>}
- */
-async function getIntentsTokenMetadata() {
-    if (intentsTokenCache) {
-        return intentsTokenCache;
-    }
-    
-    try {
-        const response = await fetch(INTENTS_TOKENS_API);
-        if (!response.ok) {
-            console.warn('Failed to fetch intents token metadata, using fallback');
-            return new Map();
-        }
-        
-        const tokens = await response.json();
-        intentsTokenCache = new Map();
-        
-        for (const token of tokens) {
-            // Store by assetId (e.g., "nep141:eth.omft.near")
-            intentsTokenCache.set(token.assetId, {
-                symbol: token.symbol,
-                decimals: token.decimals
-            });
-            
-            // Also store by contract address without prefix for legacy lookups
-            // Extract contract address from assetId (e.g., "nep141:eth.omft.near" -> "eth.omft.near")
-            const contractAddress = token.assetId?.replace(/^nep(141|245):/, '');
-            if (contractAddress && contractAddress !== token.assetId) {
-                intentsTokenCache.set(contractAddress, {
-                    symbol: token.symbol,
-                    decimals: token.decimals
-                });
-            }
-        }
-        
-        return intentsTokenCache;
-    } catch (e) {
-        console.warn('Error fetching intents token metadata:', e);
-        return new Map();
-    }
-}
 
 /**
  * Fetch JSON data from accounting export API
