@@ -42,7 +42,7 @@ async function getIntentsTokenMetadata() {
             
             // Also store by contract address without prefix for legacy lookups
             // Extract contract address from assetId (e.g., "nep141:eth.omft.near" -> "eth.omft.near")
-            const contractAddress = token.assetId?.replace(/^nep1[43][15]:/, '');
+            const contractAddress = token.assetId?.replace(/^nep(141|245):/, '');
             if (contractAddress && contractAddress !== token.assetId) {
                 intentsTokenCache.set(contractAddress, {
                     symbol: token.symbol,
@@ -198,7 +198,7 @@ function getTokenSymbol(contractId, tokenMetadata) {
     }
 
     // Strip nep141:/nep245: prefix if present (intents tokens)
-    const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
 
     // Check cache with normalized ID
     if (tokenMetadata?.has(normalizedId)) {
@@ -224,7 +224,7 @@ function getTokenDecimals(contractId, tokenMetadata) {
     }
 
     // Strip nep141:/nep245: prefix if present (intents tokens)
-    const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
 
     // Check cache with normalized ID
     if (tokenMetadata?.has(normalizedId)) {
@@ -248,7 +248,7 @@ function getTokenDecimals(contractId, tokenMetadata) {
  */
 async function fetchAndCacheTokenMetadata(contractId) {
     // Strip nep141:/nep245: prefix if present
-    const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
 
     // Check session cache first
     if (sessionTokenMetadataCache.has(normalizedId)) {
@@ -295,7 +295,7 @@ async function prefetchTokenMetadata(entries, intentsMetadata) {
         for (const transfer of entry.transfers) {
             if (transfer.type === 'ft' || transfer.type === 'mt') {
                 const contractId = transfer.tokenId || transfer.counterparty || '';
-                const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+                const normalizedId = contractId.replace(/^nep(141|245):/, '');
 
                 // Skip if already in intents metadata
                 if (intentsMetadata?.has(contractId) || intentsMetadata?.has(normalizedId)) {

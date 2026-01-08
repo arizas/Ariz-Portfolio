@@ -57,7 +57,7 @@ async function fetchIntentsTokenMetadata() {
             cache.set(token.assetId, metadata);
             
             // Also store by contract address without prefix for legacy lookups
-            const contractAddress = token.assetId?.replace(/^nep1[43][15]:/, '');
+            const contractAddress = token.assetId?.replace(/^nep(141|245):/, '');
             if (contractAddress && contractAddress !== token.assetId) {
                 cache.set(contractAddress, metadata);
             }
@@ -80,7 +80,7 @@ export function isIntentsToken(contractId) {
     if (!contractId) return false;
     
     // Check for nep141:/nep245: prefix (intents asset IDs)
-    if (/^nep1[43][15]:/.test(contractId)) {
+    if (/^nep(141|245):/.test(contractId)) {
         return true;
     }
     
@@ -151,7 +151,7 @@ export async function resolveDisplaySymbol(contractId, fallbackSymbol) {
         symbol = data.symbol;
         blockchain = data.blockchain;
     } else {
-        const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+        const normalizedId = contractId.replace(/^nep(141|245):/, '');
         if (metadata.has(normalizedId)) {
             const data = metadata.get(normalizedId);
             symbol = data.symbol;
@@ -176,7 +176,7 @@ export async function resolveDecimals(contractId, fallbackDecimals = 24) {
         return metadata.get(contractId).decimals;
     }
 
-    const normalizedId = contractId.replace(/^nep1[43][15]:/, '');
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
     if (metadata.has(normalizedId)) {
         console.log(`resolveDecimals(${contractId}): found in intents metadata (normalized) = ${metadata.get(normalizedId).decimals}`);
         return metadata.get(normalizedId).decimals;
