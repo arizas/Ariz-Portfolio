@@ -1,6 +1,7 @@
 import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getDepositAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
+import { resolveDecimals } from '../near/intents-tokens.js';
 
 const fungibleTokenData = {
 
@@ -32,9 +33,14 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
         if (fungibleTokenSymbol && transactions.length > 0) {
             const tx = transactions[0];
-            if (!fungibleTokenData[tx.ft.symbol]) {
-                fungibleTokenData[tx.ft.symbol] = tx.ft;
-                fungibleTokenData[tx.ft.symbol].decimalConversionValue = Math.pow(10, -fungibleTokenData[tx.ft.symbol].decimals);
+            // Always resolve correct decimals from cache/RPC (don't trust stored transaction data)
+            // Guard against missing ft data (older transaction format)
+            if (tx.ft?.contract_id) {
+                const decimals = await resolveDecimals(tx.ft.contract_id, tx.ft.decimals);
+                fungibleTokenData[tx.ft.contract_id] = { ...tx.ft, decimals };
+                fungibleTokenData[tx.ft.contract_id].decimalConversionValue = Math.pow(10, -decimals);
+                // Update local decimalConversionValue for use in the loop below
+                decimalConversionValue = fungibleTokenData[tx.ft.contract_id].decimalConversionValue;
             }
         }
         for (let n = 0; n < transactions.length; n++) {

@@ -18,7 +18,7 @@ jobs:
     name: Test web components
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.55.0-noble
+      image: mcr.microsoft.com/playwright:v1.57.0-noble
     env:
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
@@ -41,7 +41,7 @@ jobs:
     name: Test E2E with Playwright
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.55.0-noble
+      image: mcr.microsoft.com/playwright:v1.57.0-noble
     steps:
       - uses: actions/checkout@v4
       

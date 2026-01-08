@@ -1,7 +1,15 @@
 // Fetch transaction history from the accounting export API
 // This provides pre-computed balance history without needing client-side balance tracking
 
+import { getCachedTokenMetadata, cacheTokenMetadata } from '../storage/token-metadata-cache.js';
+import { fetchFtMetadata } from './rpc.js';
+import { getIntentsTokenMetadata } from './intents-tokens.js';
+
 const ACCOUNTING_EXPORT_API_BASE = 'https://near-accounting-export.fly.dev/api';
+
+// In-memory cache for token metadata fetched during this session
+// Keyed by contract ID, values are {symbol, decimals}
+const sessionTokenMetadataCache = new Map();
 
 /**
  * Fetch JSON data from accounting export API
@@ -89,9 +97,12 @@ function convertToNearTransaction(entry, accountId) {
  * @param {Object} transfer - Transfer object from JSON API
  * @param {Object} entry - Parent transaction entry
  * @param {string} accountId - Account ID
+ * @param {Map} tokenMetadata - Token metadata from intents API
+ * @param {Object} runningFungibleBalances - Running balance state for sparse FT data
+ * @param {Object} runningIntentsBalances - Running balance state for sparse intents data
  * @returns {Object} Fungible token transaction
  */
-function convertToFungibleTokenTransaction(transfer, entry, accountId) {
+function convertToFungibleTokenTransaction(transfer, entry, accountId, tokenMetadata, runningFungibleBalances = {}, runningIntentsBalances = {}) {
     const isIncoming = transfer.direction === 'in';
     const amount = BigInt(transfer.amount || '0');
     const deltaAmount = isIncoming ? amount.toString() : (-amount).toString();
@@ -99,15 +110,17 @@ function convertToFungibleTokenTransaction(transfer, entry, accountId) {
     // Get contract ID from tokenId field
     const contractId = transfer.tokenId || transfer.counterparty || '';
 
-    // Get balance from entry's balance state
-    const tokenBalances = entry.balanceAfter?.fungibleTokens || {};
-    const balance = tokenBalances[contractId] || '0';
+    // Get balance from running accumulated state (handles sparse balance data correctly)
+    // The API returns sparse balances - only tokens that changed are present in each entry
+    // The running balances are accumulated as we process entries in chronological order
+    const balance = runningFungibleBalances[contractId] || runningIntentsBalances[contractId] || '0';
 
-    // Map known contract addresses to symbols
-    const symbol = getTokenSymbol(contractId) || contractId.split('.')[0].toUpperCase();
+    // Map known contract addresses to symbols (using API metadata when available)
+    const symbol = getTokenSymbol(contractId, tokenMetadata) || contractId.split('.')[0].toUpperCase();
 
-    // Estimate decimals (most NEAR tokens use 24, stablecoins use 6-8)
-    const decimals = getTokenDecimals(contractId);
+    // Get decimals (using API metadata when available)
+    // Fall back to 24 only if metadata couldn't be fetched (shouldn't happen after prefetch)
+    const decimals = getTokenDecimals(contractId, tokenMetadata) ?? 24;
 
     return {
         transaction_hash: entry.transactionHashes?.[0] || `block-${entry.block}`,
@@ -129,30 +142,137 @@ function convertToFungibleTokenTransaction(transfer, entry, accountId) {
 }
 
 /**
- * Get token symbol from contract ID
+ * Get token symbol from contract ID (supports both regular FTs and intents tokens)
+ * Uses cached metadata from intents API when available
+ * Returns raw symbol - use getDisplaySymbol() to add NEAR Intents prefix for display
  */
-function getTokenSymbol(contractId) {
-    const symbols = {
-        '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1': 'USDC',
-        'wrap.near': 'wNEAR',
-        'btc.omft.near': 'BTC',
-        'eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near': 'USDT',
-        'usdt.tether-token.near': 'USDT'
-    };
-    return symbols[contractId];
+function getTokenSymbol(contractId, tokenMetadata) {
+    // Check intents token cache first (with original ID including prefix)
+    if (tokenMetadata?.has(contractId)) {
+        return tokenMetadata.get(contractId).symbol;
+    }
+
+    // Strip nep141:/nep245: prefix if present (intents tokens)
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
+
+    // Check cache with normalized ID
+    if (tokenMetadata?.has(normalizedId)) {
+        return tokenMetadata.get(normalizedId).symbol;
+    }
+
+    // Check session cache (populated from git storage or RPC)
+    if (sessionTokenMetadataCache.has(normalizedId)) {
+        return sessionTokenMetadataCache.get(normalizedId).symbol;
+    }
+
+    return undefined;
 }
 
 /**
- * Get token decimals from contract ID
+ * Get token decimals from contract ID (supports both regular FTs and intents tokens)
+ * Uses cached metadata from intents API when available
  */
-function getTokenDecimals(contractId) {
-    const decimals = {
-        '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1': 6, // USDC
-        'wrap.near': 24,
-        'usdt.tether-token.near': 6,
-        'btc.omft.near': 8
-    };
-    return decimals[contractId] || 24; // Default to 24 for NEAR ecosystem tokens
+function getTokenDecimals(contractId, tokenMetadata) {
+    // Check intents token cache first (with original ID including prefix)
+    if (tokenMetadata?.has(contractId)) {
+        return tokenMetadata.get(contractId).decimals;
+    }
+
+    // Strip nep141:/nep245: prefix if present (intents tokens)
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
+
+    // Check cache with normalized ID
+    if (tokenMetadata?.has(normalizedId)) {
+        return tokenMetadata.get(normalizedId).decimals;
+    }
+
+    // Check session cache (populated from git storage or RPC)
+    if (sessionTokenMetadataCache.has(normalizedId)) {
+        return sessionTokenMetadataCache.get(normalizedId).decimals;
+    }
+
+    // Return undefined to signal that metadata needs to be fetched
+    return undefined;
+}
+
+/**
+ * Fetch and cache token metadata for a contract ID
+ * Checks git storage first, then fetches from RPC if not found
+ * @param {string} contractId - Token contract ID (may include nep141: prefix)
+ * @returns {Promise<{symbol: string, decimals: number}|null>}
+ */
+async function fetchAndCacheTokenMetadata(contractId) {
+    // Strip nep141:/nep245: prefix if present
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
+
+    // Check session cache first
+    if (sessionTokenMetadataCache.has(normalizedId)) {
+        return sessionTokenMetadataCache.get(normalizedId);
+    }
+
+    // Check git storage cache
+    const cachedMetadata = await getCachedTokenMetadata(normalizedId);
+    if (cachedMetadata) {
+        sessionTokenMetadataCache.set(normalizedId, cachedMetadata);
+        return cachedMetadata;
+    }
+
+    // Fetch from RPC
+    console.log(`Fetching ft_metadata for ${normalizedId}...`);
+    const ftMetadata = await fetchFtMetadata(normalizedId);
+    if (ftMetadata) {
+        const metadata = {
+            symbol: ftMetadata.symbol,
+            decimals: ftMetadata.decimals,
+            name: ftMetadata.name
+        };
+        // Cache in session
+        sessionTokenMetadataCache.set(normalizedId, metadata);
+        // Cache in git storage
+        await cacheTokenMetadata(normalizedId, metadata);
+        console.log(`Cached metadata for ${normalizedId}: ${metadata.symbol}, ${metadata.decimals} decimals`);
+        return metadata;
+    }
+
+    return null;
+}
+
+/**
+ * Pre-fetch metadata for all unique token contract IDs
+ * @param {Array<Object>} entries - Transaction entries
+ * @param {Map} intentsMetadata - Already loaded intents token metadata
+ */
+async function prefetchTokenMetadata(entries, intentsMetadata) {
+    // Collect unique contract IDs that need metadata
+    const contractIds = new Set();
+
+    for (const entry of entries) {
+        for (const transfer of entry.transfers) {
+            if (transfer.type === 'ft' || transfer.type === 'mt') {
+                const contractId = transfer.tokenId || transfer.counterparty || '';
+                const normalizedId = contractId.replace(/^nep(141|245):/, '');
+
+                // Skip if already in intents metadata
+                if (intentsMetadata?.has(contractId) || intentsMetadata?.has(normalizedId)) {
+                    continue;
+                }
+
+                // Skip if already in session cache
+                if (sessionTokenMetadataCache.has(normalizedId)) {
+                    continue;
+                }
+
+                if (normalizedId) {
+                    contractIds.add(normalizedId);
+                }
+            }
+        }
+    }
+
+    // Fetch metadata for each unique contract ID
+    for (const contractId of contractIds) {
+        await fetchAndCacheTokenMetadata(contractId);
+    }
 }
 
 /**
@@ -257,15 +377,42 @@ function extractStakingData(entries) {
  * Convert accounting export JSON to transaction formats used by this app
  * @param {string} accountId - NEAR account ID
  * @param {Object} jsonData - Parsed JSON from API
- * @returns {Object} Object with transactions, ftTransactions, and stakingData
+ * @returns {Promise<Object>} Object with transactions, ftTransactions, and stakingData
  */
-export function convertAccountingExportToTransactions(accountId, jsonData) {
+export async function convertAccountingExportToTransactions(accountId, jsonData) {
     const entries = jsonData.transactions || [];
     const transactions = [];
     const ftTransactions = [];
     const processedHashes = new Set();
 
-    for (const entry of entries) {
+    // Fetch intents token metadata for symbol/decimals resolution
+    const tokenMetadata = await getIntentsTokenMetadata();
+
+    // Pre-fetch metadata for all tokens not in intents API (from cache or RPC)
+    await prefetchTokenMetadata(entries, tokenMetadata);
+
+    // Running balance state for sparse balance reconstruction
+    // The API returns sparse balances - only tokens that changed are present in balanceAfter
+    // We track cumulative state to know the actual balance after each entry
+    const runningFungibleBalances = {};
+    const runningIntentsBalances = {};
+
+    // Sort entries by block height ascending to process in chronological order
+    // This allows us to accumulate balances correctly
+    const sortedEntries = [...entries].sort((a, b) => a.block - b.block);
+
+    for (const entry of sortedEntries) {
+        // Update running balance state from this entry's balanceAfter data
+        const afterFt = entry.balanceAfter?.fungibleTokens || {};
+        const afterIntents = entry.balanceAfter?.intentsTokens || {};
+
+        for (const [token, balance] of Object.entries(afterFt)) {
+            runningFungibleBalances[token] = balance;
+        }
+        for (const [token, balance] of Object.entries(afterIntents)) {
+            runningIntentsBalances[token] = balance;
+        }
+
         // Process NEAR transactions
         const nearTx = convertToNearTransaction(entry, accountId);
         if (nearTx && !processedHashes.has(nearTx.hash)) {
@@ -273,10 +420,14 @@ export function convertAccountingExportToTransactions(accountId, jsonData) {
             processedHashes.add(nearTx.hash);
         }
 
-        // Process fungible token transfers
-        for (const transfer of entry.transfers) {
-            if (transfer.type === 'ft') {
-                ftTransactions.push(convertToFungibleTokenTransaction(transfer, entry, accountId));
+        // Process fungible token transfers (both regular FT and intents/multi-token)
+        // Balance comes from accumulated balanceAfter data (updated at start of loop)
+        for (const transfer of entry.transfers || []) {
+            if (transfer.type === 'ft' || transfer.type === 'mt') {
+                ftTransactions.push(convertToFungibleTokenTransaction(
+                    transfer, entry, accountId, tokenMetadata,
+                    runningFungibleBalances, runningIntentsBalances
+                ));
             }
         }
     }
@@ -299,7 +450,7 @@ export function convertAccountingExportToTransactions(accountId, jsonData) {
  */
 export async function fetchAndConvertAccountingExport(accountId) {
     const jsonData = await fetchAccountingExportJSON(accountId);
-    return convertAccountingExportToTransactions(accountId, jsonData);
+    return await convertAccountingExportToTransactions(accountId, jsonData);
 }
 
 /**
@@ -343,9 +494,13 @@ export function mergeFungibleTokenTransactions(existingFtTx, newFtTx) {
     }
 
     // Add or update with new transactions
+    // Keep the transaction with the highest block_height when there are duplicates
     for (const tx of newFtTx) {
         const key = `${tx.transaction_hash}-${tx.ft.contract_id}`;
-        existingByKey.set(key, tx);
+        const existing = existingByKey.get(key);
+        if (!existing || tx.block_height > existing.block_height) {
+            existingByKey.set(key, tx);
+        }
     }
 
     // Convert back to array and sort by block height descending

@@ -11,7 +11,7 @@ const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
 
 
 const nearConfig = {
-    nodeUrl: 'https://rpc.mainnet.near.org',
+    nodeUrl: 'https://rpc.mainnet.fastnear.com',
     walletUrl: 'https://app.mynearwallet.com',
     networkId: 'mainnet',
     keyStore

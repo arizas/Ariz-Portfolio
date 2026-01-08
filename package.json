@@ -17,7 +17,7 @@
     "serve": "http-server --cors -p 8081 public_html/",
     "dist": "rm -Rf dist && rollup -c rollup.config.js",
     "create:car": "ipfs-car pack dist/index.html --output dist/index.car",
-    "upload:car": "NODE_ENV=mainnet node ./node_modules/nearfs/scripts/upload-car.js dist/index.car",
+    "upload:car": "echo 'nearfs removed - use alternative upload method'",
     "serve:dist": "http-server -p 8081 dist/",
     "serve:test": "node test_servers/server/test_server.js",
     "web4contract": "node web4contract/web4contract.wat.js && wat2wasm web4contract/web4contract.wat -o web4contract/web4contract.wasm",
@@ -35,7 +35,6 @@
     "http-server": "^14.1.1",
     "ipfs-car": "^1.2.0",
     "jspm": "^3.2.0",
-    "nearfs": "https://github.com/vgrichina/nearfs",
     "rollup": "^2.67.2",
     "rollup-plugin-copy": "^3.4.0",
     "rollup-plugin-terser": "^7.0.2"

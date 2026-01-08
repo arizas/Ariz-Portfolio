@@ -17,6 +17,28 @@ export const pricedatadir = 'pricehistory';
 
 const allFungibleTokenSymbols = {};
 
+/**
+ * Get all unique fungible token entries (symbol + contract_id pairs)
+ * Returns objects with both symbol and contract_id for proper display resolution
+ */
+export async function getAllFungibleTokenEntries() {
+    const entries = new Map(); // Key by contract_id to avoid duplicates
+    const accounts = await getAccounts();
+    for (const account of accounts) {
+        const transactions = await getAllFungibleTokenTransactions(account);
+        transactions.forEach(transaction => {
+            const contractId = transaction.ft.contract_id;
+            if (!entries.has(contractId)) {
+                entries.set(contractId, {
+                    symbol: transaction.ft.symbol,
+                    contractId: contractId
+                });
+            }
+        });
+    }
+    return Array.from(entries.values());
+}
+
 export async function getAllFungibleTokenSymbols() {
     const accounts = await getAccounts();
     for (const account of accounts) {
@@ -79,10 +101,10 @@ export async function getAllFungibleTokenTransactions(account) {
     }
 }
 
-export async function getTransactionsForAccount(account, fungibleTokenSymbol) {
-    if (fungibleTokenSymbol) {
+export async function getTransactionsForAccount(account, fungibleTokenFilter) {
+    if (fungibleTokenFilter) {
         return (await getAllFungibleTokenTransactions(account))
-            .filter(fttx => fttx.ft.symbol === fungibleTokenSymbol)
+            .filter(fttx => fttx.ft.contract_id === fungibleTokenFilter || fttx.ft.symbol === fungibleTokenFilter)
             .map(tx => ({ ...tx, hash: tx.transaction_hash }));
     } else {
         const accountdatapath = `${accountdatadir}/${account}/transactions.json`;
