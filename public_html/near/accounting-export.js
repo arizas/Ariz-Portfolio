@@ -391,28 +391,24 @@ export async function convertAccountingExportToTransactions(accountId, jsonData)
 
     // Running balance state for sparse balance reconstruction
     // The API returns sparse balances - only tokens that changed are present in balanceAfter
-    // We need to track cumulative state to know the actual balance after each entry
+    // We track cumulative state to know the actual balance after each entry
     const runningFungibleBalances = {};
     const runningIntentsBalances = {};
-    // Track tokens that have API-provided balance data vs computed from transfers
-    const tokensWithApiBalance = new Set();
 
     // Sort entries by block height ascending to process in chronological order
     // This allows us to accumulate balances correctly
     const sortedEntries = [...entries].sort((a, b) => a.block - b.block);
 
     for (const entry of sortedEntries) {
-        // Update running balance state from this entry's sparse balance data
+        // Update running balance state from this entry's balanceAfter data
         const afterFt = entry.balanceAfter?.fungibleTokens || {};
         const afterIntents = entry.balanceAfter?.intentsTokens || {};
 
         for (const [token, balance] of Object.entries(afterFt)) {
             runningFungibleBalances[token] = balance;
-            tokensWithApiBalance.add(token);
         }
         for (const [token, balance] of Object.entries(afterIntents)) {
             runningIntentsBalances[token] = balance;
-            tokensWithApiBalance.add(token);
         }
 
         // Process NEAR transactions
@@ -423,25 +419,8 @@ export async function convertAccountingExportToTransactions(accountId, jsonData)
         }
 
         // Process fungible token transfers (both regular FT and intents/multi-token)
-        // We need to compute balance from transfers for tokens not tracked in balanceAfter
-        for (const transfer of entry.transfers) {
+        for (const transfer of entry.transfers || []) {
             if (transfer.type === 'ft' || transfer.type === 'mt') {
-                const contractId = transfer.tokenId || transfer.counterparty || '';
-                const isIncoming = transfer.direction === 'in';
-                const amount = BigInt(transfer.amount || '0');
-
-                // If API doesn't provide balance data for this token, compute from transfers
-                if (!tokensWithApiBalance.has(contractId)) {
-                    // Initialize computed balance if not exists
-                    if (!runningFungibleBalances[contractId]) {
-                        runningFungibleBalances[contractId] = '0';
-                    }
-                    // Update computed balance based on transfer direction
-                    const currentBalance = BigInt(runningFungibleBalances[contractId]);
-                    const newBalance = isIncoming ? currentBalance + amount : currentBalance - amount;
-                    runningFungibleBalances[contractId] = newBalance.toString();
-                }
-
                 ftTransactions.push(convertToFungibleTokenTransaction(
                     transfer, entry, accountId, tokenMetadata,
                     runningFungibleBalances, runningIntentsBalances
