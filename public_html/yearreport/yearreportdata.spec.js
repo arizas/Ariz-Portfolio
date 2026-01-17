@@ -221,6 +221,92 @@ describe('year-report-data', () => {
         expect(dailydata['2022-09-16'].stakingEarnings).to.equal(dailydata['2022-09-16'].stakingBalance - dailydata['2022-09-15'].stakingBalance);
         expect(dailydata['2022-09-15'].stakingEarnings).to.equal(dailydata['2022-09-15'].stakingBalance - dailydata['2022-09-14'].stakingBalance);
     });
+    it('should calculate correct staking earnings when deposit occurs - reward should NOT include deposit amount', async function () {
+        // Reproduces bug from petermusic.near on 2025-08-30 where the reward showed
+        // 1,000,389 instead of 0,389 because the deposit wasn't being subtracted from earnings
+        this.timeout(10 * 60000);
+        const account = 'stakingtest.near';
+        const stakingPool = 'astro-stakers.poolv1.near';
+
+        await setAccounts([account]);
+
+        // Staking data with deposit on 2025-08-30 - entries sorted by block height DESC
+        const stakingBalances = [
+            // Aug 30 - epoch after deposit
+            {
+                timestamp: '2025-08-30T09:49:10.402Z',
+                balance: 1442967093064936394199457858, // ~1442.9 NEAR
+                block_height: 161870400,
+                deposit: 0,
+                withdrawal: 0,
+                earnings: 118064229313394572005863 // ~0.118 NEAR (correct epoch reward)
+            },
+            // Aug 30 - deposit entry (1000 NEAR deposited)
+            {
+                timestamp: '2025-08-30T09:37:23.054Z',
+                balance: 1442848977056627936899944430, // ~1442.8 NEAR after deposit
+                block_height: 161869264,
+                deposit: 1000000000000000000000000000, // 1000 NEAR deposit
+                withdrawal: 0,
+                earnings: 35726021191301072898723 // ~0.035 NEAR (small diff, deposit subtracted)
+            },
+            // Aug 30 - epoch before deposit
+            {
+                timestamp: '2025-08-30T02:30:36.786Z',
+                balance: 442813251789670864000720706, // ~442.8 NEAR before deposit
+                block_height: 161827200,
+                deposit: 0,
+                withdrawal: 0,
+                earnings: 35777045952135626730289 // ~0.035 NEAR
+            },
+            // Aug 29 - previous day
+            {
+                timestamp: '2025-08-29T14:11:03.605Z',
+                balance: 442777474743718728373990417, // ~442.7 NEAR
+                block_height: 161784000,
+                deposit: 0,
+                withdrawal: 0,
+                earnings: 0
+            }
+        ];
+
+        // Transaction for the deposit
+        const transactions = [
+            {
+                block_hash: 'SomeHash',
+                block_timestamp: '1756563443054815700', // Aug 30
+                hash: 'ADRV4zdG7fPXQE6dSYwTkzGsueEnitznKecp89CjaAsm',
+                action_index: 0,
+                signer_id: account,
+                receiver_id: stakingPool,
+                action_kind: 'FUNCTION_CALL',
+                args: {
+                    gas: 50000000000000,
+                    deposit: '1000000000000000000000000000',
+                    args_json: {},
+                    args_base64: 'e30=',
+                    method_name: 'deposit_and_stake'
+                },
+                balance: '8501757738090454900000001'
+            }
+        ];
+
+        await writeTransactions(account, transactions);
+        await writeStakingData(account, stakingPool, stakingBalances);
+
+        const dailydata = (await calculateYearReportData()).dailyBalances;
+
+        // The staking earnings on Aug 30 should be the sum of actual earnings
+        // NOT including the 1000 NEAR deposit amount
+        // Expected: ~0.118 + ~0.035 + ~0.035 = ~0.188 NEAR (the actual staking rewards)
+        const aug30Earnings = dailydata['2025-08-30'].stakingEarnings;
+
+        // Earnings should be around 0.2 NEAR (actual staking rewards for the day)
+        expect(aug30Earnings / 1e24, 'Staking earnings should be ~0.2 NEAR').to.be.closeTo(0.2, 0.5);
+
+        // Earnings should NOT be ~1000 NEAR (which would happen if deposit wasn't tracked)
+        expect(aug30Earnings / 1e24, 'Staking earnings should NOT be ~1000 NEAR').to.be.lessThan(10);
+    });
     it('should be use manually specified withdrawal value when calculating profit/loss and total withdrawal', async function () {
         this.timeout(10 * 60000);
         const account = '6f32d9832f4b08752106a782aad702a3210e47906fce4a0cab7528feabd5736e';
@@ -342,5 +428,126 @@ describe('year-report-data', () => {
             }
         };
         expect(dailydata['2023-10-26'].accountBalance).to.equal(2825000000n);
+    });
+    it('should not report staking withdrawal and re-deposit as balance changes', async function () {
+        this.timeout(10 * 60000);
+        // Reproduces bug from petermusic.near on 2025-08-30/31 where staking withdrawal
+        // and new deposit incorrectly showed as +1000/-1000 NEAR total balance changes
+        const account = 'petermusic.near';
+        const stakingPool = 'astro-stakers.poolv1.near';
+
+        await setAccounts([account]);
+
+        // Aug 29 balance before any staking changes
+        const aug29Balance = '8503000000000000000000000'; // ~8.503 NEAR account balance
+        // Aug 30: withdraw_all from staking pool, then deposit_and_stake to new pool
+        // Account balance temporarily increases then decreases
+        const aug30BalanceAfterWithdraw = '1008503000000000000000000000'; // ~1008.503 NEAR (after withdraw)
+        const aug30BalanceAfterDeposit = '8502000000000000000000000'; // ~8.502 NEAR (after re-deposit)
+
+        // Transactions simulating: withdraw from old pool, deposit to new pool
+        const transactions = [
+            // Aug 30: withdraw_all from staking pool
+            {
+                "block_hash": "HashAug30Withdraw",
+                "block_timestamp": "1725062400000000000", // 2025-08-30T12:00:00Z
+                "hash": "WithdrawTxHash123",
+                "action_index": 0,
+                "signer_id": account,
+                "receiver_id": stakingPool,
+                "action_kind": "FUNCTION_CALL",
+                "args": {
+                    "gas": 125000000000000,
+                    "deposit": "0",
+                    "args_json": {},
+                    "args_base64": "e30=",
+                    "method_name": "withdraw_all"
+                },
+                "balance": aug30BalanceAfterWithdraw
+            },
+            // Aug 30: deposit_and_stake to same pool (re-stake)
+            {
+                "block_hash": "HashAug30Deposit",
+                "block_timestamp": "1725062500000000000", // 2025-08-30T12:01:40Z
+                "hash": "DepositTxHash456",
+                "action_index": 0,
+                "signer_id": account,
+                "receiver_id": stakingPool,
+                "action_kind": "FUNCTION_CALL",
+                "args": {
+                    "gas": 125000000000000,
+                    "deposit": "1000000000000000000000000000", // 1000 NEAR
+                    "args_json": {},
+                    "args_base64": "e30=",
+                    "method_name": "deposit_and_stake"
+                },
+                "balance": aug30BalanceAfterDeposit
+            },
+            // Aug 29: earlier transaction to establish baseline
+            {
+                "block_hash": "HashAug29",
+                "block_timestamp": "1724976000000000000", // 2025-08-29T12:00:00Z
+                "hash": "BaselineTxHash789",
+                "action_index": 0,
+                "signer_id": "someother.near",
+                "receiver_id": account,
+                "action_kind": "TRANSFER",
+                "args": {
+                    "deposit": "100000000000000000000000" // 0.1 NEAR received
+                },
+                "balance": aug29Balance
+            }
+        ];
+
+        // Staking balances showing the withdrawal and re-deposit
+        const stakingBalances = [
+            {
+                "timestamp": "2025-08-30T12:01:40.000Z",
+                "balance": 1000000000000000000000000000, // 1000 NEAR after re-deposit
+                "block_height": 100000002,
+                "epoch_id": "EpochAug30b",
+                "next_epoch_id": "EpochAug31",
+                "deposit": 1000000000000000000000000000, // 1000 NEAR deposited
+                "withdrawal": 0,
+                "earnings": 0
+            },
+            {
+                "timestamp": "2025-08-30T12:00:00.000Z",
+                "balance": 0, // 0 after withdraw_all
+                "block_height": 100000001,
+                "epoch_id": "EpochAug30a",
+                "next_epoch_id": "EpochAug30b",
+                "deposit": 0,
+                "withdrawal": 1000000000000000000000000000, // 1000 NEAR withdrawn
+                "earnings": 0
+            },
+            {
+                "timestamp": "2025-08-29T12:00:00.000Z",
+                "balance": 1000000000000000000000000000, // 1000 NEAR before withdrawal
+                "block_height": 100000000,
+                "epoch_id": "EpochAug29",
+                "next_epoch_id": "EpochAug30a",
+                "deposit": 0,
+                "withdrawal": 0,
+                "earnings": 100000000000000000000000 // 0.1 NEAR daily reward
+            }
+        ];
+
+        await writeTransactions(account, transactions);
+        await writeStakingData(account, stakingPool, stakingBalances);
+
+        const dailydata = (await calculateYearReportData()).dailyBalances;
+
+        // On Aug 30, the staking withdrawal and re-deposit should NOT affect total balance
+        // The deposit/withdrawal columns should be 0 for staking operations
+        const aug30Data = dailydata['2025-08-30'];
+
+        // These should be 0 because they are staking operations, not actual deposits/withdrawals
+        expect(aug30Data.deposit / 1e+24, 'Staking deposit should not count as actual deposit').to.be.closeTo(0, 0.01);
+        expect(aug30Data.withdrawal / 1e+24, 'Staking withdrawal should not count as actual withdrawal').to.be.closeTo(0, 0.01);
+
+        // Total balance change should be close to 0 (only staking rewards)
+        // Not +1000 NEAR or -1000 NEAR
+        expect(aug30Data.totalChange / 1e+24, 'Total balance change should be close to 0 for staking restake').to.be.closeTo(0, 1);
     });
 });

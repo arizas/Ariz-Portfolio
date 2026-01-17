@@ -283,6 +283,8 @@ async function prefetchTokenMetadata(entries, intentsMetadata) {
  */
 function extractStakingData(entries) {
     const stakingDataByPool = new Map();
+    // Track seen transaction hashes per pool to avoid duplicates
+    const seenTxHashesByPool = new Map();
 
     for (const entry of entries) {
         const stakingPools = entry.balanceAfter?.stakingPools || {};
@@ -296,7 +298,30 @@ function extractStakingData(entries) {
 
         for (const poolId of allPools) {
             const balance = BigInt(stakingPools[poolId] || '0');
-            if (balance === 0n && !stakingChanges[poolId]) continue;
+
+            // Check if there are any transfers for this pool in the current entry
+            const hasTransfersForPool = entry.transfers?.some(t =>
+                t.counterparty === poolId || t.tokenId === poolId
+            );
+
+            // Skip balance=0 entries that have no transfers for this pool
+            // These are typically daily snapshots that incorrectly show balance=0
+            // when the actual balance is non-zero
+            if (balance === 0n && !hasTransfersForPool) continue;
+
+            // Get txHash for deduplication
+            const txHash = entry.transactionHashes?.[0];
+
+            // Skip if we've already seen this txHash for this pool (avoid duplicate entries)
+            if (txHash) {
+                if (!seenTxHashesByPool.has(poolId)) {
+                    seenTxHashesByPool.set(poolId, new Set());
+                }
+                if (seenTxHashesByPool.get(poolId).has(txHash)) {
+                    continue;  // Skip duplicate
+                }
+                seenTxHashesByPool.get(poolId).add(txHash);
+            }
 
             if (!stakingDataByPool.has(poolId)) {
                 stakingDataByPool.set(poolId, []);
@@ -354,19 +379,19 @@ function extractStakingData(entries) {
     }
 
     // Sort and calculate earnings for each pool
-    for (const [poolId, entries] of stakingDataByPool) {
+    for (const [, poolEntries] of stakingDataByPool) {
         // Sort by block height descending (newest first)
-        entries.sort((a, b) => b.block_height - a.block_height);
+        poolEntries.sort((a, b) => b.block_height - a.block_height);
 
         // Calculate earnings: balance_change - deposits + withdrawals
-        for (let i = 0; i < entries.length - 1; i++) {
-            const current = entries[i];
-            const previous = entries[i + 1];
+        for (let i = 0; i < poolEntries.length - 1; i++) {
+            const current = poolEntries[i];
+            const previous = poolEntries[i + 1];
             current.earnings = current.balance - previous.balance - current.deposit + current.withdrawal;
         }
         // First staking entry has no previous, so earnings = 0
-        if (entries.length > 0) {
-            entries[entries.length - 1].earnings = 0;
+        if (poolEntries.length > 0) {
+            poolEntries[poolEntries.length - 1].earnings = 0;
         }
     }
 
