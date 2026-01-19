@@ -1,5 +1,8 @@
 export const rpcUrl = 'https://rpc.mainnet.fastnear.com/';
 
+// Export rpcs array for backwards compatibility with test runner
+export const rpcs = [rpcUrl];
+
 export async function queryMultipleRPC(queryFunction) {
     const response = await queryFunction(rpcUrl);
     return await response.json();
