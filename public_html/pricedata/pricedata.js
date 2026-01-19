@@ -96,11 +96,14 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     // Resolve symbol from contract ID (e.g., "nep141:eth-0xa0b86991...omft.near" -> "USDC")
     // This is needed because prices are stored by symbol, not contract ID
     // Only resolve if it looks like a contract ID:
-    // - Contains . or : (named accounts, intents prefixes)
+    // - Has nep141:/nep245: prefix (intents asset IDs)
+    // - Has .near/.testnet suffix (NEAR named accounts)
     // - Is a 64-char hex string (implicit accounts like USDC native)
-    // Skip short uppercase symbols like "NEAR", "USD", "ETH"
-    const isLikelyContractId = token.includes('.') || token.includes(':') ||
-        (token.length === 64 && /^[a-f0-9]+$/.test(token));
+    // Skip short symbols like "NEAR", "USD", "ETH", "USDC.e" (under 15 chars without NEAR suffixes)
+    const hasIntentsPrefix = /^nep(141|245):/.test(token);
+    const hasNearSuffix = /\.(near|testnet)$/.test(token);
+    const isImplicitAccount = token.length === 64 && /^[a-f0-9]+$/.test(token);
+    const isLikelyContractId = hasIntentsPrefix || hasNearSuffix || isImplicitAccount;
     if (isLikelyContractId) {
         token = await resolveSymbol(token);
     }
