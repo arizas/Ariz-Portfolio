@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setupApiMocks } from '../util/api-mocks.js';
 
 /**
  * Test year summary (all tokens) page for webassemblymusic-treasury.sputnik-dao.near
@@ -18,6 +19,9 @@ import { test, expect } from '@playwright/test';
 
 test('Year summary all tokens shows correct balances', async ({ page }) => {
     test.setTimeout(180_000); // 3 minutes for loading data
+
+    // Setup API mocking for accounting export and intents tokens
+    await setupApiMocks(page);
 
     // Capture console logs for debugging
     const consoleLogs = [];
@@ -115,7 +119,16 @@ test('Year summary all tokens shows correct balances', async ({ page }) => {
 
     // Wait for summary page to load
     await summaryPage.waitForLoadState('domcontentloaded');
-    await summaryPage.waitForTimeout(5000); // Wait for reports to generate
+
+    // Wait for at least one row to appear in the summary table (reports are generated async)
+    const summaryTableBody = summaryPage.locator('#summarytablebody');
+    await expect(async () => {
+        const rowCount = await summaryTableBody.locator('tr').count();
+        expect(rowCount).toBeGreaterThan(0);
+    }).toPass({ timeout: 120_000 }); // Allow up to 2 minutes for report generation
+
+    // Wait a bit more for all tokens to be processed
+    await summaryPage.waitForTimeout(10000);
 
     await summaryPage.screenshot({ path: 'test-results/yearsummary-initial.png' });
 
