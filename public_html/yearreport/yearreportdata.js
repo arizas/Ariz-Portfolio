@@ -8,7 +8,11 @@ const fungibleTokenData = {
 };
 
 export function getDecimalConversionValue(fungibleTokenSymbol) {
-    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol].decimalConversionValue : Math.pow(10, -24);
+    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol]?.decimalConversionValue ?? Math.pow(10, -24) : Math.pow(10, -24);
+}
+
+export function getTokenSymbol(fungibleTokenContractId) {
+    return fungibleTokenContractId ? fungibleTokenData[fungibleTokenContractId]?.symbol : 'NEAR';
 }
 
 export async function calculateYearReportData(fungibleTokenSymbol) {

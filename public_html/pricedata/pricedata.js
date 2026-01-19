@@ -2,9 +2,25 @@ import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
 import { getFromNearBlocks } from "../near/nearblocks.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { modalAlert, modalYesNo } from "../ui/modal.js";
+import { resolveSymbol } from "../near/intents-tokens.js";
 
 const defaultToken = 'NEAR';
 const skipFetchingPrices = {};
+
+// Map token symbols to CoinGecko IDs (Ariz Gateway uses CoinGecko API)
+const symbolToCoinGeckoId = {
+    'NEAR': 'near',
+    'BTC': 'bitcoin',
+    'ETH': 'ethereum',
+    'SOL': 'solana',
+    'AVAX': 'avalanche-2',
+    'XRP': 'ripple',
+    'USDC': 'usd-coin',
+    'USDT': 'tether',
+    'DAI': 'dai',
+    'WETH': 'weth',
+    'WBTC': 'wrapped-bitcoin',
+};
 
 export async function getCurrencyList() {
     let currencyList = await getStoredCurrencyList();
@@ -17,7 +33,9 @@ export async function getCurrencyList() {
 }
 
 export async function fetchHistoricalPricesFromArizGateway({ baseToken = "near", currency, todate = new Date().toJSON() }) {
-    const pricesMap = await fetchFromArizGateway(`/api/prices/history?basetoken=${baseToken.toLowerCase()}&currency=${currency}&todate=${todate}`);
+    // Convert symbol to CoinGecko ID (e.g., "BTC" -> "bitcoin")
+    const coinGeckoId = symbolToCoinGeckoId[baseToken.toUpperCase()] || baseToken.toLowerCase();
+    const pricesMap = await fetchFromArizGateway(`/api/prices/history?basetoken=${coinGeckoId}&currency=${currency}&todate=${todate}`);
     await setHistoricalPriceData(baseToken, currency, pricesMap);
 }
 
@@ -74,6 +92,19 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     if (token === "") {
         token = defaultToken;
     }
+
+    // Resolve symbol from contract ID (e.g., "nep141:eth-0xa0b86991...omft.near" -> "USDC")
+    // This is needed because prices are stored by symbol, not contract ID
+    // Only resolve if it looks like a contract ID:
+    // - Contains . or : (named accounts, intents prefixes)
+    // - Is a 64-char hex string (implicit accounts like USDC native)
+    // Skip short uppercase symbols like "NEAR", "USD", "ETH"
+    const isLikelyContractId = token.includes('.') || token.includes(':') ||
+        (token.length === 64 && /^[a-f0-9]+$/.test(token));
+    if (isLikelyContractId) {
+        token = await resolveSymbol(token);
+    }
+
     if (token.indexOf('USD') === 0 || token === 'USN') {
         token = 'USD';
     }
