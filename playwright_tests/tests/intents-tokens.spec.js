@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setupApiMocks } from '../util/api-mocks.js';
 
 /**
  * Test intents tokens display in year report.
@@ -24,6 +25,9 @@ import { test, expect } from '@playwright/test';
 
 test('Intents tokens in year report - full flow', async ({ page }) => {
   test.setTimeout(120_000); // 2 minutes for loading data from server
+
+  // Setup API mocking for accounting export and intents tokens
+  await setupApiMocks(page);
 
   // Capture console errors
   page.on('pageerror', err => {

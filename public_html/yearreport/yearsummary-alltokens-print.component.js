@@ -1,7 +1,7 @@
 import html from './yearsummary-alltokens-print.component.html.js';
-import { getAccounts, getAllFungibleTokenSymbols, getIgnoredFungibleTokens } from '../storage/domainobjectstore.js';
+import { getAccounts, getAllFungibleTokenEntries, getIgnoredFungibleTokens } from '../storage/domainobjectstore.js';
 import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency } from './yearreport-table-renderer.js';
-import { getDecimalConversionValue } from './yearreportdata.js';
+import { getDecimalConversionValue, getTokenSymbol } from './yearreportdata.js';
 
 customElements.define('yearsummary-alltokens-print',
     class extends HTMLElement {
@@ -23,7 +23,11 @@ customElements.define('yearsummary-alltokens-print',
 
         async createReport() {
             const tokenYearReportsElement = this.shadowRoot.getElementById('tokenyearreports');
-            const tokens = ['', ...await getAllFungibleTokenSymbols()];
+            // Get all fungible token entries with contract IDs (not just symbols)
+            // This ensures each unique token contract gets its own report
+            const tokenEntries = await getAllFungibleTokenEntries();
+            // Add NEAR (empty string) as the first entry
+            const tokens = [{ contractId: '', symbol: 'NEAR' }, ...tokenEntries.map(e => ({ contractId: e.contractId, symbol: e.symbol }))];
             const summarytablebody = this.shadowRoot.getElementById('summarytablebody');
             const rowTemplate = this.shadowRoot.querySelector('#symmaryrowtemplate');
 
@@ -38,8 +42,9 @@ customElements.define('yearsummary-alltokens-print',
             let totalLoss = 0;
 
             const ignoredFungibleTokens = await getIgnoredFungibleTokens();
-            for (const token of tokens) {
-                if (ignoredFungibleTokens.find(t => t.symbol === token)) {
+            for (const tokenEntry of tokens) {
+                const { contractId, symbol } = tokenEntry;
+                if (ignoredFungibleTokens.find(t => t.symbol === symbol || t.contractId === contractId)) {
                     continue;
                 }
                 const tokenreport = document.createElement('year-report-print');
@@ -47,7 +52,8 @@ customElements.define('yearsummary-alltokens-print',
                 tokenreport.dataset.month = this.month;
                 tokenreport.dataset.periodLengthMonths = this.periodLengthMonths;
                 tokenreport.dataset.currency = this.currency;
-                tokenreport.dataset.token = token;
+                // Pass contract ID instead of symbol to ensure proper lookup
+                tokenreport.dataset.token = contractId;
                 tokenreport.useDataset();
 
                 const result = await tokenreport.createReport();
@@ -63,10 +69,12 @@ customElements.define('yearsummary-alltokens-print',
                     tokenYearReportsElement.appendChild(pageBreakElement);
 
                     tokenYearReportsElement.appendChild(tokenreport);
-                    const decimalConversionValue = token ? getDecimalConversionValue(token) : Math.pow(10, -24);
+                    const decimalConversionValue = contractId ? getDecimalConversionValue(contractId) : Math.pow(10, -24);
                     const row = rowTemplate.cloneNode(true).content;
                     const earnings = result.totalReceived + result.totalStakingReward;
-                    row.querySelector('.summary_token').innerText = token === '' ? 'NEAR' : token;
+                    // Display the symbol (resolved from contract ID if needed)
+                    const displaySymbol = contractId === '' ? 'NEAR' : (getTokenSymbol(contractId) || symbol);
+                    row.querySelector('.summary_token').innerText = displaySymbol;
                     row.querySelector('.summary_amount').innerText = formatToken(result.outboundBalance.totalBalance * decimalConversionValue);
                     row.querySelector('.summary_balance').innerText = format(result.outboundBalance.convertedTotalBalance);
                     row.querySelector('.summary_earnings').innerText = format(earnings);

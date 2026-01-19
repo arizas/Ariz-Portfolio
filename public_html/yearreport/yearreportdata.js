@@ -8,7 +8,11 @@ const fungibleTokenData = {
 };
 
 export function getDecimalConversionValue(fungibleTokenSymbol) {
-    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol].decimalConversionValue : Math.pow(10, -24);
+    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol]?.decimalConversionValue ?? Math.pow(10, -24) : Math.pow(10, -24);
+}
+
+export function getTokenSymbol(fungibleTokenContractId) {
+    return fungibleTokenContractId ? fungibleTokenData[fungibleTokenContractId]?.symbol : 'NEAR';
 }
 
 export async function calculateYearReportData(fungibleTokenSymbol) {
@@ -328,7 +332,7 @@ export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, con
     const doNotConvert = convertToCurrency ? false : true;
     const conversionRate = doNotConvert ? 1 : await getEODPrice(convertToCurrency, datestring, symbol);
 
-    const decimalConversionValue = fungibleTokenData[symbol].decimalConversionValue;
+    const decimalConversionValue = fungibleTokenData[symbol]?.decimalConversionValue ?? Math.pow(10, -24);
     const received = (conversionRate * (Number(rowdata.received) * decimalConversionValue));
     const stakingReward = (conversionRate * (rowdata.stakingRewards * decimalConversionValue));
     const deposit = (conversionRate * (rowdata.deposit * decimalConversionValue));
