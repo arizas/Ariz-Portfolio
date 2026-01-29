@@ -12,6 +12,168 @@ const ACCOUNTING_EXPORT_API_BASE = 'https://near-accounting-export.fly.dev/api';
 const sessionTokenMetadataCache = new Map();
 
 /**
+ * Detect if data is in V2 format
+ * @param {Object} data - Parsed JSON from API
+ * @returns {boolean} True if V2 format
+ */
+export function isV2Format(data) {
+    return data.version === 2 && Array.isArray(data.records);
+}
+
+/**
+ * Check if a token ID represents a staking pool
+ * @param {string} tokenId - Token ID
+ * @returns {boolean} True if staking pool
+ */
+function isStakingPool(tokenId) {
+    return tokenId.includes('.poolv1.near') ||
+           tokenId.includes('.pool.near') ||
+           tokenId.endsWith('.pool.f863973.m0');
+}
+
+/**
+ * Get transfer type from token ID
+ * @param {string} tokenId - Token ID
+ * @returns {string} Transfer type ('near', 'mt', 'staking_reward', or 'ft')
+ */
+function getTransferType(tokenId) {
+    if (tokenId === 'near') return 'near';
+    if (tokenId.startsWith('nep141:') || tokenId.startsWith('nep245:')) return 'mt';
+    if (isStakingPool(tokenId)) return 'staking_reward';
+    return 'ft';
+}
+
+/**
+ * Convert a block's V2 records to a V1-like entry
+ * @param {number} block - Block height
+ * @param {Array<Object>} records - V2 records for this block
+ * @returns {Object} V1-like entry
+ */
+function convertBlockRecordsToEntry(block, records) {
+    const firstRecord = records[0];
+    const timestamp = firstRecord.block_timestamp
+        ? new Date(firstRecord.block_timestamp).getTime() * 1_000_000  // Convert to nanoseconds
+        : null;
+
+    // Build transfers array
+    const transfers = records.map(r => ({
+        type: getTransferType(r.token_id),
+        direction: BigInt(r.amount) >= 0n ? 'in' : 'out',
+        amount: r.amount.replace(/^-/, ''),  // Absolute value
+        counterparty: r.counterparty || '',
+        tokenId: r.token_id === 'near' ? undefined : r.token_id,
+        receiptId: r.receipt_id,
+        txHash: r.tx_hash,
+        memo: r.memo
+    }));
+
+    // Build balance snapshots
+    const balanceBefore = { fungibleTokens: {}, intentsTokens: {}, stakingPools: {} };
+    const balanceAfter = { fungibleTokens: {}, intentsTokens: {}, stakingPools: {} };
+
+    for (const r of records) {
+        if (r.token_id === 'near') {
+            balanceBefore.near = r.balance_before;
+            balanceAfter.near = r.balance_after;
+        } else if (r.token_id.startsWith('nep141:') || r.token_id.startsWith('nep245:')) {
+            balanceBefore.intentsTokens[r.token_id] = r.balance_before;
+            balanceAfter.intentsTokens[r.token_id] = r.balance_after;
+        } else if (isStakingPool(r.token_id)) {
+            balanceBefore.stakingPools[r.token_id] = r.balance_before;
+            balanceAfter.stakingPools[r.token_id] = r.balance_after;
+        } else {
+            balanceBefore.fungibleTokens[r.token_id] = r.balance_before;
+            balanceAfter.fungibleTokens[r.token_id] = r.balance_after;
+        }
+    }
+
+    // Build changes object
+    const changes = {
+        nearChanged: false,
+        tokensChanged: {},
+        intentsChanged: {},
+        stakingChanged: {}
+    };
+
+    for (const r of records) {
+        const diff = r.amount;
+
+        if (r.token_id === 'near') {
+            changes.nearChanged = true;
+            changes.nearDiff = diff;
+        } else if (r.token_id.startsWith('nep141:') || r.token_id.startsWith('nep245:')) {
+            changes.intentsChanged[r.token_id] = {
+                start: r.balance_before,
+                end: r.balance_after,
+                diff
+            };
+        } else if (isStakingPool(r.token_id)) {
+            changes.stakingChanged[r.token_id] = {
+                start: r.balance_before,
+                end: r.balance_after,
+                diff
+            };
+        } else {
+            changes.tokensChanged[r.token_id] = {
+                start: r.balance_before,
+                end: r.balance_after,
+                diff
+            };
+        }
+    }
+
+    // Collect unique transaction hashes
+    const txHashes = [...new Set(records.map(r => r.tx_hash).filter(Boolean))];
+
+    return {
+        block,
+        transactionBlock: firstRecord.tx_block,
+        timestamp,
+        transactionHashes: txHashes,
+        transactions: [],  // V2 doesn't include full transaction details
+        transfers,
+        balanceBefore,
+        balanceAfter,
+        changes
+    };
+}
+
+/**
+ * Convert V2 format data to V1-like internal format
+ * Groups records by block_height into entries with transfers and balance snapshots
+ * @param {Object} v2Data - V2 format data from API
+ * @returns {Object} V1-like internal format
+ */
+export function convertV2ToInternalFormat(v2Data) {
+    const entries = [];
+
+    // Group records by block_height
+    const byBlock = new Map();
+    for (const record of v2Data.records) {
+        const block = record.block_height;
+        if (!byBlock.has(block)) {
+            byBlock.set(block, []);
+        }
+        byBlock.get(block).push(record);
+    }
+
+    // Convert each block's records to V1-like entry
+    for (const [block, records] of byBlock) {
+        const entry = convertBlockRecordsToEntry(block, records);
+        entries.push(entry);
+    }
+
+    return {
+        accountId: v2Data.accountId,
+        transactions: entries.sort((a, b) => a.block - b.block),
+        metadata: {
+            ...v2Data.metadata,
+            totalTransactions: entries.length
+        }
+    };
+}
+
+/**
  * Fetch JSON data from accounting export API
  * @param {string} accountId - NEAR account ID
  * @returns {Promise<Object>} Parsed JSON response
@@ -24,7 +186,14 @@ export async function fetchAccountingExportJSON(accountId) {
         throw new Error(`Failed to fetch accounting data: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // Convert V2 format to V1-like internal format
+    if (isV2Format(data)) {
+        return convertV2ToInternalFormat(data);
+    }
+
+    return data;
 }
 
 /**

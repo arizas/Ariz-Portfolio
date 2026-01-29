@@ -1,4 +1,4 @@
-import { convertAccountingExportToTransactions, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from './accounting-export.js';
+import { convertAccountingExportToTransactions, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries, isV2Format, convertV2ToInternalFormat } from './accounting-export.js';
 import treasuryTestData from '../../testdata/accountingexport/accounts_webassemblymusic-treasury.sputnik-dao.near_download_json.json' with { type: 'json' };
 
 // Sample JSON data based on actual API response
@@ -869,6 +869,225 @@ describe('accounting-export (JSON)', () => {
             for (const tx of intentsTokens) {
                 expect(tx.balance).to.not.be.undefined;
             }
+        });
+    });
+
+    describe('V2 format support', () => {
+        // Sample V2 format data
+        const sampleV2Data = {
+            version: 2,
+            accountId: 'test.near',
+            records: [
+                {
+                    block_height: 148439687,
+                    block_timestamp: '2024-01-15T10:30:00.000Z',
+                    tx_hash: 'ASqEerd123',
+                    tx_block: 148439686,
+                    signer_id: 'alice.near',
+                    receiver_id: 'bob.near',
+                    predecessor_id: 'alice.near',
+                    token_id: 'near',
+                    receipt_id: 'receipt123',
+                    counterparty: 'bob.near',
+                    amount: '-1000000000000000000000000',
+                    balance_before: '5000000000000000000000000',
+                    balance_after: '4000000000000000000000000'
+                },
+                {
+                    block_height: 148439687,
+                    block_timestamp: '2024-01-15T10:30:00.000Z',
+                    tx_hash: 'ASqEerd123',
+                    tx_block: 148439686,
+                    signer_id: 'alice.near',
+                    receiver_id: 'bob.near',
+                    predecessor_id: 'alice.near',
+                    token_id: 'usdc.near',
+                    receipt_id: 'receipt124',
+                    counterparty: 'bob.near',
+                    amount: '1000000',
+                    balance_before: '0',
+                    balance_after: '1000000'
+                },
+                {
+                    block_height: 148440000,
+                    block_timestamp: '2024-01-15T10:35:00.000Z',
+                    tx_hash: 'BcMnYCtiz9',
+                    tx_block: 148440000,
+                    signer_id: 'test.near',
+                    receiver_id: 'pool.near',
+                    predecessor_id: 'test.near',
+                    token_id: 'astro-stakers.poolv1.near',
+                    receipt_id: 'receipt125',
+                    counterparty: 'astro-stakers.poolv1.near',
+                    amount: '50000000000000000000000',
+                    balance_before: '100000000000000000000000000',
+                    balance_after: '100050000000000000000000000',
+                    memo: 'staking_reward'
+                }
+            ],
+            metadata: { firstBlock: 148439687, lastBlock: 148440000, totalRecords: 3 }
+        };
+
+        describe('isV2Format', () => {
+            it('should detect V2 format', () => {
+                expect(isV2Format(sampleV2Data)).to.be.true;
+            });
+
+            it('should reject V1 format (no version)', () => {
+                const v1Data = { accountId: 'test.near', transactions: [] };
+                expect(isV2Format(v1Data)).to.be.false;
+            });
+
+            it('should reject data with version but no records array', () => {
+                const badData = { version: 2, transactions: [] };
+                expect(isV2Format(badData)).to.be.false;
+            });
+
+            it('should reject data with records but wrong version', () => {
+                const badData = { version: 1, records: [] };
+                expect(isV2Format(badData)).to.be.false;
+            });
+        });
+
+        describe('convertV2ToInternalFormat', () => {
+            it('should convert V2 data to V1-like structure', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+
+                expect(result.accountId).to.equal('test.near');
+                expect(result.transactions).to.be.an('array');
+                expect(result.metadata.totalTransactions).to.equal(2); // 2 blocks
+            });
+
+            it('should group records by block_height', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+
+                // Block 148439687 has 2 records (NEAR and USDC)
+                const block1 = result.transactions.find(t => t.block === 148439687);
+                expect(block1.transfers.length).to.equal(2);
+
+                // Block 148440000 has 1 record (staking)
+                const block2 = result.transactions.find(t => t.block === 148440000);
+                expect(block2.transfers.length).to.equal(1);
+            });
+
+            it('should convert block_timestamp to nanoseconds', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+                const entry = result.transactions[0];
+
+                // '2024-01-15T10:30:00.000Z' -> 1705314600000 ms -> 1705314600000000000 ns
+                expect(entry.timestamp).to.equal(new Date('2024-01-15T10:30:00.000Z').getTime() * 1_000_000);
+            });
+
+            it('should determine direction from amount sign', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+                const block1 = result.transactions.find(t => t.block === 148439687);
+
+                // NEAR transfer: amount is negative -> direction is 'out'
+                const nearTransfer = block1.transfers.find(t => t.type === 'near');
+                expect(nearTransfer.direction).to.equal('out');
+                expect(nearTransfer.amount).to.equal('1000000000000000000000000'); // absolute value
+
+                // USDC transfer: amount is positive -> direction is 'in'
+                const ftTransfer = block1.transfers.find(t => t.type === 'ft');
+                expect(ftTransfer.direction).to.equal('in');
+                expect(ftTransfer.amount).to.equal('1000000');
+            });
+
+            it('should build balance snapshots from records', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+                const block1 = result.transactions.find(t => t.block === 148439687);
+
+                expect(block1.balanceBefore.near).to.equal('5000000000000000000000000');
+                expect(block1.balanceAfter.near).to.equal('4000000000000000000000000');
+                expect(block1.balanceAfter.fungibleTokens['usdc.near']).to.equal('1000000');
+            });
+
+            it('should categorize staking pool tokens correctly', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+                const block2 = result.transactions.find(t => t.block === 148440000);
+
+                expect(block2.transfers[0].type).to.equal('staking_reward');
+                expect(block2.balanceAfter.stakingPools['astro-stakers.poolv1.near']).to.equal('100050000000000000000000000');
+            });
+
+            it('should categorize intents tokens (nep141: prefix) correctly', () => {
+                const v2DataWithIntents = {
+                    version: 2,
+                    accountId: 'test.near',
+                    records: [
+                        {
+                            block_height: 148439687,
+                            block_timestamp: '2024-01-15T10:30:00.000Z',
+                            tx_hash: 'abc123',
+                            token_id: 'nep141:wrap.near',
+                            receipt_id: 'receipt126',
+                            counterparty: 'intents.near',
+                            amount: '500000000000000000000000',
+                            balance_before: '0',
+                            balance_after: '500000000000000000000000'
+                        }
+                    ],
+                    metadata: {}
+                };
+
+                const result = convertV2ToInternalFormat(v2DataWithIntents);
+                const entry = result.transactions[0];
+
+                expect(entry.transfers[0].type).to.equal('mt');
+                expect(entry.balanceAfter.intentsTokens['nep141:wrap.near']).to.equal('500000000000000000000000');
+            });
+
+            it('should build changes object correctly', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+                const block1 = result.transactions.find(t => t.block === 148439687);
+
+                expect(block1.changes.nearChanged).to.be.true;
+                expect(block1.changes.nearDiff).to.equal('-1000000000000000000000000');
+                expect(block1.changes.tokensChanged['usdc.near'].diff).to.equal('1000000');
+            });
+
+            it('should collect unique transaction hashes', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+                const block1 = result.transactions.find(t => t.block === 148439687);
+
+                // Both records in block1 have same tx_hash, should be deduplicated
+                expect(block1.transactionHashes.length).to.equal(1);
+                expect(block1.transactionHashes[0]).to.equal('ASqEerd123');
+            });
+
+            it('should sort transactions by block ascending', () => {
+                const result = convertV2ToInternalFormat(sampleV2Data);
+
+                expect(result.transactions[0].block).to.equal(148439687);
+                expect(result.transactions[1].block).to.equal(148440000);
+            });
+        });
+
+        describe('V2 end-to-end conversion', () => {
+            it('should process converted V2 data through convertAccountingExportToTransactions', async () => {
+                const v1Like = convertV2ToInternalFormat(sampleV2Data);
+                const { transactions, ftTransactions, stakingData } = await convertAccountingExportToTransactions('test.near', v1Like);
+
+                // Should have NEAR transactions
+                expect(transactions.length).to.be.greaterThan(0);
+
+                // Should have FT transactions
+                expect(ftTransactions.length).to.be.greaterThan(0);
+                const usdcTx = ftTransactions.find(tx => tx.ft.contract_id === 'usdc.near');
+                expect(usdcTx).to.exist;
+                expect(usdcTx.delta_amount).to.equal('1000000');
+
+                // Should have staking data
+                expect(stakingData.has('astro-stakers.poolv1.near')).to.be.true;
+            });
+
+            it('should correctly set _near_change on NEAR transactions', async () => {
+                const v1Like = convertV2ToInternalFormat(sampleV2Data);
+                const { transactions } = await convertAccountingExportToTransactions('test.near', v1Like);
+
+                const nearTx = transactions.find(tx => tx.block_height === 148439687);
+                expect(nearTx._near_change).to.equal('-1000000000000000000000000');
+            });
         });
     });
 });
