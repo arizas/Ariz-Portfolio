@@ -105,6 +105,33 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         }
     }
 
+    // Fill in gaps in staking balances - carry forward last known balance for each pool
+    // This handles cases like unstaked-but-not-withdrawn funds where the API has no
+    // snapshots for days between unstake and withdraw
+    for (let account of accounts) {
+        const stakingBalances = accountTransactions[account].stakingBalances;
+        const stakingAccounts = accountTransactions[account].stakingAccounts;
+
+        // Get all dates that have any staking data, sorted
+        const dates = Object.keys(stakingBalances).sort();
+
+        // Track last known balance for each pool
+        const lastKnownBalance = {};
+
+        for (const date of dates) {
+            for (const pool of stakingAccounts) {
+                if (stakingBalances[date][pool] !== undefined) {
+                    // Update last known balance
+                    lastKnownBalance[pool] = stakingBalances[date][pool];
+                } else if (lastKnownBalance[pool] !== undefined && lastKnownBalance[pool] > 0) {
+                    // Carry forward last known balance (pool has no entry for this day)
+                    stakingBalances[date][pool] = lastKnownBalance[pool];
+                    stakingBalances[date].totalStakingBalance += lastKnownBalance[pool];
+                }
+            }
+        }
+    }
+
     const dailyBalances = {};
     let prevDateString;
     let currentDate = new Date(2020, 0, 1);

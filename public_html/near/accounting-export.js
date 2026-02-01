@@ -528,13 +528,19 @@ function extractStakingData(entries) {
                 }
             }
 
+            // Use the amount from API directly as earnings, but only for epoch snapshots (staking rewards)
+            // Deposits and withdrawals have amount = balance change from the transaction, not earnings
+            const stakingChange = stakingChanges[poolId];
+            const hasTransaction = entry.transactionHashes?.length > 0;
+            const earnings = (!hasTransaction && stakingChange?.diff) ? Number(BigInt(stakingChange.diff)) : 0;
+
             const stakingEntry = {
                 timestamp: new Date(Number(entry.timestamp) / 1_000_000).toISOString(), // Convert nanoseconds to ISO string
                 balance: Number(balance),
                 block_height: entry.block,
                 deposit,
                 withdrawal,
-                earnings: 0, // Will be calculated after sorting
+                earnings,  // Directly from API's amount field
                 _source: 'accounting-export',
                 _isStakingReward: isStakingReward
             };
@@ -547,21 +553,10 @@ function extractStakingData(entries) {
         }
     }
 
-    // Sort and calculate earnings for each pool
+    // Sort entries for each pool (earnings already set from API)
     for (const [, poolEntries] of stakingDataByPool) {
         // Sort by block height descending (newest first)
         poolEntries.sort((a, b) => b.block_height - a.block_height);
-
-        // Calculate earnings: balance_change - deposits + withdrawals
-        for (let i = 0; i < poolEntries.length - 1; i++) {
-            const current = poolEntries[i];
-            const previous = poolEntries[i + 1];
-            current.earnings = current.balance - previous.balance - current.deposit + current.withdrawal;
-        }
-        // First staking entry has no previous, so earnings = 0
-        if (poolEntries.length > 0) {
-            poolEntries[poolEntries.length - 1].earnings = 0;
-        }
     }
 
     return stakingDataByPool;
@@ -727,15 +722,8 @@ export function mergeStakingEntries(existingEntries, newEntries) {
     const merged = Array.from(entriesByBlock.values());
     merged.sort((a, b) => b.block_height - a.block_height);
 
-    // Recalculate earnings after merge
-    for (let i = 0; i < merged.length - 1; i++) {
-        const current = merged[i];
-        const previous = merged[i + 1];
-        current.earnings = current.balance - previous.balance - (current.deposit || 0) + (current.withdrawal || 0);
-    }
-    if (merged.length > 0) {
-        merged[merged.length - 1].earnings = 0;
-    }
+    // Earnings are already set from API - no recalculation needed
+    // New entries (with correct earnings from API) take precedence over existing entries
 
     return merged;
 }
