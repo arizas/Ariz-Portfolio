@@ -230,10 +230,8 @@ function convertToNearTransaction(entry, accountId) {
 
     // Determine action kind
     let actionKind = 'TRANSFER';
-    let methodName = '';
     if (functionCall) {
         actionKind = 'FUNCTION_CALL';
-        methodName = functionCall.method_name || '';
     } else if (action?.Transfer) {
         actionKind = 'TRANSFER';
     } else if (action?.Stake) {
@@ -243,11 +241,18 @@ function convertToNearTransaction(entry, accountId) {
     // Get transaction hash
     const hash = entry.transactionHashes?.[0] || `block-${entry.block}`;
 
+    // Determine who sent/received the tokens. The counterparty field indicates
+    // who the tokens came from (incoming) or went to (outgoing).
+    // For V2 format (no transaction details), use counterparty for incoming transfers
+    // to properly classify external income vs own-account activity.
+    const signerId = txDetails?.signerId
+        || (totalChange > 0n && counterparty ? counterparty : accountId);
+
     return {
         hash,
         block_height: entry.block,
         block_timestamp: entry.timestamp.toString(),
-        signer_id: txDetails?.signerId || accountId,
+        signer_id: signerId,
         receiver_id: txDetails?.receiverId || counterparty,
         balance: entry.balanceAfter?.near || '0',
         action_kind: actionKind,
@@ -528,11 +533,15 @@ function extractStakingData(entries) {
                 }
             }
 
-            // Use the amount from API directly as earnings, but only for epoch snapshots (staking rewards)
-            // Deposits and withdrawals have amount = balance change from the transaction, not earnings
-            const stakingChange = stakingChanges[poolId];
-            const hasTransaction = entry.transactionHashes?.length > 0;
-            const earnings = (!hasTransaction && stakingChange?.diff) ? Number(BigInt(stakingChange.diff)) : 0;
+            // Use the staking_reward transfer amount as earnings (not changes.diff which can
+            // include deposits from adjacent blocks)
+            let earnings = 0;
+            const stakingRewardTransfer = entry.transfers.find(
+                t => t.type === 'staking_reward' && (t.tokenId === poolId || t.counterparty === poolId)
+            );
+            if (stakingRewardTransfer) {
+                earnings = Number(BigInt(stakingRewardTransfer.amount || '0'));
+            }
 
             const stakingEntry = {
                 timestamp: new Date(Number(entry.timestamp) / 1_000_000).toISOString(), // Convert nanoseconds to ISO string
@@ -540,7 +549,7 @@ function extractStakingData(entries) {
                 block_height: entry.block,
                 deposit,
                 withdrawal,
-                earnings,  // Directly from API's amount field
+                earnings,  // From staking_reward transfer amount
                 _source: 'accounting-export',
                 _isStakingReward: isStakingReward
             };
@@ -572,7 +581,7 @@ export async function convertAccountingExportToTransactions(accountId, jsonData)
     const entries = jsonData.transactions || [];
     const transactions = [];
     const ftTransactions = [];
-    const processedHashes = new Set();
+    const processedHashes = new Map();
 
     // Fetch intents token metadata for symbol/decimals resolution
     const tokenMetadata = await getIntentsTokenMetadata();
@@ -603,10 +612,18 @@ export async function convertAccountingExportToTransactions(accountId, jsonData)
         }
 
         // Process NEAR transactions
+        // A single transaction can span multiple blocks (receipts), so we deduplicate by hash
+        // but always update the balance to use the latest block's balance_after (final state)
         const nearTx = convertToNearTransaction(entry, accountId);
-        if (nearTx && !processedHashes.has(nearTx.hash)) {
-            transactions.push(nearTx);
-            processedHashes.add(nearTx.hash);
+        if (nearTx) {
+            if (!processedHashes.has(nearTx.hash)) {
+                transactions.push(nearTx);
+                processedHashes.set(nearTx.hash, nearTx);
+            } else {
+                // Update with latest block's balance (entries are sorted ascending,
+                // so later entries have the final balance after all receipts)
+                processedHashes.get(nearTx.hash).balance = nearTx.balance;
+            }
         }
 
         // Process fungible token transfers (both regular FT and intents/multi-token)

@@ -7,6 +7,7 @@ import { rpcs } from './public_html/near/rpc.js';
 const nearBlocksCacheURL = new URL('testdata/nearblockscache.json', import.meta.url);
 const archiveRpcCacheURL = new URL('testdata/archiverpccache.json', import.meta.url);
 const arizGatewayCacheURL = new URL('testdata/arizgatewaycache.json', import.meta.url);
+const norgesBankCacheURL = new URL('testdata/norgesbankcache.json', import.meta.url);
 const blockdatadir = new URL('testdata/blockdata/', import.meta.url);
 const accountingExportDir = new URL('testdata/accountingexport/', import.meta.url);
 
@@ -14,6 +15,12 @@ const nearblockscache = JSON.parse((await readFile(nearBlocksCacheURL)).toString
 
 const archiveRpcCache = JSON.parse((await readFile(archiveRpcCacheURL)).toString());
 const arizGatewayCache = JSON.parse((await readFile(arizGatewayCacheURL)).toString());
+let norgesBankCache;
+try {
+  norgesBankCache = JSON.parse((await readFile(norgesBankCacheURL)).toString());
+} catch {
+  norgesBankCache = {};
+}
 
 const indexHtml = (await readFile(new URL('public_html/index.html', import.meta.url))).toString();
 const importMapStart = indexHtml.indexOf('<script type="importmap">') + '<script type="importmap">'.length;
@@ -169,6 +176,20 @@ export default {
           }
         });
 
+        await ctx.route('https://data.norges-bank.no/**/*', async (route) => {
+          const url = route.request().url();
+          if (norgesBankCache[url]) {
+            await route.fulfill({ body: norgesBankCache[url], headers: { 'Content-Type': 'application/json' } });
+          } else {
+            const response = await route.fetch();
+            const body = await response.text();
+            if (response.ok()) {
+              norgesBankCache[url] = body;
+              await writeFile(norgesBankCacheURL, JSON.stringify(norgesBankCache, null, 1));
+            }
+            await route.fulfill({ body, status: response.status() });
+          }
+        });
         await ctx.route('https://mainnet.neardata.xyz/v0/block/*', async (route) => {
           const url = route.request().url();
           const pathParts = url.split('/');

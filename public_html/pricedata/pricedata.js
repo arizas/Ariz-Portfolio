@@ -7,6 +7,10 @@ import { resolveSymbol } from "../near/intents-tokens.js";
 const defaultToken = 'NEAR';
 const skipFetchingPrices = {};
 
+export function setSkipFetchingPrices(token, currency) {
+    skipFetchingPrices[`${token}-${currency}`] = true;
+}
+
 // Map token symbols to CoinGecko IDs (Ariz Gateway uses CoinGecko API)
 const symbolToCoinGeckoId = {
     'NEAR': 'near',
