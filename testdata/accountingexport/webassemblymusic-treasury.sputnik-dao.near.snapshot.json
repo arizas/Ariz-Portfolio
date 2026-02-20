@@ -1,6 +1,11 @@
 {
   "accountId": "webassemblymusic-treasury.sputnik-dao.near",
   "transactionCount": 104,
+  "rawEntriesCount": 637,
+  "entriesWithStakingPools": 437,
+  "stakingPools": {
+    "astro-stakers.poolv1.near": 437
+  },
   "transactions": [
     {
       "hash": "CpctEH17tQgvAT6kTPkCpWtSGtG4WFYS2Urjq9eNNhm5",
@@ -8,7 +13,7 @@
       "block_timestamp": "1766561525208826600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26669369671395456899999975",
+      "balance": "26569424128999608199999975",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -56,7 +61,7 @@
       "block_timestamp": "1765811983713734700",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26445338627379869499999976",
+      "balance": "26569088627379869499999976",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -88,7 +93,7 @@
       "block_timestamp": "1764882398656366800",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26570145633043678199999977",
+      "balance": "26470207505625583899999977",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -104,7 +109,7 @@
       "block_timestamp": "1764882283592641000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26969999208578711099999977",
+      "balance": "26870063391584893099999977",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -136,7 +141,7 @@
       "block_timestamp": "1764882022184113400",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26869420703008980799999977",
+      "balance": "27107463096189158099999977",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -168,7 +173,7 @@
       "block_timestamp": "1764881905216286000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26769241017900227099999977",
+      "balance": "27007285419936783399999977",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -200,7 +205,7 @@
       "block_timestamp": "1764881790156325600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26607060975726849399999977",
+      "balance": "26907103368907026699999977",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -232,7 +237,7 @@
       "block_timestamp": "1764881480455415600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26706881704292491599999977",
+      "balance": "26806924448678618699999977",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -296,7 +301,7 @@
       "block_timestamp": "1762205349720700200",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26606568872363366799999977",
+      "balance": "26506633459112343699999977",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -328,7 +333,7 @@
       "block_timestamp": "1762201096113623000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26506379690298452499999977",
+      "balance": "26506424670788409699999978",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -360,7 +365,7 @@
       "block_timestamp": "1760640190710371600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26506178251711684599999978",
+      "balance": "26406239021248342299999978",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -392,7 +397,7 @@
       "block_timestamp": "1760640080802619600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26907230341053576199999978",
+      "balance": "26906042228341068899999978",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -424,7 +429,7 @@
       "block_timestamp": "1760639723802008800",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26407050883625460999999978",
+      "balance": "26907094877506361699999978",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -504,7 +509,7 @@
       "block_timestamp": "1758655301446306000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26606560238813351199999978",
+      "balance": "26506624381779614399999978",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -536,7 +541,7 @@
       "block_timestamp": "1758567482856888000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26606358453693492799999979",
+      "balance": "26506421745439142699999979",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -568,7 +573,7 @@
       "block_timestamp": "1758462701249549300",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26606156073930949999999980",
+      "balance": "26506219582147858299999980",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -600,7 +605,7 @@
       "block_timestamp": "1758461793048105500",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26605954291876575299999981",
+      "balance": "26506017355559227799999981",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -632,7 +637,7 @@
       "block_timestamp": "1758443263960831000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26605752132896771999999982",
+      "balance": "26505815638638531699999982",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -664,7 +669,7 @@
       "block_timestamp": "1758442854036613400",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26605546203009007199999983",
+      "balance": "26505610511313298099999983",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -744,7 +749,7 @@
       "block_timestamp": "1757360762399630300",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26505162995564194199999984",
+      "balance": "26405228993467837499999984",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -776,7 +781,7 @@
       "block_timestamp": "1757358275759999500",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26504959138536686699999985",
+      "balance": "26405023443329156399999985",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -808,7 +813,7 @@
       "block_timestamp": "1757103098889475800",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26504755335688450299999986",
+      "balance": "26404818811163564499999986",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -872,7 +877,7 @@
       "block_timestamp": "1757053683924090600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26504347562152655999999988",
+      "balance": "26404411084113776399999988",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -904,7 +909,7 @@
       "block_timestamp": "1756928569925057800",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26504140362776775699999989",
+      "balance": "26404203840727038499999989",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -936,7 +941,7 @@
       "block_timestamp": "1756919555385091800",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26403952028054204499999989",
+      "balance": "26403996718735238499999990",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -968,7 +973,7 @@
       "block_timestamp": "1756748581793069000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26303767250392729399999989",
+      "balance": "26303811965836655199999990",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1000,7 +1005,7 @@
       "block_timestamp": "1756064860211195100",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "26303567721968995899999990",
+      "balance": "26203628781147319699999990",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1056,7 +1061,7 @@
       "block_timestamp": "1755868903540178200",
       "signer_id": "psalomo.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11303369530815596399999990",
+      "balance": "11203433276254901199999990",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1088,7 +1093,7 @@
       "block_timestamp": "1755110939696786700",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11303164631252099299999991",
+      "balance": "11203228532118816299999991",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1120,7 +1125,7 @@
       "block_timestamp": "1754503934354162200",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11302958848502375799999992",
+      "balance": "11203022624413270199999992",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1152,7 +1157,7 @@
       "block_timestamp": "1753545851604232000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11302751516913404099999993",
+      "balance": "11202816887421076699999993",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1184,7 +1189,7 @@
       "block_timestamp": "1753545270422096600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11202557288877675299999993",
+      "balance": "11202605848212415199999994",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1216,7 +1221,7 @@
       "block_timestamp": "1753264356321250600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11202234451618600999999994",
+      "balance": "11102295696363416099999994",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1376,7 +1381,7 @@
       "block_timestamp": "1751719496432722000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11201394829423278999999995",
+      "balance": "11101451674450547699999995",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1408,7 +1413,7 @@
       "block_timestamp": "1751392203440345300",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11301219305525088699999995",
+      "balance": "11201275914707614299999995",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1440,7 +1445,7 @@
       "block_timestamp": "1751279292397735000",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11301034995075735199999996",
+      "balance": "11201090811250766599999996",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1488,7 +1493,7 @@
       "block_timestamp": "1750446780612369400",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11200805238715789099999997",
+      "balance": "11100860402500808399999997",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1552,7 +1557,7 @@
       "block_timestamp": "1750100338257055500",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11200513712735084899999998",
+      "balance": "11100569862488061499999998",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1584,7 +1589,7 @@
       "block_timestamp": "1750097281890128600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "11200335305434035899999999",
+      "balance": "11100390502588514299999999",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1628,7 +1633,7 @@
       "block_timestamp": "1749588068177733600",
       "signer_id": "petersalomonsen.near",
       "receiver_id": "webassemblymusic-treasury.sputnik-dao.near",
-      "balance": "6100170254914165499999999",
+      "balance": "6100211126630537100000000",
       "action_kind": "FUNCTION_CALL",
       "args": {
         "method_name": "act_proposal",
@@ -1654,10 +1659,5 @@
       "_source": "accounting-export",
       "_near_change": "100000000000000000000000"
     }
-  ],
-  "stakingPools": {
-    "astro-stakers.poolv1.near": 437
-  },
-  "rawEntriesCount": 637,
-  "entriesWithStakingPools": 437
+  ]
 }

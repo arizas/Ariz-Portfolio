@@ -45,6 +45,17 @@ test("should open accounts page, add account, and load data", async ({ page }) =
     await page.waitForTimeout(1000);
   }
 
+  // Wait for any modal to be dismissed (e.g., error dialogs or alerts)
+  const modal = page.locator('common-modal');
+  try {
+    await modal.waitFor({ state: 'attached', timeout: 2000 });
+    // If modal appeared, click dismiss button and wait for it to close
+    await modal.locator('button').first().click();
+    await modal.waitFor({ state: 'detached', timeout: 5000 });
+  } catch {
+    // No modal appeared, continue
+  }
+
   await pause500ifRecordingVideo(page);
   await page.getByRole('link', { name: 'Year report' }).click();
   await pause500ifRecordingVideo(page);

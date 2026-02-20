@@ -163,6 +163,63 @@ export async function resolveDisplaySymbol(contractId, fallbackSymbol) {
 }
 
 /**
+ * Resolve symbol for a token from intents API or token metadata cache
+ * This is used for price lookups - prices are stored by symbol (e.g., "USDC"), not contract ID
+ * @param {string} contractId - Contract ID (may include nep141: prefix)
+ * @returns {Promise<string>} Token symbol (e.g., "USDC") or the contractId if not found
+ */
+export async function resolveSymbol(contractId) {
+    if (!contractId) return contractId;
+
+    const metadata = await getIntentsTokenMetadata();
+
+    // Check intents token cache first (with original ID including prefix)
+    if (metadata.has(contractId)) {
+        return metadata.get(contractId).symbol;
+    }
+
+    // Strip nep141:/nep245: prefix if present
+    const normalizedId = contractId.replace(/^nep(141|245):/, '');
+
+    // Check cache with normalized ID
+    if (metadata.has(normalizedId)) {
+        return metadata.get(normalizedId).symbol;
+    }
+
+    // Try with nep141: prefix (for implicit account contract IDs)
+    const withPrefix = `nep141:${normalizedId}`;
+    if (metadata.has(withPrefix)) {
+        return metadata.get(withPrefix).symbol;
+    }
+
+    // Check token metadata cache (populated from ft_metadata RPC calls)
+    try {
+        const { getCachedTokenMetadata, cacheTokenMetadata } = await import('../storage/token-metadata-cache.js');
+        const cachedMetadata = await getCachedTokenMetadata(normalizedId);
+        if (cachedMetadata?.symbol) {
+            return cachedMetadata.symbol;
+        }
+
+        // Fetch from RPC if not in any cache
+        const { fetchFtMetadata } = await import('./rpc.js');
+        const ftMetadata = await fetchFtMetadata(normalizedId);
+        if (ftMetadata?.symbol) {
+            await cacheTokenMetadata(normalizedId, {
+                symbol: ftMetadata.symbol,
+                decimals: ftMetadata.decimals,
+                name: ftMetadata.name
+            });
+            return ftMetadata.symbol;
+        }
+    } catch (e) {
+        console.warn(`resolveSymbol(${contractId}): error fetching metadata:`, e);
+    }
+
+    // Return the original contractId if symbol couldn't be resolved
+    return contractId;
+}
+
+/**
  * Resolve decimals for a token from intents API or token metadata cache
  * @param {string} contractId - Contract ID
  * @param {number} fallbackDecimals - Fallback decimals if not found

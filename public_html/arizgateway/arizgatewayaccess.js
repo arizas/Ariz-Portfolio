@@ -171,16 +171,20 @@ export async function fetchFromArizGateway(path) {
         try {
             const arizGatewayAccessToken = await getAccessToken();
             setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
-            const result = await fetch(`${arizgatewayhost}${path}`, {
+            const response = await fetch(`${arizgatewayhost}${path}`, {
                 headers: {
                     "authorization": `Bearer ${arizGatewayAccessToken}`
                 }
-            }).then(r => r.json());
+            });
             setProgressbarValue(null);
-            return result;
-        } catch(e) {
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`${response.status} ${response.statusText}: ${errorText}`);
+            }
+            return await response.json();
+        } catch (e) {
             setProgressbarValue(null);
-            throw(e);
+            throw (e);
         }
     } else {
         return {};

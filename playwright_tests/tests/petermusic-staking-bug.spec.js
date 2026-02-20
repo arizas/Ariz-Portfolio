@@ -1,13 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { setupApiMocks } from '../util/api-mocks.js';
 
 test("should show correct staking reward for petermusic.near on Aug 30 2025", async ({ page }) => {
   test.setTimeout(180_000);
 
-  // Capture console messages
-  const consoleLogs = [];
-  page.on('console', msg => {
-    consoleLogs.push(`[${msg.type()}] ${msg.text()}`);
-  });
+  // Use API mocking to ensure deterministic data (avoids parallel test interference
+  // via shared git storage and eliminates dependency on live API)
+  await setupApiMocks(page);
 
   await page.goto("/");
 
@@ -20,22 +19,8 @@ test("should show correct staking reward for petermusic.near on Aug 30 2025", as
   console.log('Loading data from server...');
   await page.getByRole('button', { name: 'load from server' }).click();
 
-  // Wait for data to load - look for console message indicating success
-  await page.waitForTimeout(30000);  // Wait up to 30 seconds for data
-
-  // Print DEBUG logs
-  console.log('DEBUG logs:');
-  consoleLogs
-    .filter(log => log.includes('DEBUG'))
-    .forEach(log => console.log(log));
-
-  console.log('\nConsole logs (staking/accounting related):');
-  consoleLogs
-    .filter(log => log.includes('staking') || log.includes('Staking') ||
-                   log.includes('accounting') || log.includes('entries') ||
-                   log.includes('deposit') || log.includes('earning'))
-    .slice(-15)
-    .forEach(log => console.log(log));
+  // Wait for data to load
+  await page.waitForTimeout(30000);
 
   // Go to Year report
   console.log('Going to Year report...');
@@ -113,12 +98,86 @@ test("should show correct staking reward for petermusic.near on Aug 30 2025", as
 
   console.log(`Parsed reward value: ${rewardValue}`);
 
-  // BUG VERIFIED: reward shows ~1000 NEAR instead of ~0.4 NEAR
-  // This test documents the bug - it SHOULD fail until the bug is fixed
-  // Expected: ~0.4 NEAR
-  // Actual: ~1000.389 NEAR
+  // BUG FIXED: Previously showed ~1000 NEAR instead of ~0.2 NEAR
+  // The fix: API now returns correct amount field for snapshots (0 for no-change entries)
+  // and client uses API's amount directly as earnings instead of recalculating
+  // Expected: ~0.4 NEAR (actual staking rewards for Aug 30)
+  expect(rewardValue, 'Staking reward should be less than 10 NEAR').toBeLessThan(10);
+  expect(rewardValue, 'Staking reward should be greater than 0').toBeGreaterThan(0);
 
-  // This assertion will FAIL - documenting the bug
-  expect(rewardValue, 'BUG: Staking reward shows 1000 NEAR instead of ~0.4 NEAR').toBeLessThan(10);
+  // Check consistency across Aug 24-30 period
+  // Previously there was a bug where staking change showed -999,878 on Aug 25
+  // because aurora.pool.near data was missing for that period
+  console.log('\nChecking staking balance consistency for Aug 24-30...');
+
+  const datesToCheck = ['2025-08-24', '2025-08-25', '2025-08-26', '2025-08-27', '2025-08-28', '2025-08-29', '2025-08-30'];
+  const stakingData = {};
+
+  for (const date of datesToCheck) {
+    for (let i = 0; i < rowCount; i++) {
+      const row = rows.nth(i);
+      const dateCell = await row.locator('.dailybalancerow_datetime').textContent();
+      if (dateCell?.trim() === date) {
+        const stakingBalanceCell = await row.locator('.dailybalancerow_stakingbalance');
+        const stakingChangeCell = await row.locator('.dailybalancerow_stakingchange');
+        const stakingRewardCell = await row.locator('.dailybalancerow_stakingreward');
+
+        const balanceText = (await stakingBalanceCell.textContent()).trim().replace(/\s/g, '').replace(/,/g, '');
+        const changeText = (await stakingChangeCell.textContent()).trim().replace(/\s/g, '').replace(/,/g, '');
+        const rewardText = (await stakingRewardCell.textContent()).trim().replace(/\s/g, '').replace(/,/g, '');
+
+        stakingData[date] = {
+          balance: parseFloat(balanceText) || 0,
+          change: parseFloat(changeText) || 0,
+          reward: parseFloat(rewardText) || 0
+        };
+
+        console.log(`${date}: balance=${stakingData[date].balance.toFixed(0)}, change=${stakingData[date].change.toFixed(3)}, reward=${stakingData[date].reward.toFixed(3)}`);
+        break;
+      }
+    }
+  }
+
+  // Verify no huge negative changes (the -999,878 bug)
+  for (const date of datesToCheck) {
+    if (stakingData[date]) {
+      expect(
+        stakingData[date].change,
+        `${date} staking change should not be a huge negative (was -999,878 before fix)`
+      ).toBeGreaterThan(-100);  // Allow small negative changes but not -999,878
+    }
+  }
+
+  // Verify staking rewards are reasonable for all days
+  for (const date of datesToCheck) {
+    if (stakingData[date]) {
+      expect(
+        stakingData[date].reward,
+        `${date} staking reward should be less than 10 NEAR`
+      ).toBeLessThan(10);
+    }
+  }
+
+  // Verify Aug 24 has the deposit reflected (balance should be higher than Aug 23 if we had that data)
+  expect(stakingData['2025-08-24']?.balance, 'Aug 24 should have staking balance').toBeGreaterThan(0);
+
+  // Verify balance consistency - no sudden drops of 1000 NEAR between consecutive days
+  for (let i = 1; i < datesToCheck.length; i++) {
+    const prevDate = datesToCheck[i - 1];
+    const currDate = datesToCheck[i];
+    if (stakingData[prevDate] && stakingData[currDate]) {
+      const balanceDiff = stakingData[currDate].balance - stakingData[prevDate].balance;
+      // Allow for the Aug 30 drop when aurora.pool.near was unstaked (~1000 NEAR)
+      // but on other days, the change should be small (just rewards)
+      if (currDate !== '2025-08-30') {
+        expect(
+          Math.abs(balanceDiff),
+          `Balance change from ${prevDate} to ${currDate} should be small (was ~999,878 before fix)`
+        ).toBeLessThan(100);
+      }
+    }
+  }
+
+  console.log('\nAll consistency checks passed!');
 });
 

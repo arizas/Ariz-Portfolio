@@ -8,7 +8,11 @@ const fungibleTokenData = {
 };
 
 export function getDecimalConversionValue(fungibleTokenSymbol) {
-    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol].decimalConversionValue : Math.pow(10, -24);
+    return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol]?.decimalConversionValue ?? Math.pow(10, -24) : Math.pow(10, -24);
+}
+
+export function getTokenSymbol(fungibleTokenContractId) {
+    return fungibleTokenContractId ? fungibleTokenData[fungibleTokenContractId]?.symbol : 'NEAR';
 }
 
 export async function calculateYearReportData(fungibleTokenSymbol) {
@@ -97,6 +101,33 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 }
 
                 stakingBalances[ts].totalEarnings += stakingReward.earnings;
+            }
+        }
+    }
+
+    // Fill in gaps in staking balances - carry forward last known balance for each pool
+    // This handles cases like unstaked-but-not-withdrawn funds where the API has no
+    // snapshots for days between unstake and withdraw
+    for (let account of accounts) {
+        const stakingBalances = accountTransactions[account].stakingBalances;
+        const stakingAccounts = accountTransactions[account].stakingAccounts;
+
+        // Get all dates that have any staking data, sorted
+        const dates = Object.keys(stakingBalances).sort();
+
+        // Track last known balance for each pool
+        const lastKnownBalance = {};
+
+        for (const date of dates) {
+            for (const pool of stakingAccounts) {
+                if (stakingBalances[date][pool] !== undefined) {
+                    // Update last known balance
+                    lastKnownBalance[pool] = stakingBalances[date][pool];
+                } else if (lastKnownBalance[pool] !== undefined && lastKnownBalance[pool] > 0) {
+                    // Carry forward last known balance (pool has no entry for this day)
+                    stakingBalances[date][pool] = lastKnownBalance[pool];
+                    stakingBalances[date].totalStakingBalance += lastKnownBalance[pool];
+                }
             }
         }
     }
@@ -328,7 +359,7 @@ export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, con
     const doNotConvert = convertToCurrency ? false : true;
     const conversionRate = doNotConvert ? 1 : await getEODPrice(convertToCurrency, datestring, symbol);
 
-    const decimalConversionValue = fungibleTokenData[symbol].decimalConversionValue;
+    const decimalConversionValue = fungibleTokenData[symbol]?.decimalConversionValue ?? Math.pow(10, -24);
     const received = (conversionRate * (Number(rowdata.received) * decimalConversionValue));
     const stakingReward = (conversionRate * (rowdata.stakingRewards * decimalConversionValue));
     const deposit = (conversionRate * (rowdata.deposit * decimalConversionValue));

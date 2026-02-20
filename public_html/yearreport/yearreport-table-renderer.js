@@ -1,4 +1,4 @@
-import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue } from './yearreportdata.js';
+import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue, getTokenSymbol } from './yearreportdata.js';
 
 const numDecimals = 2;
 
@@ -78,7 +78,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
 
     const decimalConversionValue = token ? getDecimalConversionValue(token) : Math.pow(10, -24);
     const tokenNumberFormatter = getNumberFormatter();
-    const symbol = token === '' ? 'NEAR' : token;
+    const symbol = token === '' ? 'NEAR' : (getTokenSymbol(token) || token);
     const formatTokenAmount = (amount) => {
         return `<span class="token_amount">${tokenNumberFormatter(amount * decimalConversionValue)} ${symbol}</span>`;
     };

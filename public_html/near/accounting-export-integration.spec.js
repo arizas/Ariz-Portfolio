@@ -82,11 +82,11 @@ describe('accounting-export integration', function () {
 
     it('should match all transactions in snapshot', function () {
         expect(result.transactions.length).to.equal(snapshot.transactions.length);
-        
+
         for (let i = 0; i < result.transactions.length; i++) {
             const actual = result.transactions[i];
             const expected = snapshot.transactions[i];
-            
+
             expect(actual.hash, `Transaction ${i} hash`).to.equal(expected.hash);
             expect(actual.block_height, `Transaction ${i} block_height`).to.equal(expected.block_height);
             expect(actual.action_kind, `Transaction ${i} action_kind`).to.equal(expected.action_kind);
