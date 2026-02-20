@@ -1,13 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { setupApiMocks } from '../util/api-mocks.js';
 
 test("should show correct staking reward for petermusic.near on Aug 30 2025", async ({ page }) => {
   test.setTimeout(180_000);
 
-  // Capture console messages
-  const consoleLogs = [];
-  page.on('console', msg => {
-    consoleLogs.push(`[${msg.type()}] ${msg.text()}`);
-  });
+  // Use API mocking to ensure deterministic data (avoids parallel test interference
+  // via shared git storage and eliminates dependency on live API)
+  await setupApiMocks(page);
 
   await page.goto("/");
 
@@ -20,22 +19,8 @@ test("should show correct staking reward for petermusic.near on Aug 30 2025", as
   console.log('Loading data from server...');
   await page.getByRole('button', { name: 'load from server' }).click();
 
-  // Wait for data to load - look for console message indicating success
-  await page.waitForTimeout(30000);  // Wait up to 30 seconds for data
-
-  // Print DEBUG logs
-  console.log('DEBUG logs:');
-  consoleLogs
-    .filter(log => log.includes('DEBUG'))
-    .forEach(log => console.log(log));
-
-  console.log('\nConsole logs (staking/accounting related):');
-  consoleLogs
-    .filter(log => log.includes('staking') || log.includes('Staking') ||
-                   log.includes('accounting') || log.includes('entries') ||
-                   log.includes('deposit') || log.includes('earning'))
-    .slice(-15)
-    .forEach(log => console.log(log));
+  // Wait for data to load
+  await page.waitForTimeout(30000);
 
   // Go to Year report
   console.log('Going to Year report...');

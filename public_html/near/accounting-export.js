@@ -533,11 +533,14 @@ function extractStakingData(entries) {
                 }
             }
 
-            // Use the staking_reward transfer amount as earnings (not changes.diff which can
-            // include deposits from adjacent blocks)
+            // Use the staking_reward transfer amount as earnings, but only for actual
+            // epoch rewards (no tx_hash). In V2 format, all staking pool records get
+            // type='staking_reward', so we must exclude deposit/withdrawal transactions
+            // which have a tx_hash set.
             let earnings = 0;
             const stakingRewardTransfer = entry.transfers.find(
                 t => t.type === 'staking_reward' && (t.tokenId === poolId || t.counterparty === poolId)
+                    && !t.txHash
             );
             if (stakingRewardTransfer) {
                 earnings = Number(BigInt(stakingRewardTransfer.amount || '0'));
