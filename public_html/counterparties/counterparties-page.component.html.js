@@ -38,7 +38,8 @@ export default /*html*/ `
     <div class="card-body">
         <p class="small text-muted">
             All incoming transfers from external accounts are classified as <strong>deposit</strong> by default.
-            Mark accounts as <strong>received</strong> to classify their incoming transfers as external income (not entering FIFO cost basis).
+            Mark accounts as <strong>received</strong> to classify their incoming transfers as external income.
+            Both deposit and received enter FIFO cost basis at the same price — the distinction is for income reporting only.
         </p>
         <div class="filter-group mb-3">
             <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search counterparty..." style="max-width: 300px;">

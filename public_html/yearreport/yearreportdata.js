@@ -56,9 +56,11 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
             tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
             // Classify incoming transfers from external accounts:
-            // - Default: treat as deposit (enters FIFO cost basis)
-            // - Exception: if sender is in receivedaccounts, treat as "received" (external income, no FIFO)
-            // - Own accounts and staking pools are handled separately via hash grouping
+            // - Default: treat as deposit
+            // - Exception: if sender is in receivedaccounts, treat as "received" (external income)
+            // Both deposit and received enter FIFO cost basis at the same price.
+            // The distinction is for reporting: received = income, deposit = not income.
+            // Own accounts and staking pools are handled separately via hash grouping
             if (!accountsMap[tx.signer_id]
                 && !allStakingAccounts[tx.signer_id]
                 && tx.changedBalance > 0n
