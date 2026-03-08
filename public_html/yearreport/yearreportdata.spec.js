@@ -1,22 +1,18 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
 import { setAccounts, fetchTransactionsFromAccountingExport, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates, setDepositAccounts, setReceivedAccounts } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
-import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, setCustomExchangeRateSell, setSkipFetchingPrices } from '../pricedata/pricedata.js';
-
-let pricesFetched = false;
-async function ensurePricesFetched() {
-    if (pricesFetched) return;
-    await fetchNEARHistoricalPricesFromNearBlocks();
-    await fetchNOKPrices();
-    setSkipFetchingPrices('NEAR', 'NOK');
-    setSkipFetchingPrices('NEAR', 'USD');
-    pricesFetched = true;
-}
+import { fetchHistoricalPricesFromArizGateway, setCustomExchangeRateSell, setSkipFetchingPrices } from '../pricedata/pricedata.js';
+import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
 
 describe('year-report-data', () => {
-    beforeEach(async function () {
+    before(async function () {
         this.timeout(10 * 60000);
-        await ensurePricesFetched();
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+        await fetchHistoricalPricesFromArizGateway({ currency: 'NOK', todate: '2024-05-30' });
+        await fetchHistoricalPricesFromArizGateway({ currency: 'USD', todate: '2024-05-30' });
+        setSkipFetchingPrices('NEAR', 'NOK');
+        setSkipFetchingPrices('NEAR', 'USD');
     });
     it('should get daily account balance report for psalomo.near', async function () {
         this.timeout(10 * 60000);

@@ -1,5 +1,4 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
-import { getFromNearBlocks } from "../near/nearblocks.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { modalAlert, modalYesNo } from "../ui/modal.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
@@ -36,60 +35,11 @@ export async function getCurrencyList() {
     return currencyList;
 }
 
-export async function fetchHistoricalPricesFromArizGateway({ baseToken = "near", currency, todate = new Date().toJSON() }) {
+export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR", currency, todate = new Date().toJSON() }) {
     // Convert symbol to CoinGecko ID (e.g., "BTC" -> "bitcoin")
     const coinGeckoId = symbolToCoinGeckoId[baseToken.toUpperCase()] || baseToken.toLowerCase();
     const pricesMap = await fetchFromArizGateway(`/api/prices/history?basetoken=${coinGeckoId}&currency=${currency}&todate=${todate}`);
     await setHistoricalPriceData(baseToken, currency, pricesMap);
-}
-
-export async function fetchNEARHistoricalPricesFromNearBlocks() {
-    const chartdata = await getFromNearBlocks('/v1/charts');
-    const pricedata = await getHistoricalPriceData(defaultToken, 'USD');
-    chartdata.charts.forEach(dayEntry => pricedata[dayEntry.date.substring(0, 'yyyy-MM-dd'.length)] = Number(dayEntry.near_price));
-    await setHistoricalPriceData(defaultToken, 'USD', pricedata);
-}
-
-export async function importYahooNEARHistoricalPrices(data) {
-    const lines = data.split(/\n/);
-    const pricedata = await getHistoricalPriceData(defaultToken, 'USD');
-    lines.slice(1).forEach(line => {
-        const cols = line.split(',');
-        pricedata[cols[0]] = parseFloat(cols[4]);
-    });
-    await setHistoricalPriceData(defaultToken, 'USD', pricedata);
-}
-
-export async function fetchNOKPrices() {
-    const exchangeRates = await fetch('https://data.norges-bank.no/api/data/EXR/B.USD.NOK.SP?format=sdmx-json&startPeriod=2020-01-01&endPeriod='
-        + new Date().toJSON().substring(0, 'yyyy-MM-dd'.length)
-        + '&locale=en').then(r => r.json());
-    const observations = exchangeRates.data.dataSets[0].series['0:0:0:0'].observations;
-
-    const nearNOKPricePerDay = {};
-    const ratesPerDay = {};
-    const tokenUSDPriceData = await getHistoricalPriceData(defaultToken, 'USD');
-
-    exchangeRates.data.structure.dimensions.observation.find(observation => observation.id === 'TIME_PERIOD').values.forEach(
-        (value, ndx) => {
-            const dateString = value.id;
-            ratesPerDay[dateString] = Number(observations[ndx][0]);
-        });
-    const allDaysSorted = Object.keys(tokenUSDPriceData).sort();
-
-    let previousNOKprice = 0;
-    for (const dateString of allDaysSorted) {
-        const usdPrice = tokenUSDPriceData[dateString];
-        const nokPrice = ratesPerDay[dateString];
-        if (!nokPrice) {
-            ratesPerDay[dateString] = previousNOKprice;
-        } else {
-            previousNOKprice = nokPrice;
-        }
-        nearNOKPricePerDay[dateString] = ratesPerDay[dateString] * usdPrice;
-    }
-    await setHistoricalPriceData(defaultToken, 'NOK', nearNOKPricePerDay);
-    await setHistoricalPriceData('USD', 'NOK', ratesPerDay);
 }
 
 export async function getEODPrice(currency, datestring, token = defaultToken) {
