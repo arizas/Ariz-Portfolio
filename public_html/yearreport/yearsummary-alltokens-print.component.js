@@ -37,6 +37,7 @@ customElements.define('yearsummary-alltokens-print',
             const format = getNumberFormatter(this.currency);
             const formatToken = getNumberFormatter();
             let totalBalance = 0;
+            let totalStakingEarnings = 0;
             let totalEarnings = 0;
             let totalProfit = 0;
             let totalLoss = 0;
@@ -71,23 +72,27 @@ customElements.define('yearsummary-alltokens-print',
                     tokenYearReportsElement.appendChild(tokenreport);
                     const decimalConversionValue = contractId ? getDecimalConversionValue(contractId) : Math.pow(10, -24);
                     const row = rowTemplate.cloneNode(true).content;
-                    const earnings = result.totalReceived + result.totalStakingReward;
+                    const stakingEarnings = result.totalStakingReward;
+                    const earnings = result.totalReceived + result.totalDeposit;
                     // Display the symbol (resolved from contract ID if needed)
                     const displaySymbol = contractId === '' ? 'NEAR' : (getTokenSymbol(contractId) || symbol);
                     row.querySelector('.summary_token').innerText = displaySymbol;
                     row.querySelector('.summary_amount').innerText = formatToken(result.outboundBalance.totalBalance * decimalConversionValue);
                     row.querySelector('.summary_balance').innerText = format(result.outboundBalance.convertedTotalBalance);
+                    row.querySelector('.summary_staking_earnings').innerText = format(stakingEarnings);
                     row.querySelector('.summary_earnings').innerText = format(earnings);
                     row.querySelector('.summary_profit').innerText = format(result.totalProfit);
                     row.querySelector('.summary_loss').innerText = format(result.totalLoss);
                     summarytablebody.appendChild(row);
 
                     totalBalance += result.outboundBalance.convertedTotalBalance;
+                    totalStakingEarnings += stakingEarnings;
                     totalEarnings += earnings;
                     totalProfit += result.totalProfit;
                     totalLoss += result.totalLoss;
 
                     this.shadowRoot.getElementById('summary_total_balance').innerText = format(totalBalance);
+                    this.shadowRoot.getElementById('summary_total_staking_earnings').innerText = format(totalStakingEarnings);
                     this.shadowRoot.getElementById('summary_total_earnings').innerText = format(totalEarnings);
                     this.shadowRoot.getElementById('summary_total_profit').innerText = format(totalProfit);
                     this.shadowRoot.getElementById('summary_total_loss').innerText = format(totalLoss);

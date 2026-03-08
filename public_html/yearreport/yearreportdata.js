@@ -1,4 +1,4 @@
-import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getDepositAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
+import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getReceivedAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 import { resolveDecimals } from '../near/intents-tokens.js';
@@ -26,7 +26,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     const transactionsByHash = {};
     const transactionsByDate = {};
     const allStakingAccounts = {};
-    const depositaccounts = await getDepositAccounts();
+    const receivedaccounts = await getReceivedAccounts();
     const customRealizationRates = await getCustomRealizationRates();
 
     let decimalConversionValue = Math.pow(10, -24);
@@ -55,11 +55,14 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
             );
 
             tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
+            // Classify incoming transfers from external accounts:
+            // - Default: treat as deposit (enters FIFO cost basis)
+            // - Exception: if sender is in receivedaccounts, treat as "received" (external income, no FIFO)
+            // - Own accounts and staking pools are handled separately via hash grouping
             if (!accountsMap[tx.signer_id]
                 && !allStakingAccounts[tx.signer_id]
                 && tx.changedBalance > 0n
-                && !depositaccounts[tx.signer_id]
-                && !depositaccounts[tx.involved_account_id]
+                && (receivedaccounts[tx.signer_id] || receivedaccounts[tx.involved_account_id])
                 && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
             ) {
                 tx.receivedBalance = tx.changedBalance;

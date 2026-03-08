@@ -1,6 +1,6 @@
 import { mockArizGatewayAccess, mockWalletAuthenticationData } from '../arizgateway/arizgatewayaccess.spec.js';
 import { fetchHistoricalPricesFromArizGateway, setSkipFetchingPrices } from '../pricedata/pricedata.js';
-import { fetchTransactionsFromAccountingExport, setAccounts, setDepositAccounts } from '../storage/domainobjectstore.js';
+import { fetchTransactionsFromAccountingExport, setAccounts, setDepositAccounts, setReceivedAccounts } from '../storage/domainobjectstore.js';
 import './yearreport-print.component.js';
 import { calculatePeriodStartAndEndDate, renderPeriodReportTable, renderYearReportTable } from "./yearreport-table-renderer.js";
 
@@ -26,6 +26,7 @@ describe('year-report-table-renderer', () => {
         const startDate = new Date(2021, 4, 1);
         await setAccounts([account]);
         await setDepositAccounts({ "af5a8fddfcceacb573d1dd0eba0406934da7dff9b63cebd7eb24ee47f9c3978f": "For creating psalomo.near" });
+        await setReceivedAccounts({});
         mockWalletAuthenticationData();
         await mockArizGatewayAccess();
         await fetchHistoricalPricesFromArizGateway({ baseToken: 'NEAR', currency: "USD", todate: '2024-05-30' });
@@ -47,14 +48,11 @@ describe('year-report-table-renderer', () => {
 
             }
         });
-        // Values differ from RPC-based assertions due to accounting export data differences:
-        // - inbound: 0 instead of 11.14 (accounting export starts 2021-02-07, missing Jan data; RPC confirmed ~7.99 NEAR at Jan 1)
-        // - outbound: 734.32 instead of 243.29 (accounting export includes staking across 6 pools; RPC had no staking data)
-        // - received: 1078.72 instead of 779.63 (counterparty-based classification includes all external income)
-        // - profit/loss: affected by missing inbound cost basis and staking earnings inclusion
+        // With inverted classification: all external incoming is deposit by default (no receivedaccounts configured)
         expect(result.inboundBalance.convertedTotalBalance).to.be.closeTo(0, 0.01);
         expect(result.outboundBalance.convertedTotalBalance).to.be.closeTo(734.32, 1);
-        expect(result.totalReceived).to.be.closeTo(1078.72, 1);
+        expect(result.totalReceived).to.be.closeTo(0, 1);
+        expect(result.totalDeposit).to.be.closeTo(1149.00, 1);
         expect(result.totalProfit).to.be.closeTo(62.10, 1);
         expect(result.totalLoss).to.be.closeTo(113.68, 1);
     });

@@ -1,5 +1,5 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
-import { setAccounts, fetchTransactionsFromAccountingExport, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates, setDepositAccounts } from '../storage/domainobjectstore.js';
+import { setAccounts, fetchTransactionsFromAccountingExport, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates, setDepositAccounts, setReceivedAccounts } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
 import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, setCustomExchangeRateSell, setSkipFetchingPrices } from '../pricedata/pricedata.js';
 
@@ -83,15 +83,33 @@ describe('year-report-data', () => {
         const accounts = ['psalomo.near', 'wasmgit.near'];
         const verifyDate = '2021-02-14';
         await setAccounts(accounts);
-        await setDepositAccounts({'02cf3e779cbe6e75cc2cfd36a86a2315639b522435b04a34c694d95c8e4404db': "for creating wasm-git"});
+        await setReceivedAccounts({});
 
         for (var account of accounts) {
             await fetchTransactionsFromAccountingExport(account);
         }
         const dailydata = (await calculateYearReportData()).dailyBalances;
         expect(Number(dailydata[verifyDate].accountChange) / 1e+24).to.be.closeTo(5.96, 0.005);
-        // 0.1 NEAR from "near" root account (wasmgit.near account creation deposit) is correctly
-        // identified as external income via counterparty-based classification
+        // With inverted classification: all external incoming is deposit by default
+        // 0.1 NEAR from "near" root account + 11.89 deposit = ~11.99 total deposit
+        expect(Number(dailydata[verifyDate].received) / 1e+24).to.be.closeTo(0, 0.005);
+        expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.99, 0.005);
+        expect(Number(dailydata[verifyDate].withdrawal) / 1e+24).to.be.closeTo(0.03, 0.005);
+    });
+    it('should classify incoming from receivedaccounts as received (not deposit)', async function () {
+        this.timeout(20 * 60000);
+        const accounts = ['psalomo.near', 'wasmgit.near'];
+        const verifyDate = '2021-02-14';
+        await setAccounts(accounts);
+        // Mark "near" root account as external received (e.g. account creation grant)
+        await setReceivedAccounts({'near': { description: 'NEAR root account - account creation' }});
+
+        for (var account of accounts) {
+            await fetchTransactionsFromAccountingExport(account);
+        }
+        const dailydata = (await calculateYearReportData()).dailyBalances;
+        expect(Number(dailydata[verifyDate].accountChange) / 1e+24).to.be.closeTo(5.96, 0.005);
+        // 0.1 NEAR from "near" root account classified as received
         expect(Number(dailydata[verifyDate].received) / 1e+24).to.be.closeTo(0.1, 0.005);
         expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.89, 0.005);
         expect(Number(dailydata[verifyDate].withdrawal) / 1e+24).to.be.closeTo(0.03, 0.005);
