@@ -73,7 +73,7 @@ customElements.define('yearsummary-alltokens-print',
                     const decimalConversionValue = contractId ? getDecimalConversionValue(contractId) : Math.pow(10, -24);
                     const row = rowTemplate.cloneNode(true).content;
                     const stakingEarnings = result.totalStakingReward;
-                    const earnings = result.totalReceived + result.totalDeposit;
+                    const earnings = result.totalReceived;
                     // Display the symbol (resolved from contract ID if needed)
                     const displaySymbol = contractId === '' ? 'NEAR' : (getTokenSymbol(contractId) || symbol);
                     row.querySelector('.summary_token').innerText = displaySymbol;
