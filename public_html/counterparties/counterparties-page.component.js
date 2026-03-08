@@ -2,6 +2,83 @@ import html from './counterparties-page.component.html.js';
 import { getAccounts, getTransactionsForAccount, getAllFungibleTokenTransactions, getReceivedAccounts, setReceivedAccounts } from '../storage/domainobjectstore.js';
 import { getStakingAccounts } from '../near/stakingpool.js';
 
+// Token prices cache, keyed by symbol (uppercase)
+let tokenPricesCache = null;
+
+async function fetchTokenPrices() {
+    if (tokenPricesCache) return tokenPricesCache;
+    try {
+        const response = await fetch('https://1click.chaindefuser.com/v0/tokens');
+        const tokens = await response.json();
+        tokenPricesCache = {};
+        for (const t of tokens) {
+            if (t.price > 0 && t.symbol) {
+                const sym = t.symbol.toUpperCase();
+                // Keep the highest price if multiple entries for same symbol
+                if (!tokenPricesCache[sym] || t.price > tokenPricesCache[sym]) {
+                    tokenPricesCache[sym] = t.price;
+                }
+            }
+        }
+        return tokenPricesCache;
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * Format a BigInt token amount with price-based decimal precision.
+ * Shows enough decimals so that: displayedAmount * price = accurate USD value (±$0.005)
+ */
+function formatTokenAmount(bigIntAmount, decimals, tokenPrice) {
+    if (bigIntAmount === 0n) return '0';
+    const isNegative = bigIntAmount < 0n;
+    const abs = isNegative ? -bigIntAmount : bigIntAmount;
+    const absStr = abs.toString();
+
+    let wholePart, decimalPart;
+    if (absStr.length <= decimals) {
+        wholePart = '0';
+        decimalPart = absStr.padStart(decimals, '0');
+    } else {
+        wholePart = absStr.slice(0, -decimals);
+        decimalPart = absStr.slice(-decimals);
+    }
+
+    const tokenAmount = parseFloat(wholePart + '.' + decimalPart);
+    if (tokenAmount === 0) return '0';
+
+    // Determine decimal places based on USD accuracy
+    let decimalPlaces = 2;
+    if (tokenPrice && tokenPrice > 0) {
+        const usdValue = tokenAmount * tokenPrice;
+        if (usdValue < 0.01) {
+            // Tiny amounts: show at least 1 significant digit
+            decimalPlaces = 0;
+            let test = tokenAmount;
+            while (test < 1 && decimalPlaces < 8) {
+                test *= 10;
+                decimalPlaces++;
+            }
+            decimalPlaces = Math.min(decimalPlaces + 1, 8);
+        } else {
+            // Normal amounts: ensure USD accuracy to half a cent
+            const tokenPrecision = 0.005 / tokenPrice;
+            decimalPlaces = Math.min(Math.ceil(-Math.log10(tokenPrecision)), 8);
+        }
+    }
+
+    let formatted = tokenAmount.toFixed(decimalPlaces);
+    formatted = formatted.replace(/\.?0+$/, '');
+    if (formatted === '0' && tokenAmount > 0) {
+        formatted = tokenAmount.toExponential(4);
+    }
+
+    const parts = formatted.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (isNegative ? '-' : '') + parts.join('.');
+}
+
 /**
  * Auto-classification heuristics for counterparty accounts.
  * Returns { suggestion: string, reason: string } or null if no suggestion.
@@ -50,14 +127,18 @@ function classifyCounterparty(account, stats, ownAccounts, stakingAccounts) {
         return { suggestion: 'received', reason: 'NEAR ecosystem / foundation' };
     }
 
+    // Aggregate totals across all tokens for heuristics
+    const totalIncoming = Object.values(stats.tokens).reduce((sum, t) => sum + t.incoming, 0n);
+    const totalOutgoing = Object.values(stats.tokens).reduce((sum, t) => sum + t.outgoing, 0n);
+
     // If the counterparty is calling one of your accounts (incoming only, no outgoing from you to them)
     // and they're sending function call deposits → likely smart contract usage income
-    if (stats.totalOutgoing === 0n && stats.totalIncoming > 0n && stats.hasAttachedDeposit) {
+    if (totalOutgoing === 0n && totalIncoming > 0n && stats.hasAttachedDeposit) {
         return { suggestion: 'received', reason: 'External deposit to your contract' };
     }
 
     // If only incoming, never outgoing, and reasonably small number of txns → likely payment/income
-    if (stats.totalOutgoing === 0n && stats.totalIncoming > 0n && stats.txCount <= 10) {
+    if (totalOutgoing === 0n && totalIncoming > 0n && stats.txCount <= 10) {
         return { suggestion: 'received', reason: 'Incoming-only transfers' };
     }
 
@@ -69,7 +150,7 @@ customElements.define('counterparties-page',
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
-            this.sortColumn = 'totalIncoming';
+            this.sortColumn = 'txCount';
             this.sortDesc = true;
             this.counterparties = {};
             this.readyPromise = this.loadHTML();
@@ -115,46 +196,50 @@ customElements.define('counterparties-page',
             }
 
             const receivedAccounts = await getReceivedAccounts();
+            this.tokenPrices = await fetchTokenPrices();
             const counterparties = {};
+
+            function ensureCounterparty(counterparty) {
+                if (!counterparties[counterparty]) {
+                    counterparties[counterparty] = {
+                        account: counterparty,
+                        txCount: 0,
+                        tokens: {}, // { symbol: { incoming: 0n, outgoing: 0n, decimals } }
+                        hasAttachedDeposit: false,
+                        isReceived: !!receivedAccounts[counterparty],
+                        description: receivedAccounts[counterparty]?.description || '',
+                        suggestion: null,
+                    };
+                }
+                return counterparties[counterparty];
+            }
+
+            function addTokenAmount(cp, symbol, decimals, amount) {
+                if (!cp.tokens[symbol]) {
+                    cp.tokens[symbol] = { incoming: 0n, outgoing: 0n, decimals };
+                }
+                if (amount > 0n) cp.tokens[symbol].incoming += amount;
+                else if (amount < 0n) cp.tokens[symbol].outgoing += -amount;
+            }
 
             // Scan NEAR transactions
             for (const account of accounts) {
                 const transactions = await getTransactionsForAccount(account);
+                // Pre-compute changedBalance by comparing consecutive balances (same as year report)
+                // Transactions are sorted newest-first
+                for (let n = 0; n < transactions.length; n++) {
+                    const tx = transactions[n];
+                    tx.changedBalance = BigInt(tx.balance) - (
+                        n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : 0n
+                    );
+                }
                 for (const tx of transactions) {
-                    // Determine counterparty for this transaction
                     const counterparty = tx.signer_id === account ? tx.receiver_id : tx.signer_id;
                     if (!counterparty || ownAccounts[counterparty] || allStakingAccounts[counterparty]) continue;
 
-                    if (!counterparties[counterparty]) {
-                        counterparties[counterparty] = {
-                            account: counterparty,
-                            txCount: 0,
-                            totalIncoming: 0n,
-                            totalOutgoing: 0n,
-                            hasAttachedDeposit: false,
-                            isReceived: !!receivedAccounts[counterparty],
-                            description: receivedAccounts[counterparty]?.description || '',
-                            suggestion: null,
-                        };
-                    }
-                    const cp = counterparties[counterparty];
+                    const cp = ensureCounterparty(counterparty);
                     cp.txCount++;
-
-                    const balance = BigInt(tx.balance);
-                    const prevBalance = tx._prevBalance ? BigInt(tx._prevBalance) : null;
-
-                    // Use changedBalance-style logic: determine if incoming or outgoing
-                    if (tx.signer_id !== account) {
-                        // External signer → this is incoming to our account
-                        const changed = prevBalance !== null ? balance - prevBalance : 0n;
-                        if (changed > 0n) cp.totalIncoming += changed;
-                        else cp.totalOutgoing += -changed;
-                    } else {
-                        // We are signer → outgoing
-                        const changed = prevBalance !== null ? balance - prevBalance : 0n;
-                        if (changed < 0n) cp.totalOutgoing += -changed;
-                        else cp.totalIncoming += changed;
-                    }
+                    addTokenAmount(cp, 'NEAR', 24, tx.changedBalance);
 
                     if (tx.args?.deposit && tx.args.deposit !== '0') {
                         cp.hasAttachedDeposit = true;
@@ -169,24 +254,11 @@ customElements.define('counterparties-page',
                     const counterparty = tx.involved_account_id;
                     if (!counterparty || ownAccounts[counterparty] || allStakingAccounts[counterparty]) continue;
 
-                    if (!counterparties[counterparty]) {
-                        counterparties[counterparty] = {
-                            account: counterparty,
-                            txCount: 0,
-                            totalIncoming: 0n,
-                            totalOutgoing: 0n,
-                            hasAttachedDeposit: false,
-                            isReceived: !!receivedAccounts[counterparty],
-                            description: receivedAccounts[counterparty]?.description || '',
-                            suggestion: null,
-                        };
-                    }
-                    const cp = counterparties[counterparty];
+                    const cp = ensureCounterparty(counterparty);
                     cp.txCount++;
-                    // FT amounts are signed: positive = incoming, negative = outgoing
-                    const amount = BigInt(tx.delta_amount || 0);
-                    if (amount > 0n) cp.totalIncoming += amount;
-                    else cp.totalOutgoing += -amount;
+                    const symbol = tx.ft?.symbol || '?';
+                    const decimals = tx.ft?.decimals ?? 24;
+                    addTokenAmount(cp, symbol, decimals, BigInt(tx.delta_amount || 0));
                 }
             }
 
@@ -229,10 +301,6 @@ customElements.define('counterparties-page',
             const col = this.sortColumn;
             entries.sort((a, b) => {
                 let va = a[col], vb = b[col];
-                if (typeof va === 'bigint') {
-                    const diff = va > vb ? 1 : va < vb ? -1 : 0;
-                    return this.sortDesc ? -diff : diff;
-                }
                 if (typeof va === 'boolean') {
                     const diff = (va === vb) ? 0 : va ? -1 : 1;
                     return this.sortDesc ? -diff : diff;
@@ -275,8 +343,19 @@ customElements.define('counterparties-page',
 
             for (const cp of entries) {
                 const tr = document.createElement('tr');
-                const incomingNear = (Number(cp.totalIncoming) / 1e24).toFixed(2);
-                const outgoingNear = (Number(cp.totalOutgoing) / 1e24).toFixed(2);
+
+                // Format per-token amounts
+                const formatTokenList = (getValue) => {
+                    const lines = [];
+                    for (const [symbol, data] of Object.entries(cp.tokens)) {
+                        const val = getValue(data);
+                        if (val > 0n) {
+                            const price = this.tokenPrices?.[symbol.toUpperCase()] || 0;
+                            lines.push(`${formatTokenAmount(val, data.decimals, price)} ${symbol}`);
+                        }
+                    }
+                    return lines.join('<br>') || '0';
+                };
 
                 const suggestionHtml = cp.suggestion
                     ? `<span class="badge suggestion-badge ${cp.suggestion.suggestion === 'received' ? 'bg-info' : 'bg-secondary'}">${cp.suggestion.reason}</span>`
@@ -286,8 +365,8 @@ customElements.define('counterparties-page',
                     <td class="text-center"><input type="checkbox" class="form-check-input received-check" data-account="${cp.account}" ${cp.isReceived ? 'checked' : ''}></td>
                     <td class="text-break">${cp.account}</td>
                     <td class="text-end">${cp.txCount}</td>
-                    <td class="text-end">${incomingNear}</td>
-                    <td class="text-end">${outgoingNear}</td>
+                    <td class="text-end">${formatTokenList(d => d.incoming)}</td>
+                    <td class="text-end">${formatTokenList(d => d.outgoing)}</td>
                     <td>${suggestionHtml}</td>
                     <td><input type="text" class="form-control form-control-sm description-input" data-account="${cp.account}" value="${cp.description || ''}" placeholder="Description..."></td>
                 `;

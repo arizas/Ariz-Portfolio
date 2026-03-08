@@ -57,11 +57,11 @@ export default /*html*/ `
             <table class="table table-sm table-hover counterparty-table">
                 <thead>
                     <tr>
-                        <th data-sort="received" style="width: 70px;">Received</th>
+                        <th data-sort="isReceived" style="width: 70px;">Received</th>
                         <th data-sort="account">Counterparty</th>
                         <th data-sort="txCount" class="text-end">Txns</th>
-                        <th data-sort="totalIncoming" class="text-end">Incoming</th>
-                        <th data-sort="totalOutgoing" class="text-end">Outgoing</th>
+                        <th class="text-end">Incoming</th>
+                        <th class="text-end">Outgoing</th>
                         <th data-sort="suggestion">Suggestion</th>
                         <th>Description</th>
                     </tr>
