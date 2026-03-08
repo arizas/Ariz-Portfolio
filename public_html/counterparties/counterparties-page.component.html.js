@@ -61,7 +61,9 @@ export default /*html*/ `
                         <th data-sort="account">Counterparty</th>
                         <th data-sort="txCount" class="text-end">Txns</th>
                         <th class="text-end">Incoming</th>
+                        <th data-sort="incomingUsd" class="text-end">In USD</th>
                         <th class="text-end">Outgoing</th>
+                        <th data-sort="outgoingUsd" class="text-end">Out USD</th>
                         <th data-sort="suggestion">Suggestion</th>
                         <th>Description</th>
                     </tr>

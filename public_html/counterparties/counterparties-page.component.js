@@ -80,6 +80,29 @@ function formatTokenAmount(bigIntAmount, decimals, tokenPrice) {
 }
 
 /**
+ * Convert a BigInt token amount to USD value using token price.
+ */
+function tokenToUsd(bigIntAmount, decimals, tokenPrice) {
+    if (bigIntAmount === 0n || !tokenPrice) return 0;
+    const absStr = (bigIntAmount < 0n ? -bigIntAmount : bigIntAmount).toString();
+    let wholePart, decimalPart;
+    if (absStr.length <= decimals) {
+        wholePart = '0';
+        decimalPart = absStr.padStart(decimals, '0');
+    } else {
+        wholePart = absStr.slice(0, -decimals);
+        decimalPart = absStr.slice(-decimals);
+    }
+    return parseFloat(wholePart + '.' + decimalPart) * tokenPrice;
+}
+
+function formatUSD(value) {
+    if (value === 0) return '$0';
+    if (value < 0.01) return '<$0.01';
+    return '$' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
  * Auto-classification heuristics for counterparty accounts.
  * Returns { suggestion: string, reason: string } or null if no suggestion.
  */
@@ -150,7 +173,7 @@ customElements.define('counterparties-page',
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
-            this.sortColumn = 'txCount';
+            this.sortColumn = 'incomingUsd';
             this.sortDesc = true;
             this.counterparties = {};
             this.readyPromise = this.loadHTML();
@@ -262,8 +285,15 @@ customElements.define('counterparties-page',
                 }
             }
 
-            // Run auto-classification
+            // Compute USD totals and run auto-classification
             for (const [account, stats] of Object.entries(counterparties)) {
+                stats.incomingUsd = 0;
+                stats.outgoingUsd = 0;
+                for (const [symbol, data] of Object.entries(stats.tokens)) {
+                    const price = this.tokenPrices?.[symbol.toUpperCase()] || 0;
+                    stats.incomingUsd += tokenToUsd(data.incoming, data.decimals, price);
+                    stats.outgoingUsd += tokenToUsd(data.outgoing, data.decimals, price);
+                }
                 stats.suggestion = classifyCounterparty(account, stats, ownAccounts, allStakingAccounts);
             }
 
@@ -366,7 +396,9 @@ customElements.define('counterparties-page',
                     <td class="text-break">${cp.account}</td>
                     <td class="text-end">${cp.txCount}</td>
                     <td class="text-end">${formatTokenList(d => d.incoming)}</td>
+                    <td class="text-end">${formatUSD(cp.incomingUsd)}</td>
                     <td class="text-end">${formatTokenList(d => d.outgoing)}</td>
+                    <td class="text-end">${formatUSD(cp.outgoingUsd)}</td>
                     <td>${suggestionHtml}</td>
                     <td><input type="text" class="form-control form-control-sm description-input" data-account="${cp.account}" value="${cp.description || ''}" placeholder="Description..."></td>
                 `;
