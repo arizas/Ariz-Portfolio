@@ -9,6 +9,7 @@ import { fetchAndConvertAccountingExport, mergeTransactions, mergeFungibleTokenT
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
 export const depositaccountsfile = 'depositaccounts.json';
+export const receivedaccountsfile = 'receivedaccounts.json';
 export const ignorefungibletokensfile = 'ignorefungibletokens.json';
 export const customexchangeratesfile = 'customexchangerates.json';
 export const currencylistfile = 'currencylist.json';
@@ -65,6 +66,18 @@ export async function getDepositAccounts() {
 
 export async function setDepositAccounts(depositaccounts) {
     await writeFile(depositaccountsfile, JSON.stringify(depositaccounts));
+}
+
+export async function getReceivedAccounts() {
+    if (await exists(receivedaccountsfile)) {
+        return JSON.parse(await readTextFile(receivedaccountsfile));
+    } else {
+        return {};
+    }
+}
+
+export async function setReceivedAccounts(receivedaccounts) {
+    await writeFile(receivedaccountsfile, JSON.stringify(receivedaccounts));
 }
 
 export async function getIgnoredFungibleTokens() {

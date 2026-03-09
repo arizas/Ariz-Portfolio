@@ -23,6 +23,7 @@ reporting software is available at <a href="https://github.com/arizas/Ariz-Portf
         <td class="summary_token"></td>
         <td class="summary_amount numeric"></td>
         <td class="summary_balance numeric"></td>
+        <td class="summary_staking_earnings numeric"></td>
         <td class="summary_earnings numeric"></td>
         <td class="summary_profit numeric"></td>
         <td class="summary_loss numeric"></td>
@@ -39,6 +40,9 @@ reporting software is available at <a href="https://github.com/arizas/Ariz-Portf
         </th>
         <th scope="col" class="numeric">
             balance
+        </th>
+        <th scope="col" class="numeric">
+            staking earnings
         </th>
         <th scope="col" class="numeric">
             earnings
@@ -58,6 +62,7 @@ reporting software is available at <a href="https://github.com/arizas/Ariz-Portf
         <th>Total</th>
         <th></th>
         <th id="summary_total_balance" class="numeric"></th>
+        <th id="summary_total_staking_earnings" class="numeric"></th>
         <th id="summary_total_earnings" class="numeric"></th>
         <th id="summary_total_profit" class="numeric profit"></th>
         <th id="summary_total_loss" class="numeric loss"></th>

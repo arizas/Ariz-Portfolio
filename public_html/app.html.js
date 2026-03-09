@@ -27,6 +27,7 @@ export default /*html*/ `
                 <a class="nav-item nav-link" href="/transactions" data-page="transactions">Transactions</a>
                 <a class="nav-item nav-link" href="/staking" data-page="staking">Staking rewards</a>
                 <a class="nav-item nav-link" href="/customexchangerates" data-page="customexchangerates">Custom exchange rates</a>
+                <a class="nav-item nav-link" href="/counterparties" data-page="counterparties">Counterparties</a>
                 <a class="nav-item nav-link" href="/accounts" data-page="accounts">Accounts</a>
                 <a class="nav-item nav-link" href="/storage" data-page="storage">Storage</a>
                 <button id="loginbutton" class="nav-item nav-button">Login</button>
@@ -39,7 +40,7 @@ export default /*html*/ `
 <nav class="navbar navbar-light bg-light small">
     <div id="attributions" class="container">
         <div class="navbar-text">
-            Powered by <a href="https://nearblocks.io">Nearblocks.io</a> APIs, <a href="https://fastnear.com">FastNEAR</a> and <a href="https://1rpc.io">1rpc.io</a> RPCs.
+            Powered by <a href="https://nearblocks.io">Nearblocks.io</a> APIs and <a href="https://fastnear.com">FastNEAR</a> RPC.
         </div>
     </div>
 </nav>

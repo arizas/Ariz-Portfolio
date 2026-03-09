@@ -3,7 +3,6 @@ import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sy
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchNEARHistoricalPricesFromNearBlocks, fetchNOKPrices, importYahooNEARHistoricalPrices } from '../pricedata/pricedata.js';
 
 const nearconfig = {
     nodeUrl: 'https://rpc.mainnet.near.org',
@@ -46,29 +45,6 @@ customElements.define('storage-page',
         async loadHTML() {
             this.shadowRoot.innerHTML = wasmgitComponentHtml;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
-
-            this.shadowRoot.getElementById('fetchnearusdbutton').addEventListener('click', async () => {
-                console.log('click');
-                setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from nearblocks.io');
-                await fetchNEARHistoricalPricesFromNearBlocks();
-                setProgressbarValue(null);
-            });
-            this.shadowRoot.getElementById('importnearusdyahoobutton').addEventListener('click', async () => {
-                setProgressbarValue('indeterminate', 'Fetching NEAR/USD prices from Yahoo finance');
-                const data = await new Promise(resolve => {
-                    const fileinput = this.shadowRoot.getElementById('yahoofinancecsvfileinput');
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.readAsText(fileinput.files[0]);
-                });
-                await importYahooNEARHistoricalPrices(data);
-                setProgressbarValue(null);
-            });
-            this.shadowRoot.getElementById('fetchusdnokbutton').addEventListener('click', async () => {
-                setProgressbarValue('indeterminate', 'Fetching USD/NOK rates from Norges Bank');
-                await fetchNOKPrices();
-                setProgressbarValue(null);
-            });
 
             this.shadowRoot.getElementById('wasmgitaccesskey').addEventListener('change', async (e) => {
                 const [accountId, accessKey] = e.target.value.split(':');
