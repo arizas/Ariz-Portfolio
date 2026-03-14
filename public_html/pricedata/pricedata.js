@@ -23,6 +23,10 @@ const symbolToCoinGeckoId = {
     'DAI': 'dai',
     'WETH': 'weth',
     'WBTC': 'wrapped-bitcoin',
+    'STNEAR': 'staked-near',
+    'NPRO': 'npro',
+    'LONK': 'lonk-on-near',
+    'SHITZU': 'shitzu',
 };
 
 export async function getCurrencyList() {
