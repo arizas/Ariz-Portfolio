@@ -5,7 +5,7 @@ import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 
 const nearconfig = {
-    nodeUrl: 'https://rpc.mainnet.near.org',
+    nodeUrl: 'https://rpc.mainnet.fastnear.com',
     walletUrl: 'https://wallet.near.org',
     helperUrl: 'https://helper.mainnet.near.org',
     //networkId: 'mainnet',
