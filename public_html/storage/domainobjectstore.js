@@ -10,6 +10,7 @@ export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
 export const depositaccountsfile = 'depositaccounts.json';
 export const receivedaccountsfile = 'receivedaccounts.json';
+export const expenseaccountsfile = 'expenseaccounts.json';
 export const ignorefungibletokensfile = 'ignorefungibletokens.json';
 export const customexchangeratesfile = 'customexchangerates.json';
 export const currencylistfile = 'currencylist.json';
@@ -78,6 +79,18 @@ export async function getReceivedAccounts() {
 
 export async function setReceivedAccounts(receivedaccounts) {
     await writeFile(receivedaccountsfile, JSON.stringify(receivedaccounts));
+}
+
+export async function getExpenseAccounts() {
+    if (await exists(expenseaccountsfile)) {
+        return JSON.parse(await readTextFile(expenseaccountsfile));
+    } else {
+        return {};
+    }
+}
+
+export async function setExpenseAccounts(expenseaccounts) {
+    await writeFile(expenseaccountsfile, JSON.stringify(expenseaccounts));
 }
 
 export async function getIgnoredFungibleTokens() {

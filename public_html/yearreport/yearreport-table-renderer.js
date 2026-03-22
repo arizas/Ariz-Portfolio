@@ -68,6 +68,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
     let totalReceived = 0;
     let totalDeposit = 0;
     let totalWithdrawal = 0;
+    let totalExpense = 0;
     let totalProfit = 0;
     let totalLoss = 0;
 
@@ -75,6 +76,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
     let token_totalReceived = 0n;
     let token_totalDeposit = 0;
     let token_totalWithdrawal = 0;
+    let token_totalExpense = 0n;
 
     const decimalConversionValue = token ? getDecimalConversionValue(token) : Math.pow(10, -24);
     const tokenNumberFormatter = getNumberFormatter();
@@ -89,7 +91,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         const row = rowTemplate.cloneNode(true).content;
         const rowdata = yearReportData[datestring];
 
-        const { stakingReward, received, deposit, withdrawal, conversionRate } = token ?
+        const { stakingReward, received, deposit, withdrawal, expense, conversionRate } = token ?
             await getFungibleTokenConvertedValuesForDay(rowdata, token, convertToCurrency, datestring) :
             await getConvertedValuesForDay(rowdata, convertToCurrency, datestring);
 
@@ -97,6 +99,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         totalDeposit += deposit;
         totalReceived += received;
         totalWithdrawal += withdrawal;
+        totalExpense += expense;
         totalProfit += rowdata.profit ?? 0;
         totalLoss += rowdata.loss ?? 0;
 
@@ -104,6 +107,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         token_totalReceived += rowdata.received;
         token_totalDeposit += rowdata.deposit;
         token_totalWithdrawal += rowdata.withdrawal;
+        token_totalExpense += rowdata.expense;
 
         rowdata.convertedTotalBalance = conversionRate * (rowdata.totalBalance * decimalConversionValue);
         rowdata.convertedAccountBalance = conversionRate * (Number(rowdata.accountBalance) * decimalConversionValue);
@@ -123,6 +127,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         row.querySelector('.dailybalancerow_received').innerHTML = `${formatNumber(received)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(rowdata.received))}` : ''}`;
         row.querySelector('.dailybalancerow_deposit').innerHTML = `${formatNumber(deposit)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.deposit)}` : ''}`;
         row.querySelector('.dailybalancerow_withdrawal').innerHTML = `${formatNumber(withdrawal)} ${convertToCurrency ? `<br />${formatTokenAmount(rowdata.withdrawal)}` : ''}`;
+        row.querySelector('.dailybalancerow_expense').innerHTML = `${formatNumber(expense)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(rowdata.expense))}` : ''}`;
         if (convertToCurrency) {
             row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit) ?? '';
             row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss) ?? '';
@@ -154,7 +159,8 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
             rowdata.totalChange !== 0 ||
             received !== 0 ||
             deposit !== 0 ||
-            withdrawal !== 0
+            withdrawal !== 0 ||
+            expense !== 0
         ) {
             yearReportTable.appendChild(row);
         }
@@ -164,6 +170,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         shadowRoot.querySelector('#totalreceived').innerHTML = `${formatNumber(totalReceived)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(token_totalReceived))}` : ''}`;
         shadowRoot.querySelector('#totaldeposit').innerHTML = `${formatNumber(totalDeposit)} ${convertToCurrency ? `<br />${formatTokenAmount(token_totalDeposit)}` : ''}`;
         shadowRoot.querySelector('#totalwithdrawal').innerHTML = `${formatNumber(totalWithdrawal)} ${convertToCurrency ? `<br />${formatTokenAmount(token_totalWithdrawal)}` : ''}`;
+        shadowRoot.querySelector('#totalexpense').innerHTML = `${formatNumber(totalExpense)} ${convertToCurrency ? `<br />${formatTokenAmount(Number(token_totalExpense))}` : ''}`;
         if (convertToCurrency) {
             shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totalProfit);
             shadowRoot.querySelector('#totalloss').innerText = formatNumber(totalLoss);
@@ -178,6 +185,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         totalReceived,
         totalDeposit,
         totalWithdrawal,
+        totalExpense,
         totalProfit,
         totalLoss,
         outboundBalance: dailyBalances[outboundBalanceDate],

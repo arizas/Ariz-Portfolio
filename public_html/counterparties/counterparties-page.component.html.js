@@ -39,15 +39,17 @@ export default /*html*/ `
         <p class="small text-muted">
             All incoming transfers from external accounts are classified as <strong>deposit</strong> by default.
             Mark accounts as <strong>received</strong> to classify their incoming transfers as external income.
-            Both deposit and received enter FIFO cost basis at the same price — the distinction is for income reporting only.
+            Mark accounts as <strong>expense</strong> to classify outgoing transfers as expenses (not withdrawals/realizations).
+            Both deposit and received enter FIFO cost basis at the same price — the distinction is for reporting only.
         </p>
         <div class="filter-group mb-3">
             <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search counterparty..." style="max-width: 300px;">
             <select class="form-select form-select-sm" id="filterSelect" style="max-width: 200px;">
                 <option value="all">All</option>
                 <option value="received">Marked as received</option>
-                <option value="deposit">Deposit (default)</option>
-                <option value="suggested">Suggested as received</option>
+                <option value="expense">Marked as expense</option>
+                <option value="deposit">Deposit/withdrawal (default)</option>
+                <option value="suggested">Suggested (unclassified)</option>
             </select>
             <button class="btn btn-sm btn-outline-primary" id="autoClassifyBtn" title="Apply auto-classification suggestions">Auto-classify</button>
             <button class="btn btn-sm btn-outline-success" id="saveBtn">Save</button>
@@ -57,7 +59,7 @@ export default /*html*/ `
             <table class="table table-sm table-hover counterparty-table">
                 <thead>
                     <tr>
-                        <th data-sort="isReceived" style="width: 70px;">Received</th>
+                        <th data-sort="classification" style="width: 120px;">Classification</th>
                         <th data-sort="account">Counterparty</th>
                         <th data-sort="txCount" class="text-end">Txns</th>
                         <th class="text-end">Incoming</th>
