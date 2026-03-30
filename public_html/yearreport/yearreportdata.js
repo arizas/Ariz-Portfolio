@@ -1,4 +1,4 @@
-import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getReceivedAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
+import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getReceivedAccounts, getExpenseAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 import { resolveDecimals } from '../near/intents-tokens.js';
@@ -27,6 +27,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
     const transactionsByDate = {};
     const allStakingAccounts = {};
     const receivedaccounts = await getReceivedAccounts();
+    const expenseaccounts = await getExpenseAccounts();
     const customRealizationRates = await getCustomRealizationRates();
 
     let decimalConversionValue = Math.pow(10, -24);
@@ -68,6 +69,19 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
             ) {
                 tx.receivedBalance = tx.changedBalance;
+                tx.changedBalance = 0n;
+            }
+
+            // Classify outgoing transfers to expense accounts:
+            // If receiver is in expenseaccounts and balance decreased, treat as expense (not withdrawal)
+            // Expenses do not trigger FIFO realization — they are costs, not sales.
+            if (!accountsMap[tx.receiver_id]
+                && !allStakingAccounts[tx.receiver_id]
+                && tx.changedBalance < 0n
+                && (expenseaccounts[tx.receiver_id] || expenseaccounts[tx.involved_account_id])
+                && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
+            ) {
+                tx.expenseBalance = -tx.changedBalance;
                 tx.changedBalance = 0n;
             }
 
@@ -151,7 +165,8 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
             stakingEarnings: 0,
             deposit: 0,
             withdrawal: 0,
-            received: 0n
+            received: 0n,
+            expense: 0n
         };
         currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
         accounts.forEach(account => {
@@ -173,6 +188,10 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                     if (tx.receivedBalance) {
                         dailyBalances[datestring].received += tx.receivedBalance;
                         tx.receivedBalance = 0n;
+                    }
+                    if (tx.expenseBalance) {
+                        dailyBalances[datestring].expense += tx.expenseBalance;
+                        tx.expenseBalance = 0n;
                     }
                 });
 
@@ -356,8 +375,9 @@ export async function getConvertedValuesForDay(rowdata, convertToCurrency, dates
     const depositConversionRate = convertToCurrencyIsNEAR ? 1 : await getCustomBuyPrice(convertToCurrency, datestring);
     const deposit = (depositConversionRate * (rowdata.deposit / 1e+24));
     const withdrawal = convertToCurrencyIsNEAR ? (rowdata.withdrawal / 1e+24)  : rowdata.convertToCurrencyWithdrawalAmount;
+    const expense = (conversionRate * (Number(rowdata.expense) / 1e+24));
 
-    return { stakingReward, received, deposit, withdrawal, conversionRate };
+    return { stakingReward, received, deposit, withdrawal, expense, conversionRate };
 }
 
 export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, convertToCurrency, datestring) {
@@ -369,6 +389,7 @@ export async function getFungibleTokenConvertedValuesForDay(rowdata, symbol, con
     const stakingReward = (conversionRate * (rowdata.stakingRewards * decimalConversionValue));
     const deposit = (conversionRate * (rowdata.deposit * decimalConversionValue));
     const withdrawal = (conversionRate * (rowdata.withdrawal * decimalConversionValue));
+    const expense = (conversionRate * (Number(rowdata.expense) * decimalConversionValue));
 
-    return { stakingReward, received, deposit, withdrawal, conversionRate };
+    return { stakingReward, received, deposit, withdrawal, expense, conversionRate };
 }

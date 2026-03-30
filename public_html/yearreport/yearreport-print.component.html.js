@@ -58,6 +58,10 @@ export default /*html*/ `<style>
     <td>Withdrawal</td>
     <td class="numeric" id="totalwithdrawal"></td>
 </tr>
+<tr>
+    <td>Expenses</td>
+    <td class="numeric" id="totalexpense"></td>
+</tr>
 <tr class="profit">
     <td>Profit on realizations</td>
     <td class="numeric" id="totalprofit"></td>
@@ -81,11 +85,12 @@ export default /*html*/ `<style>
         <td class="dailybalancerow_received numeric"></td>
         <td class="dailybalancerow_deposit numeric"></td>
         <td class="dailybalancerow_withdrawal numeric"></td>
+        <td class="dailybalancerow_expense numeric"></td>
         <td class="dailybalancerow_profit numeric"></td>
         <td class="dailybalancerow_loss numeric"></td>
     </tr>
     <tr class="inforow bg-info">
-        <td colspan="13" >
+        <td colspan="14" >
             <table class="table table-sm table-borderless">
                 <thead>
                     <tr>
@@ -146,6 +151,9 @@ is obtained by calling the staking contract for the balance for that specific da
         </th>
         <th scope="col" class="numeric">
             withdrawals
+        </th>
+        <th scope="col" class="numeric">
+            expenses
         </th>
         <th scope="col" class="numeric profit">
             profit

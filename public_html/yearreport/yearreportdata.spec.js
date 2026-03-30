@@ -1,5 +1,5 @@
 import { calculateProfitLoss, calculateYearReportData, getConvertedValuesForDay } from './yearreportdata.js';
-import { setAccounts, fetchTransactionsFromAccountingExport, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates, setDepositAccounts, setReceivedAccounts } from '../storage/domainobjectstore.js';
+import { setAccounts, fetchTransactionsFromAccountingExport, getTransactionsForAccount, writeStakingData, writeTransactions, fetchFungibleTokenTransactionsForAccount, setCustomRealizationRates, setDepositAccounts, setReceivedAccounts, setExpenseAccounts } from '../storage/domainobjectstore.js';
 import { transactionsWithDeposits } from './yearreporttestdata.js'
 import { fetchHistoricalPricesFromArizGateway, setCustomExchangeRateSell, setSkipFetchingPrices } from '../pricedata/pricedata.js';
 import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
@@ -80,6 +80,7 @@ describe('year-report-data', () => {
         const verifyDate = '2021-02-14';
         await setAccounts(accounts);
         await setReceivedAccounts({});
+        await setExpenseAccounts({});
 
         for (var account of accounts) {
             await fetchTransactionsFromAccountingExport(account);
@@ -99,6 +100,7 @@ describe('year-report-data', () => {
         await setAccounts(accounts);
         // Mark "near" root account as external received (e.g. account creation grant)
         await setReceivedAccounts({'near': { description: 'NEAR root account - account creation' }});
+        await setExpenseAccounts({});
 
         for (var account of accounts) {
             await fetchTransactionsFromAccountingExport(account);
@@ -109,6 +111,46 @@ describe('year-report-data', () => {
         expect(Number(dailydata[verifyDate].received) / 1e+24).to.be.closeTo(0.1, 0.005);
         expect(Number(dailydata[verifyDate].deposit) / 1e+24).to.be.closeTo(11.89, 0.005);
         expect(Number(dailydata[verifyDate].withdrawal) / 1e+24).to.be.closeTo(0.03, 0.005);
+    });
+    it('should classify outgoing to expenseaccounts as expense (not withdrawal)', async function () {
+        this.timeout(20 * 60000);
+        const accounts = ['psalomo.near', 'wasmgit.near'];
+        const verifyDate = '2021-02-14';
+        await setAccounts(accounts);
+        await setReceivedAccounts({});
+
+        for (var account of accounts) {
+            await fetchTransactionsFromAccountingExport(account);
+        }
+
+        // First run without expense accounts to find the withdrawal counterparty
+        const baseData = (await calculateYearReportData()).dailyBalances;
+        const baseWithdrawal = Number(baseData[verifyDate].withdrawal) / 1e+24;
+        expect(baseWithdrawal).to.be.closeTo(0.03, 0.005);
+
+        // Find the receiver of outgoing transfers on verifyDate
+        const allTransactions = [];
+        for (const acc of accounts) {
+            const txs = await getTransactionsForAccount(acc);
+            txs.forEach(tx => tx._account = acc);
+            allTransactions.push(...txs);
+        }
+        const dateTxs = allTransactions.filter(tx => {
+            const txdate = new Date(tx.block_timestamp / 1_000_000).toJSON().substring(0, 'yyyy-MM-dd'.length);
+            return txdate === verifyDate && tx.signer_id === tx._account;
+        });
+        // Find an external receiver (not own account, not staking)
+        const receiver = dateTxs.find(tx => !accounts.includes(tx.receiver_id))?.receiver_id;
+        expect(receiver, 'Should find an external receiver for withdrawal').to.exist;
+
+        // Mark that receiver as expense
+        await setExpenseAccounts({ [receiver]: { description: 'Test expense' } });
+        const dailydata = (await calculateYearReportData()).dailyBalances;
+
+        // Expense should now capture what was previously withdrawal
+        expect(Number(dailydata[verifyDate].expense) / 1e+24).to.be.greaterThan(0);
+        // Withdrawal should be reduced
+        expect(Number(dailydata[verifyDate].withdrawal) / 1e+24).to.be.lessThan(baseWithdrawal);
     });
     it('should use previous epoch staking balance for days with no epoch', async function () {
         this.timeout(10 * 60000);

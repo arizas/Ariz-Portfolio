@@ -80,6 +80,7 @@ customElements.define('year-report-print',
                 }
             });
             this.shadowRoot.getElementById('totalearnings').innerText = formatNumber(result.totalReceived + result.totalStakingReward);
+            this.shadowRoot.getElementById('totalexpense').innerText = formatNumber(result.totalExpense);
             return result;
         }
     }

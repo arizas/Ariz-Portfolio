@@ -93,12 +93,13 @@ export default /*html*/ `<style>
         <td class="dailybalancerow_received numeric"></td>
         <td class="dailybalancerow_deposit numeric"></td>
         <td class="dailybalancerow_withdrawal numeric"></td>
+        <td class="dailybalancerow_expense numeric"></td>
         <td class="dailybalancerow_profit numeric"></td>
         <td class="dailybalancerow_loss numeric"></td>
         <td><button class="btn btn-light show_transactions_button">&#128194;</button></td>
     </tr>
     <tr class="inforow bg-info">
-        <td colspan="14" >
+        <td colspan="15" >
             <table class="table table-sm table-borderless">
                 <thead>
                     <tr>
@@ -151,6 +152,9 @@ export default /*html*/ `<style>
                 withdrawals
             </th>
             <th scope="col">
+                expenses
+            </th>
+            <th scope="col">
                 profit
             </th>
             <th scope="col">
@@ -195,6 +199,9 @@ export default /*html*/ `<style>
 
             </th>
             <th scope="col" class="numeric" id="totalwithdrawal">
+
+            </th>
+            <th scope="col" class="numeric" id="totalexpense">
 
             </th>
             <th scope="col" class="numeric" id="totalprofit">

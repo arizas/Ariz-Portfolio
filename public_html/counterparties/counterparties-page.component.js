@@ -1,5 +1,5 @@
 import html from './counterparties-page.component.html.js';
-import { getAccounts, getTransactionsForAccount, getAllFungibleTokenTransactions, getReceivedAccounts, setReceivedAccounts } from '../storage/domainobjectstore.js';
+import { getAccounts, getTransactionsForAccount, getAllFungibleTokenTransactions, getReceivedAccounts, setReceivedAccounts, getExpenseAccounts, setExpenseAccounts } from '../storage/domainobjectstore.js';
 import { getStakingAccounts } from '../near/stakingpool.js';
 
 // Token prices cache, keyed by symbol (uppercase)
@@ -165,6 +165,11 @@ function classifyCounterparty(account, stats, ownAccounts, stakingAccounts) {
         return { suggestion: 'received', reason: 'Incoming-only transfers' };
     }
 
+    // If only outgoing, never incoming, and reasonably small number of txns → likely expense/payment
+    if (totalIncoming === 0n && totalOutgoing > 0n && stats.txCount <= 10) {
+        return { suggestion: 'expense', reason: 'Outgoing-only transfers' };
+    }
+
     return null;
 }
 
@@ -219,6 +224,7 @@ customElements.define('counterparties-page',
             }
 
             const receivedAccounts = await getReceivedAccounts();
+            const expenseAccounts = await getExpenseAccounts();
             this.tokenPrices = await fetchTokenPrices();
             const counterparties = {};
 
@@ -230,7 +236,8 @@ customElements.define('counterparties-page',
                         tokens: {}, // { symbol: { incoming: 0n, outgoing: 0n, decimals } }
                         hasAttachedDeposit: false,
                         isReceived: !!receivedAccounts[counterparty],
-                        description: receivedAccounts[counterparty]?.description || '',
+                        isExpense: !!expenseAccounts[counterparty],
+                        description: receivedAccounts[counterparty]?.description || expenseAccounts[counterparty]?.description || '',
                         suggestion: null,
                     };
                 }
@@ -306,6 +313,12 @@ customElements.define('counterparties-page',
             for (const [account, cp] of Object.entries(this.counterparties)) {
                 if (cp.suggestion && cp.suggestion.suggestion === 'received' && !cp.isReceived) {
                     cp.isReceived = true;
+                    cp.isExpense = false;
+                    cp.description = cp.description || cp.suggestion.reason;
+                }
+                if (cp.suggestion && cp.suggestion.suggestion === 'expense' && !cp.isExpense) {
+                    cp.isExpense = true;
+                    cp.isReceived = false;
                     cp.description = cp.description || cp.suggestion.reason;
                 }
             }
@@ -325,12 +338,19 @@ customElements.define('counterparties-page',
             }
 
             if (filter === 'received') entries = entries.filter(cp => cp.isReceived);
-            else if (filter === 'deposit') entries = entries.filter(cp => !cp.isReceived);
-            else if (filter === 'suggested') entries = entries.filter(cp => cp.suggestion?.suggestion === 'received');
+            else if (filter === 'expense') entries = entries.filter(cp => cp.isExpense);
+            else if (filter === 'deposit') entries = entries.filter(cp => !cp.isReceived && !cp.isExpense);
+            else if (filter === 'suggested') entries = entries.filter(cp => cp.suggestion && !cp.isReceived && !cp.isExpense);
 
             const col = this.sortColumn;
             entries.sort((a, b) => {
                 let va = a[col], vb = b[col];
+                if (col === 'classification') {
+                    const ca = a.isReceived ? 'received' : a.isExpense ? 'expense' : 'deposit';
+                    const cb = b.isReceived ? 'received' : b.isExpense ? 'expense' : 'deposit';
+                    const diff = ca.localeCompare(cb);
+                    return this.sortDesc ? -diff : diff;
+                }
                 if (typeof va === 'boolean') {
                     const diff = (va === vb) ? 0 : va ? -1 : 1;
                     return this.sortDesc ? -diff : diff;
@@ -367,9 +387,10 @@ customElements.define('counterparties-page',
             });
 
             const receivedCount = Object.values(this.counterparties).filter(cp => cp.isReceived).length;
+            const expenseCount = Object.values(this.counterparties).filter(cp => cp.isExpense).length;
             const totalCount = Object.keys(this.counterparties).length;
             this.shadowRoot.getElementById('statsSpan').textContent =
-                `${receivedCount} received / ${totalCount} total counterparties (showing ${entries.length})`;
+                `${receivedCount} received / ${expenseCount} expense / ${totalCount} total counterparties (showing ${entries.length})`;
 
             for (const cp of entries) {
                 const tr = document.createElement('tr');
@@ -387,12 +408,20 @@ customElements.define('counterparties-page',
                     return lines.join('<br>') || '0';
                 };
 
+                const suggestionBadgeClass = cp.suggestion
+                    ? (cp.suggestion.suggestion === 'received' ? 'bg-info' : cp.suggestion.suggestion === 'expense' ? 'bg-warning' : 'bg-secondary')
+                    : '';
                 const suggestionHtml = cp.suggestion
-                    ? `<span class="badge suggestion-badge ${cp.suggestion.suggestion === 'received' ? 'bg-info' : 'bg-secondary'}">${cp.suggestion.reason}</span>`
+                    ? `<span class="badge suggestion-badge ${suggestionBadgeClass}">${cp.suggestion.reason}</span>`
                     : '';
 
+                const classification = cp.isReceived ? 'received' : cp.isExpense ? 'expense' : 'deposit';
                 tr.innerHTML = `
-                    <td class="text-center"><input type="checkbox" class="form-check-input received-check" data-account="${cp.account}" ${cp.isReceived ? 'checked' : ''}></td>
+                    <td><select class="form-select form-select-sm classification-select" data-account="${cp.account}">
+                        <option value="deposit" ${classification === 'deposit' ? 'selected' : ''}>deposit/withdrawal</option>
+                        <option value="received" ${classification === 'received' ? 'selected' : ''}>received</option>
+                        <option value="expense" ${classification === 'expense' ? 'selected' : ''}>expense</option>
+                    </select></td>
                     <td class="text-break">${cp.account}</td>
                     <td class="text-end">${cp.txCount}</td>
                     <td class="text-end">${formatTokenList(d => d.incoming)}</td>
@@ -405,10 +434,12 @@ customElements.define('counterparties-page',
                 tbody.appendChild(tr);
             }
 
-            // Attach checkbox listeners
-            tbody.querySelectorAll('.received-check').forEach(cb => {
-                cb.addEventListener('change', () => {
-                    this.counterparties[cb.dataset.account].isReceived = cb.checked;
+            // Attach classification select listeners
+            tbody.querySelectorAll('.classification-select').forEach(sel => {
+                sel.addEventListener('change', () => {
+                    const cp = this.counterparties[sel.dataset.account];
+                    cp.isReceived = sel.value === 'received';
+                    cp.isExpense = sel.value === 'expense';
                     this.updateStats();
                 });
             });
@@ -423,20 +454,26 @@ customElements.define('counterparties-page',
 
         updateStats() {
             const receivedCount = Object.values(this.counterparties).filter(cp => cp.isReceived).length;
+            const expenseCount = Object.values(this.counterparties).filter(cp => cp.isExpense).length;
             const totalCount = Object.keys(this.counterparties).length;
             const shownCount = this.shadowRoot.getElementById('counterpartyTableBody').children.length;
             this.shadowRoot.getElementById('statsSpan').textContent =
-                `${receivedCount} received / ${totalCount} total counterparties (showing ${shownCount})`;
+                `${receivedCount} received / ${expenseCount} expense / ${totalCount} total counterparties (showing ${shownCount})`;
         }
 
         async save() {
             const receivedAccounts = {};
+            const expenseAccounts = {};
             for (const [account, cp] of Object.entries(this.counterparties)) {
                 if (cp.isReceived) {
                     receivedAccounts[account] = { description: cp.description || '' };
                 }
+                if (cp.isExpense) {
+                    expenseAccounts[account] = { description: cp.description || '' };
+                }
             }
             await setReceivedAccounts(receivedAccounts);
+            await setExpenseAccounts(expenseAccounts);
             const btn = this.shadowRoot.getElementById('saveBtn');
             btn.textContent = 'Saved!';
             btn.classList.replace('btn-outline-success', 'btn-success');
