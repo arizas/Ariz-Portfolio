@@ -4,8 +4,7 @@
 import { getCachedTokenMetadata, cacheTokenMetadata } from '../storage/token-metadata-cache.js';
 import { fetchFtMetadata } from './rpc.js';
 import { getIntentsTokenMetadata } from './intents-tokens.js';
-
-const ACCOUNTING_EXPORT_API_BASE = 'https://near-accounting-export.fly.dev/api';
+import { fetchFromArizGateway, isSignedIn } from '../arizgateway/arizgatewayaccess.js';
 
 // In-memory cache for token metadata fetched during this session
 // Keyed by contract ID, values are {symbol, decimals}
@@ -179,14 +178,18 @@ export function convertV2ToInternalFormat(v2Data) {
  * @returns {Promise<Object>} Parsed JSON response
  */
 export async function fetchAccountingExportJSON(accountId) {
-    const url = `${ACCOUNTING_EXPORT_API_BASE}/accounts/${accountId}/download/json`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch accounting data: ${response.status} ${response.statusText}`);
+    if (!await isSignedIn()) {
+        throw new Error('Not signed in to Ariz gateway');
     }
 
-    const data = await response.json();
+    const data = await fetchFromArizGateway('/api/accounting/download/json');
+
+    // The gateway derives the accountId from the bearer token, so the
+    // returned data is whichever account is currently signed in. Verify
+    // it matches what the caller asked for.
+    if (data.accountId && data.accountId !== accountId) {
+        throw new Error(`Signed in as ${data.accountId} but accounting data requested for ${accountId}`);
+    }
 
     // Convert V2 format to V1-like internal format
     if (isV2Format(data)) {
