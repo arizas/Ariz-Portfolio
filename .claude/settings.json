@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(npm view *)",
+      "Bash(ffprobe *)",
+      "Bash(git fetch *)"
+    ]
+  }
+}

@@ -128,7 +128,7 @@ export default {
             body, headers, status
           });
         });
-        await ctx.route('https://arizgateway.azurewebsites.net/**/*', async (route) => {
+        await ctx.route('https://arizgateway.fly.dev/api/prices/**/*', async (route) => {
           let url = route.request().url();
           url = url.substring(0, url.indexOf("&todate="));
 
@@ -143,19 +143,31 @@ export default {
           await route.fulfill({ body });
         });
 
-        // Accounting export route - cache each URL as a separate file
-        await ctx.route('https://near-accounting-export.fly.dev/**/*', async (route) => {
+        // Accounting export route - cache each URL as a separate file.
+        // The new gateway URL has no accountId in the path; we extract it from the
+        // bearer token so each cached account gets its own fixture file.
+        await ctx.route('https://arizgateway.fly.dev/api/accounting/**/*', async (route) => {
           const url = route.request().url();
-          // Convert URL to safe filename: extract path after /api/
-          const urlPath = new URL(url).pathname.replace('/api/', '').replace(/\//g, '_');
-          const cacheFile = new URL(`${urlPath}.json`, accountingExportDir);
-          
+          const urlPath = new URL(url).pathname; // e.g. /api/accounting/download/json
+          const subPath = urlPath.replace(/^\/api\/accounting\//, '').replace(/\//g, '_');
+
+          // Decode accountId from the bearer token's base64 payload.
+          const auth = route.request().headers()['authorization'] ?? '';
+          const tokenPayload = auth.replace(/^Bearer\s+/i, '').split('.')[0];
+          let accountId = 'unknown';
+          try {
+            accountId = JSON.parse(Buffer.from(tokenPayload, 'base64').toString()).accountId ?? 'unknown';
+          } catch { /* keep 'unknown' */ }
+
+          const cacheKey = `accounts_${accountId}_${subPath}`;
+          const cacheFile = new URL(`${cacheKey}.json`, accountingExportDir);
+
           try {
             await stat(accountingExportDir);
           } catch {
             await mkdir(accountingExportDir, { recursive: true });
           }
-          
+
           try {
             const body = await readFile(cacheFile);
             await route.fulfill({ body, headers: { 'X-Cache-Hit': 'true' } });

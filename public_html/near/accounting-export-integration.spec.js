@@ -1,4 +1,5 @@
 import { fetchAccountingExportJSON, convertAccountingExportToTransactions } from './accounting-export.js';
+import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
 
 describe('accounting-export integration', function () {
     let jsonData;
@@ -8,6 +9,8 @@ describe('accounting-export integration', function () {
 
     before(async function () {
         this.timeout(60000);
+        mockWalletAuthenticationData(accountId);
+        await mockArizGatewayAccess();
         jsonData = await fetchAccountingExportJSON(accountId);
         result = await convertAccountingExportToTransactions(accountId, jsonData);
         
