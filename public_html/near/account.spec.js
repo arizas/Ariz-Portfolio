@@ -1,6 +1,12 @@
 import { fetchTransactionsFromAccountingExport, getTransactionsForAccount, setAccounts } from '../storage/domainobjectstore.js';
+import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
 
 describe('nearaccount transactions from accounting export', function () {
+    before(async function () {
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+    });
+
     it('should get transactions for petersalomonsen.near', async function () {
         this.timeout(5 * 60000);
         const account = 'petersalomonsen.near';
