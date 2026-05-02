@@ -144,23 +144,14 @@ export default {
         });
 
         // Accounting export route - cache each URL as a separate file.
-        // The new gateway URL has no accountId in the path; we extract it from the
-        // bearer token so each cached account gets its own fixture file.
+        // URL shape: /api/accounting/<accountId>/<endpoint> (e.g. download/json).
+        // Cache filename keeps the existing `accounts_<accountId>_<endpoint>` convention.
         await ctx.route('https://arizgateway.fly.dev/api/accounting/**/*', async (route) => {
           const url = route.request().url();
-          const urlPath = new URL(url).pathname; // e.g. /api/accounting/download/json
-          const subPath = urlPath.replace(/^\/api\/accounting\//, '').replace(/\//g, '_');
-
-          // Decode accountId from the bearer token's base64 payload.
-          const auth = route.request().headers()['authorization'] ?? '';
-          const tokenPayload = auth.replace(/^Bearer\s+/i, '').split('.')[0];
-          let accountId = 'unknown';
-          try {
-            accountId = JSON.parse(Buffer.from(tokenPayload, 'base64').toString()).accountId ?? 'unknown';
-          } catch { /* keep 'unknown' */ }
-
-          const cacheKey = `accounts_${accountId}_${subPath}`;
-          const cacheFile = new URL(`${cacheKey}.json`, accountingExportDir);
+          const subPath = new URL(url).pathname
+            .replace(/^\/api\/accounting\//, '')
+            .replace(/\//g, '_');
+          const cacheFile = new URL(`accounts_${subPath}.json`, accountingExportDir);
 
           try {
             await stat(accountingExportDir);

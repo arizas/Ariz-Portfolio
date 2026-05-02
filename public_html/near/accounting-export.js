@@ -182,13 +182,11 @@ export async function fetchAccountingExportJSON(accountId) {
         throw new Error('Not signed in to Ariz gateway');
     }
 
-    const data = await fetchFromArizGateway('/api/accounting/download/json');
+    const data = await fetchFromArizGateway(`/api/accounting/${encodeURIComponent(accountId)}/download/json`);
 
-    // The gateway derives the accountId from the bearer token, so the
-    // returned data is whichever account is currently signed in. Verify
-    // it matches what the caller asked for.
+    // Sanity-check that the gateway returned data for the account we asked for.
     if (data.accountId && data.accountId !== accountId) {
-        throw new Error(`Signed in as ${data.accountId} but accounting data requested for ${accountId}`);
+        throw new Error(`Gateway returned data for ${data.accountId} but ${accountId} was requested`);
     }
 
     // Convert V2 format to V1-like internal format
