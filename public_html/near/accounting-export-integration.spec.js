@@ -1,4 +1,5 @@
 import { fetchAccountingExportJSON, convertAccountingExportToTransactions } from './accounting-export.js';
+import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
 
 describe('accounting-export integration', function () {
     let jsonData;
@@ -8,6 +9,10 @@ describe('accounting-export integration', function () {
 
     before(async function () {
         this.timeout(60000);
+        // Any signed-in account can fetch any other account's data via the
+        // gateway's open read API; sign in as the default test account.
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
         jsonData = await fetchAccountingExportJSON(accountId);
         result = await convertAccountingExportToTransactions(accountId, jsonData);
         

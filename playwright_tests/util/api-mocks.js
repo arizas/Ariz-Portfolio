@@ -50,11 +50,15 @@ export async function setupApiMocks(page) {
         await mkdir(accountingExportDir, { recursive: true });
     }
 
-    // Mock accounting export API - cache each URL as a separate file
-    await page.route('https://near-accounting-export.fly.dev/**/*', async (route) => {
+    // Mock accounting export API - cache each URL as a separate file.
+    // URL shape: /api/accounting/<accountId>/<endpoint> (e.g. download/json).
+    // Cache filename keeps the existing `accounts_<accountId>_<endpoint>` convention.
+    await page.route('https://arizgateway.fly.dev/api/accounting/**/*', async (route) => {
         const url = route.request().url();
-        // Convert URL to safe filename: extract path after /api/
-        const urlPath = new URL(url).pathname.replace('/api/', '').replace(/\//g, '_');
+        const subPath = new URL(url).pathname
+            .replace(/^\/api\/accounting\//, '')
+            .replace(/\//g, '_');
+        const urlPath = `accounts_${subPath}`;
         const cacheFile = join(accountingExportDir, `${urlPath}.json`);
 
         try {

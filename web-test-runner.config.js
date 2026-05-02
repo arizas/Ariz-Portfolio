@@ -128,7 +128,7 @@ export default {
             body, headers, status
           });
         });
-        await ctx.route('https://arizgateway.azurewebsites.net/**/*', async (route) => {
+        await ctx.route('https://arizgateway.fly.dev/api/prices/**/*', async (route) => {
           let url = route.request().url();
           url = url.substring(0, url.indexOf("&todate="));
 
@@ -143,19 +143,22 @@ export default {
           await route.fulfill({ body });
         });
 
-        // Accounting export route - cache each URL as a separate file
-        await ctx.route('https://near-accounting-export.fly.dev/**/*', async (route) => {
+        // Accounting export route - cache each URL as a separate file.
+        // URL shape: /api/accounting/<accountId>/<endpoint> (e.g. download/json).
+        // Cache filename keeps the existing `accounts_<accountId>_<endpoint>` convention.
+        await ctx.route('https://arizgateway.fly.dev/api/accounting/**/*', async (route) => {
           const url = route.request().url();
-          // Convert URL to safe filename: extract path after /api/
-          const urlPath = new URL(url).pathname.replace('/api/', '').replace(/\//g, '_');
-          const cacheFile = new URL(`${urlPath}.json`, accountingExportDir);
-          
+          const subPath = new URL(url).pathname
+            .replace(/^\/api\/accounting\//, '')
+            .replace(/\//g, '_');
+          const cacheFile = new URL(`accounts_${subPath}.json`, accountingExportDir);
+
           try {
             await stat(accountingExportDir);
           } catch {
             await mkdir(accountingExportDir, { recursive: true });
           }
-          
+
           try {
             const body = await readFile(cacheFile);
             await route.fulfill({ body, headers: { 'X-Cache-Hit': 'true' } });

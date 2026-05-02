@@ -1,7 +1,13 @@
 import { getBlockData, getBlockInfo, getStakingAccounts } from './stakingpool.js';
 import { fetchTransactionsFromAccountingExport, setAccounts } from '../storage/domainobjectstore.js';
+import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
 
 describe('stakingpool', () => {
+    before(async function () {
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+    });
+
     it('should get latest block data and then get the same block data by block height', async function () {
         const blockdata = await getBlockData('final');
         const refBlockData = await getBlockData(blockdata.header.height);

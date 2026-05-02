@@ -6,8 +6,8 @@ const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
 const contractId = 'arizportfolio.near';
 export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
 export const TOKEN_EXPIRY_MILLIS = 5 * 60 * 1000;
-const arizgatewayhost = 'https://arizgateway.azurewebsites.net';
-//const arizgatewayhost = 'http://localhost:15000';
+export const arizgatewayhost = 'https://arizgateway.fly.dev';
+//export const arizgatewayhost = 'http://localhost:15000';
 
 
 const nearConfig = {
@@ -51,6 +51,12 @@ export function isTokenValidForAccount(accountId, tokenPayload) {
         tokenPayload.iat > (new Date().getTime() - TOKEN_EXPIRY_MILLIS)
 }
 
+// Cache the contract view result so a batch of fetchFromArizGateway calls
+// (e.g. "load from server" iterating over many accounts) doesn't fire a
+// get_account_id_for_token RPC for every single one.
+const TOKEN_VERIFICATION_TTL_MS = 60 * 1000;
+const tokenVerificationCache = new Map(); // token → { accountId, tokenHashBytes, verifiedAt }
+
 export async function getAccessToken() {
     const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
 
@@ -61,10 +67,27 @@ export async function getAccessToken() {
         const token_payload = atob(token_parts[0], 'base64');
         const token_payload_obj = JSON.parse(token_payload);
 
-        const token_payload_bytes = new TextEncoder().encode(token_payload);
-        const token_hash_bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", token_payload_bytes))
+        let registeredAccountIdForToken;
+        let token_hash_bytes;
+        const cached = tokenVerificationCache.get(storedAccessToken);
+        if (cached && (Date.now() - cached.verifiedAt) < TOKEN_VERIFICATION_TTL_MS) {
+            registeredAccountIdForToken = cached.accountId;
+            token_hash_bytes = cached.tokenHashBytes;
+        } else {
+            const token_payload_bytes = new TextEncoder().encode(token_payload);
+            token_hash_bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", token_payload_bytes));
+            registeredAccountIdForToken = await account.viewFunction({
+                contractId,
+                methodName: 'get_account_id_for_token',
+                args: { token_hash: Array.from(token_hash_bytes) }
+            });
+            tokenVerificationCache.set(storedAccessToken, {
+                accountId: registeredAccountIdForToken,
+                tokenHashBytes: token_hash_bytes,
+                verifiedAt: Date.now()
+            });
+        }
 
-        const registeredAccountIdForToken = await account.viewFunction({ contractId, methodName: 'get_account_id_for_token', args: { token_hash: Array.from(token_hash_bytes) } });
         if (isTokenValidForAccount(registeredAccountIdForToken, token_payload_obj)) {
             return storedAccessToken;
         } else if (registeredAccountIdForToken === account.accountId) {
