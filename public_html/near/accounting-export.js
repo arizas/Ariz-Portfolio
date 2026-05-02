@@ -4,7 +4,7 @@
 import { getCachedTokenMetadata, cacheTokenMetadata } from '../storage/token-metadata-cache.js';
 import { fetchFtMetadata } from './rpc.js';
 import { getIntentsTokenMetadata } from './intents-tokens.js';
-import { fetchFromArizGateway, isSignedIn } from '../arizgateway/arizgatewayaccess.js';
+import { arizgatewayhost, isSignedIn, getAccessToken } from '../arizgateway/arizgatewayaccess.js';
 
 // In-memory cache for token metadata fetched during this session
 // Keyed by contract ID, values are {symbol, decimals}
@@ -178,11 +178,21 @@ export function convertV2ToInternalFormat(v2Data) {
  * @returns {Promise<Object>} Parsed JSON response
  */
 export async function fetchAccountingExportJSON(accountId) {
-    if (!await isSignedIn()) {
-        throw new Error('Not signed in to Ariz gateway');
+    // Always make the fetch (so test mocks intercept regardless of auth state).
+    // Add the bearer token if signed in; the gateway will 401 anonymous requests
+    // in production, while test mocks bypass auth entirely.
+    const headers = {};
+    if (await isSignedIn()) {
+        headers['authorization'] = `Bearer ${await getAccessToken()}`;
     }
 
-    const data = await fetchFromArizGateway(`/api/accounting/${encodeURIComponent(accountId)}/download/json`);
+    const url = `${arizgatewayhost}/api/accounting/${encodeURIComponent(accountId)}/download/json`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch accounting data: ${response.status} ${response.statusText}: ${errorText}`);
+    }
+    const data = await response.json();
 
     // Sanity-check that the gateway returned data for the account we asked for.
     if (data.accountId && data.accountId !== accountId) {

@@ -6,8 +6,8 @@ const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
 const contractId = 'arizportfolio.near';
 export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
 export const TOKEN_EXPIRY_MILLIS = 5 * 60 * 1000;
-const arizgatewayhost = 'https://arizgateway.fly.dev';
-//const arizgatewayhost = 'http://localhost:15000';
+export const arizgatewayhost = 'https://arizgateway.fly.dev';
+//export const arizgatewayhost = 'http://localhost:15000';
 
 
 const nearConfig = {
