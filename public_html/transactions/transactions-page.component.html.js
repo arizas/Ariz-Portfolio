@@ -1,89 +1,86 @@
 export default /*html*/ `<style>
     .numeric {
         text-align: right;
+        font-variant-numeric: tabular-nums;
     }
 
-    .transactionrow_datetime {
+    .txrow_datetime {
         white-space: nowrap;
+    }
+
+    .txrow_token_symbol {
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .txrow_token_id {
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color, #6c757d);
+        word-break: break-all;
+    }
+
+    .txrow_counterparty {
+        word-break: break-all;
+    }
+
+    .txrow_hash a {
+        font-family: monospace;
     }
 
     .table-responsive {
         max-height: 100%;
     }
 
-    table thead,
-    table tfoot {
-        position: sticky;
-    }
-
     table thead {
+        position: sticky;
         inset-block-start: 0;
         top: 0;
     }
 
-    table tfoot {
-        inset-block-end: 0;
-        bottom: 0;
-    }
-    .transactionrow_signer {
-        text-overflow: clip;
-    }
-    .transactionrow_receiver {
-        text-overflow: clip;
+    #emptystate {
+        margin: 1rem 0;
+        color: var(--bs-secondary-color, #6c757d);
     }
 </style>
 <h3>Transactions</h3>
+<p class="text-muted small mb-2">Every balance-changing event for the selected account: NEAR, fungible tokens, NEAR Intents, and staking pool balances. Source is the raw worker records from the Ariz gateway.</p>
 <div class="row">
-<div class="col-md-6">
-    <label for="accountselect" class="form-label">Account</label>
-    <select class="form-select" aria-label="Select account" id="accountselect">
-        <option disabled selected value>Select account</option>
-    </select>
-</div>
-<div class="col-md-6">
-    <label for="currencyselect" class="form-label">Currency</label>
-    <select class="form-select" aria-label="Select currency" id="currencyselect">
-        <option value="near">NEAR</option>
-    </select>
+    <div class="col-md-6">
+        <label for="accountselect" class="form-label">Account</label>
+        <select class="form-select" aria-label="Select account" id="accountselect">
+            <option disabled selected value>Select account</option>
+        </select>
+    </div>
 </div>
 <template id="transactionrowtemplate">
     <tr>
-        <td class="transactionrow_datetime"></td>
-        <td class="transactionrow_kind"></td>
-        <td class="transactionrow_balance numeric"></td>
-        <td class="transactionrow_change numeric"></td>
-        <td class="transactionrow_signer"></td>
-        <td class="transactionrow_receiver"></td>
-        <td class="transactionrow_hash"></td>
+        <td class="txrow_datetime"></td>
+        <td class="txrow_block numeric"></td>
+        <td>
+            <div class="txrow_token_symbol"></div>
+            <div class="txrow_token_id"></div>
+        </td>
+        <td class="txrow_change numeric"></td>
+        <td class="txrow_balance numeric"></td>
+        <td class="txrow_counterparty"></td>
+        <td class="txrow_hash"></td>
     </tr>
 </template>
+<div id="emptystate" style="display:none;"></div>
 <div class="table-responsive">
     <table class="table table-sm">
         <thead class="table-dark">
-            <th scope="col">
-                date
-            </th>
-            <th scope="col">
-                kind
-            </th>
-            <th scope="col">
-                balance
-            </th>
-            <th scope="col">
-                change
-            </th>
-            <th scope="col">
-                signer
-            </th>
-            <th scope="col">
-                receiver
-            </th>
-            <th scope="col">
-                hash
-            </th>
+            <tr>
+                <th scope="col">date</th>
+                <th scope="col">block</th>
+                <th scope="col">token</th>
+                <th scope="col">change</th>
+                <th scope="col">balance after</th>
+                <th scope="col">counterparty</th>
+                <th scope="col">tx</th>
+            </tr>
         </thead>
         <tbody id="transactionstable">
-
         </tbody>
     </table>
 </div>

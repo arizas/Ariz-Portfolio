@@ -4,7 +4,7 @@ import { writeFile } from './gitstorage.js';
 import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchAndConvertAccountingExport, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
+import { fetchAccountingExportJSON, convertAccountingExportToTransactions, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -197,6 +197,33 @@ export async function writeTransactions(account, transactions) {
     await writeFile(`${accountdatadir}/${account}/transactions.json`, JSON.stringify(transactions, null, 1));
 }
 
+/**
+ * Persist the raw V2 records returned by the accounting-export gateway,
+ * alongside the existing derived transactions.json / fungible_token_transactions.json /
+ * stakingpools/* files. The Transactions page reads this to show every
+ * balance-changing event (NEAR, FTs, NEAR Intents, staking) without
+ * going through the NEAR-transaction conversion.
+ */
+export async function writeAccountingRecords(account, jsonData) {
+    await makeAccountDataDirs(account);
+    await writeFile(`${accountdatadir}/${account}/records.json`, JSON.stringify(jsonData, null, 1));
+}
+
+/**
+ * Read the raw V2 records file. Returns an array of BalanceChangeRecord
+ * (one per token balance change at a block), or an empty array if the
+ * file doesn't exist yet (i.e. the user hasn't re-fetched from the gateway
+ * since this feature shipped).
+ */
+export async function getRecordsForAccount(account) {
+    const path = `${accountdatadir}/${account}/records.json`;
+    if (await exists(path)) {
+        const data = JSON.parse(await readTextFile(path));
+        return Array.isArray(data?.records) ? data.records : [];
+    }
+    return [];
+}
+
 function getStakingDataDir(account) {
     return `${accountdatadir}/${account}/stakingpools`;
 }
@@ -363,9 +390,15 @@ export async function fetchTransactionsFromAccountingExport(account, options = {
     setProgressbarValue('indeterminate', `Fetching accounting data for ${account}...`);
 
     try {
-        // Fetch and convert from accounting export API
+        // Fetch raw V2 records from the gateway, persist as-is for the
+        // Transactions page (it renders directly from records, not the
+        // NEAR-transaction conversion), then run the conversion for the
+        // existing year-report / counterparties / staking consumers.
+        const jsonData = await fetchAccountingExportJSON(account);
+        await writeAccountingRecords(account, jsonData);
+
         const { transactions: newTransactions, ftTransactions: newFtTransactions, stakingData: newStakingData } =
-            await fetchAndConvertAccountingExport(account);
+            await convertAccountingExportToTransactions(account, jsonData);
 
         let finalTransactions;
         let finalFtTransactions;
