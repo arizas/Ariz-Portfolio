@@ -69,19 +69,23 @@ describe('transactions-page', () => {
         component.remove();
     });
 
-    it('renders one row per record, including NEAR, FT, Intents, and staking pool', () => {
+    it('renders one row per non-staking record (NEAR + FT + Intents), excluding staking-pool records', () => {
         const rows = shadowRoot.querySelectorAll('#transactionstable tr');
-        expect(rows.length).to.equal(4);
+        // 4 fixture records, 1 of which is a staking-pool record → 3 rendered rows
+        expect(rows.length).to.equal(3);
     });
 
     it('orders rows reverse-chronologically (newest block first)', () => {
         const blocks = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_block'))
             .map(el => Number(el.textContent));
-        // Two records share block 102, then 101, then 100
-        expect(blocks[0]).to.equal(102);
-        expect(blocks[1]).to.equal(102);
-        expect(blocks[2]).to.equal(101);
-        expect(blocks[3]).to.equal(100);
+        // After staking-pool filter: BTC (block 102), ARIZ (101), NEAR (100)
+        expect(blocks).to.deep.equal([102, 101, 100]);
+    });
+
+    it('does not render any staking-pool rows', () => {
+        const rawIds = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_token_id'))
+            .map(el => el.textContent);
+        expect(rawIds.some(id => id.includes('.poolv1.near') || id.includes('.pool.near'))).to.equal(false);
     });
 
     it('shows both the resolved symbol and the raw token_id', () => {
@@ -90,34 +94,24 @@ describe('transactions-page', () => {
         const rawIds = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_token_id'))
             .map(el => el.textContent);
 
-        // NEAR row should show 'NEAR' as symbol
         expect(symbols).to.include('NEAR');
-        // staking pool row shows the pool id with a (staked NEAR) suffix
-        expect(symbols.some(s => s.includes('astro-stakers.poolv1.near') && s.includes('staked NEAR'))).to.equal(true);
-        // raw token_ids appear under each row's symbol
         expect(rawIds).to.include('near');
         expect(rawIds).to.include('arizcredits.near');
         expect(rawIds).to.include('nep141:btc.omft.near');
-        expect(rawIds).to.include('astro-stakers.poolv1.near');
     });
 
     it('formats NEAR amount with 24 decimals (5 NEAR row shows "5")', () => {
-        // Find the NEAR row (block 100)
         const rows = Array.from(shadowRoot.querySelectorAll('#transactionstable tr'));
         const nearRow = rows.find(r => r.querySelector('.txrow_token_id').textContent === 'near');
         expect(nearRow.querySelector('.txrow_change').textContent).to.equal('5');
         expect(nearRow.querySelector('.txrow_balance').textContent).to.equal('5');
     });
 
-    it('renders tx hash as an explorer link, omits link when tx_hash is null', () => {
+    it('renders tx hash as an explorer link', () => {
         const rows = Array.from(shadowRoot.querySelectorAll('#transactionstable tr'));
         const nearRow = rows.find(r => r.querySelector('.txrow_token_id').textContent === 'near');
         const link = nearRow.querySelector('.txrow_hash a');
         expect(link).to.not.equal(null);
         expect(link.href).to.equal('https://explorer.near.org/transactions/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1');
-
-        // staking row has null tx_hash → no link
-        const stakingRow = rows.find(r => r.querySelector('.txrow_token_id').textContent === 'astro-stakers.poolv1.near');
-        expect(stakingRow.querySelector('.txrow_hash a')).to.equal(null);
     });
 });

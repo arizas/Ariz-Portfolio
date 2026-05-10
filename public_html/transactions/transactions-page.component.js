@@ -4,6 +4,12 @@ import html from './transactions-page.component.html.js';
 
 const NEAR_DECIMALS = 24;
 
+/**
+ * Staking-pool records are excluded from the Transactions page — they are
+ * high-frequency periodic-snapshot noise that's better viewed on the dedicated
+ * Staking rewards page. Detection is the standard NEAR staking-pool naming
+ * convention.
+ */
 function isStakingPoolToken(tokenId) {
     return tokenId.includes('.poolv1.near') ||
            tokenId.includes('.pool.near') ||
@@ -11,16 +17,13 @@ function isStakingPoolToken(tokenId) {
 }
 
 /**
- * Resolve display info for a token_id once per unique value (records reuse the same
- * token_id heavily). Returns { symbol, decimals } where symbol is e.g. "NEAR",
- * "USDC", "BTC ( NEAR Intents / Bitcoin )", or "<pool>.poolv1.near (staked NEAR)".
+ * Resolve display info for a token_id once per unique value (records reuse the
+ * same token_id heavily). Returns { symbol, decimals } where symbol is e.g.
+ * "NEAR", "USDC", or "BTC ( NEAR Intents / Bitcoin )".
  */
 async function resolveTokenDisplay(tokenId) {
     if (tokenId === 'near') {
         return { symbol: 'NEAR', decimals: NEAR_DECIMALS };
-    }
-    if (isStakingPoolToken(tokenId)) {
-        return { symbol: `${tokenId} (staked NEAR)`, decimals: NEAR_DECIMALS };
     }
     const symbol = await resolveDisplaySymbol(tokenId, tokenId);
     const decimals = await resolveDecimals(tokenId, NEAR_DECIMALS);
@@ -79,14 +82,17 @@ customElements.define('transactions-page',
         }
 
         async updateView(account) {
-            const records = await getRecordsForAccount(account);
+            const allRecords = await getRecordsForAccount(account);
+            // Filter staking-pool records: high-frequency periodic snapshots
+            // belong on the Staking rewards page, not in the transaction list.
+            const records = allRecords.filter(r => !isStakingPoolToken(r.token_id));
 
             // Clear table
             while (this.transactionsTable.lastElementChild) {
                 this.transactionsTable.removeChild(this.transactionsTable.lastElementChild);
             }
 
-            if (records.length === 0) {
+            if (allRecords.length === 0) {
                 this.emptyState.style.display = '';
                 this.emptyState.textContent = `No records for ${account}. Visit the Accounts page and click "load from server" to fetch.`;
                 return;

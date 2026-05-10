@@ -66,21 +66,21 @@ test('Transactions page renders FT + Intents records, not just NEAR', async ({ p
   const emptyState = page.locator('transactions-page').locator('#emptystate');
   await expect(emptyState).toBeHidden();
 
-  // 4 records in the fixture → 4 rows
+  // 4 records in the fixture, 1 of which is a staking-pool record → 3 rendered rows
   const rows = page.locator('transactions-page').locator('#transactionstable tr');
-  expect(await rows.count()).toBe(4);
+  expect(await rows.count()).toBe(3);
 
-  // Distinct token_ids cover NEAR + FT + Intents + staking pool
+  // Distinct token_ids cover NEAR + FT + Intents (staking pool is filtered out)
   const rawTokenIds = await page.locator('transactions-page').locator('.txrow_token_id').allTextContents();
   const uniqueTokenIds = new Set(rawTokenIds);
   expect(uniqueTokenIds.has('near')).toBeTruthy();
   expect(uniqueTokenIds.has('arizcredits.near')).toBeTruthy();
   expect(uniqueTokenIds.has('nep141:btc.omft.near')).toBeTruthy();
-  expect(uniqueTokenIds.has('astro-stakers.poolv1.near')).toBeTruthy();
+  // Staking-pool record from the fixture must NOT appear
+  expect([...uniqueTokenIds].some(id => id.includes('.poolv1.near'))).toBe(false);
 
   // Resolved symbols
   const symbols = await page.locator('transactions-page').locator('.txrow_token_symbol').allTextContents();
   expect(symbols).toContain('NEAR');                             // native NEAR
   expect(symbols.some(s => s.includes('NEAR Intents'))).toBe(true);  // BTC via Intents
-  expect(symbols.some(s => s.includes('staked NEAR'))).toBe(true);   // staking pool
 });
