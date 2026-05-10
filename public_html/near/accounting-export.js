@@ -177,7 +177,14 @@ export function convertV2ToInternalFormat(v2Data) {
  * @param {string} accountId - NEAR account ID
  * @returns {Promise<Object>} Parsed JSON response
  */
-export async function fetchAccountingExportJSON(accountId) {
+/**
+ * Fetch the raw response from the accounting-export gateway. For V2 data this
+ * is the flat BalanceChangeRecord shape: { version, accountId, metadata,
+ * records: [...] }. For pre-V2 data it's the legacy entries-grouped-by-block
+ * shape. Used directly by the storage layer to persist records.json — callers
+ * that want the V1-like internal format should use fetchAccountingExportJSON.
+ */
+export async function fetchRawAccountingExport(accountId) {
     // Always make the fetch (so test mocks intercept regardless of auth state).
     // Add the bearer token if signed in; the gateway will 401 anonymous requests
     // in production, while test mocks bypass auth entirely.
@@ -198,6 +205,12 @@ export async function fetchAccountingExportJSON(accountId) {
     if (data.accountId && data.accountId !== accountId) {
         throw new Error(`Gateway returned data for ${data.accountId} but ${accountId} was requested`);
     }
+
+    return data;
+}
+
+export async function fetchAccountingExportJSON(accountId) {
+    const data = await fetchRawAccountingExport(accountId);
 
     // Convert V2 format to V1-like internal format
     if (isV2Format(data)) {

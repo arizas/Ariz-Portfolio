@@ -4,7 +4,7 @@ import { writeFile } from './gitstorage.js';
 import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchAccountingExportJSON, convertAccountingExportToTransactions, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
+import { fetchRawAccountingExport, convertAccountingExportToTransactions, isV2Format, convertV2ToInternalFormat, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -390,15 +390,16 @@ export async function fetchTransactionsFromAccountingExport(account, options = {
     setProgressbarValue('indeterminate', `Fetching accounting data for ${account}...`);
 
     try {
-        // Fetch raw V2 records from the gateway, persist as-is for the
-        // Transactions page (it renders directly from records, not the
-        // NEAR-transaction conversion), then run the conversion for the
-        // existing year-report / counterparties / staking consumers.
-        const jsonData = await fetchAccountingExportJSON(account);
-        await writeAccountingRecords(account, jsonData);
+        // Fetch raw V2 response from the gateway. Persist it as-is for the
+        // Transactions page (which reads records directly), then convert to
+        // the V1-like internal format for the existing year-report /
+        // counterparties / staking consumers.
+        const rawData = await fetchRawAccountingExport(account);
+        await writeAccountingRecords(account, rawData);
 
+        const internalFormat = isV2Format(rawData) ? convertV2ToInternalFormat(rawData) : rawData;
         const { transactions: newTransactions, ftTransactions: newFtTransactions, stakingData: newStakingData } =
-            await convertAccountingExportToTransactions(account, jsonData);
+            await convertAccountingExportToTransactions(account, internalFormat);
 
         let finalTransactions;
         let finalFtTransactions;
