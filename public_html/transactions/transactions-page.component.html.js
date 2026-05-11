@@ -1,30 +1,44 @@
 export default /*html*/ `<style>
+    /* Dense table: shrink padding + font on top of Bootstrap's table-sm. */
+    table.table {
+        --bs-table-cell-padding-x: 0.4rem;
+        --bs-table-cell-padding-y: 0.15rem;
+        font-size: 0.8125rem;
+        margin-bottom: 0;
+    }
+
     .numeric {
         text-align: right;
         font-variant-numeric: tabular-nums;
+        white-space: nowrap;
     }
 
     .txrow_datetime {
         white-space: nowrap;
+        font-variant-numeric: tabular-nums;
     }
 
     .txrow_token_symbol {
         white-space: nowrap;
         font-weight: 500;
+        line-height: 1.1;
     }
 
     .txrow_token_id {
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         color: var(--bs-secondary-color, #6c757d);
         word-break: break-all;
+        line-height: 1.1;
     }
 
     .txrow_counterparty {
         word-break: break-all;
+        font-size: 0.75rem;
     }
 
     .txrow_hash a {
-        font-family: monospace;
+        font-family: var(--bs-font-monospace, monospace);
+        font-size: 0.75rem;
     }
 
     .table-responsive {
@@ -35,6 +49,7 @@ export default /*html*/ `<style>
         position: sticky;
         inset-block-start: 0;
         top: 0;
+        z-index: 1;
     }
 
     #emptystate {
