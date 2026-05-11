@@ -11,7 +11,7 @@ describe('transactions-page', () => {
         await writeAccountingRecords(account, {
             version: 2,
             accountId: account,
-            metadata: { firstBlock: 100, lastBlock: 102, totalRecords: 4, historyComplete: true },
+            metadata: { firstBlock: 100, lastBlock: 103, totalRecords: 5, historyComplete: true },
             records: [
                 {
                     block_height: 100,
@@ -52,6 +52,17 @@ describe('transactions-page', () => {
                     balance_after: '10000000000000000000000000',
                     counterparty: 'astro-stakers.poolv1.near',
                     tx_hash: null
+                },
+                {
+                    // Zero-amount balance snapshot — should be filtered out.
+                    block_height: 103,
+                    block_timestamp: '2026-01-04T10:00:00.000Z',
+                    token_id: 'near',
+                    amount: '0',
+                    balance_before: '5000000000000000000000000',
+                    balance_after: '5000000000000000000000000',
+                    counterparty: null,
+                    tx_hash: null
                 }
             ]
         });
@@ -69,16 +80,17 @@ describe('transactions-page', () => {
         component.remove();
     });
 
-    it('renders one row per non-staking record (NEAR + FT + Intents), excluding staking-pool records', () => {
+    it('renders one row per balance-changing non-staking record', () => {
         const rows = shadowRoot.querySelectorAll('#transactionstable tr');
-        // 4 fixture records, 1 of which is a staking-pool record → 3 rendered rows
+        // 5 fixture records → minus 1 staking-pool → minus 1 zero-amount snapshot → 3 rendered
         expect(rows.length).to.equal(3);
     });
 
     it('orders rows reverse-chronologically (newest block first)', () => {
         const blocks = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_block'))
             .map(el => Number(el.textContent));
-        // After staking-pool filter: BTC (block 102), ARIZ (101), NEAR (100)
+        // After filters: BTC (block 102), ARIZ (101), NEAR (100). Block 103 is
+        // a zero-amount NEAR snapshot — filtered.
         expect(blocks).to.deep.equal([102, 101, 100]);
     });
 
@@ -86,6 +98,18 @@ describe('transactions-page', () => {
         const rawIds = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_token_id'))
             .map(el => el.textContent);
         expect(rawIds.some(id => id.includes('.poolv1.near') || id.includes('.pool.near'))).to.equal(false);
+    });
+
+    it('does not render zero-amount balance-snapshot rows', () => {
+        const changes = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_change'))
+            .map(el => el.textContent);
+        // None of the rendered changes should be exactly "0"
+        expect(changes.some(c => c === '0')).to.equal(false);
+        // The latest block in the fixture (103) is a zero-amount snapshot —
+        // shouldn't appear among the rendered blocks
+        const blocks = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_block'))
+            .map(el => Number(el.textContent));
+        expect(blocks.includes(103)).to.equal(false);
     });
 
     it('shows both the resolved symbol and the raw token_id', () => {

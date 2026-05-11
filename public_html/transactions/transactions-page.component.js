@@ -83,9 +83,22 @@ customElements.define('transactions-page',
 
         async updateView(account) {
             const allRecords = await getRecordsForAccount(account);
-            // Filter staking-pool records: high-frequency periodic snapshots
-            // belong on the Staking rewards page, not in the transaction list.
-            const records = allRecords.filter(r => !isStakingPoolToken(r.token_id));
+            // Filter out:
+            //  - Staking-pool records: high-frequency periodic snapshots belong
+            //    on the Staking rewards page, not the transaction list.
+            //  - Zero-amount records: balance snapshots where nothing changed,
+            //    used by the worker to confirm the current balance. Pure noise
+            //    for a "what happened" view.
+            const records = allRecords.filter(r => {
+                if (isStakingPoolToken(r.token_id)) return false;
+                if (r.amount === undefined || r.amount === null) return false;
+                try {
+                    if (BigInt(r.amount) === 0n) return false;
+                } catch {
+                    return false;
+                }
+                return true;
+            });
 
             // Clear table
             while (this.transactionsTable.lastElementChild) {

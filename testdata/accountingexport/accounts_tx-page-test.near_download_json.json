@@ -5,8 +5,8 @@
   "updatedAt": "2026-01-03T10:00:00.000Z",
   "metadata": {
     "firstBlock": 100,
-    "lastBlock": 102,
-    "totalRecords": 4,
+    "lastBlock": 103,
+    "totalRecords": 5,
     "historyComplete": true
   },
   "records": [
@@ -69,6 +69,21 @@
       "amount": "10000000000000000000000000",
       "balance_before": "0",
       "balance_after": "10000000000000000000000000"
+    },
+    {
+      "block_height": 103,
+      "block_timestamp": "2026-01-04T10:00:00.000Z",
+      "tx_hash": null,
+      "tx_block": null,
+      "signer_id": null,
+      "receiver_id": null,
+      "predecessor_id": null,
+      "token_id": "near",
+      "receipt_id": null,
+      "counterparty": null,
+      "amount": "0",
+      "balance_before": "5000000000000000000000000",
+      "balance_after": "5000000000000000000000000"
     }
   ]
 }
