@@ -1,5 +1,6 @@
 import { getAccounts, getRecordsForAccount } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol, resolveDecimals } from '../near/intents-tokens.js';
+import { setProgressbarValue } from '../ui/progress-bar.js';
 import html from './transactions-page.component.html.js';
 
 const NEAR_DECIMALS = 24;
@@ -82,6 +83,15 @@ customElements.define('transactions-page',
         }
 
         async updateView(account) {
+            setProgressbarValue('indeterminate', `Loading transactions for ${account}…`);
+            try {
+                await this._renderView(account);
+            } finally {
+                setProgressbarValue(null);
+            }
+        }
+
+        async _renderView(account) {
             const allRecords = await getRecordsForAccount(account);
             // Filter out:
             //  - Staking-pool records: high-frequency periodic snapshots belong
