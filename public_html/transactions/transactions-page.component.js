@@ -83,16 +83,29 @@ customElements.define('transactions-page',
         }
 
         async updateView(account) {
+            // Bump the generation counter so any in-flight render for a prior
+            // account aborts cleanly instead of fighting this one for the table.
+            const generation = (this._renderGeneration ?? 0) + 1;
+            this._renderGeneration = generation;
+
             setProgressbarValue('indeterminate', `Loading transactions for ${account}…`);
             try {
-                await this._renderView(account);
+                await this._renderView(account, generation);
             } finally {
-                setProgressbarValue(null);
+                // Only clear the spinner if this is still the latest render —
+                // a newer one will manage its own spinner state.
+                if (this._renderGeneration === generation) {
+                    setProgressbarValue(null);
+                }
             }
         }
 
-        async _renderView(account) {
+        async _renderView(account, generation) {
+            const isCurrent = () => this._renderGeneration === generation;
+
             const allRecords = await getRecordsForAccount(account);
+            if (!isCurrent()) return;
+
             // Filter out:
             //  - Staking-pool records: high-frequency periodic snapshots belong
             //    on the Staking rewards page, not the transaction list.
@@ -128,43 +141,67 @@ customElements.define('transactions-page',
             await Promise.all(uniqueTokenIds.map(async tid => {
                 displayByToken.set(tid, await resolveTokenDisplay(tid));
             }));
+            if (!isCurrent()) return;
 
             // Sort reverse-chronologically
             const sorted = [...records].sort((a, b) => b.block_height - a.block_height);
 
             const rowTemplate = this.shadowRoot.querySelector('#transactionrowtemplate');
 
-            for (const rec of sorted) {
-                this.transactionsTable.appendChild(rowTemplate.content.cloneNode(true));
-                const row = this.transactionsTable.lastElementChild;
-                const display = displayByToken.get(rec.token_id);
-
-                const dateString = rec.block_timestamp
-                    ? new Date(rec.block_timestamp).toJSON().substring(0, 'yyyy-MM-dd HH:mm'.length).replace('T', ' ')
-                    : '';
-
-                row.querySelector('.txrow_datetime').textContent = dateString;
-                row.querySelector('.txrow_block').textContent = rec.block_height;
-                row.querySelector('.txrow_token_symbol').textContent = display.symbol;
-                row.querySelector('.txrow_token_id').textContent = rec.token_id;
-                row.querySelector('.txrow_change').textContent = formatAmount(rec.amount, display.decimals);
-                row.querySelector('.txrow_balance').textContent = formatAmount(rec.balance_after, display.decimals);
-                row.querySelector('.txrow_counterparty').textContent = rec.counterparty ?? '';
-
-                const hashCell = row.querySelector('.txrow_hash');
-                if (rec.tx_hash) {
-                    const a = document.createElement('a');
-                    a.href = explorerTxUrl(rec.tx_hash);
-                    a.target = '_blank';
-                    a.rel = 'noopener';
-                    a.textContent = rec.tx_hash.slice(0, 10) + '…';
-                    hashCell.appendChild(a);
-                } else {
-                    hashCell.textContent = '';
-                }
-            }
-
+            // Pre-size the scroll container before any rows append so the
+            // sticky header doesn't jump as chunks arrive.
             const tableElement = this.shadowRoot.querySelector('.table-responsive');
             tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+
+            // Chunked render: large accounts (20k+ records) would block the
+            // main thread for seconds if rendered in one pass. Build chunks
+            // off-DOM via DocumentFragment, append, yield to the event loop,
+            // repeat. The user sees rows appear progressively and can scroll
+            // / switch accounts without waiting for completion.
+            const CHUNK_SIZE = 200;
+            for (let i = 0; i < sorted.length; i += CHUNK_SIZE) {
+                if (!isCurrent()) return;
+                const fragment = document.createDocumentFragment();
+                const end = Math.min(i + CHUNK_SIZE, sorted.length);
+                for (let j = i; j < end; j++) {
+                    fragment.appendChild(this._buildRow(sorted[j], displayByToken, rowTemplate));
+                }
+                this.transactionsTable.appendChild(fragment);
+
+                if (end < sorted.length) {
+                    // Yield to the event loop so the browser can paint this
+                    // chunk, handle user input (scroll, account-switch click),
+                    // and stay responsive.
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+        }
+
+        _buildRow(rec, displayByToken, rowTemplate) {
+            const row = rowTemplate.content.cloneNode(true).firstElementChild;
+            const display = displayByToken.get(rec.token_id);
+
+            const dateString = rec.block_timestamp
+                ? new Date(rec.block_timestamp).toJSON().substring(0, 'yyyy-MM-dd HH:mm'.length).replace('T', ' ')
+                : '';
+
+            row.querySelector('.txrow_datetime').textContent = dateString;
+            row.querySelector('.txrow_block').textContent = rec.block_height;
+            row.querySelector('.txrow_token_symbol').textContent = display.symbol;
+            row.querySelector('.txrow_token_id').textContent = rec.token_id;
+            row.querySelector('.txrow_change').textContent = formatAmount(rec.amount, display.decimals);
+            row.querySelector('.txrow_balance').textContent = formatAmount(rec.balance_after, display.decimals);
+            row.querySelector('.txrow_counterparty').textContent = rec.counterparty ?? '';
+
+            const hashCell = row.querySelector('.txrow_hash');
+            if (rec.tx_hash) {
+                const a = document.createElement('a');
+                a.href = explorerTxUrl(rec.tx_hash);
+                a.target = '_blank';
+                a.rel = 'noopener';
+                a.textContent = rec.tx_hash.slice(0, 10) + '…';
+                hashCell.appendChild(a);
+            }
+            return row;
         }
     });
