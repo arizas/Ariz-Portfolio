@@ -1,7 +1,58 @@
-import 'https://cdn.jsdelivr.net/npm/near-api-js@0.44.2/dist/near-api-js.min.js';
-import { getCurrencyList, getEODPrice } from '../pricedata/pricedata.js';
-import { getAccounts, getTransactionsForAccount } from '../storage/domainobjectstore.js';
+import { getAccounts, getRecordsForAccount } from '../storage/domainobjectstore.js';
+import { resolveDisplaySymbol, resolveDecimals } from '../near/intents-tokens.js';
+import { setProgressbarValue } from '../ui/progress-bar.js';
 import html from './transactions-page.component.html.js';
+
+const NEAR_DECIMALS = 24;
+
+/**
+ * Staking-pool records are excluded from the Transactions page — they are
+ * high-frequency periodic-snapshot noise that's better viewed on the dedicated
+ * Staking rewards page. Detection is the standard NEAR staking-pool naming
+ * convention.
+ */
+function isStakingPoolToken(tokenId) {
+    return tokenId.includes('.poolv1.near') ||
+           tokenId.includes('.pool.near') ||
+           tokenId.endsWith('.pool.f863973.m0');
+}
+
+/**
+ * Resolve display info for a token_id once per unique value (records reuse the
+ * same token_id heavily). Returns { symbol, decimals } where symbol is e.g.
+ * "NEAR", "USDC", or "BTC ( NEAR Intents / Bitcoin )".
+ */
+async function resolveTokenDisplay(tokenId) {
+    if (tokenId === 'near') {
+        return { symbol: 'NEAR', decimals: NEAR_DECIMALS };
+    }
+    const symbol = await resolveDisplaySymbol(tokenId, tokenId);
+    const decimals = await resolveDecimals(tokenId, NEAR_DECIMALS);
+    return { symbol, decimals };
+}
+
+/**
+ * Format a yoctoUnits amount with the given decimals as a fixed-point string.
+ * Trailing fractional zeros are dropped for readability.
+ */
+function formatAmount(amountStr, decimals) {
+    if (amountStr === undefined || amountStr === null || amountStr === '') return '';
+    const negative = amountStr.startsWith('-');
+    const abs = negative ? amountStr.slice(1) : amountStr;
+    if (decimals === 0) {
+        return negative ? `-${abs}` : abs;
+    }
+    const padded = abs.padStart(decimals + 1, '0');
+    const intPart = padded.slice(0, padded.length - decimals);
+    const fracPart = padded.slice(padded.length - decimals);
+    const trimmedFrac = fracPart.replace(/0+$/, '');
+    const body = trimmedFrac ? `${intPart}.${trimmedFrac}` : intPart;
+    return negative ? `-${body}` : body;
+}
+
+function explorerTxUrl(txHash) {
+    return `https://explorer.near.org/transactions/${txHash}`;
+}
 
 customElements.define('transactions-page',
     class extends HTMLElement {
@@ -14,72 +65,143 @@ customElements.define('transactions-page',
         async loadHTML() {
             this.shadowRoot.innerHTML = html;
             this.transactionsTable = this.shadowRoot.getElementById('transactionstable');
+            this.emptyState = this.shadowRoot.getElementById('emptystate');
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
             const accountselect = this.shadowRoot.querySelector('#accountselect');
-            await Promise.all((await getAccounts()).map(async account => {
-                const accountoption = document.createElement('option');
-                accountoption.value = account;
-                accountoption.text = account;
-                accountselect.appendChild(accountoption);
-            }));
+            const accounts = await getAccounts();
+            for (const account of accounts) {
+                const option = document.createElement('option');
+                option.value = account;
+                option.text = account;
+                accountselect.appendChild(option);
+            }
 
-            const numDecimals = 2;
-            const currencyselect = this.shadowRoot.querySelector('#currencyselect');
-            (await getCurrencyList()).forEach(currency => {
-                const currencyoption = document.createElement('option');
-                currencyoption.value = currency;
-                currencyoption.text = currency.toUpperCase();
-                currencyselect.appendChild(currencyoption);
-            });
-
-            const viewSettingsChange = () => {
-                const account = accountselect.value;
-                const currency = currencyselect.value;
-                this.updateView(account, currency, numDecimals);
-            };
-            accountselect.addEventListener('change', viewSettingsChange);
-            currencyselect.addEventListener('change', viewSettingsChange);
+            accountselect.addEventListener('change', () => this.updateView(accountselect.value));
 
             return this.shadowRoot;
         }
 
-        async updateView(account, convertToCurrency, numDecimals) {
-            const accountHistory = await getTransactionsForAccount(account);
-            const transactionRowTemplate = this.shadowRoot.querySelector('#transactionrowtemplate');
-            let totalDeposits = 0;
-            let totalWithdrawals = 0;
-            while( this.transactionsTable.lastElementChild) {
+        async updateView(account) {
+            // Bump the generation counter so any in-flight render for a prior
+            // account aborts cleanly instead of fighting this one for the table.
+            const generation = (this._renderGeneration ?? 0) + 1;
+            this._renderGeneration = generation;
+
+            setProgressbarValue('indeterminate', `Loading transactions for ${account}…`);
+            try {
+                await this._renderView(account, generation);
+            } finally {
+                // Only clear the spinner if this is still the latest render —
+                // a newer one will manage its own spinner state.
+                if (this._renderGeneration === generation) {
+                    setProgressbarValue(null);
+                }
+            }
+        }
+
+        async _renderView(account, generation) {
+            const isCurrent = () => this._renderGeneration === generation;
+
+            const allRecords = await getRecordsForAccount(account);
+            if (!isCurrent()) return;
+
+            // Filter out:
+            //  - Staking-pool records: high-frequency periodic snapshots belong
+            //    on the Staking rewards page, not the transaction list.
+            //  - Zero-amount records: balance snapshots where nothing changed,
+            //    used by the worker to confirm the current balance. Pure noise
+            //    for a "what happened" view.
+            const records = allRecords.filter(r => {
+                if (isStakingPoolToken(r.token_id)) return false;
+                if (r.amount === undefined || r.amount === null) return false;
+                try {
+                    if (BigInt(r.amount) === 0n) return false;
+                } catch {
+                    return false;
+                }
+                return true;
+            });
+
+            // Clear table
+            while (this.transactionsTable.lastElementChild) {
                 this.transactionsTable.removeChild(this.transactionsTable.lastElementChild);
             }
 
-            for (let n = 0; n < accountHistory.length; n++) {
-                this.transactionsTable.appendChild(transactionRowTemplate.content.cloneNode(true));
-                const transactionRow = this.transactionsTable.lastElementChild;
-                const transaction = accountHistory[n];
-                const previousbalance = n < (accountHistory.length - 1) ? accountHistory[n + 1].balance : 0;
-                const changedBalance = ((transaction.balance - previousbalance) / 1e+24);
-
-                const transactionDateString = new Date(transaction.block_timestamp / 1_000_000).toJSON().substring(0, 'yyyy-MM-dd'.length);
-                const conversionRate = convertToCurrency == 'near' ? 1 : await getEODPrice(convertToCurrency, transactionDateString);
-
-                transactionRow.querySelector('.transactionrow_datetime').innerHTML = transactionDateString;
-                transactionRow.querySelector('.transactionrow_kind').innerHTML = `${transaction.action_kind}${(transaction.action_kind == 'FUNCTION_CALL' ? `(${transaction.args.method_name})`: '')}`;
-
-                transactionRow.querySelector('.transactionrow_balance').innerHTML = (conversionRate *
-                        (parseInt(transaction.balance) / 1e+24)
-                    ).toFixed(numDecimals);
-
-
-                const fiatChangedBalance = (conversionRate * changedBalance);
-                transactionRow.querySelector('.transactionrow_change').innerHTML = fiatChangedBalance.toFixed(numDecimals);
-
-                transactionRow.querySelector('.transactionrow_signer').innerHTML = transaction.signer_id;
-                transactionRow.querySelector('.transactionrow_receiver').innerHTML = transaction.receiver_id;
-                transactionRow.querySelector('.transactionrow_hash').innerHTML = transaction.hash;
+            if (allRecords.length === 0) {
+                this.emptyState.style.display = '';
+                this.emptyState.textContent = `No records for ${account}. Visit the Accounts page and click "load from server" to fetch.`;
+                return;
             }
+            this.emptyState.style.display = 'none';
 
+            // Resolve display info once per unique token_id (records reuse the same id heavily)
+            const uniqueTokenIds = [...new Set(records.map(r => r.token_id))];
+            const displayByToken = new Map();
+            await Promise.all(uniqueTokenIds.map(async tid => {
+                displayByToken.set(tid, await resolveTokenDisplay(tid));
+            }));
+            if (!isCurrent()) return;
+
+            // Sort reverse-chronologically
+            const sorted = [...records].sort((a, b) => b.block_height - a.block_height);
+
+            const rowTemplate = this.shadowRoot.querySelector('#transactionrowtemplate');
+
+            // Pre-size the scroll container before any rows append so the
+            // sticky header doesn't jump as chunks arrive.
             const tableElement = this.shadowRoot.querySelector('.table-responsive');
             tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+
+            // Chunked render: large accounts (20k+ records) would block the
+            // main thread for seconds if rendered in one pass. Build chunks
+            // off-DOM via DocumentFragment, append, yield to the event loop,
+            // repeat. The user sees rows appear progressively and can scroll
+            // / switch accounts without waiting for completion.
+            const CHUNK_SIZE = 200;
+            for (let i = 0; i < sorted.length; i += CHUNK_SIZE) {
+                if (!isCurrent()) return;
+                const fragment = document.createDocumentFragment();
+                const end = Math.min(i + CHUNK_SIZE, sorted.length);
+                for (let j = i; j < end; j++) {
+                    fragment.appendChild(this._buildRow(sorted[j], displayByToken, rowTemplate));
+                }
+                this.transactionsTable.appendChild(fragment);
+
+                if (end < sorted.length) {
+                    // Yield to the event loop so the browser can paint this
+                    // chunk, handle user input (scroll, account-switch click),
+                    // and stay responsive.
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+        }
+
+        _buildRow(rec, displayByToken, rowTemplate) {
+            const row = rowTemplate.content.cloneNode(true).firstElementChild;
+            const display = displayByToken.get(rec.token_id);
+
+            const dateString = rec.block_timestamp
+                ? new Date(rec.block_timestamp).toJSON().substring(0, 'yyyy-MM-dd HH:mm'.length).replace('T', ' ')
+                : '';
+
+            row.querySelector('.txrow_datetime').textContent = dateString;
+            row.querySelector('.txrow_block').textContent = rec.block_height;
+            row.querySelector('.txrow_token_symbol').textContent = display.symbol;
+            row.querySelector('.txrow_token_id').textContent = rec.token_id;
+            row.querySelector('.txrow_change').textContent = formatAmount(rec.amount, display.decimals);
+            row.querySelector('.txrow_balance').textContent = formatAmount(rec.balance_after, display.decimals);
+            row.querySelector('.txrow_counterparty').textContent = rec.counterparty ?? '';
+
+            const hashCell = row.querySelector('.txrow_hash');
+            if (rec.tx_hash) {
+                const a = document.createElement('a');
+                a.href = explorerTxUrl(rec.tx_hash);
+                a.target = '_blank';
+                a.rel = 'noopener';
+                a.textContent = rec.tx_hash.slice(0, 10) + '…';
+                hashCell.appendChild(a);
+            }
+            return row;
         }
     });
