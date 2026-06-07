@@ -275,7 +275,7 @@ function convertToNearTransaction(entry, accountId) {
     return {
         hash,
         block_height: entry.block,
-        block_timestamp: entry.timestamp.toString(),
+        block_timestamp: entry.timestamp != null ? entry.timestamp.toString() : null,
         signer_id: signerId,
         receiver_id: txDetails?.receiverId || counterparty,
         balance: entry.balanceAfter?.near || '0',
@@ -323,7 +323,7 @@ function convertToFungibleTokenTransaction(transfer, entry, accountId, tokenMeta
     return {
         transaction_hash: entry.transactionHashes?.[0] || `block-${entry.block}`,
         block_height: entry.block,
-        block_timestamp: entry.timestamp.toString(),
+        block_timestamp: entry.timestamp != null ? entry.timestamp.toString() : null,
         account_id: accountId,
         delta_amount: deltaAmount,
         involved_account_id: transfer.counterparty || '',
