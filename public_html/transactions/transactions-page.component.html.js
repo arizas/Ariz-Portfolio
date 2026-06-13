@@ -59,18 +59,23 @@ export default /*html*/ `<style>
 </style>
 <h3>Transactions</h3>
 <p class="text-muted small mb-2">Every balance-changing event for the selected account: NEAR, fungible tokens, NEAR Intents, and staking pool balances. Source is the raw worker records from the Ariz gateway.</p>
-<div class="row">
+<div class="row g-2 mb-2">
     <div class="col-md-6">
         <label for="accountselect" class="form-label">Account</label>
         <select class="form-select" aria-label="Select account" id="accountselect">
             <option disabled selected value>Select account</option>
         </select>
     </div>
+    <div class="col-md-6">
+        <label for="tokenselect" class="form-label">Token</label>
+        <select class="form-select" aria-label="Filter by token" id="tokenselect" disabled>
+            <option selected value="">All tokens</option>
+        </select>
+    </div>
 </div>
 <template id="transactionrowtemplate">
     <tr>
         <td class="txrow_datetime"></td>
-        <td class="txrow_block numeric"></td>
         <td>
             <div class="txrow_token_symbol"></div>
             <div class="txrow_token_id"></div>
@@ -87,7 +92,6 @@ export default /*html*/ `<style>
         <thead class="table-dark">
             <tr>
                 <th scope="col">date</th>
-                <th scope="col">block</th>
                 <th scope="col">token</th>
                 <th scope="col">change</th>
                 <th scope="col">balance after</th>

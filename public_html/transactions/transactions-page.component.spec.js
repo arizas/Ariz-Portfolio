@@ -87,11 +87,11 @@ describe('transactions-page', () => {
     });
 
     it('orders rows reverse-chronologically (newest block first)', () => {
-        const blocks = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_block'))
-            .map(el => Number(el.textContent));
-        // After filters: BTC (block 102), ARIZ (101), NEAR (100). Block 103 is
-        // a zero-amount NEAR snapshot — filtered.
-        expect(blocks).to.deep.equal([102, 101, 100]);
+        const ids = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_token_id'))
+            .map(el => el.textContent);
+        // After filters, newest-first by block: BTC (102), ARIZ (101), NEAR (100).
+        // Block 103 is a zero-amount NEAR snapshot — filtered.
+        expect(ids).to.deep.equal(['nep141:btc.omft.near', 'arizcredits.near', 'near']);
     });
 
     it('does not render any staking-pool rows', () => {
@@ -105,11 +105,11 @@ describe('transactions-page', () => {
             .map(el => el.textContent);
         // None of the rendered changes should be exactly "0"
         expect(changes.some(c => c === '0')).to.equal(false);
-        // The latest block in the fixture (103) is a zero-amount snapshot —
-        // shouldn't appear among the rendered blocks
-        const blocks = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_block'))
-            .map(el => Number(el.textContent));
-        expect(blocks.includes(103)).to.equal(false);
+        // The fixture has two NEAR records (a +5 at block 100 and a zero-amount
+        // snapshot at block 103); only the +5 should be rendered.
+        const nearRows = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_token_id'))
+            .filter(el => el.textContent === 'near');
+        expect(nearRows.length).to.equal(1);
     });
 
     it('shows both the resolved symbol and the raw token_id', () => {
@@ -137,5 +137,31 @@ describe('transactions-page', () => {
         const link = nearRow.querySelector('.txrow_hash a');
         expect(link).to.not.equal(null);
         expect(link.href).to.equal('https://explorer.near.org/transactions/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1');
+    });
+
+    it('populates the token dropdown with the account tokens (staking excluded)', () => {
+        const values = Array.from(shadowRoot.querySelectorAll('#tokenselect option'))
+            .map(o => o.value);
+        expect(values[0]).to.equal(''); // leading "All tokens"
+        expect(values).to.include('near');
+        expect(values).to.include('arizcredits.near');
+        expect(values).to.include('nep141:btc.omft.near');
+        // staking-pool token is filtered out of the records, so not an option
+        expect(values).to.not.include('astro-stakers.poolv1.near');
+    });
+
+    it('filters the table to the selected token', async () => {
+        const sel = shadowRoot.querySelector('#tokenselect');
+        sel.value = 'near';
+        await component._renderTable();
+        const ids = Array.from(shadowRoot.querySelectorAll('#transactionstable .txrow_token_id'))
+            .map(el => el.textContent);
+        expect(ids).to.deep.equal(['near']);
+
+        // Reset back to "All tokens" so later assumptions hold.
+        sel.value = '';
+        await component._renderTable();
+        const allCount = shadowRoot.querySelectorAll('#transactionstable tr').length;
+        expect(allCount).to.equal(3);
     });
 });
