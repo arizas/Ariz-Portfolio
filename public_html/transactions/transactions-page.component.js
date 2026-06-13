@@ -79,6 +79,11 @@ customElements.define('transactions-page',
 
             accountselect.addEventListener('change', () => this.updateView(accountselect.value));
 
+            this.tokenselect = this.shadowRoot.querySelector('#tokenselect');
+            // Re-render from the already-loaded records when the token filter
+            // changes — no refetch, just a different view of the same data.
+            this.tokenselect.addEventListener('change', () => this._renderTable());
+
             return this.shadowRoot;
         }
 
@@ -90,7 +95,9 @@ customElements.define('transactions-page',
 
             setProgressbarValue('indeterminate', `Loading transactions for ${account}…`);
             try {
-                await this._renderView(account, generation);
+                await this._loadAccount(account, generation);
+                if (this._renderGeneration !== generation) return;
+                await this._renderTable(generation);
             } finally {
                 // Only clear the spinner if this is still the latest render —
                 // a newer one will manage its own spinner state.
@@ -100,7 +107,7 @@ customElements.define('transactions-page',
             }
         }
 
-        async _renderView(account, generation) {
+        async _loadAccount(account, generation) {
             const isCurrent = () => this._renderGeneration === generation;
 
             const allRecords = await getRecordsForAccount(account);
@@ -123,18 +130,6 @@ customElements.define('transactions-page',
                 return true;
             });
 
-            // Clear table
-            while (this.transactionsTable.lastElementChild) {
-                this.transactionsTable.removeChild(this.transactionsTable.lastElementChild);
-            }
-
-            if (allRecords.length === 0) {
-                this.emptyState.style.display = '';
-                this.emptyState.textContent = `No records for ${account}. Visit the Accounts page and click "load from server" to fetch.`;
-                return;
-            }
-            this.emptyState.style.display = 'none';
-
             // Resolve display info once per unique token_id (records reuse the same id heavily)
             const uniqueTokenIds = [...new Set(records.map(r => r.token_id))];
             const displayByToken = new Map();
@@ -143,8 +138,64 @@ customElements.define('transactions-page',
             }));
             if (!isCurrent()) return;
 
+            // Stash for _renderTable (the token-filter change handler re-renders
+            // from this without refetching).
+            this._account = account;
+            this._records = records;
+            this._hasAnyRecords = allRecords.length > 0;
+            this._displayByToken = displayByToken;
+            this._populateTokenSelect(uniqueTokenIds, displayByToken);
+        }
+
+        /**
+         * Repopulate the token dropdown with the tokens present for the current
+         * account (plus the leading "All tokens" entry), sorted by symbol, and
+         * reset the filter to "All tokens".
+         */
+        _populateTokenSelect(uniqueTokenIds, displayByToken) {
+            const sel = this.tokenselect;
+            while (sel.options.length > 1) sel.remove(1); // keep the "All tokens" option
+            const sorted = [...uniqueTokenIds].sort((a, b) =>
+                (displayByToken.get(a)?.symbol ?? a).localeCompare(displayByToken.get(b)?.symbol ?? b));
+            for (const tid of sorted) {
+                const opt = document.createElement('option');
+                opt.value = tid;
+                opt.text = displayByToken.get(tid)?.symbol ?? tid;
+                sel.appendChild(opt);
+            }
+            sel.value = '';
+            sel.disabled = uniqueTokenIds.length === 0;
+        }
+
+        async _renderTable(generation) {
+            // When invoked from the token-filter change handler there's no
+            // generation, so start a fresh one (aborts any in-flight render).
+            if (generation === undefined) {
+                generation = (this._renderGeneration ?? 0) + 1;
+                this._renderGeneration = generation;
+            }
+            const isCurrent = () => this._renderGeneration === generation;
+
+            // Clear table
+            while (this.transactionsTable.lastElementChild) {
+                this.transactionsTable.removeChild(this.transactionsTable.lastElementChild);
+            }
+
+            if (!this._hasAnyRecords) {
+                this.emptyState.style.display = '';
+                this.emptyState.textContent = `No records for ${this._account}. Visit the Accounts page and click "load from server" to fetch.`;
+                return;
+            }
+            this.emptyState.style.display = 'none';
+
+            const displayByToken = this._displayByToken;
+            const tokenFilter = this.tokenselect.value;
+            const filtered = tokenFilter
+                ? this._records.filter(r => r.token_id === tokenFilter)
+                : this._records;
+
             // Sort reverse-chronologically
-            const sorted = [...records].sort((a, b) => b.block_height - a.block_height);
+            const sorted = [...filtered].sort((a, b) => b.block_height - a.block_height);
 
             const rowTemplate = this.shadowRoot.querySelector('#transactionrowtemplate');
 
@@ -186,7 +237,6 @@ customElements.define('transactions-page',
                 : '';
 
             row.querySelector('.txrow_datetime').textContent = dateString;
-            row.querySelector('.txrow_block').textContent = rec.block_height;
             row.querySelector('.txrow_token_symbol').textContent = display.symbol;
             row.querySelector('.txrow_token_id').textContent = rec.token_id;
             row.querySelector('.txrow_change').textContent = formatAmount(rec.amount, display.decimals);

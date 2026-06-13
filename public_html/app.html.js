@@ -36,14 +36,6 @@ export default /*html*/ `
     </div>
     
 </nav>
-
-<nav class="navbar navbar-light bg-light small">
-    <div id="attributions" class="container">
-        <div class="navbar-text">
-            Powered by <a href="https://nearblocks.io">Nearblocks.io</a> APIs and <a href="https://fastnear.com">FastNEAR</a> RPC.
-        </div>
-    </div>
-</nav>
 <br />
 <div class="container" id="mainContainer">
     Get an overview of your NEAR accounts. See your transactions, staking rewards,
