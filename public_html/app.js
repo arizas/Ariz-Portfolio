@@ -7,6 +7,7 @@ import './customexchangerates/customexchangerates-page.component.js';
 import './storage/storage-page.component.js';
 import './counterparties/counterparties-page.component.js';
 import './yearreport/yearreport-page.component.js';
+import './arizcredits/arizcredits-page.component.js';
 import './yearreport/yearreport-print.component.js';
 import './yearreport/yearsummary-alltokens-print.component.js';
 
@@ -71,19 +72,20 @@ class AppNearNumbersComponent extends HTMLElement {
         });
 
         const loginButton = this.shadowRoot.querySelector('#loginbutton');
+        const refreshLoginButton = async () => {
+            loginButton.innerHTML = (await isSignedIn()) ? 'Logout' : 'Login';
+        };
         loginButton.addEventListener('click', async () => {
+            // near-connect resolves in-page (no redirect), so refresh the label
+            // once the login/logout settles.
             if (await isSignedIn()) {
-                logout();
-                loginButton.innerHTML = 'Login';
+                await logout();
             } else {
-                loginToArizGateway();
+                await loginToArizGateway();
             }
+            await refreshLoginButton();
         });
-        setTimeout(async () => {
-            if (await isSignedIn()) {
-                loginButton.innerHTML = 'Logout';
-            }
-        }, 0);
+        refreshLoginButton();
 
         const init = (async () => {
             if (await exists(accountsconfigfile)) {

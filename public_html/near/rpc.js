@@ -9,6 +9,40 @@ export async function queryMultipleRPC(queryFunction) {
 }
 
 /**
+ * Call a contract view function via JSON-RPC and return the decoded JSON result.
+ * @param {string} contractId
+ * @param {string} methodName
+ * @param {object} [args]
+ * @returns {Promise<any>} the parsed return value (null if the method returned nothing)
+ */
+export async function callViewFunction(contractId, methodName, args = {}) {
+    const response = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'view',
+            method: 'query',
+            params: {
+                request_type: 'call_function',
+                finality: 'final',
+                account_id: contractId,
+                method_name: methodName,
+                args_base64: btoa(JSON.stringify(args))
+            }
+        })
+    });
+    const result = await response.json();
+    if (result.error) {
+        throw new Error(result.error.data || result.error.message || JSON.stringify(result.error));
+    }
+    if (result?.result?.result) {
+        return JSON.parse(new TextDecoder().decode(new Uint8Array(result.result.result)));
+    }
+    return null;
+}
+
+/**
  * Fetch ft_metadata from a fungible token contract
  * @param {string} contractId - The fungible token contract ID
  * @returns {Promise<{spec: string, name: string, symbol: string, decimals: number, icon?: string}|null>}

@@ -1,215 +1,192 @@
-import nearApi from 'near-api-js';
-import { modalAlert, modalYesNo } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 
-const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
-const contractId = 'arizportfolio.near';
-export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
-export const TOKEN_EXPIRY_MILLIS = 5 * 60 * 1000;
+// Login + gateway auth via NEP-413 signed messages (@hot-labs/near-connect).
+//
+// Instead of registering an on-chain access token (the old register_token / 0.2
+// NEAR flow), the user signs a NEP-413 message with their wallet. The signed
+// message is sent to the gateway as a Bearer token; the gateway verifies the
+// signature, recipient, a timestamp window, and that the signing key is a Full
+// Access key on the account. See ariz-gateway/server/accesscontrol/nep413.js.
+
+const CONTRACT_ID = 'arizportfolio.near';
+// The NEP-413 recipient the gateway expects (it defaults recipient to its
+// contract id).
+const RECIPIENT = CONTRACT_ID;
 export const arizgatewayhost = 'https://arizgateway.fly.dev';
 //export const arizgatewayhost = 'http://localhost:15000';
+export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
+// Re-sign before the gateway's NEP-413 validity window (1h) elapses, so a cached
+// token is always accepted.
+const TOKEN_TTL_MS = 50 * 60 * 1000;
 
+let _connectorPromise = null;
+let _testWallet = null; // injected by specs so they don't need a real wallet
 
-const nearConfig = {
-    nodeUrl: 'https://rpc.mainnet.fastnear.com',
-    walletUrl: 'https://app.mynearwallet.com',
-    networkId: 'mainnet',
-    keyStore
-};
+/**
+ * Test hook: inject a fake wallet (with getAccounts/signMessage/signOut) so
+ * specs can exercise the signed-in code paths without a real near-connect
+ * session. Pass null to clear.
+ */
+export function __setTestWallet(wallet) {
+    _testWallet = wallet;
+}
 
-export async function getWalletConnection() {
-    const near = await nearApi.connect(nearConfig);
-    const walletConnection = new nearApi.WalletConnection(near, 'Ariz portfolio');
-    return walletConnection;
+async function getConnector() {
+    if (!_connectorPromise) {
+        // Lazy dynamic import so specs that only use the injected test wallet
+        // never load the wallet UI library.
+        _connectorPromise = import('@hot-labs/near-connect').then(
+            ({ NearConnector }) => new NearConnector({ network: 'mainnet' })
+        );
+    }
+    return _connectorPromise;
+}
+
+async function currentWallet() {
+    if (_testWallet) return _testWallet;
+    try {
+        const connector = await getConnector();
+        return await connector.wallet();
+    } catch {
+        return null; // not connected
+    }
+}
+
+async function accountIdFromWallet(wallet) {
+    if (!wallet) return null;
+    try {
+        const accounts = await wallet.getAccounts();
+        return accounts?.[0]?.accountId ?? wallet.accountId ?? null;
+    } catch {
+        return wallet.accountId ?? null;
+    }
+}
+
+export async function getAccountId() {
+    return accountIdFromWallet(await currentWallet());
+}
+
+/**
+ * Sign and send a transaction through the connected wallet (NEAR Connect).
+ * Prompts a login first if not connected. `actions` use the wallet-selector
+ * shape, e.g. [{ type: 'FunctionCall', params: { methodName, args, gas, deposit } }].
+ */
+export async function signAndSendTransaction(receiverId, actions) {
+    let wallet = await currentWallet();
+    if (!wallet) {
+        await loginToArizGateway();
+        wallet = await currentWallet();
+    }
+    if (!wallet) throw new Error('Not signed in to the Ariz gateway');
+    return wallet.signAndSendTransaction({ receiverId, actions });
 }
 
 export async function loginToArizGateway() {
-    if (await modalYesNo('Login to Ariz gateway', `
-        By logging in to the Ariz gateway, you will get access to conversion rates for many currencies.
-        If you click "yes", you will be redirected to <b>MyNearWallet</b> for signing into the Ariz Portfolio contract. After signing in
-        you will be prompted to pay 0.2 NEAR for registering an access token to the Ariz gateway on this device. The access token
-        will be valid in 5 minutes, and will have to be renewed if requesting more data from the Ariz gateway. The renewal cost is only the gas
-        for the smart contract call.
-    `)) {
-        const walletConnection = await getWalletConnection();
-        await walletConnection.requestSignIn({ contractId, successUrl: location.origin, failureUrl: location.origin });
-    }
-}
-
-export async function isSignedIn() {
-    const walletConnection = await getWalletConnection();
-    return walletConnection.isSignedIn();
+    const connector = await getConnector();
+    await connector.connect(); // opens the wallet-selection modal
 }
 
 export async function logout() {
-    const walletConnection = await getWalletConnection();
-    return walletConnection.signOut();
-}
-
-export function isTokenValidForAccount(accountId, tokenPayload) {
-    return accountId == tokenPayload.accountId && tokenPayload.iat <= new Date().getTime() &&
-        tokenPayload.iat > (new Date().getTime() - TOKEN_EXPIRY_MILLIS)
-}
-
-// Cache the contract view result so a batch of fetchFromArizGateway calls
-// (e.g. "load from server" iterating over many accounts) doesn't fire a
-// get_account_id_for_token RPC for every single one.
-const TOKEN_VERIFICATION_TTL_MS = 60 * 1000;
-const tokenVerificationCache = new Map(); // token → { accountId, tokenHashBytes, verifiedAt }
-
-export async function getAccessToken() {
-    const storedAccessToken = localStorage.getItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
-
-    if (storedAccessToken) {
-        const walletConnection = await getWalletConnection();
-        const account = walletConnection.account();
-        const token_parts = storedAccessToken.split('.');
-        const token_payload = atob(token_parts[0], 'base64');
-        const token_payload_obj = JSON.parse(token_payload);
-
-        let registeredAccountIdForToken;
-        let token_hash_bytes;
-        const cached = tokenVerificationCache.get(storedAccessToken);
-        if (cached && (Date.now() - cached.verifiedAt) < TOKEN_VERIFICATION_TTL_MS) {
-            registeredAccountIdForToken = cached.accountId;
-            token_hash_bytes = cached.tokenHashBytes;
-        } else {
-            const token_payload_bytes = new TextEncoder().encode(token_payload);
-            token_hash_bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", token_payload_bytes));
-            registeredAccountIdForToken = await account.viewFunction({
-                contractId,
-                methodName: 'get_account_id_for_token',
-                args: { token_hash: Array.from(token_hash_bytes) }
-            });
-            tokenVerificationCache.set(storedAccessToken, {
-                accountId: registeredAccountIdForToken,
-                tokenHashBytes: token_hash_bytes,
-                verifiedAt: Date.now()
-            });
-        }
-
-        if (isTokenValidForAccount(registeredAccountIdForToken, token_payload_obj)) {
-            return storedAccessToken;
-        } else if (registeredAccountIdForToken === account.accountId) {
-            setProgressbarValue('indeterminate', 'Renewing Ariz gateway access token');
-            const renewedAccessToken = await createAccessToken(token_hash_bytes);
-            setProgressbarValue(null);
-            return renewedAccessToken;
-        }
+    localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+    if (_testWallet) {
+        _testWallet = null;
+        return;
     }
-
-    setProgressbarValue('indeterminate', 'Create Ariz gateway access token');
-    await createAccessToken();
-    setProgressbarValue(null);
+    try {
+        const connector = await getConnector();
+        const wallet = await connector.wallet();
+        await connector.disconnect(wallet);
+    } catch {
+        // not connected — nothing to do
+    }
 }
 
-export async function uint8ArrayToBase64(uint8Array) {
-    // Create a Blob from the Uint8Array
-    const blob = new Blob([uint8Array], { type: 'application/octet-stream' });
-
-    // Create a FileReader to read the Blob as a Data URL
-    const reader = new FileReader();
-
-    // Return a promise that resolves when the FileReader finishes reading
-    return new Promise((resolve, reject) => {
-        // Define the onload event handler
-        reader.onload = function (event) {
-            // The result is a Data URL, which includes the Base64 encoded string
-            const base64String = event.target.result.split(',')[1];
-            resolve(base64String);
-        };
-
-        // Define the onerror event handler
-        reader.onerror = function (error) {
-            reject(error);
-        };
-
-        // Read the Blob as a Data URL
-        reader.readAsDataURL(blob);
-    });
+function readCachedToken() {
+    const raw = localStorage.getItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
 }
 
-export async function createAccessTokenPayload() {
-    const walletConnection = await getWalletConnection();
-    const accountId = walletConnection.getAccountId();
-
-    const keyPair = await keyStore.getKey(nearConfig.networkId, accountId);
-
-    const tokenPayload = JSON.stringify({ iat: new Date().getTime(), accountId, publicKey: keyPair.getPublicKey().toString() });
-    const tokenBytes = new TextEncoder().encode(tokenPayload);
-    const tokenHash = new Uint8Array(await crypto.subtle.digest("SHA-256", tokenBytes));
-
-    const signatureObj = await keyPair.sign(tokenHash);
-
-    const signatureBytes = signatureObj.signature;
-    const token = `${await uint8ArrayToBase64(tokenBytes)}.${await uint8ArrayToBase64(signatureBytes)}`;
-    return { token, tokenHash, signatureBytes, publicKeyBytes: keyPair.getPublicKey().data, walletConnection };
+function cachedTokenIsFresh(cached) {
+    return !!(cached && cached.token && cached.issuedAt && (Date.now() - cached.issuedAt) < TOKEN_TTL_MS);
 }
 
-export async function createAccessToken(oldTokenHash) {
-    const { token, tokenHash, signatureBytes, publicKeyBytes, walletConnection } = await createAccessTokenPayload();
+export async function isSignedIn() {
+    // A fresh cached token implies an active session without touching the wallet.
+    if (cachedTokenIsFresh(readCachedToken())) return true;
+    return !!(await accountIdFromWallet(await currentWallet()));
+}
 
-    const args = {
-        token_hash: Array.from(tokenHash),
-        signature: Array.from(signatureBytes),
-        public_key: Array.from(publicKeyBytes)
+function bytesToBase64(bytes) {
+    let s = '';
+    for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s);
+}
+
+function stringToBase64(str) {
+    return bytesToBase64(new TextEncoder().encode(str));
+}
+
+// Sign a fresh NEP-413 message and cache the resulting bearer token.
+async function createAccessToken() {
+    const wallet = await currentWallet();
+    if (!wallet) throw new Error('Not signed in to the Ariz gateway');
+
+    const issuedAt = Date.now();
+    const message = JSON.stringify({ issuedAt });
+    const nonce = crypto.getRandomValues(new Uint8Array(32));
+    const signed = await wallet.signMessage({ message, recipient: RECIPIENT, nonce });
+
+    const payload = {
+        accountId: signed.accountId,
+        publicKey: signed.publicKey,
+        signature: signed.signature, // base64 per NEP-413
+        message,
+        nonce: bytesToBase64(nonce),
+        recipient: RECIPIENT,
     };
-
-    const account = walletConnection.account();
-
-    if (oldTokenHash) {
-        args.old_token_hash = Array.from(oldTokenHash);
-        args.new_token_hash = args.token_hash;
-        try {
-            await account.functionCall({
-                contractId: contractId,
-                methodName: 'replace_token',
-                args
-            });
-            localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
-        } catch (e) {
-            if (await modalYesNo('Error renewing token', `<p>There was a problem renewing your access token:</p>
-                ${e.message}
-                <p>
-                Do you want to delete the existing access token, so that a new will be registered on the next attempt (costs 0.2 NEAR) ?
-                </p>`)
-            ) {
-                localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
-            }
-        }
-    } else {
-        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY, token);
-        await account.functionCall({
-            contractId: contractId,
-            methodName: 'register_token',
-            args,
-            attachedDeposit: nearApi.utils.format.parseNearAmount('0.2')
-        });
-    }
+    const token = stringToBase64(JSON.stringify(payload));
+    localStorage.setItem(
+        ACCESS_TOKEN_SESSION_STORAGE_KEY,
+        JSON.stringify({ token, accountId: signed.accountId, issuedAt })
+    );
     return token;
 }
 
+export async function getAccessToken() {
+    const cached = readCachedToken();
+    if (cachedTokenIsFresh(cached)) return cached.token;
+
+    setProgressbarValue('indeterminate', 'Signing in to the Ariz gateway');
+    try {
+        return await createAccessToken();
+    } finally {
+        setProgressbarValue(null);
+    }
+}
+
 export async function fetchFromArizGateway(path) {
-    if (await isSignedIn()) {
-        try {
-            const arizGatewayAccessToken = await getAccessToken();
-            setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
-            const response = await fetch(`${arizgatewayhost}${path}`, {
-                headers: {
-                    "authorization": `Bearer ${arizGatewayAccessToken}`
-                }
-            });
-            setProgressbarValue(null);
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`${response.status} ${response.statusText}: ${errorText}`);
-            }
-            return await response.json();
-        } catch (e) {
-            setProgressbarValue(null);
-            throw (e);
-        }
-    } else {
+    if (!(await isSignedIn())) {
         return {};
+    }
+    try {
+        const arizGatewayAccessToken = await getAccessToken();
+        setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
+        const response = await fetch(`${arizgatewayhost}${path}`, {
+            headers: { 'authorization': `Bearer ${arizGatewayAccessToken}` }
+        });
+        setProgressbarValue(null);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`${response.status} ${response.statusText}: ${errorText}`);
+        }
+        return await response.json();
+    } catch (e) {
+        setProgressbarValue(null);
+        throw e;
     }
 }
