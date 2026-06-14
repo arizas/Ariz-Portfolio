@@ -66,6 +66,21 @@ export async function getAccountId() {
     return accountIdFromWallet(await currentWallet());
 }
 
+/**
+ * Sign and send a transaction through the connected wallet (NEAR Connect).
+ * Prompts a login first if not connected. `actions` use the wallet-selector
+ * shape, e.g. [{ type: 'FunctionCall', params: { methodName, args, gas, deposit } }].
+ */
+export async function signAndSendTransaction(receiverId, actions) {
+    let wallet = await currentWallet();
+    if (!wallet) {
+        await loginToArizGateway();
+        wallet = await currentWallet();
+    }
+    if (!wallet) throw new Error('Not signed in to the Ariz gateway');
+    return wallet.signAndSendTransaction({ receiverId, actions });
+}
+
 export async function loginToArizGateway() {
     const connector = await getConnector();
     await connector.connect(); // opens the wallet-selection modal

@@ -30,6 +30,7 @@ export default /*html*/ `
                 <a class="nav-item nav-link" href="/counterparties" data-page="counterparties">Counterparties</a>
                 <a class="nav-item nav-link" href="/accounts" data-page="accounts">Accounts</a>
                 <a class="nav-item nav-link" href="/storage" data-page="storage">Storage</a>
+                <a class="nav-item nav-link" href="/arizcredits" data-page="arizcredits">Ariz credits</a>
                 <button id="loginbutton" class="nav-item nav-button">Login</button>
             </div>
         </div>
