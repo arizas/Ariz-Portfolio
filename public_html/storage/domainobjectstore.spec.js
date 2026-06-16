@@ -26,6 +26,14 @@ describe('domainobjectstore', () => {
         await setHistoricalPriceData('NEAR', 'USD', pricedata);
         expect(await getHistoricalPriceData('NEAR', 'USD')).to.deep.equal(pricedata);
     });
+    it('should store wNEAR pricedata under NEAR so writes are visible on read', async () => {
+        // wNEAR tracks NEAR 1:1 and shares NEAR's price file. Writing under wNEAR
+        // must be readable back under wNEAR (and under NEAR) - otherwise the
+        // year-report re-prompts "price missing locally" for every date.
+        await setHistoricalPriceData('wNEAR', 'NOK', { '2026-05-27': 23.64 });
+        expect(await getHistoricalPriceData('wNEAR', 'NOK')).to.deep.equal({ '2026-05-27': 23.64 });
+        expect(await getHistoricalPriceData('NEAR', 'NOK')).to.deep.equal({ '2026-05-27': 23.64 });
+    });
     it('should get all fungible token transactions', async () => {
         const accountId = 'petersalomonsen.near';
         let transactions = await getAllFungibleTokenTransactions(accountId);

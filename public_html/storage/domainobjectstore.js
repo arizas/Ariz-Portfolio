@@ -261,16 +261,22 @@ export async function writeStakingData(account, stakingpool_id, stakingData) {
     await writeFile(stakingDataPath, JSON.stringify(stakingData, null, 1));
 }
 
+// Normalize the price-storage token so reads and writes always agree on the
+// file path. wNEAR tracks NEAR 1:1, so it shares NEAR's price file (the gateway
+// aliases it too). Must be applied in getPriceDataPath — applying it only on
+// read previously meant writes landed under wNEAR/ while reads looked in NEAR/,
+// causing an endless "price missing locally" re-prompt per date.
+function normalizePriceToken(token) {
+    if (!token) return 'NEAR';
+    if (token.toUpperCase() === 'WNEAR') return 'NEAR';
+    return token;
+}
+
 function getPriceDataPath(token, targetCurrency) {
-    return `${pricedatadir}/${token}/${targetCurrency.toLowerCase()}.json`;
+    return `${pricedatadir}/${normalizePriceToken(token)}/${targetCurrency.toLowerCase()}.json`;
 }
 
 export async function getHistoricalPriceData(token, targetCurrency) {
-    if (!token) {
-        token = 'NEAR';
-    } else if (token === 'wNEAR') {
-        token = 'NEAR';
-    }
     const pricedatapath = getPriceDataPath(token, targetCurrency);
     if (await exists(pricedatapath)) {
         return JSON.parse(await readTextFile(pricedatapath));
