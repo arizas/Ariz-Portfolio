@@ -1,8 +1,24 @@
-import { writeFile, readFile } from 'fs/promises';
+import { writeFile } from 'fs/promises';
 
-// Read the built index.html and encode as base64
-const indexHtml = await readFile(new URL('../dist/index.html', import.meta.url));
-const base64Body = indexHtml.toString('base64');
+// arizportfolio.near.page redirects to the gateway-hosted frontend. The gateway
+// (an Express server) can set the cross-origin isolation headers the OPFS-based
+// wasm-git build needs; web4 serves with fixed headers and can't. The redirect is
+// client-side so the path/query/hash are preserved (deep links keep working), and
+// it's reversible - point this back at the inlined bundle to undo.
+const target = process.env.WEB4_REDIRECT_TARGET ?? 'https://arizgateway.fly.dev';
+
+const redirectHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ariz Portfolio</title>
+<script>location.replace(${JSON.stringify(target)} + location.pathname + location.search + location.hash);</script>
+</head>
+<body>Redirecting to <a href="${target}">${target.replace(/^https?:\/\//, '')}</a>…</body>
+</html>`;
+
+const base64Body = Buffer.from(redirectHtml).toString('base64');
 
 const web4json = {
     contentType: "text/html; charset=UTF-8",
