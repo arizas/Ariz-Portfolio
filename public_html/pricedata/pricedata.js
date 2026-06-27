@@ -1,6 +1,5 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
-import { modalAlert, modalYesNo } from "../ui/modal.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
 
 const defaultToken = 'NEAR';
@@ -98,31 +97,25 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
         const coinGeckoId = symbolToCoinGeckoId[token.toUpperCase()] || token.toLowerCase();
         if ((await getNoPriceTokens()).has(coinGeckoId)) {
             // The gateway already knows this token has no price (scam tokens, ARIZ
-            // credits). Don't prompt or fetch - just skip it for this session.
+            // credits). Skip it - the price simply isn't available.
             skipFetchingPrices[skipFetchingPricesKey] = true;
-        } else if (await modalYesNo('Fetch price data from Ariz gateway?',
-            `Price for ${token}-${currency} on ${datestring} is missing locally.
-            Would you like to try fetch updated prices from Ariz Gateway?
-        `)) {
+        } else {
+            // Load the whole price history from the gateway automatically (no
+            // prompt): either it loads, or the price is not available.
             try {
                 await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency });
                 pricedata = await getHistoricalPriceData(token, currency);
             } catch (e) {
-                await modalAlert('Error fetching price data from Ariz Gateway',
-                    `There was an error fetching prices for ${token} / ${currency} from Ariz Gateway:
-                ${e.message}
-                `);
+                console.error(`Failed to fetch prices for ${token}/${currency} from Ariz Gateway`, e);
             }
             // A single fetch returns the whole price history. If the date is
             // still missing, re-fetching per date would only repeat the same
-            // whole-history request, so stop asking for this token/currency.
+            // whole-history request, so stop fetching for this token/currency.
             // (An empty result also means the gateway now knows it has no price,
             // so it joins the no-price set for everyone on the next session.)
             if (pricedata[datestring] === undefined) {
                 skipFetchingPrices[skipFetchingPricesKey] = true;
             }
-        } else {
-            skipFetchingPrices[skipFetchingPricesKey] = true;
         }
     }
     const price = pricedata[datestring];
