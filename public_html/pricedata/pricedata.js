@@ -10,6 +10,26 @@ export function setSkipFetchingPrices(token, currency) {
     skipFetchingPrices[`${token}-${currency}`] = true;
 }
 
+// The Ariz Gateway fetches token price data and is the single authority on which
+// tokens have no price at all (scam tokens, ARIZ credits). It exposes that set
+// (and re-checks it over time), so the client never prompts to fetch prices that
+// will never exist - and nothing has to be maintained per user. Cached once per
+// session; reset with __resetNoPriceTokens (tests).
+let noPriceTokensPromise;
+
+async function getNoPriceTokens() {
+    if (!noPriceTokensPromise) {
+        noPriceTokensPromise = fetchFromArizGateway('/api/prices/nopricetokens')
+            .then(list => new Set((Array.isArray(list) ? list : []).map(t => t.toLowerCase())))
+            .catch(() => new Set());
+    }
+    return noPriceTokensPromise;
+}
+
+export function __resetNoPriceTokens() {
+    noPriceTokensPromise = undefined;
+}
+
 // Map token symbols to CoinGecko IDs (Ariz Gateway uses CoinGecko API)
 const symbolToCoinGeckoId = {
     'NEAR': 'near',
@@ -75,7 +95,12 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     let pricedata = await getHistoricalPriceData(token, currency);
     const skipFetchingPricesKey = `${token}-${currency}`;
     if (pricedata[datestring] === undefined && !skipFetchingPrices[skipFetchingPricesKey]) {
-        if (await modalYesNo('Fetch price data from Ariz gateway?',
+        const coinGeckoId = symbolToCoinGeckoId[token.toUpperCase()] || token.toLowerCase();
+        if ((await getNoPriceTokens()).has(coinGeckoId)) {
+            // The gateway already knows this token has no price (scam tokens, ARIZ
+            // credits). Don't prompt or fetch - just skip it for this session.
+            skipFetchingPrices[skipFetchingPricesKey] = true;
+        } else if (await modalYesNo('Fetch price data from Ariz gateway?',
             `Price for ${token}-${currency} on ${datestring} is missing locally.
             Would you like to try fetch updated prices from Ariz Gateway?
         `)) {
@@ -87,6 +112,14 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
                     `There was an error fetching prices for ${token} / ${currency} from Ariz Gateway:
                 ${e.message}
                 `);
+            }
+            // A single fetch returns the whole price history. If the date is
+            // still missing, re-fetching per date would only repeat the same
+            // whole-history request, so stop asking for this token/currency.
+            // (An empty result also means the gateway now knows it has no price,
+            // so it joins the no-price set for everyone on the next session.)
+            if (pricedata[datestring] === undefined) {
+                skipFetchingPrices[skipFetchingPricesKey] = true;
             }
         } else {
             skipFetchingPrices[skipFetchingPricesKey] = true;

@@ -130,7 +130,10 @@ export default {
         });
         await ctx.route('https://arizgateway.fly.dev/api/prices/**/*', async (route) => {
           let url = route.request().url();
-          url = url.substring(0, url.indexOf("&todate="));
+          const todateIndex = url.indexOf("&todate=");
+          if (todateIndex >= 0) {
+            url = url.substring(0, todateIndex);
+          }
 
           if (!arizGatewayCache[url]) {
             const response = await route.fetch();
