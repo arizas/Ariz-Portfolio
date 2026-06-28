@@ -103,6 +103,11 @@ self.onmessage = async (msg) => {
         captureOutput = true;
         callMain(['fetch', 'origin']);
         callMain(['merge', 'origin/master']);
+        // On the first push to a brand-new (empty) remote there is no
+        // origin/master to fetch or merge, so those steps "fail" harmlessly.
+        // Only a failed push is fatal — so judge success on the push alone.
+        stdout = '';
+        stderr = '';
         callMain(['push']);
         captureOutput = false;
         if (stderr) {
