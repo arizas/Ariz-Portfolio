@@ -1,61 +1,26 @@
 import { test, expect } from "@playwright/test";
 import { pause500ifRecordingVideo } from "../util/videorecording.js";
 
-test("should clone wasm-git repository when providing access key", async ({ page }) => {
-  await page.goto(
-    "http://localhost:8081"
-  );
+// The Storage page now authenticates with the signed-in NEAR account (NEP-413)
+// and pushes to the user's repo on the Ariz gateway git server — there is no
+// access-key / remote-URL field any more. This smoke test verifies the new UI
+// replaced the old inputs. The full push/clone round-trip against the gateway
+// (which needs a wallet + the deployed gateway git server) is covered separately.
+test("storage page shows the gateway git UI (no legacy key/url inputs)", async ({ page }) => {
+  await page.goto("http://localhost:8081");
 
-  await page.getByRole('link', { name: 'Accounts' }).click();
+  await page.getByRole('link', { name: 'Storage' }).click();
   await pause500ifRecordingVideo(page);
 
-  await page.getByRole('button', { name: 'Add account' }).click();
-  await pause500ifRecordingVideo(page);
+  // New controls are present (locators pierce the open shadow root).
+  await expect(page.locator('#syncbutton')).toBeVisible();
+  await expect(page.locator('#copyclonebutton')).toBeVisible();
+  await expect(page.locator('#copyconfigbutton')).toBeVisible();
+  await expect(page.locator('#gatewayaccountspan')).toBeVisible();
+  await expect(page.locator('#downloadzipbutton')).toBeVisible();
 
-  await page.getByRole('textbox').fill('petermusic.near');
-  await pause500ifRecordingVideo(page);
-
-  const configureStorage = async () => {
-    await pause500ifRecordingVideo(page);
-    await page.getByRole('link', { name: 'Storage' }).click();
-    await pause500ifRecordingVideo(page);
-    const wasmgitaccesskeyinput = await page.locator('#wasmgitaccesskey');
-    await wasmgitaccesskeyinput.fill('test.near:3XV8JxA8VEngikCBXEqphLbymgK3NyMgAptDdBQURy5J');
-    await wasmgitaccesskeyinput.blur();
-    await expect(await page.locator('#wasmgitaccountspan')).toHaveText('test.near');
-
-    await pause500ifRecordingVideo(page);
-    await page.locator('#remoterepo').fill('http://localhost:15000/testrepo.git');
-    await pause500ifRecordingVideo(page);
-  };
-
-  await configureStorage();
-  await page.locator('#syncbutton').click();
-
-  await page.waitForTimeout(1000);
-  await expect(await page.locator('progress-bar')).not.toBeVisible();
-
-  await page.locator("#deletelocaldatabutton").click();
-
-  await page.waitForTimeout(1000);
-
-  await page.goto(
-    "http://localhost:8081"
-  );
-
-  await page.getByRole('link', { name: 'Accounts' }).click();
-  await pause500ifRecordingVideo(page);
-  await expect(page.getByRole('textbox')).not.toBeAttached();
-
-  await configureStorage();
-  await page.locator('#syncbutton').click();
-
-  await page.waitForTimeout(1000);
-  await expect(await page.locator('progress-bar')).not.toBeVisible();
-
-  await page.getByRole('link', { name: 'Accounts' }).
-  click();
-  await pause500ifRecordingVideo(page);
-  await expect(page.getByRole('textbox')).toHaveValue('petermusic.near');
+  // Legacy inputs are gone.
+  await expect(page.locator('#wasmgitaccesskey')).toHaveCount(0);
+  await expect(page.locator('#remoterepo')).toHaveCount(0);
   await pause500ifRecordingVideo(page);
 });

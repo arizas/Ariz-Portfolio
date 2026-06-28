@@ -1,19 +1,22 @@
 export default /*html*/ `<div class="card">
-    <div class="card-header">Store data on a git server</div>
+    <div class="card-header">Store data on the Ariz gateway git server</div>
     <div class="card-body">
-        <p>You may store a remote copy of your data in a git server, which you can then use to synchronize with other browsers and devices</p>
-
-        <p>Enter wasm-git access key</p>
+        <p>Your portfolio data lives in an in-browser git repository. <b>Synchronize</b> pushes it to your private repository on the Ariz gateway, authenticated with your signed-in NEAR account.</p>
+        <p>Signed in as: <span id="gatewayaccountspan">(not signed in)</span></p>
         <p>
-            <input id="wasmgitaccesskey" type="password" /> <span id="wasmgitaccountspan"></span>
+            <button class="btn btn-primary" id="syncbutton">Synchronize</button>
+            <button class="btn btn-secondary" id="downloadzipbutton">Download as zip file</button>
+            <button class="btn btn-outline-danger" id="deletelocaldatabutton">Delete local data</button>
         </p>
-        <p>
-        <label for="remoterepo" class="form-label">URL to git repository</label>
-        <input type="text" class="form-control" id="remoterepo" placeholder="https://wasm-git.petersalomonsen.com/YOUR_ACCOUNT-nearsight">
-        </p>
-        <button class="btn btn-primary" id="syncbutton">Synchronize</button>
-        <button class="btn btn-primary" id="deletelocaldatabutton">Delete local data</button>
-        <button class="btn btn-primary" id="downloadzipbutton">Download as zip file</button>
+        <hr />
+        <h6>Use from the command line (optional)</h6>
+        <p>Clone your repository, passing your current access token as an HTTP header:</p>
+        <pre class="border rounded p-2 bg-light" style="white-space:pre-wrap;word-break:break-all;"><code id="clonecmd">Sign in, then click &ldquo;Copy clone command&rdquo;.</code></pre>
+        <button class="btn btn-sm btn-outline-primary" id="copyclonebutton">Copy clone command</button>
+        <p class="mt-3">Token expired in an existing clone? Update it (run inside the cloned repo):</p>
+        <pre class="border rounded p-2 bg-light" style="white-space:pre-wrap;word-break:break-all;"><code id="configcmd">Sign in, then click &ldquo;Copy git config command&rdquo;.</code></pre>
+        <button class="btn btn-sm btn-outline-primary" id="copyconfigbutton">Copy git config command</button>
+        <p class="mt-2"><small class="text-muted">The access token is short-lived &mdash; re-copy when it expires.</small></p>
     </div>
 </div>
 <br />`;

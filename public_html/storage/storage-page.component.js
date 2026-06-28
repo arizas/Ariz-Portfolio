@@ -1,38 +1,22 @@
-import nearApi from 'near-api-js';
-import { exists, git_init, git_clone, configure_user, get_remote, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
+import { exists, git_init, git_clone, configure_user, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
+import { getAccessToken, getAccountId, isSignedIn, loginToArizGateway, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
 
-const nearconfig = {
-    nodeUrl: 'https://rpc.mainnet.fastnear.com',
-    walletUrl: 'https://wallet.near.org',
-    helperUrl: 'https://helper.mainnet.near.org',
-    //networkId: 'mainnet',
-    contractName: 'wasmgit.near',
-    deps: {}
-};
-export const createWalletConnection = async () => {
-    nearconfig.deps.keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
-    const near = await nearApi.connect(nearconfig);
-    const wc = new nearApi.WalletConnection(near, 'wasmgit');
-    return wc;
-}
+// One repository per account; the account is implied by the NEP-413 token, so the
+// repo name in the URL is a fixed label.
+const REPO_NAME = 'portfolio';
+export const gatewayRepoUrl = () => `${arizgatewayhost}/git/${REPO_NAME}`;
 
-export async function createAccessToken() {
-    const walletConnection = await createWalletConnection();
-    const accountId = walletConnection.getAccountId();
-    const tokenMessage = btoa(JSON.stringify({ accountId: accountId, iat: new Date().getTime() }));
-    const signature = await walletConnection.account().connection.signer
-        .signMessage(new TextEncoder().encode(tokenMessage), accountId);
-    return tokenMessage + '.' + btoa(String.fromCharCode(...signature.signature));
-}
-
-export async function useAccount(accountId, secretKey) {
-    const keypair = nearApi.utils.KeyPair.fromString(secretKey);
-    localStorage.setItem('wasmgit_wallet_auth_key', JSON.stringify({ accountId, allKeys: [keypair.publicKey.toString()] }))
-    await nearconfig.deps.keyStore.setKey(nearconfig.networkId, accountId, keypair);
-}
+// CLI helpers: the gateway git server authenticates the same NEP-413 bearer token
+// the app uses, passed as an HTTP header. `git -c http.extraHeader=...` is a
+// one-shot for cloning; `git config http.extraHeader ...` persists/refreshes it in
+// an existing clone (tokens are short-lived).
+export const gitCloneCommand = (token) =>
+    `git -c http.extraHeader="Authorization: Bearer ${token}" clone ${gatewayRepoUrl()}`;
+export const gitConfigCommand = (token) =>
+    `git config http.extraHeader "Authorization: Bearer ${token}"`;
 
 customElements.define('storage-page',
     class extends HTMLElement {
@@ -46,85 +30,102 @@ customElements.define('storage-page',
             this.shadowRoot.innerHTML = wasmgitComponentHtml;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
-            this.shadowRoot.getElementById('wasmgitaccesskey').addEventListener('change', async (e) => {
-                const [accountId, accessKey] = e.target.value.split(':');
-                await useAccount(accountId, accessKey);
-                await this.loadAccountData();
-                this.shadowRoot.getElementById('wasmgitaccountspan').innerText = accountId;
-            });
-            this.deletelocaldatabutton = this.shadowRoot.querySelector('#deletelocaldatabutton');
+            this.accountSpan = this.shadowRoot.getElementById('gatewayaccountspan');
+            this.refreshAccount();
 
+            this.shadowRoot.getElementById('downloadzipbutton')
+                .addEventListener('click', () => exportAndDownloadZip());
+
+            this.deletelocaldatabutton = this.shadowRoot.getElementById('deletelocaldatabutton');
             this.deletelocaldatabutton.addEventListener('click', async () => {
-                console.log('delete local data');
                 this.deletelocaldatabutton.disabled = true;
                 await delete_local();
                 location.reload();
             });
-            this.downloadzipbutton = this.shadowRoot.querySelector('#downloadzipbutton');
-            this.downloadzipbutton.addEventListener('click', () => {
-                exportAndDownloadZip();
-            });
-            await this.loadAccountData();
 
-            this.remoteRepoInput = this.shadowRoot.querySelector('#remoterepo');
-            this.remoteRepoInput.addEventListener('change', async () => {
-                await set_remote(this.remoteRepoInput.value);
-            });
+            this.syncbutton = this.shadowRoot.getElementById('syncbutton');
+            this.syncbutton.addEventListener('click', () => this.synchronize());
 
-            this.remoteRepoInput.value = await get_remote();
-            this.syncbutton = this.shadowRoot.querySelector('#syncbutton');
-            this.syncbutton.addEventListener('click', async () => {
-                if (!this.remoteRepoInput.value) {
-                    return;
-                }
-                setProgressbarValue('indeterminate', 'syncing with remote');
-                try {
-                    this.syncbutton.disabled = true;
-                    if (!(await exists('.git'))) {
-                        if ((await readdir('.')).length == 2) {
-                            await git_clone(this.remoteRepoInput.value);
-                        } else {
-                            await git_init();
-                            await this.loadAccountData();
-                            await set_remote(this.remoteRepoInput.value);
-                            await commit_all();
-                            await push();
-                        }
-                    } else {
-                        await commit_all();
-                        await sync();
-                        this.dispatchSyncEvent();
-                    }
-                } catch (e) {
-                    console.error(e);
-                    await modalAlert('Error syncing with remote', e);
-                }
-                setProgressbarValue(null);
-                this.syncbutton.disabled = false;
-            });
+            this.shadowRoot.getElementById('copyclonebutton')
+                .addEventListener('click', () => this.copyCommand('clone'));
+            this.shadowRoot.getElementById('copyconfigbutton')
+                .addEventListener('click', () => this.copyCommand('config'));
+
             return this.shadowRoot;
+        }
+
+        async refreshAccount() {
+            let accountId = null;
+            try { accountId = await getAccountId(); } catch { /* not signed in */ }
+            this.accountSpan.innerText = accountId || '(not signed in)';
+        }
+
+        async ensureSignedIn() {
+            if (!(await isSignedIn())) {
+                await loginToArizGateway();
+            }
         }
 
         dispatchSyncEvent() {
             this.dispatchEvent(new Event('sync'));
         }
 
-        async loadAccountData() {
-            const walletConnection = await createWalletConnection();
-            let currentUser = {
-                accountId: walletConnection.getAccountId()
-            };
+        async synchronize() {
+            setProgressbarValue('indeterminate', 'syncing with the Ariz gateway');
+            this.syncbutton.disabled = true;
+            try {
+                await this.ensureSignedIn();
+                const accessToken = await getAccessToken();
+                const accountId = await getAccountId();
+                const url = gatewayRepoUrl();
+                // Configure the worker's user + bearer token (needed before any
+                // network op). git config user.* is best-effort here if there is no
+                // repo yet, so it's re-applied once a repo exists below.
+                const setUser = () => configure_user({ accessToken, username: accountId, useremail: accountId });
 
-            if (!currentUser.accountId) {
-                return;
+                await setUser();
+                this.accountSpan.innerText = accountId || '(not signed in)';
+
+                if (!(await exists('.git'))) {
+                    if ((await readdir('.')).length === 2) {
+                        // empty local store -> clone the existing repo from the gateway
+                        await git_clone(url);
+                        await setUser();
+                    } else {
+                        // existing data, never a repo -> init, commit and first push
+                        await git_init();
+                        await setUser();
+                        await set_remote(url);
+                        await commit_all();
+                        await push();
+                    }
+                } else {
+                    await setUser();
+                    await set_remote(url);
+                    await commit_all();
+                    await sync();
+                }
+                this.dispatchSyncEvent();
+            } catch (e) {
+                console.error(e);
+                await modalAlert('Error syncing with the Ariz gateway', e);
             }
+            setProgressbarValue(null);
+            this.syncbutton.disabled = false;
+        }
 
-            const accessToken = await createAccessToken();
-            const configureuserResult = await configure_user({
-                accessToken,
-                useremail: currentUser.accountId,
-                username: currentUser.accountId
-            });
-            console.log('configure user result', configureuserResult);
+        async copyCommand(kind) {
+            try {
+                await this.ensureSignedIn();
+                const token = await getAccessToken();
+                const cmd = kind === 'clone' ? gitCloneCommand(token) : gitConfigCommand(token);
+                this.shadowRoot.getElementById(kind === 'clone' ? 'clonecmd' : 'configcmd').textContent = cmd;
+                // Best-effort: the command is shown for manual copy even if the
+                // clipboard API is unavailable/blocked.
+                try { await navigator.clipboard.writeText(cmd); } catch { /* shown for manual copy */ }
+            } catch (e) {
+                console.error(e);
+                await modalAlert('Could not generate the command', e);
+            }
         }
     });
