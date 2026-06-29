@@ -92,28 +92,25 @@ export async function getCurrentPrices(tokens, currency) {
         return result;
     }
 
-    const fetchBatch = async (list) => {
-        // Retry transient gateway hiccups (502s) a couple of times, quickly.
+    try {
+        // One batch request for everything. Retry to ride out gateway cold starts
+        // (fly.dev scales to zero and 502s on the first request after idle; those
+        // error responses also lack CORS headers, surfacing as "CORS"/"Failed to
+        // fetch" in the browser). Invalid scam symbols are already filtered out, so
+        // a batch failure means the gateway itself is unavailable - retrying the
+        // whole batch is the right move, not hammering it once per token.
         const data = await retry(() => fetchFromArizGateway(
-            `/api/prices/current?tokens=${encodeURIComponent(list.join(','))}&vs=${encodeURIComponent(vs)}`
-        ), 2, 1500);
-        for (const token of list) {
+            `/api/prices/current?tokens=${encodeURIComponent(uniqueTokens.join(','))}&vs=${encodeURIComponent(vs)}`
+        ), 4, 2000);
+        for (const token of uniqueTokens) {
             // The gateway keys the response by the exact token string we passed in.
             result[token] = data?.[token]?.[vs] ?? null;
         }
-    };
-
-    try {
-        await fetchBatch(uniqueTokens);
     } catch (e) {
-        // A single bad token can fail the whole batch. Retry one at a time so the
-        // rest still get prices.
+        // Gateway unavailable - leave prices null so the caller shows "value unknown"
+        // while cost basis / realized (from cached historical prices) still render.
         for (const token of uniqueTokens) {
-            try {
-                await fetchBatch([token]);
-            } catch {
-                result[token] = null;
-            }
+            result[token] = null;
         }
     }
     return result;
@@ -150,11 +147,16 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
         token = await resolveSymbol(token);
     }
 
+    // USD-pegged stablecoins are ~1 USD. When the target currency is USD we can
+    // short-circuit to 1. For other currencies, do NOT collapse to "USD": keep the
+    // token symbol (USDC, USDT, USDC.e, ...) so the gateway prices it via its
+    // CoinGecko id (usd-coin / tether) and applies the forex rate. Collapsing to
+    // "USD" made the gateway look up a non-existent "usd" token and return 0, which
+    // left stablecoin holdings with no historical cost basis in non-USD currencies.
     if (token.indexOf('USD') === 0 || token === 'USN') {
-        token = 'USD';
-    }
-    if (token === 'USD' && currency === 'USD') {
-        return 1;
+        if (currency.toUpperCase() === 'USD') {
+            return 1;
+        }
     }
     let pricedata = await getHistoricalPriceData(token, currency);
     const skipFetchingPricesKey = `${token}-${currency}`;

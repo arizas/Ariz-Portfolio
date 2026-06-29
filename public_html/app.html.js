@@ -23,7 +23,7 @@ export default /*html*/ `
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
             <div class="navbar-nav">
-                <a class="nav-item nav-link" href="/portfolio" data-page="portfolio">Portefølje</a>
+                <a class="nav-item nav-link" href="/portfolio" data-page="portfolio">Portfolio</a>
                 <a class="nav-item nav-link" href="/year-report" data-page="year-report">Year report</a>
                 <a class="nav-item nav-link" href="/transactions" data-page="transactions">Transactions</a>
                 <a class="nav-item nav-link" href="/staking" data-page="staking">Staking rewards</a>
