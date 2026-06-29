@@ -114,3 +114,11 @@ export async function migrateIdbfsToOpfs(repoName) {
     await writeMarker(repoName, files.length); // only after a full copy
     return { migrated: true, fileCount: files.length };
 }
+
+/** Delete the legacy IDBFS database. Call only once the data is safely elsewhere. */
+export function clearLegacyIdbfs() {
+    return new Promise((resolve) => {
+        const r = indexedDB.deleteDatabase(LEGACY_IDB_NAME);
+        r.onsuccess = r.onerror = r.onblocked = () => resolve();
+    });
+}

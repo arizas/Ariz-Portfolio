@@ -1,4 +1,4 @@
-import { migrateIdbfsToOpfs, needsIdbfsMigration } from './migrate-idbfs-to-opfs.js';
+import { migrateIdbfsToOpfs, needsIdbfsMigration, clearLegacyIdbfs } from './migrate-idbfs-to-opfs.js';
 
 const IDB_NAME = '/nearearningsdata';
 const REPO = 'migtest';
@@ -92,5 +92,15 @@ describe('IDBFS -> OPFS migration', () => {
         // marker set -> a second run is a no-op
         expect(await needsIdbfsMigration(REPO)).to.equal(false);
         expect((await migrateIdbfsToOpfs(REPO)).migrated).to.equal(false);
+    });
+
+    it('clearLegacyIdbfs removes the legacy database (call only after data is safe)', async () => {
+        await seedIdbfs([{ path: 'accounts.json', content: '[]' }]);
+        await migrateIdbfsToOpfs(REPO);          // marker now set
+        await clearLegacyIdbfs();                // legacy IDB gone
+        // marker still says migrated, and the legacy DB no longer holds data
+        expect(await needsIdbfsMigration(REPO)).to.equal(false);
+        await (await navigator.storage.getDirectory()).removeEntry(`.idbfs-migrated-${REPO}`).catch(() => {});
+        expect(await needsIdbfsMigration(REPO)).to.equal(false); // no legacy data left either
     });
 });
