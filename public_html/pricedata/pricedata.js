@@ -65,6 +65,41 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     await setHistoricalPriceData(baseToken, currency, pricesMap);
 }
 
+/**
+ * Fetch current (live spot) prices for multiple token symbols in one currency.
+ * Uses the gateway /api/prices/current endpoint (proxies CoinGecko simple/price).
+ * @param {string[]} tokens - token symbols (e.g. ['NEAR', 'BTC'])
+ * @param {string} currency - target currency (e.g. 'nok')
+ * @returns {Promise<Object<string, number|null>>} map of symbol -> price (null if unavailable)
+ */
+export async function getCurrentPrices(tokens, currency) {
+    const result = {};
+    const uniqueTokens = [...new Set(tokens.filter(t => t))];
+    if (uniqueTokens.length === 0) {
+        return result;
+    }
+    const vs = currency.toLowerCase();
+    const data = await fetchFromArizGateway(
+        `/api/prices/current?tokens=${encodeURIComponent(uniqueTokens.join(','))}&vs=${encodeURIComponent(vs)}`
+    );
+    for (const token of uniqueTokens) {
+        // The gateway keys the response by the exact token string we passed in.
+        result[token] = data?.[token]?.[vs] ?? null;
+    }
+    return result;
+}
+
+/**
+ * Fetch the current (live spot) price for a single token symbol.
+ * @param {string} token - token symbol (e.g. 'NEAR')
+ * @param {string} currency - target currency (e.g. 'nok')
+ * @returns {Promise<number|null>} price, or null if unavailable
+ */
+export async function getCurrentPrice(token, currency) {
+    const prices = await getCurrentPrices([token], currency);
+    return prices[token] ?? null;
+}
+
 export async function getEODPrice(currency, datestring, token = defaultToken) {
     if (token === "") {
         token = defaultToken;
