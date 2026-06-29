@@ -27,7 +27,8 @@ export default {
     '**/*.spec.js', // include `.spec.ts` files
     '!./node_modules/**/*', // exclude any node modules
     '!./playwright_tests/**/*', // exclude playwright tests
-    '!./ariz-gateway/**/*' // exclude ariz-gateway folder
+    '!./ariz-gateway/**/*', // exclude ariz-gateway folder
+    '!**/storage/gitstorage.spec.js' // real wasm-git worker — tested in Playwright (opfs-worker-harness)
   ],
   watch: false,
   testFramework: {
@@ -48,6 +49,7 @@ export default {
             import { expect, assert} from 'https://cdn.jsdelivr.net/npm/chai@5.0.0/+esm';
             globalThis.assert = assert;
             globalThis.expect = expect;
+            globalThis.__GITSTORAGE_MEMFS__ = true; // unit tests use an in-memory FS, not the wasm-git worker
             localStorage.setItem('pikespeakai_api_key','API_KEY');
         </script>        
         <script type="module" src="${testRunnerImport}"></script>
