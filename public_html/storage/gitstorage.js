@@ -1,6 +1,6 @@
 import { isProgressBarVisible, setProgressbarValue } from "../ui/progress-bar.js";
 
-const worker = new Worker(new URL('wasmgitworker.js', import.meta.url));
+const worker = new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
 
 let currentCommandInProgress;
 const workerCommand = async (command, params) => {

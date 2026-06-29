@@ -1,179 +1,169 @@
-let stdout;
-let stderr;
-let captureOutput = false;
-const currentRepoRootDir = 'nearearningsdata';
+// OPFS-backed git worker (wasm-git 0.0.15, SAB-free). Module worker.
+//
+// Replaces the legacy IDBFS worker. Same message protocol as before, so
+// gitstorage.js / domainobjectstore / the storage page are unchanged. Internals:
+//  - loads the auto-selected OPFS build (pthreads if cross-origin isolated, else
+//    JSPI, else ASYNCIFY) via lg2_opfs_auto.js; callMain is async.
+//  - one repo at /opfs/<REPO>; MEMFS is a cache, git's C writes auto-persist to
+//    OPFS. App file writes go through the facade's writeFile (opfsWriteFile) since
+//    a plain FS.writeFile would not persist.
+//  - on startup, migrates a legacy IDBFS repo into OPFS if present.
 
+import { migrateIdbfsToOpfs, needsIdbfsMigration, clearLegacyIdbfs } from './migrate-idbfs-to-opfs.js';
+
+const WASM_GIT_BASE = 'https://unpkg.com/wasm-git@0.0.15/';
+const REPO = 'portfolio';
+const WORKDIR = `/opfs/${REPO}`;
+
+let stdout = '';
+let stderr = '';
+let captureOutput = false;
 let accessToken = 'ANONYMOUS';
+
+// The OPFS builds use the synchronous HTTP transport (XHR) — inject the gateway
+// bearer token on every request, same as the legacy worker did.
 XMLHttpRequest.prototype._open = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
-  this._open(method, url, async, user, password);
-  this.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+    this._open(method, url, async, user, password);
+    this.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+};
+
+let git, FS;
+const ready = (async () => {
+    const { loadOpfsGit } = await import(/* @vite-ignore */ `${WASM_GIT_BASE}lg2_opfs_auto.js`);
+    git = await loadOpfsGit({
+        baseUrl: WASM_GIT_BASE,
+        moduleOverrides: {
+            print: (text) => { if (captureOutput) stdout += text + '\n'; postMessage({ progress: text }); },
+            printErr: (text) => { if (captureOutput) stderr += text + '\n'; console.error(text); },
+        },
+    });
+    FS = git.FS;
+
+    // Recover a legacy in-browser repo (IDBFS) into OPFS on first run.
+    if (await needsIdbfsMigration(REPO)) {
+        await migrateIdbfsToOpfs(REPO);
+    }
+    // Load the repo tree from OPFS into the MEMFS cache (if any), then settle in
+    // the working directory (created if this is a brand-new store).
+    await git.syncRepo(REPO).catch(() => {});
+    try { FS.mkdir(WORKDIR); } catch (e) { /* exists */ }
+    FS.chdir(WORKDIR);
+    return git;
+})();
+
+// Run a git command via the async callMain, capturing stdout/stderr.
+async function runGit(args) {
+    FS.chdir(WORKDIR);
+    captureOutput = true;
+    stdout = '';
+    stderr = '';
+    try {
+        await git.run(args);
+    } finally {
+        captureOutput = false;
+    }
+    return { stdout, stderr };
 }
 
-self.Module = {
-  'locateFile': function (s) {
-    return 'https://unpkg.com/wasm-git@0.0.10/' + s;
-  },
-  'print': function (text) {
-    if (captureOutput) {
-      stdout += text + '\n';
-    }
-    postMessage({ progress: text });
-    console.log(text);
-  },
-  'printErr': function (text) {
-    if (captureOutput) {
-      stderr += text + '\n';
-    }
-    console.error(text);
-  }
-};
-
-importScripts('https://unpkg.com/wasm-git@0.0.10/lg2.js');
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js');
-
-const lgPromise = new Promise(resolve => {
-  Module.onRuntimeInitialized = () => {
-    FS.mkdir(`/${currentRepoRootDir}`);
-    FS.mount(self.origin == 'null' ? MEMFS : IDBFS, {}, `/${currentRepoRootDir}`);
-    FS.chdir(`/${currentRepoRootDir}`);
-
-    FS.syncfs(true, () => {
-      resolve(Module);
-    });
-  }
-});
-
-async function storeChanges() {
-  await new Promise(resolve => FS.syncfs(false, resolve));
-};
-
 self.onmessage = async (msg) => {
-  const lg2 = await lgPromise;
-  try {
-    let result;
-    stderr = '';
-    stdout = '';
+    await ready;
     const params = msg.data;
-    switch (params.command) {
-      case 'configureuser':
-        accessToken = params.accessToken;
-        callMain(['config', 'user.name', params.username]);
-        callMain(['config', 'user.email', params.useremail]);
-
-        result = { accessTokenConfigured: true };
-        break;
-      case 'writeFile':
-        FS.writeFile(params.filename, params.content);
-        await storeChanges();
-        break;
-      case 'readTextFile':
-        result = FS.readFile(params.filename, { encoding: 'utf8' });
-        break;
-      case 'exists':
-        result = FS.analyzePath(params.path).exists;
-        break;
-      case 'mkdir':
-        FS.mkdir(params.path);
-        break;
-      case 'readdir':
-        result = FS.readdir(params.path);
-        break;
-      case 'git':
-        captureOutput = true;
-        callMain(params);
-        captureOutput = false;
-        if (['init', 'commit', 'add', 'revert', 'pull', 'fetch', 'merge', 'clone'].indexOf(params[0]) > -1) {
-          await storeChanges();
-        }
-        result = { stdout, stderr };
-        break;
-      case 'getremote':
-        captureOutput = true;
-        callMain(['remote', 'show', '-v']);
-        captureOutput = false;
-        result = stdout;
-        break;
-      case 'setremote':
-        callMain(['remote', 'remove', 'origin']);
-        callMain(['remote', 'add', 'origin', params.remoteurl]);
-        await storeChanges();
-        break;
-      case 'sync':
-        captureOutput = true;
-        callMain(['fetch', 'origin']);
-        callMain(['merge', 'origin/master']);
-        // On the first push to a brand-new (empty) remote there is no
-        // origin/master to fetch or merge, so those steps "fail" harmlessly.
-        // Only a failed push is fatal — so judge success on the push alone.
-        stdout = '';
-        stderr = '';
-        callMain(['push']);
-        captureOutput = false;
-        if (stderr) {
-          throw stderr;
-        }
-        result = stdout;
-        await storeChanges();
-        break;
-      case 'deletelocal':
-        FS.unmount(`/${currentRepoRootDir}`);
-        console.log('deleting database', currentRepoRootDir);
-        self.indexedDB.deleteDatabase('/' + currentRepoRootDir);
-        result = { deleted: currentRepoRootDir };
-        break;
-      case 'commitall':
-        captureOutput = true;
-        callMain(['status']);
-        captureOutput = false;
-        const outlines = stdout.split('\n');
-        outlines.filter(l => l.indexOf('#	modified:') == 0).map(l => l.substr('#	modified:'.length).trim())
-          .forEach(f => callMain(['add', f]));
-        const unTrackedIndex = outlines.indexOf('# Untracked files:');
-
-        if (unTrackedIndex > -1) {
-          let filesToAdd = outlines.slice(unTrackedIndex + 3).map(ln => ln.substr('#\t'.length));
-          filesToAdd = filesToAdd.slice(0, filesToAdd.length - 1);
-          if (filesToAdd.length > 0) {
-            filesToAdd.forEach(f => callMain(['add', f]));
-          }
-        }
-
-        captureOutput = true;
-        callMain(['status']);
-        captureOutput = false;
-
-        if (stdout.indexOf('Changes to be committed:') > -1) {
-          callMain(['commit', '-m', 'add all untracked data files']);
-          await storeChanges();
-        } else {
-          console.log('nothing to commit');
-        }
-        break;
-      case 'exportzip':
-        const zip = new JSZip();
-        const addFilesToZip = async (dir) => {
-          const entries = FS.readdir(dir);
-          for (let entry of entries) {
-            if (entry === '.' || entry === '..') continue;
-            const path = `${dir}/${entry}`;
-            const stats = FS.stat(path);
-            if (FS.isDir(stats.mode)) {
-              await addFilesToZip(path); // Recursive call for directories
-            } else if (FS.isFile(stats.mode)) {
-              const fileData = FS.readFile(path);
-              zip.file(path, fileData);
+    try {
+        let result;
+        switch (params.command) {
+            case 'configureuser':
+                accessToken = params.accessToken;
+                // Global identity (no repo needed) so commits work in any state.
+                FS.writeFile('/home/web_user/.gitconfig', `[user]\n\tname = ${params.username}\n\temail = ${params.useremail}\n`);
+                result = { accessTokenConfigured: true };
+                break;
+            case 'writeFile':
+                await git.writeFile(REPO, params.filename, params.content); // persists to OPFS
+                break;
+            case 'readTextFile':
+                result = FS.readFile(`${WORKDIR}/${params.filename}`, { encoding: 'utf8' });
+                break;
+            case 'exists':
+                result = FS.analyzePath(`${WORKDIR}/${params.path}`).exists;
+                break;
+            case 'mkdir':
+                FS.mkdir(`${WORKDIR}/${params.path}`);
+                break;
+            case 'readdir':
+                result = FS.readdir(`${WORKDIR}/${params.path}`);
+                break;
+            case 'git': {
+                // The OPFS build can't take '.' as a path (it would become a '.'
+                // OPFS segment), so init/clone target the absolute workdir.
+                let args = params; // params is the args array
+                if (params[0] === 'init') args = ['init', WORKDIR];
+                else if (params[0] === 'clone') args = ['clone', params[1], WORKDIR];
+                result = await runGit(args);
+                break;
             }
-          }
+            case 'getremote':
+                result = (await runGit(['remote', 'show', '-v'])).stdout;
+                break;
+            case 'setremote':
+                await runGit(['remote', 'remove', 'origin']);
+                await runGit(['remote', 'add', 'origin', params.remoteurl]);
+                break;
+            case 'sync': {
+                FS.chdir(WORKDIR);
+                captureOutput = true; stdout = ''; stderr = '';
+                await git.run(['fetch', 'origin']);
+                await git.run(['merge', 'origin/master']);
+                // First push to an empty remote has no origin/master; only a failed
+                // push is fatal (mirror of the legacy worker's fix).
+                stdout = ''; stderr = '';
+                await git.run(['push']);
+                captureOutput = false;
+                if (stderr) throw stderr;
+                result = stdout;
+                break;
+            }
+            case 'deletelocal':
+                await git.removeRepo(REPO);
+                await clearLegacyIdbfs();
+                try { await (await navigator.storage.getDirectory()).removeEntry(`.idbfs-migrated-${REPO}`); } catch (e) {}
+                result = { deleted: REPO };
+                break;
+            case 'commitall': {
+                const lines = (await runGit(['status'])).stdout.split('\n');
+                const modified = lines.filter(l => l.indexOf('#\tmodified:') === 0)
+                    .map(l => l.substr('#\tmodified:'.length).trim());
+                for (const f of modified) await runGit(['add', f]);
+                const untrackedIndex = lines.indexOf('# Untracked files:');
+                if (untrackedIndex > -1) {
+                    let toAdd = lines.slice(untrackedIndex + 3).map(ln => ln.substr('#\t'.length));
+                    toAdd = toAdd.slice(0, toAdd.length - 1);
+                    for (const f of toAdd) if (f) await runGit(['add', f]);
+                }
+                if ((await runGit(['status'])).stdout.indexOf('Changes to be committed:') > -1) {
+                    await runGit(['commit', '-m', 'add all untracked data files']);
+                }
+                break;
+            }
+            case 'exportzip': {
+                const { default: JSZip } = await import(/* @vite-ignore */ 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+                const zip = new JSZip();
+                const addToZip = (dir) => {
+                    for (const entry of FS.readdir(dir)) {
+                        if (entry === '.' || entry === '..') continue;
+                        const path = `${dir}/${entry}`;
+                        const stat = FS.stat(path);
+                        if (FS.isDir(stat.mode)) addToZip(path);
+                        else if (FS.isFile(stat.mode)) zip.file(path, FS.readFile(path));
+                    }
+                };
+                addToZip(WORKDIR);
+                result = { zipUrl: URL.createObjectURL(await zip.generateAsync({ type: 'blob' })) };
+                break;
+            }
         }
-        await addFilesToZip(`/${currentRepoRootDir}`);
-        const blob = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(blob);
-        result = { zipUrl: url };
-        break;
+        postMessage({ result });
+    } catch (error) {
+        postMessage({ error: error.toString() });
     }
-    postMessage({ result });
-  } catch (error) {
-    postMessage({ error: error.toString() });
-  }
 };
