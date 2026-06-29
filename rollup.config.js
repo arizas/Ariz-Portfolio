@@ -1,7 +1,21 @@
 import html from '@web/rollup-plugin-html';
 import { terser } from 'rollup-plugin-terser';
 import { readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { dirname, resolve } from 'path';
 import copy from 'rollup-plugin-copy';
+
+// Read a worker's source with its static relative imports resolved inline, so it
+// can be embedded as a self-contained blob (the inlining wraps the source in a
+// function, where static `import`/`export` are illegal). Module workers with
+// dynamic import() are fine — those stay as runtime imports. One level deep,
+// which is all the workers here need.
+function workerSourceWithInlinedImports(workerPath) {
+    const dir = dirname(workerPath);
+    return readFileSync(workerPath).toString().replace(
+        /^\s*import\s+\{[^}]*\}\s+from\s+['"](\.[^'"]+)['"];?\s*$/gm,
+        (_, rel) => readFileSync(resolve(dir, rel)).toString().replace(/^export\s+/gm, '')
+    );
+}
 
 export default {
     input: './public_html/index.html',
@@ -21,7 +35,7 @@ export default {
                     if (pathname.endsWith('.js')) {
                         code = code.replace(urlMatch[0], `URL.createObjectURL(new Blob([
                             (() => {
-                                function jsFunc() {${readFileSync(pathname).toString()}}
+                                function jsFunc() {${workerSourceWithInlinedImports(pathname)}}
                                 const jsFuncSource = jsFunc.toString();
                                 return jsFuncSource.substring( jsFuncSource.indexOf('{') + 1,  jsFuncSource.lastIndexOf('}'));
                             })()
