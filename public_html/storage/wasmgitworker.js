@@ -11,7 +11,7 @@
 
 import { migrateIdbfsToOpfs, needsIdbfsMigration, clearLegacyIdbfs } from './migrate-idbfs-to-opfs.js';
 
-const WASM_GIT_BASE = 'https://unpkg.com/wasm-git@0.0.15/';
+const WASM_GIT_BASE = 'https://unpkg.com/wasm-git@0.0.16/';
 const REPO = 'portfolio';
 const WORKDIR = `/opfs/${REPO}`;
 
@@ -93,15 +93,9 @@ self.onmessage = async (msg) => {
             case 'readdir':
                 result = FS.readdir(`${WORKDIR}/${params.path}`);
                 break;
-            case 'git': {
-                // The OPFS build can't take '.' as a path (it would become a '.'
-                // OPFS segment), so init/clone target the absolute workdir.
-                let args = params; // params is the args array
-                if (params[0] === 'init') args = ['init', WORKDIR];
-                else if (params[0] === 'clone') args = ['clone', params[1], WORKDIR];
-                result = await runGit(args);
+            case 'git':
+                result = await runGit(params); // params is the args array
                 break;
-            }
             case 'getremote':
                 result = (await runGit(['remote', 'show', '-v'])).stdout;
                 break;
