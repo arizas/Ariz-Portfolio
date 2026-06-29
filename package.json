@@ -11,6 +11,7 @@
     "test:watch": "wtr --watch",
     "test": "wtr",
     "test:e2e": "npx playwright test",
+    "test:opfs-worker": "node test_servers/opfs-worker-harness.mjs",
     "test:e2e:watch": "npx playwright test --ui",
     "test:e2e:watch:codespaces": "yarn test:e2e --ui-host=0.0.0.0",
     "generateimportmap": "(cd public_html && jspm link index.html -o index.html)",
