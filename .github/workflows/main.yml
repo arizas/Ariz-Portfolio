@@ -58,3 +58,23 @@ jobs:
         run: |
           yarn dist
           yarn test:e2e
+
+  test_opfs_worker:
+    name: Test OPFS git worker
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.57.0-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run OPFS worker harness
+        run: yarn test:opfs-worker
