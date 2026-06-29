@@ -20,7 +20,7 @@ customElements.define('portfolio-page',
             this.refreshButton = this.shadowRoot.querySelector('#refreshbutton');
 
             this.currencySelect.addEventListener('change', () => this.refresh());
-            this.refreshButton.addEventListener('click', () => this.refresh());
+            this.refreshButton.addEventListener('click', () => this.refresh(true));
 
             this.init();
         }
@@ -46,14 +46,14 @@ customElements.define('portfolio-page',
             this.progressEl.hidden = !busy && !message;
         }
 
-        async refresh() {
+        async refresh(force = false) {
             const currency = this.currencySelect.value;
             if (!currency) {
                 return;
             }
-            this.setBusy(true, 'Laster portefølje …');
+            this.setBusy(true, force ? 'Beregner portefølje på nytt …' : 'Laster portefølje …');
             try {
-                const portfolio = await calculatePortfolio(currency, msg => this.setBusy(true, msg));
+                const portfolio = await calculatePortfolio(currency, msg => this.setBusy(true, msg), { force });
                 this.render(portfolio);
                 this.setBusy(false, '');
             } catch (e) {

@@ -34,6 +34,16 @@ const NEAR_TOKEN = ''; // native NEAR is represented by an empty token id in the
 // Amounts below this (in display units) are treated as fully exited / dust.
 const DUST_THRESHOLD = 1e-9;
 
+// Computing the full-history FIFO for every token is expensive, and the page
+// component is recreated on every navigation. Cache the last result per currency
+// so returning to the page is instant; callers pass { force: true } (the Refresh
+// button / currency switch with no cache) to recompute.
+const portfolioCache = new Map(); // currency -> portfolio result
+
+export function clearPortfolioCache() {
+    portfolioCache.clear();
+}
+
 /**
  * Build the list of tokens to include: native NEAR plus every fungible token
  * seen in the transaction history.
@@ -82,7 +92,11 @@ function summarizeOpenPositions(openPositions) {
  *   excludedValue: number
  * }>}
  */
-export async function calculatePortfolio(currency, onProgress = () => {}) {
+export async function calculatePortfolio(currency, onProgress = () => {}, { force = false } = {}) {
+    if (!force && portfolioCache.has(currency)) {
+        return portfolioCache.get(currency);
+    }
+
     const tokens = await getTokenList();
     const holdings = [];
 
@@ -161,7 +175,7 @@ export async function calculatePortfolio(currency, onProgress = () => {}) {
         .filter(h => h.amount > DUST_THRESHOLD)
         .sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
 
-    return {
+    const portfolio = {
         currency,
         holdings: visibleHoldings,
         totalValue,
@@ -170,4 +184,6 @@ export async function calculatePortfolio(currency, onProgress = () => {}) {
         totalUnrealizedPct,
         excludedValue
     };
+    portfolioCache.set(currency, portfolio);
+    return portfolio;
 }

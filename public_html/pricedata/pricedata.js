@@ -1,6 +1,7 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
+import { retry } from "../near/retry.js";
 
 const defaultToken = 'NEAR';
 const skipFetchingPrices = {};
@@ -65,26 +66,55 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     await setHistoricalPriceData(baseToken, currency, pricesMap);
 }
 
+// Real market symbols are short and contain no whitespace, slashes or URL
+// punctuation. Scam tokens sometimes embed a whole URL or sentence in their
+// symbol (e.g. "Claim Near Airdrop at https://..."), which has no price and can
+// even make the gateway return 502 for the whole batch. Skip those up front.
+function isLikelyValidSymbol(symbol) {
+    return !!symbol && symbol.length <= 15 && !/[\s/:?#&]/.test(symbol);
+}
+
 /**
  * Fetch current (live spot) prices for multiple token symbols in one currency.
  * Uses the gateway /api/prices/current endpoint (proxies CoinGecko simple/price).
+ * Resilient: invalid/junk symbols are skipped, and if a batch request fails
+ * (e.g. gateway 502 on a bad token) it falls back to per-token requests so one
+ * token can never zero out the rest.
  * @param {string[]} tokens - token symbols (e.g. ['NEAR', 'BTC'])
  * @param {string} currency - target currency (e.g. 'nok')
  * @returns {Promise<Object<string, number|null>>} map of symbol -> price (null if unavailable)
  */
 export async function getCurrentPrices(tokens, currency) {
     const result = {};
-    const uniqueTokens = [...new Set(tokens.filter(t => t))];
+    const vs = currency.toLowerCase();
+    const uniqueTokens = [...new Set(tokens.filter(t => t && isLikelyValidSymbol(t)))];
     if (uniqueTokens.length === 0) {
         return result;
     }
-    const vs = currency.toLowerCase();
-    const data = await fetchFromArizGateway(
-        `/api/prices/current?tokens=${encodeURIComponent(uniqueTokens.join(','))}&vs=${encodeURIComponent(vs)}`
-    );
-    for (const token of uniqueTokens) {
-        // The gateway keys the response by the exact token string we passed in.
-        result[token] = data?.[token]?.[vs] ?? null;
+
+    const fetchBatch = async (list) => {
+        // Retry transient gateway hiccups (502s) a couple of times, quickly.
+        const data = await retry(() => fetchFromArizGateway(
+            `/api/prices/current?tokens=${encodeURIComponent(list.join(','))}&vs=${encodeURIComponent(vs)}`
+        ), 2, 1500);
+        for (const token of list) {
+            // The gateway keys the response by the exact token string we passed in.
+            result[token] = data?.[token]?.[vs] ?? null;
+        }
+    };
+
+    try {
+        await fetchBatch(uniqueTokens);
+    } catch (e) {
+        // A single bad token can fail the whole batch. Retry one at a time so the
+        // rest still get prices.
+        for (const token of uniqueTokens) {
+            try {
+                await fetchBatch([token]);
+            } catch {
+                result[token] = null;
+            }
+        }
     }
     return result;
 }
