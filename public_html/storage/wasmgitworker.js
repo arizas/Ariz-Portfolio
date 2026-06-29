@@ -123,22 +123,14 @@ self.onmessage = async (msg) => {
                 try { await (await navigator.storage.getDirectory()).removeEntry(`.idbfs-migrated-${REPO}`); } catch (e) {}
                 result = { deleted: REPO };
                 break;
-            case 'commitall': {
-                const lines = (await runGit(['status'])).stdout.split('\n');
-                const modified = lines.filter(l => l.indexOf('#\tmodified:') === 0)
-                    .map(l => l.substr('#\tmodified:'.length).trim());
-                for (const f of modified) await runGit(['add', f]);
-                const untrackedIndex = lines.indexOf('# Untracked files:');
-                if (untrackedIndex > -1) {
-                    let toAdd = lines.slice(untrackedIndex + 3).map(ln => ln.substr('#\t'.length));
-                    toAdd = toAdd.slice(0, toAdd.length - 1);
-                    for (const f of toAdd) if (f) await runGit(['add', f]);
-                }
+            case 'commitall':
+                // Stage everything (0.0.16 normalizes the '.'), then commit only if
+                // there's something staged. Robust vs parsing `git status` text.
+                await runGit(['add', '.']);
                 if ((await runGit(['status'])).stdout.indexOf('Changes to be committed:') > -1) {
                     await runGit(['commit', '-m', 'add all untracked data files']);
                 }
                 break;
-            }
             case 'exportzip': {
                 const { default: JSZip } = await import(/* @vite-ignore */ 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
                 const zip = new JSZip();
