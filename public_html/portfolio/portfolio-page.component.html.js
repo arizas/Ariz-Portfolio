@@ -50,6 +50,11 @@ export default /*html*/ `
 
     .footnote { font-size: 0.78rem; color: #6c757d; margin-top: 0.5rem; line-height: 1.5; }
 
+    .price-warning {
+        background: #fff8e1; border: 1px solid #ffe082; color: #6d4c00;
+        padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.9rem; line-height: 1.5;
+    }
+
     .balance-card {
         display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
         padding: 1rem 1.25rem;
