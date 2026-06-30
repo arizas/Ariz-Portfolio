@@ -178,6 +178,9 @@ customElements.define('portfolio-page',
             // Holdings (liquid), with a dedicated staked row on top when present.
             this.holdingsSection.hidden = false;
             const maxValue = Math.max(1, ...portfolio.holdings.map(h => h.value ?? 0));
+            const stakedUnrealizedHtml = portfolio.stakedUnrealized != null
+                ? `<span class="${portfolio.stakedUnrealized >= 0 ? 'gain' : 'loss'}">${formatSigned(portfolio.stakedUnrealized, money)}</span>`
+                : '<span class="muted">not realized</span>';
             const stakedRow = hasStaking ? `
                 <div class="holding-card">
                     <div>
@@ -186,10 +189,11 @@ customElements.define('portfolio-page',
                             <span class="flag">staking</span>
                         </div>
                         <div class="holding-amount">${formatTokenAmount(portfolio.stakedAmount)} NEAR ${portfolio.stakedValue != null ? `@ ${money(portfolio.stakedValue / portfolio.stakedAmount)}` : ''}</div>
+                        ${portfolio.stakedCostBasis > 0 ? `<div class="holding-amount">Cost basis: ${money(portfolio.stakedCostBasis)}</div>` : ''}
                     </div>
                     <div class="holding-values">
                         <div class="holding-value">${portfolio.stakedValue != null ? money(portfolio.stakedValue) : '<span class="muted">value unknown</span>'}</div>
-                        <div class="holding-pl"><span class="muted">not realized</span></div>
+                        <div class="holding-pl">${stakedUnrealizedHtml}</div>
                     </div>
                 </div>
             ` : '';
