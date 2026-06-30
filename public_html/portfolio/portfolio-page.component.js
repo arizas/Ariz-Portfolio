@@ -129,6 +129,12 @@ customElements.define('portfolio-page',
 
             this.summaryEl.hidden = false;
             this.summaryEl.innerHTML = `
+                ${portfolio.pricesUnavailable ? `
+                <div class="card-surface price-warning" role="alert">
+                    ⚠ Couldn't reach the price service, so current values are unavailable.
+                    Cost basis and realized P/L below are from cached price history.
+                    Try <strong>Refresh</strong> in a moment.
+                </div>` : ''}
                 <div class="card-surface hero-card">
                     <div class="label">Total value now ${hasStaking ? '<span class="muted">(incl. staked)</span>' : ''}</div>
                     <div class="hero-value">${money(totalNow)}</div>

@@ -27,7 +27,7 @@ import {
     getDecimalConversionValue
 } from '../yearreport/yearreportdata.js';
 import { resolveSymbol, resolveDisplaySymbol } from '../near/intents-tokens.js';
-import { getCurrentPrices, getEODPrice } from '../pricedata/pricedata.js';
+import { getCurrentPrices, getEODPrice, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
 
 // Liquid-staking token symbols excluded from the portfolio total (treated as staking).
 export const EXCLUDED_STAKING_SYMBOLS = new Set(['STNEAR', 'LINEAR', 'NEARX', 'LST']);
@@ -122,10 +122,19 @@ async function computeBase(currency, onProgress, force) {
     onProgress('Fetching current prices');
     const pricedSymbols = holdings.filter(h => h.amount > DUST_THRESHOLD).map(h => h.symbol);
     let currentPrices = {};
+    let pricesUnavailable = false;
     try {
         currentPrices = await getCurrentPrices(pricedSymbols, currency);
     } catch (e) {
+        // Price service unreachable (transient, affects every token). Keep going so
+        // cached cost basis / realized still render, but flag it so the page can say
+        // so explicitly rather than making every holding look like it has "no price".
         currentPrices = {};
+        if (e instanceof PriceServiceUnavailableError) {
+            pricesUnavailable = true;
+        } else {
+            throw e;
+        }
     }
 
     let totalValue = 0;
@@ -160,6 +169,7 @@ async function computeBase(currency, onProgress, force) {
     const base = {
         currency, holdings, totalValue, totalCost, excludedValue,
         stakedRawByDate,
+        pricesUnavailable,
         nearPrice: currentPrices['NEAR'] ?? null,
         nearDecimal: Math.pow(10, -24)
     };
@@ -276,6 +286,7 @@ export async function calculatePortfolio(currency, fromDate, onProgress = () => 
     return {
         currency,
         fromDate,
+        pricesUnavailable: base.pricesUnavailable,
         holdings: visibleHoldings,
         // UB (now) — liquid holdings
         totalValue: base.totalValue,
