@@ -1,6 +1,7 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
+import { retry } from "../near/retry.js";
 
 const defaultToken = 'NEAR';
 const skipFetchingPrices = {};
@@ -65,6 +66,67 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     await setHistoricalPriceData(baseToken, currency, pricesMap);
 }
 
+// Real market symbols are short and contain no whitespace, slashes or URL
+// punctuation. Scam tokens sometimes embed a whole URL or sentence in their
+// symbol (e.g. "Claim Near Airdrop at https://..."), which has no price and can
+// even make the gateway return 502 for the whole batch. Skip those up front.
+function isLikelyValidSymbol(symbol) {
+    return !!symbol && symbol.length <= 15 && !/[\s/:?#&]/.test(symbol);
+}
+
+/**
+ * Fetch current (live spot) prices for multiple token symbols in one currency.
+ * Uses the gateway /api/prices/current endpoint (proxies CoinGecko simple/price).
+ * Resilient: invalid/junk symbols are skipped, and if a batch request fails
+ * (e.g. gateway 502 on a bad token) it falls back to per-token requests so one
+ * token can never zero out the rest.
+ * @param {string[]} tokens - token symbols (e.g. ['NEAR', 'BTC'])
+ * @param {string} currency - target currency (e.g. 'nok')
+ * @returns {Promise<Object<string, number|null>>} map of symbol -> price (null if unavailable)
+ */
+export async function getCurrentPrices(tokens, currency) {
+    const result = {};
+    const vs = currency.toLowerCase();
+    const uniqueTokens = [...new Set(tokens.filter(t => t && isLikelyValidSymbol(t)))];
+    if (uniqueTokens.length === 0) {
+        return result;
+    }
+
+    try {
+        // One batch request for everything. Retry to ride out gateway cold starts
+        // (fly.dev scales to zero and 502s on the first request after idle; those
+        // error responses also lack CORS headers, surfacing as "CORS"/"Failed to
+        // fetch" in the browser). Invalid scam symbols are already filtered out, so
+        // a batch failure means the gateway itself is unavailable - retrying the
+        // whole batch is the right move, not hammering it once per token.
+        const data = await retry(() => fetchFromArizGateway(
+            `/api/prices/current?tokens=${encodeURIComponent(uniqueTokens.join(','))}&vs=${encodeURIComponent(vs)}`
+        ), 4, 2000);
+        for (const token of uniqueTokens) {
+            // The gateway keys the response by the exact token string we passed in.
+            result[token] = data?.[token]?.[vs] ?? null;
+        }
+    } catch (e) {
+        // Gateway unavailable - leave prices null so the caller shows "value unknown"
+        // while cost basis / realized (from cached historical prices) still render.
+        for (const token of uniqueTokens) {
+            result[token] = null;
+        }
+    }
+    return result;
+}
+
+/**
+ * Fetch the current (live spot) price for a single token symbol.
+ * @param {string} token - token symbol (e.g. 'NEAR')
+ * @param {string} currency - target currency (e.g. 'nok')
+ * @returns {Promise<number|null>} price, or null if unavailable
+ */
+export async function getCurrentPrice(token, currency) {
+    const prices = await getCurrentPrices([token], currency);
+    return prices[token] ?? null;
+}
+
 export async function getEODPrice(currency, datestring, token = defaultToken) {
     if (token === "") {
         token = defaultToken;
@@ -85,11 +147,16 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
         token = await resolveSymbol(token);
     }
 
+    // USD-pegged stablecoins are ~1 USD. When the target currency is USD we can
+    // short-circuit to 1. For other currencies, do NOT collapse to "USD": keep the
+    // token symbol (USDC, USDT, USDC.e, ...) so the gateway prices it via its
+    // CoinGecko id (usd-coin / tether) and applies the forex rate. Collapsing to
+    // "USD" made the gateway look up a non-existent "usd" token and return 0, which
+    // left stablecoin holdings with no historical cost basis in non-USD currencies.
     if (token.indexOf('USD') === 0 || token === 'USN') {
-        token = 'USD';
-    }
-    if (token === 'USD' && currency === 'USD') {
-        return 1;
+        if (currency.toUpperCase() === 'USD') {
+            return 1;
+        }
     }
     let pricedata = await getHistoricalPriceData(token, currency);
     const skipFetchingPricesKey = `${token}-${currency}`;
