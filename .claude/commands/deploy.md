@@ -36,8 +36,19 @@ IMPORTANT: pushing to `ariz-gateway` `main` auto-deploys to production via Fly â
 
 ## Contract (rare)
 
-Only if the web4 contract itself must change (e.g. repoint `body_url`): edit
-`../ariz-gateway/contract/src/web4/handler.rs`, then
-`cd ../ariz-gateway/contract && cargo near build non-reproducible-wasm` and
-`near contract deploy arizportfolio.near use-file target/near/ariz_gateway.wasm without-init-call network-config mainnet sign-with-keychain send`.
-Confirm the wasm size and the mainnet deploy first.
+`arizportfolio.near` runs a minimal 126-byte WAT contract whose `web4_get` returns
+the `bodyUrl` (it replaced the old 123 KB Rust contract, freeing ~1.2 NEAR). You
+only need to redeploy it to repoint the gateway URL.
+
+1. Rebuild â€” regenerates `web4contract/web4contract.wat` + `.wasm` (both gitignored;
+   `web4contract.wat.js` is the source). Override the URL with `WEB4_BODY_URL`:
+   ```
+   node web4contract/web4contract.wat.js
+   ```
+2. Deploy (confirm the wasm size and the mainnet deploy first):
+   ```
+   near contract deploy arizportfolio.near use-file web4contract/web4contract.wasm without-init-call network-config mainnet sign-with-keychain send
+   ```
+
+The retired Rust source still lives in `../ariz-gateway/contract` if the
+token-registry methods ever need restoring.
