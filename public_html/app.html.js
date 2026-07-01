@@ -40,7 +40,63 @@ export default /*html*/ `
 </nav>
 <br />
 <div class="container" id="mainContainer">
-    Get an overview of your NEAR accounts. See your transactions, staking rewards,
-    and get an annual report calculating profit and loss for each of your transactions.
+    <div class="px-3 py-4 py-md-5 text-center">
+        <h1 class="display-5 fw-bold">Your keys. Your crypto. Full clarity.</h1>
+        <p class="lead text-muted mx-auto" style="max-width: 640px;">
+            Ariz gives you a clean overview of your NEAR accounts — transactions, staking rewards,
+            and an annual report with profit and loss for every transaction. Non-custodial, so your
+            keys and funds never leave your hands.
+        </p>
+    </div>
+
+    <div class="row g-3 g-md-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-shield-lock fs-3"></i>
+                    <h6 class="card-title mt-2 fw-semibold">Non-custodial by design</h6>
+                    <p class="card-text text-muted small mb-0">
+                        Your data lives in your own browser storage and git repository.
+                        We never hold your keys, your funds, or your history.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-wallet2 fs-3"></i>
+                    <h6 class="card-title mt-2 fw-semibold">Your whole portfolio</h6>
+                    <p class="card-text text-muted small mb-0">
+                        NEAR, staking, and NEAR Intents holdings in one overview,
+                        valued in the currency you choose.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-file-earmark-text fs-3"></i>
+                    <h6 class="card-title mt-2 fw-semibold">Built for tax reporting</h6>
+                    <p class="card-text text-muted small mb-0">
+                        An annual report with FIFO profit and loss per transaction — designed to make
+                        crypto tax reporting manageable. Verify the numbers before you file.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-light border mt-4 mb-2 small text-muted" role="alert">
+        <strong>Disclaimer.</strong>
+        This tool is not financial, investment, or tax advice. Reports are based on the user's
+        configuration and the calculations of the software. Users should verify the correctness of
+        the calculations and ensure that all relevant data is collected — the software does not
+        guarantee correctness in calculations or accuracy and completeness in the underlying data.
+        The source code is open and available at
+        <a href="https://github.com/arizas/Ariz-Portfolio" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-github"></i> github.com/arizas/Ariz-Portfolio</a>.
+    </div>
 </div>
 `;
