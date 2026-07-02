@@ -36,10 +36,11 @@ function niceMax(value) {
 function defaultDateShort(iso, granularity) {
     const [y, m, d] = iso.split('-').map(Number);
     const date = new Date(Date.UTC(y, m - 1, d));
+    // Axis labels are always English (like the rest of the portfolio UI), day-first.
     if (granularity === 'month') {
-        return date.toLocaleDateString(navigator.language, { month: 'short', timeZone: 'UTC' });
+        return date.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
     }
-    return date.toLocaleDateString(navigator.language, { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
 }
 
 function xForIndex(i, n) {
