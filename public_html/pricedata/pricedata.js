@@ -6,6 +6,22 @@ import { retry } from "../near/retry.js";
 const defaultToken = 'NEAR';
 const skipFetchingPrices = {};
 
+/**
+ * Thrown when the price service (Ariz gateway) can't be reached for the current
+ * spot prices after retries - i.e. a transient outage that affects *every* token,
+ * as opposed to a single token genuinely having no price. Carries the token list
+ * so the caller can show a clear "price service unavailable" banner instead of
+ * making every holding look like it individually has "no price".
+ */
+export class PriceServiceUnavailableError extends Error {
+    constructor(tokens, cause) {
+        super(`Price service unavailable (could not fetch current prices for ${tokens.length} token(s))`);
+        this.name = 'PriceServiceUnavailableError';
+        this.tokens = tokens;
+        this.cause = cause;
+    }
+}
+
 export function setSkipFetchingPrices(token, currency) {
     skipFetchingPrices[`${token}-${currency}`] = true;
 }
@@ -92,26 +108,30 @@ export async function getCurrentPrices(tokens, currency) {
         return result;
     }
 
+    // One batch request for everything. Retry to ride out gateway cold starts
+    // (fly.dev 502s on the first request after a restart/idle; those error
+    // responses also lack CORS headers, surfacing as "CORS"/"Failed to fetch" in
+    // the browser). Invalid scam symbols are already filtered out, so a batch
+    // failure means the gateway itself is unavailable - retrying the whole batch
+    // is the right move, not hammering it once per token.
+    //
+    // If retries are exhausted we let the error propagate: the caller must be able
+    // to tell "the price service is unreachable" (transient, everything affected -
+    // show a banner, keep cached cost basis) apart from "this token genuinely has
+    // no price" (a per-token null below, e.g. scam tokens / ARIZ). Swallowing the
+    // error here would collapse both into an indistinguishable "no price".
+    let data;
     try {
-        // One batch request for everything. Retry to ride out gateway cold starts
-        // (fly.dev scales to zero and 502s on the first request after idle; those
-        // error responses also lack CORS headers, surfacing as "CORS"/"Failed to
-        // fetch" in the browser). Invalid scam symbols are already filtered out, so
-        // a batch failure means the gateway itself is unavailable - retrying the
-        // whole batch is the right move, not hammering it once per token.
-        const data = await retry(() => fetchFromArizGateway(
+        data = await retry(() => fetchFromArizGateway(
             `/api/prices/current?tokens=${encodeURIComponent(uniqueTokens.join(','))}&vs=${encodeURIComponent(vs)}`
         ), 4, 2000);
-        for (const token of uniqueTokens) {
-            // The gateway keys the response by the exact token string we passed in.
-            result[token] = data?.[token]?.[vs] ?? null;
-        }
     } catch (e) {
-        // Gateway unavailable - leave prices null so the caller shows "value unknown"
-        // while cost basis / realized (from cached historical prices) still render.
-        for (const token of uniqueTokens) {
-            result[token] = null;
-        }
+        throw new PriceServiceUnavailableError(uniqueTokens, e);
+    }
+    for (const token of uniqueTokens) {
+        // The gateway keys the response by the exact token string we passed in. A
+        // null here means the gateway is reachable but has no price for this token.
+        result[token] = data?.[token]?.[vs] ?? null;
     }
     return result;
 }
