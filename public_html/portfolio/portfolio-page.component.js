@@ -1,5 +1,6 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
-import { calculatePortfolio } from './portfolio-data.js';
+import { calculatePortfolio, calculatePortfolioSeries } from './portfolio-data.js';
+import { renderPortfolioChart } from './portfolio-chart.js';
 import html from './portfolio-page.component.html.js';
 
 const PREFERRED_DEFAULT_CURRENCY = 'nok';
@@ -18,7 +19,10 @@ customElements.define('portfolio-page',
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
 
             this.progressEl = this.shadowRoot.querySelector('#portfolio-progress');
+            this.topSection = this.shadowRoot.querySelector('#top-section');
             this.summaryEl = this.shadowRoot.querySelector('#summary');
+            this.chartPanel = this.shadowRoot.querySelector('#chart-panel');
+            this.valueChart = this.shadowRoot.querySelector('#value-chart');
             this.holdingsEl = this.shadowRoot.querySelector('#holdings');
             this.holdingsSection = this.shadowRoot.querySelector('#holdings-section');
             this.excludedNoteEl = this.shadowRoot.querySelector('#excluded-note');
@@ -26,11 +30,21 @@ customElements.define('portfolio-page',
             this.fromMonthSelect = this.shadowRoot.querySelector('#frommonthselect');
             this.fromYearSelect = this.shadowRoot.querySelector('#fromyearselect');
             this.refreshButton = this.shadowRoot.querySelector('#refreshbutton');
+            this.granularityButtons = [...this.shadowRoot.querySelectorAll('.granularity button')];
+
+            // Chart resolution — reuses the page's currency + from-date; defaults to monthly.
+            this.granularity = 'month';
 
             this.currencySelect.addEventListener('change', () => this.refresh());
             this.fromMonthSelect.addEventListener('change', () => this.refresh());
             this.fromYearSelect.addEventListener('change', () => this.refresh());
             this.refreshButton.addEventListener('click', () => this.refresh(true));
+            this.granularityButtons.forEach(btn => btn.addEventListener('click', () => {
+                if (this.granularity === btn.dataset.granularity) return;
+                this.granularity = btn.dataset.granularity;
+                this.granularityButtons.forEach(b => b.classList.toggle('active', b === btn));
+                this.renderChart();
+            }));
 
             this.init();
         }
@@ -88,18 +102,42 @@ customElements.define('portfolio-page',
                 return;
             }
             const fromDate = this.getFromDate();
+            this.currentCurrency = currency;
+            this.currentFromDate = fromDate;
             this.setBusy(true, force ? 'Recalculating portfolio …' : 'Loading portfolio …');
             try {
                 const portfolio = await calculatePortfolio(currency, fromDate, msg => this.setBusy(true, msg), { force });
                 this.render(portfolio);
                 this.setBusy(false, '');
+                // Value-over-time chart reuses the (now cached) heavy computation.
+                await this.renderChart(force);
             } catch (e) {
                 console.error('Failed to calculate portfolio', e);
                 this.setBusy(false, '');
+                this.topSection.hidden = false;
                 this.summaryEl.hidden = true;
+                this.chartPanel.hidden = true;
                 this.holdingsSection.hidden = false;
                 this.holdingsEl.innerHTML =
                     `<div class="alert alert-danger">Could not calculate portfolio: ${escapeHtml(e.message)}</div>`;
+            }
+        }
+
+        async renderChart(force = false) {
+            if (!this.currentCurrency) {
+                return;
+            }
+            this.topSection.hidden = false;
+            this.chartPanel.hidden = false;
+            this.valueChart.innerHTML = '<div class="chart-empty">Building value history …</div>';
+            try {
+                const data = await calculatePortfolioSeries(
+                    this.currentCurrency, this.currentFromDate, this.granularity, () => {}, { force });
+                const money = makeMoneyFormatter(this.currentCurrency.toUpperCase());
+                renderPortfolioChart(this.valueChart, data, { formatMoney: money, formatDate: formatDate });
+            } catch (e) {
+                console.error('Failed to build value history', e);
+                this.valueChart.innerHTML = '<div class="chart-empty">Could not load value history.</div>';
             }
         }
 
@@ -127,6 +165,7 @@ customElements.define('portfolio-page',
                 ? `<div class="hero-sub">${money(portfolio.totalValue)} liquid <span class="muted">+</span> ${money(portfolio.stakedValue || 0)} staked <span class="muted">(${formatTokenAmount(portfolio.stakedAmount)} NEAR)</span></div>`
                 : '';
 
+            this.topSection.hidden = false;
             this.summaryEl.hidden = false;
             this.summaryEl.innerHTML = `
                 ${portfolio.pricesUnavailable ? `

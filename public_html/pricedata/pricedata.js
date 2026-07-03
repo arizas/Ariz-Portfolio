@@ -209,6 +209,53 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     return price ?? 0;
 }
 
+/**
+ * Whole EOD price history for a token in a currency, as a map { 'yyyy-MM-dd': price }.
+ * Mirrors getEODPrice's symbol resolution and stablecoin handling, but returns the
+ * full series in one call so callers that need many dates (e.g. the value-over-time
+ * chart) don't do one storage read per date. Triggers a single gateway fetch if the
+ * history isn't cached yet.
+ *
+ * For USD-pegged stablecoins valued in USD (which getEODPrice short-circuits to 1)
+ * the map has no dates; a sentinel { __constant: 1 } is returned instead so the
+ * caller can treat every date as 1.
+ *
+ * @param {string} currency - target currency (e.g. 'nok')
+ * @param {string} token - token symbol or contract id ('' / 'NEAR' for native NEAR)
+ * @returns {Promise<Object<string, number> & {__constant?: number}>}
+ */
+export async function getEODPriceMap(currency, token = defaultToken) {
+    if (token === "") {
+        token = defaultToken;
+    }
+
+    const hasIntentsPrefix = /^nep(141|245):/.test(token);
+    const hasNearSuffix = /\.(near|testnet)$/.test(token);
+    const isImplicitAccount = token.length === 64 && /^[a-f0-9]+$/.test(token);
+    if (hasIntentsPrefix || hasNearSuffix || isImplicitAccount) {
+        token = await resolveSymbol(token);
+    }
+
+    // USD-pegged stablecoins are ~1 USD - match getEODPrice's USD short-circuit.
+    if ((token.indexOf('USD') === 0 || token === 'USN') && currency.toUpperCase() === 'USD') {
+        return { __constant: 1 };
+    }
+
+    let pricedata = await getHistoricalPriceData(token, currency);
+    if (!pricedata || Object.keys(pricedata).length === 0) {
+        const coinGeckoId = symbolToCoinGeckoId[token.toUpperCase()] || token.toLowerCase();
+        if (!(await getNoPriceTokens()).has(coinGeckoId)) {
+            try {
+                await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency });
+                pricedata = await getHistoricalPriceData(token, currency);
+            } catch (e) {
+                console.error(`Failed to fetch price history for ${token}/${currency} from Ariz Gateway`, e);
+            }
+        }
+    }
+    return pricedata || {};
+}
+
 export async function getCustomSellPrice(currency, datestring, token) {
     if (token && token !== 'near') {
         return await getEODPrice(currency, datestring, token);
