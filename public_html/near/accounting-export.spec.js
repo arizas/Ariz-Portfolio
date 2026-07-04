@@ -397,10 +397,13 @@ describe('accounting-export (JSON)', () => {
             expect(totalEarnings / 1e24, 'Total earnings after merge should be ~0.15 NEAR').to.be.closeTo(0.15, 0.1);
             expect(totalEarnings / 1e24, 'Total earnings should NOT be ~1000 NEAR').to.be.lessThan(10);
 
-            // Verify individual earnings from new entries were preserved
+            // Earnings are re-derived from the balance series: the deposit itself is
+            // never reward (the 1000 NEAR jump is principal), and the small reward that
+            // accrued in the interval is attributed to the deposit block. The oldest
+            // entry is the opening baseline (no reward booked for a starting balance).
             expect(merged[0].earnings / 1e24).to.be.closeTo(0.118, 0.01);
-            expect(merged[1].earnings).to.equal(0); // Deposit entry, no staking reward
-            expect(merged[2].earnings / 1e24).to.be.closeTo(0.036, 0.01);
+            expect(merged[1].earnings / 1e24).to.be.closeTo(0.036, 0.01);
+            expect(merged[2].earnings).to.equal(0);
         });
     });
 
