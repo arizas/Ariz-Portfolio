@@ -1,5 +1,6 @@
 import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getReceivedAccounts, getExpenseAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
+import { recomputeStakingEarnings } from "../near/accounting-export.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 import { resolveDecimals } from '../near/intents-tokens.js';
 
@@ -107,7 +108,11 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
         for (let stakingAccount of stakingAccounts) {
             allStakingAccounts[stakingAccount] = true;
-            const stakingRewards = await getStakingRewardsForAccountAndPool(account, stakingAccount, fungibleTokenSymbol);
+            // Re-derive earnings from the balance series + principal moves so stored
+            // data collected before the earnings fix (which booked deposits as
+            // rewards) is corrected on read, without needing a re-import.
+            const stakingRewards = recomputeStakingEarnings(
+                await getStakingRewardsForAccountAndPool(account, stakingAccount, fungibleTokenSymbol));
             for (let stakingReward of stakingRewards) {
                 const ts = stakingReward.timestamp.substr(0, 'yyyy-MM-dd'.length);
                 const stakingBalances = accountTransactions[account].stakingBalances;
