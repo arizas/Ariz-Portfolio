@@ -56,8 +56,10 @@ export default /*html*/ `
                     <i class="bi bi-shield-lock fs-3"></i>
                     <h6 class="card-title mt-2 fw-semibold">Non-custodial by design</h6>
                     <p class="card-text text-muted small mb-0">
-                        Your data lives in your own browser storage and git repository.
-                        We never hold your keys, your funds, or your history.
+                        Your keys and funds stay yours &mdash; Ariz signs in with a wallet
+                        signature and can never move your funds. It builds your reports from
+                        public on-chain data and stores them so your history grows over time
+                        &mdash; as an open git repository you can clone and keep yourself.
                     </p>
                 </div>
             </div>
