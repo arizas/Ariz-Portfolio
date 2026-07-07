@@ -56,8 +56,9 @@ export default /*html*/ `
                     <i class="bi bi-shield-lock fs-3"></i>
                     <h6 class="card-title mt-2 fw-semibold">Non-custodial by design</h6>
                     <p class="card-text text-muted small mb-0">
-                        Your data lives in your own browser storage and git repository.
-                        We never hold your keys, your funds, or your history.
+                        Your keys and your funds stay yours &mdash; we never touch them.
+                        We only read on-chain data to generate your reports, which we
+                        store securely to give you history over time.
                     </p>
                 </div>
             </div>
