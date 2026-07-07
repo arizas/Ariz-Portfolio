@@ -27,7 +27,7 @@ import {
     getDecimalConversionValue
 } from '../yearreport/yearreportdata.js';
 import { resolveSymbol, resolveDisplaySymbol } from '../near/intents-tokens.js';
-import { getCurrentPrices, getEODPrice } from '../pricedata/pricedata.js';
+import { getCurrentPrices, getEODPrice, getEODPriceMap, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
 
 // Liquid-staking token symbols excluded from the portfolio total (treated as staking).
 export const EXCLUDED_STAKING_SYMBOLS = new Set(['STNEAR', 'LINEAR', 'NEARX', 'LST']);
@@ -66,6 +66,31 @@ function summarizeOpenPositions(openPositions) {
     return { remainingRaw, costBasis };
 }
 
+// On-chain liquid/staked NEAR split at a point in time.
+//
+// Transfers to/from staking pools are invisible to the FIFO (excluded in
+// calculateYearReportData at the deposit/withdrawal step), so the FIFO "remaining"
+// lumps liquid + staked NEAR together - which is why the liquid row looked ~40x too
+// high and the staked balance was double-counted. The real split lives in the daily
+// balances: `accountBalance` is the summed on-chain (liquid) balance and
+// `stakingBalance` is the staked balance (both raw yocto). Pass `before`
+// (yyyy-MM-dd, exclusive) for an IB snapshot day; omit it for the latest day.
+export function nearLiquidStakedRaw(dailyBalances, before) {
+    const dates = Object.keys(dailyBalances); // chronological (yyyy-MM-dd insertion order)
+    let day;
+    if (before) {
+        for (const ds of dates) {
+            if (ds < before) day = dailyBalances[ds];
+            else break;
+        }
+    } else {
+        day = dailyBalances[dates[dates.length - 1]];
+    }
+    const liquidRaw = Number(day?.accountBalance ?? 0n);
+    const stakedRaw = day?.stakingBalance ?? 0;
+    return { liquidRaw, stakedRaw, totalRaw: liquidRaw + stakedRaw };
+}
+
 /**
  * Heavy per-currency computation, cached. Runs the full-history FIFO for every
  * token to get current holdings, cost basis, the per-day realized series, current
@@ -78,6 +103,7 @@ async function computeBase(currency, onProgress, force) {
 
     const tokens = await getTokenList();
     const holdings = [];
+    let nearStakedCostBasis = 0; // staked share of NEAR's FIFO cost basis (see below)
 
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
@@ -93,7 +119,21 @@ async function computeBase(currency, onProgress, force) {
             : Math.pow(10, -24);
 
         const { remainingRaw, costBasis } = summarizeOpenPositions(openPositions);
-        const amount = remainingRaw * decimalConversionValue;
+        let amount = remainingRaw * decimalConversionValue;
+        let holdingCostBasis = costBasis;
+
+        // Re-split NEAR into its real on-chain liquid vs staked buckets. The liquid
+        // holding row must reflect actual liquid NEAR (accountBalance), not the FIFO
+        // total (which still counts everything ever staked); the staked share of the
+        // cost basis is carried out via base.stakedCostBasis for the staked row.
+        if (t.token === NEAR_TOKEN) {
+            const { liquidRaw, totalRaw } = nearLiquidStakedRaw(dailyBalances);
+            if (totalRaw > 0) {
+                amount = liquidRaw * decimalConversionValue;
+                holdingCostBasis = costBasis * (liquidRaw / totalRaw);
+                nearStakedCostBasis = costBasis - holdingCostBasis;
+            }
+        }
 
         // Per-day realized net P/L (gain - loss) from FIFO disposals. FIFO is
         // prefix-consistent, so a later truncated pass won't change these days.
@@ -111,8 +151,8 @@ async function computeBase(currency, onProgress, force) {
             displaySymbol: t.displaySymbol,
             excluded,
             amount,
-            costBasis,
-            missingCostBasis: amount > DUST_THRESHOLD && !(costBasis > 0),
+            costBasis: holdingCostBasis,
+            missingCostBasis: amount > DUST_THRESHOLD && !(holdingCostBasis > 0),
             realizationsByDate,
             decimalConversionValue,
             dailyBalances
@@ -122,10 +162,19 @@ async function computeBase(currency, onProgress, force) {
     onProgress('Fetching current prices');
     const pricedSymbols = holdings.filter(h => h.amount > DUST_THRESHOLD).map(h => h.symbol);
     let currentPrices = {};
+    let pricesUnavailable = false;
     try {
         currentPrices = await getCurrentPrices(pricedSymbols, currency);
     } catch (e) {
+        // Price service unreachable (transient, affects every token). Keep going so
+        // cached cost basis / realized still render, but flag it so the page can say
+        // so explicitly rather than making every holding look like it has "no price".
         currentPrices = {};
+        if (e instanceof PriceServiceUnavailableError) {
+            pricesUnavailable = true;
+        } else {
+            throw e;
+        }
     }
 
     let totalValue = 0;
@@ -160,6 +209,8 @@ async function computeBase(currency, onProgress, force) {
     const base = {
         currency, holdings, totalValue, totalCost, excludedValue,
         stakedRawByDate,
+        stakedCostBasis: nearStakedCostBasis,
+        pricesUnavailable,
         nearPrice: currentPrices['NEAR'] ?? null,
         nearDecimal: Math.pow(10, -24)
     };
@@ -187,7 +238,18 @@ async function computeIbSnapshot(base, currency, fromDate, onProgress) {
         }
         const { openPositions } = await calculateProfitLoss(truncated, currency, h.token);
         const { remainingRaw, costBasis } = summarizeOpenPositions(openPositions);
-        const ibAmount = remainingRaw * h.decimalConversionValue;
+        let ibAmount = remainingRaw * h.decimalConversionValue;
+        let ibCostBasis = costBasis;
+
+        // Same liquid/staked split as the UB pass, but at the IB date - so the
+        // opening liquid NEAR row is consistent with the current liquid row.
+        if (h.token === NEAR_TOKEN) {
+            const { liquidRaw, totalRaw } = nearLiquidStakedRaw(h.dailyBalances, fromDate);
+            if (totalRaw > 0) {
+                ibAmount = liquidRaw * h.decimalConversionValue;
+                ibCostBasis = costBasis * (liquidRaw / totalRaw);
+            }
+        }
 
         let ibValue = null;
         if (ibAmount > DUST_THRESHOLD) {
@@ -197,7 +259,7 @@ async function computeIbSnapshot(base, currency, fromDate, onProgress) {
             ibValue = 0;
         }
 
-        snapshot.set(h.token, { ibAmount, ibCostBasis: costBasis, ibValue });
+        snapshot.set(h.token, { ibAmount, ibCostBasis, ibValue });
     }
 
     ibCache.set(cacheKey, snapshot);
@@ -272,10 +334,15 @@ export async function calculatePortfolio(currency, fromDate, onProgress = () => 
     const stakedValue = base.nearPrice != null ? stakedAmount * base.nearPrice : null;
     const ibNearPrice = ibStakedAmount > DUST_THRESHOLD ? await getEODPrice(currency, fromDate, NEAR_TOKEN) : 0;
     const ibStakedValue = ibStakedAmount > DUST_THRESHOLD ? ibStakedAmount * ibNearPrice : 0;
+    // Staked NEAR's share of the FIFO cost basis (see computeBase), so the staked
+    // row shows real unrealized P/L instead of pure market value.
+    const stakedCostBasis = base.stakedCostBasis || 0;
+    const stakedUnrealized = stakedValue != null && stakedCostBasis > 0 ? stakedValue - stakedCostBasis : null;
 
     return {
         currency,
         fromDate,
+        pricesUnavailable: base.pricesUnavailable,
         holdings: visibleHoldings,
         // UB (now) — liquid holdings
         totalValue: base.totalValue,
@@ -292,10 +359,160 @@ export async function calculatePortfolio(currency, fromDate, onProgress = () => 
         // Staking (NEAR), shown separately
         stakedAmount,
         stakedValue,
+        stakedCostBasis,
+        stakedUnrealized,
         ibStakedAmount,
         ibStakedValue,
         // Complete asset picture
         totalWithStaked: base.totalValue + (stakedValue || 0),
         ibWithStaked: ibValue + (ibStakedValue || 0)
     };
+}
+
+// ---------------------------------------------------------------------------
+// Value-over-time series (for the portfolio "wave" chart)
+// ---------------------------------------------------------------------------
+
+function toDate(isoDate) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d));
+}
+
+function toIso(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Build the list of sample dates from fromDate to today (inclusive) at the given
+ * granularity. Today is always the final point so the chart ends "now".
+ *   - 'day'   : every calendar day
+ *   - 'week'  : every 7th day from fromDate
+ *   - 'month' : the 1st of each month from fromDate's month
+ */
+export function buildSampleDates(fromDate, today, granularity) {
+    const start = toDate(fromDate);
+    const end = toDate(today);
+    if (end < start) {
+        return [toIso(end)];
+    }
+    const dates = [];
+
+    if (granularity === 'day') {
+        for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+            dates.push(toIso(d));
+        }
+    } else if (granularity === 'week') {
+        for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 7)) {
+            dates.push(toIso(d));
+        }
+    } else {
+        // month: 1st of each month within range
+        let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+        while (d <= end) {
+            dates.push(toIso(d < start ? start : d));
+            d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+        }
+    }
+
+    const lastIso = toIso(end);
+    if (dates[dates.length - 1] !== lastIso) {
+        dates.push(lastIso);
+    }
+    return dates;
+}
+
+// Index of the largest key <= date in an ascending array of 'yyyy-MM-dd' keys
+// (carry-forward lookup). Returns -1 if every key is after date.
+function latestAtOrBefore(sortedKeys, date) {
+    let lo = 0, hi = sortedKeys.length - 1, res = -1;
+    while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (sortedKeys[mid] <= date) { res = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    return res;
+}
+
+/**
+ * Total portfolio value over time, split into liquid and staked, for a currency,
+ * period and granularity. Reuses the cached heavy base computation (FIFO + daily
+ * balances + price fetches), so it's cheap to re-run when only the granularity
+ * changes.
+ *
+ * For each sample date: liquid = Σ (on-chain balance that day × EOD price that day)
+ * over non-excluded tokens; staked = staked NEAR that day × NEAR EOD price that day.
+ * Missing prices carry forward the last known price (relevant past CoinGecko's
+ * ~365-day altcoin history limit). The final point is anchored to the current
+ * totals so the chart's end matches the summary cards exactly.
+ *
+ * @param {string} currency - lowercase currency code (e.g. 'nok')
+ * @param {string} fromDate - 'yyyy-MM-dd' start of the period
+ * @param {'day'|'week'|'month'} [granularity='month']
+ * @param {(msg:string)=>void} [onProgress]
+ * @param {{force?: boolean}} [opts]
+ * @returns {Promise<{currency,fromDate,granularity,series:{date,liquid,staked,total}[]}>}
+ */
+export async function calculatePortfolioSeries(currency, fromDate, granularity = 'month', onProgress = () => {}, { force = false } = {}) {
+    const base = await computeBase(currency, onProgress, force);
+    onProgress('Building value history');
+
+    const today = new Date().toISOString().slice(0, 10);
+    const sampleDates = buildSampleDates(fromDate, today, granularity);
+
+    // Price history per token, fetched once and looked up locally with carry-forward.
+    const priceCache = new Map(); // token -> { map, keys }
+    async function priceInfo(token) {
+        if (!priceCache.has(token)) {
+            const map = await getEODPriceMap(currency, token);
+            const keys = map.__constant != null ? null : Object.keys(map).sort();
+            priceCache.set(token, { map, keys });
+        }
+        return priceCache.get(token);
+    }
+    function priceOn(info, date) {
+        if (info.map.__constant != null) return info.map.__constant;
+        if (!info.keys.length) return 0;
+        const idx = latestAtOrBefore(info.keys, date);
+        return idx < 0 ? 0 : (info.map[info.keys[idx]] || 0);
+    }
+
+    const nearInfo = await priceInfo(NEAR_TOKEN);
+    const stakedKeys = Object.keys(base.stakedRawByDate).sort();
+
+    const series = [];
+    for (const d of sampleDates) {
+        let liquid = 0;
+        for (const h of base.holdings) {
+            if (h.excluded) continue;
+            const day = h.dailyBalances[d];
+            if (!day) continue;
+            const raw = Number(day.accountBalance);
+            if (!raw) continue;
+            const amount = raw * h.decimalConversionValue;
+            const price = priceOn(await priceInfo(h.token), d);
+            if (price) liquid += amount * price;
+        }
+
+        let staked = 0;
+        const sIdx = latestAtOrBefore(stakedKeys, d);
+        if (sIdx >= 0) {
+            const stakedRaw = base.stakedRawByDate[stakedKeys[sIdx]];
+            const nearPrice = priceOn(nearInfo, d);
+            if (stakedRaw && nearPrice) staked = stakedRaw * base.nearDecimal * nearPrice;
+        }
+
+        series.push({ date: d, liquid, staked, total: liquid + staked });
+    }
+
+    // Anchor the final point to the live totals so the chart end matches the cards.
+    if (series.length) {
+        const last = series[series.length - 1];
+        last.liquid = base.totalValue;
+        const currentStakedRaw = stakedKeys.length ? base.stakedRawByDate[stakedKeys[stakedKeys.length - 1]] : 0;
+        last.staked = (base.nearPrice != null && currentStakedRaw)
+            ? currentStakedRaw * base.nearDecimal * base.nearPrice
+            : last.staked;
+        last.total = last.liquid + last.staked;
+    }
+
+    return { currency, fromDate, granularity, series };
 }

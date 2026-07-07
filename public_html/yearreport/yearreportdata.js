@@ -1,5 +1,6 @@
 import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getReceivedAccounts, getExpenseAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
+import { recomputeStakingEarnings } from "../near/accounting-export.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 import { resolveDecimals } from '../near/intents-tokens.js';
 
@@ -107,7 +108,11 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
         for (let stakingAccount of stakingAccounts) {
             allStakingAccounts[stakingAccount] = true;
-            const stakingRewards = await getStakingRewardsForAccountAndPool(account, stakingAccount, fungibleTokenSymbol);
+            // Re-derive earnings from the balance series + principal moves so stored
+            // data collected before the earnings fix (which booked deposits as
+            // rewards) is corrected on read, without needing a re-import.
+            const stakingRewards = recomputeStakingEarnings(
+                await getStakingRewardsForAccountAndPool(account, stakingAccount, fungibleTokenSymbol));
             for (let stakingReward of stakingRewards) {
                 const ts = stakingReward.timestamp.substr(0, 'yyyy-MM-dd'.length);
                 const stakingBalances = accountTransactions[account].stakingBalances;
@@ -336,7 +341,13 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
                         openPositions.shift();
                     }
                 }
-                if (dayRealizedAmount < withdrawalAmount) {
+                // Tolerate float64 rounding: summing large raw (yocto) position
+                // amounts loses ~1e-16 relative precision, so dayRealizedAmount can
+                // fall a few units short of withdrawalAmount even when they're the
+                // same position set. Only a shortfall beyond that noise floor is a
+                // real bug worth reporting (a genuine one is on the order of whole
+                // tokens, i.e. >>1e-9 relative).
+                if (withdrawalAmount - dayRealizedAmount > withdrawalAmount * 1e-9) {
                     console.error(`should not happen: withdrawn amount larger than available positions. wanted to withdraw: ${withdrawalAmount}, available: ${dayRealizedAmount}`);
                 }
             };

@@ -744,6 +744,71 @@ export function mergeFungibleTokenTransactions(existingFtTx, newFtTx) {
 }
 
 /**
+ * Recompute staking earnings for one pool's entries from the balance series and the
+ * principal moves, overriding any per-entry `earnings` from the source data.
+ *
+ * A pool balance only changes two ways: you move principal in/out (a transaction, so
+ * the entry carries a `hash`), or the pool accrues a reward (a plain snapshot with no
+ * hash). So, walking the entries oldest-first:
+ *   - an entry WITH a hash is a principal move -> its balance jump is a deposit (up)
+ *     or withdrawal (down), and earnings = 0;
+ *   - an entry WITHOUT a hash is reward accrual -> earnings = the balance increase.
+ *
+ * Summed, this yields earnings = finalBalance + withdrawals - deposits (true yield).
+ * It is robust to the two things that previously booked deposits as rewards: the
+ * accounting-export format carries no `method_name` (so deposit detection failed),
+ * and mergeStakingEntries kept stale RPC-path entries whose `earnings` equalled the
+ * deposit. The first known entry is treated as an opening baseline (earnings = 0) so
+ * a data window that starts mid-history can't report its opening balance as reward.
+ *
+ * @param {Array<Object>} entries - staking entries for a single pool
+ * @returns {Array<Object>} the same entries, block-height descending, earnings fixed
+ */
+export function recomputeStakingEarnings(entries) {
+    const sorted = [...entries].sort((a, b) => a.block_height - b.block_height);
+    let prevBalance = null;
+    for (const e of sorted) {
+        const balance = Number(e.balance) || 0;
+        const explicitDep = Number(e.deposit) || 0;
+        const explicitWd = Number(e.withdrawal) || 0;
+        // A principal move is anything with a transaction hash or an explicit
+        // deposit/withdrawal already recorded by the extractor.
+        const isPrincipalMove = !!e.hash || explicitDep > 0 || explicitWd > 0;
+        if (prevBalance === null) {
+            // Opening baseline: never book the first known balance as reward.
+            e.deposit = explicitDep || (e.hash ? balance : 0);
+            e.withdrawal = explicitWd;
+            e.earnings = 0;
+        } else {
+            const delta = balance - prevBalance;
+            if (e.hash) {
+                // A real transaction: its whole balance effect is the principal move
+                // (deposit up / withdrawal down), earnings 0. Inferring from the actual
+                // balance change - rather than a recorded `deposit` amount - is robust
+                // to transient/incorrect balance snapshots (e.g. a re-stake that briefly
+                // reads 0) that would otherwise leave the balance jump booked as reward.
+                e.deposit = delta > 0 ? delta : 0;
+                e.withdrawal = delta < 0 ? -delta : 0;
+                e.earnings = 0;
+            } else if (isPrincipalMove) {
+                // A principal move recorded without a tx hash: trust the explicit
+                // deposit/withdrawal; any remaining balance change is accrued reward.
+                e.deposit = explicitDep;
+                e.withdrawal = explicitWd;
+                e.earnings = Math.max(0, delta - explicitDep + explicitWd);
+            } else {
+                // Plain snapshot: a balance increase is accrued reward.
+                e.deposit = 0;
+                e.withdrawal = 0;
+                e.earnings = delta > 0 ? delta : 0;
+            }
+        }
+        prevBalance = balance;
+    }
+    return sorted.sort((a, b) => b.block_height - a.block_height);
+}
+
+/**
  * Merge staking data entries for a single pool
  * @param {Array<Object>} existingEntries - Existing staking entries
  * @param {Array<Object>} newEntries - New staking entries from accounting export
@@ -764,10 +829,11 @@ export function mergeStakingEntries(existingEntries, newEntries) {
 
     // Convert back to array and sort by block height descending
     const merged = Array.from(entriesByBlock.values());
-    merged.sort((a, b) => b.block_height - a.block_height);
 
-    // Earnings are already set from API - no recalculation needed
-    // New entries (with correct earnings from API) take precedence over existing entries
-
-    return merged;
+    // Recompute earnings from the merged balance series + principal moves. The old
+    // per-entry `earnings` cannot be trusted: the accounting-export format has no
+    // method_name (deposit detection failed) and merging two source paths keyed by
+    // block_height left stale RPC-path entries whose earnings equalled the deposit,
+    // so principal was booked as reward. Deriving from balance changes fixes both.
+    return recomputeStakingEarnings(merged);
 }
