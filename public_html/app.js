@@ -20,20 +20,6 @@ import { isSignedIn, loginToArizGateway, logout } from './arizgateway/arizgatewa
 const baseurl = import.meta.url.substring(0, import.meta.url.lastIndexOf('/') + 1);
 const basepath = baseurl.substring(location.origin.length);
 
-const navbarmenu = document.querySelector('#navbarNavAltMarkup');
-Array.from(document.getElementsByClassName('nav-link')).forEach(navLink => {
-    const targetPage = navLink.dataset.page;
-
-    navLink.onclick = () => {
-        goToPage(targetPage);
-        if (navbarmenu.classList.contains('navbar-collapse')) {
-            const collapse = new bootstrap.Collapse(navbarmenu);
-            collapse.hide();
-        }
-        return false;
-    }
-});
-
 class AppNearNumbersComponent extends HTMLElement {
     constructor() {
         super();
@@ -63,11 +49,22 @@ class AppNearNumbersComponent extends HTMLElement {
             }
         }
 
+        // The navbar lives in this component's shadow DOM, so Bootstrap's
+        // data-bs-toggle collapse handler (delegated on document) never reaches
+        // the hamburger toggler. Wire it up manually against the shadow-DOM
+        // element instead, otherwise the menu can't be opened on mobile widths.
+        const navbarCollapse = this.shadowRoot.querySelector('#navbarNavAltMarkup');
+        const navbarToggler = this.shadowRoot.querySelector('.navbar-toggler');
+        const navbarCollapseInstance = bootstrap.Collapse.getOrCreateInstance(navbarCollapse, { toggle: false });
+        navbarToggler.addEventListener('click', () => navbarCollapseInstance.toggle());
+
         this.shadowRoot.querySelectorAll('a').forEach(a => {
             if (a.dataset['page']) {
                 a.onclick = (evt) => {
                     evt.preventDefault();
                     window.goToPage(a.dataset['page']);
+                    // Collapse the mobile menu after navigating.
+                    navbarCollapseInstance.hide();
                 }
             }
         });
