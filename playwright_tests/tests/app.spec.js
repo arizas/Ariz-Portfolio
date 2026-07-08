@@ -12,6 +12,34 @@ test("should open app", async ({ page }) => {
   await expect(header).toContainText("NEAR account report");
 });
 
+test("mobile hamburger menu toggles the navbar", async ({ page }) => {
+  // The navbar lives in the app component's shadow DOM, which broke Bootstrap's
+  // document-delegated collapse handler; the toggler is now wired manually.
+  // Regression guard: at a mobile width the hamburger must open the menu and a
+  // nav link must close it again.
+  await page.setViewportSize({ width: 480, height: 800 }); // below the md (768px) breakpoint
+  await page.goto("/");
+
+  const toggler = page.locator(".navbar-toggler");
+  const collapse = page.locator("#navbarNavAltMarkup");
+  // exact: true so this matches only the navbar link, not the landing page's
+  // "github.com/arizas/Ariz-Portfolio" link (which also contains "Portfolio").
+  const portfolioLink = page.getByRole("link", { name: "Portfolio", exact: true });
+
+  // Assert on Bootstrap's `show` class — the direct, deterministic effect of the
+  // toggle we wire up.
+  await expect(toggler).toBeVisible();
+  await expect(collapse).not.toHaveClass(/\bshow\b/);
+
+  // Click the hamburger -> the menu opens (before the fix, this did nothing).
+  await toggler.click();
+  await expect(collapse).toHaveClass(/\bshow\b/);
+
+  // Clicking a nav link collapses it again.
+  await portfolioLink.click();
+  await expect(collapse).not.toHaveClass(/\bshow\b/);
+});
+
 test("should open accounts page, add account, and load data", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto(
