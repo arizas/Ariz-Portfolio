@@ -36,14 +36,17 @@ IMPORTANT: pushing to `ariz-gateway` `main` auto-deploys to production via Fly �
 
 ## Contract (rare)
 
-`arizportfolio.near` runs a minimal 126-byte WAT contract whose `web4_get` returns
-the `bodyUrl` (it replaced the old 123 KB Rust contract, freeing ~1.2 NEAR). You
-only need to redeploy it to repoint the gateway URL.
+`arizportfolio.near` runs a minimal ~450-byte WAT contract whose `web4_get` returns
+a **path-aware** `bodyUrl` (`https://arizgateway.fly.dev<path>`), so per-path assets
+like `/sw.js` are served same-origin with the right MIME type while SPA routes hit
+the gateway's index.html fallback (it replaced the old 123 KB Rust contract, freeing
+~1.2 NEAR). You only need to redeploy it to repoint the gateway URL.
 
 1. Rebuild — regenerates `web4contract/web4contract.wat` + `.wasm` (both gitignored;
    `web4contract.wat.js` is the source). Override the URL with `WEB4_BODY_URL`:
    ```
    node web4contract/web4contract.wat.js
+   node --test web4contract/web4contract.test.mjs   # mocked NEAR host — must pass before deploying
    ```
 2. Deploy (confirm the wasm size and the mainnet deploy first):
    ```
