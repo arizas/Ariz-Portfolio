@@ -19,6 +19,13 @@ test("storage page shows the gateway git UI (no legacy key/url inputs)", async (
   await expect(page.locator('#gatewayaccountspan')).toBeVisible();
   await expect(page.locator('#downloadzipbutton')).toBeVisible();
 
+  // Encrypted sync controls (issue #76) are present; the opt-in defaults to off.
+  await expect(page.locator('#enableencryptedsyncbutton')).toBeVisible();
+  await expect(page.locator('#exportkeybutton')).toBeVisible();
+  await expect(page.locator('#importkeybutton')).toBeVisible();
+  await expect(page.locator('#copyegitclonebutton')).toBeVisible();
+  await expect(page.locator('#encryptedsyncstatus')).toHaveText('disabled');
+
   // Legacy inputs are gone.
   await expect(page.locator('#wasmgitaccesskey')).toHaveCount(0);
   await expect(page.locator('#remoterepo')).toHaveCount(0);
