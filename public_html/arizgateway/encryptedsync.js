@@ -37,6 +37,19 @@ const swContainer = () => _testContainer ?? navigator.serviceWorker;
  */
 export const encryptedRemoteUrl = (accountId) => `${location.origin}/egit/${accountId}`;
 
+// Opt-in flag: while the plaintext /git remote still exists, encrypted sync is
+// enabled per browser from the Storage page (issue #76's migration path).
+export const ENCRYPTED_SYNC_ENABLED_KEY = 'ariz_encrypted_sync_enabled';
+
+export function isEncryptedSyncEnabled() {
+    return localStorage.getItem(ENCRYPTED_SYNC_ENABLED_KEY) === 'true';
+}
+
+export function setEncryptedSyncEnabled(enabled) {
+    if (enabled) localStorage.setItem(ENCRYPTED_SYNC_ENABLED_KEY, 'true');
+    else localStorage.removeItem(ENCRYPTED_SYNC_ENABLED_KEY);
+}
+
 /**
  * Whether this page has been service-worker controlled from the start. After a
  * FIRST-TIME registration the SW claims the page, but workers that already
@@ -46,6 +59,21 @@ export const encryptedRemoteUrl = (accountId) => `${location.origin}/egit/${acco
  */
 export function pageIsControlled() {
     return !!swContainer()?.controller;
+}
+
+/**
+ * Resolve once the service worker controls this page (it claims clients on
+ * activation, which can land shortly after `ready` resolves). Resolves false on
+ * timeout instead of rejecting — the caller's git traffic will then surface a
+ * clearer error of its own.
+ */
+export async function waitForController(timeoutMs = 10000) {
+    const sw = swContainer();
+    if (sw.controller) return true;
+    return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(!!sw.controller), timeoutMs);
+        sw.addEventListener('controllerchange', () => { clearTimeout(timer); resolve(true); }, { once: true });
+    });
 }
 
 /**

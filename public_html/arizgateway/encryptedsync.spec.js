@@ -7,34 +7,11 @@ import { __clearDekForTests, currentDekHex, NeedsEnrollmentError } from './encry
 import { fakeWallet, mockStore } from './encryptionkey.mock.js';
 import {
     registerEgitServiceWorker, configureEgitKey, encryptedRemoteUrl,
+    isEncryptedSyncEnabled, setEncryptedSyncEnabled, ENCRYPTED_SYNC_ENABLED_KEY,
+    pageIsControlled, waitForController,
     __setTestServiceWorkerContainer,
 } from './encryptedsync.js';
-
-// Fake ServiceWorkerContainer: register() fails `failures` times before
-// succeeding (near.page's transient 400s), and the active worker records
-// egit-set-key messages and acks on the transferred port like the real SW.
-function fakeSwContainer({ failures = 0, ack = true } = {}) {
-    const active = {
-        messages: [],
-        postMessage(message, transfer) {
-            this.messages.push(message);
-            if (ack) transfer?.[0]?.postMessage({ type: 'egit-key-set', repoId: message.repoId });
-        },
-    };
-    return {
-        active,
-        registerCalls: [],
-        async register(url, options) {
-            this.registerCalls.push({ url, options });
-            if (this.registerCalls.length <= failures) {
-                throw new TypeError('Failed to register a ServiceWorker: bad HTTP response code (400)');
-            }
-            return {};
-        },
-        get ready() { return Promise.resolve({ active }); },
-        controller: active,
-    };
-}
+import { fakeSwContainer } from './encryptedsync.mock.js';
 
 describe('encryptedsync (service worker registration + egit-set-key wiring)', () => {
     let store;
@@ -122,5 +99,29 @@ describe('encryptedsync (service worker registration + egit-set-key wiring)', ()
 
     it('encryptedRemoteUrl targets /egit/<account> on this origin', () => {
         expect(encryptedRemoteUrl('bob.near')).to.equal(`${location.origin}/egit/bob.near`);
+    });
+
+    it('the encrypted-sync opt-in flag toggles and defaults to off', () => {
+        localStorage.removeItem(ENCRYPTED_SYNC_ENABLED_KEY);
+        expect(isEncryptedSyncEnabled()).to.equal(false);
+        setEncryptedSyncEnabled(true);
+        expect(isEncryptedSyncEnabled()).to.equal(true);
+        setEncryptedSyncEnabled(false);
+        expect(isEncryptedSyncEnabled()).to.equal(false);
+        expect(localStorage.getItem(ENCRYPTED_SYNC_ENABLED_KEY)).to.equal(null);
+    });
+
+    it('waitForController resolves when the service worker claims the page', async () => {
+        sw = fakeSwContainer({ controlled: false });
+        __setTestServiceWorkerContainer(sw);
+        expect(pageIsControlled()).to.equal(false);
+        const waiting = waitForController();
+        sw.claim();
+        expect(await waiting).to.equal(true);
+        expect(pageIsControlled()).to.equal(true);
+    });
+
+    it('waitForController resolves immediately on an already-controlled page', async () => {
+        expect(await waitForController()).to.equal(true);
     });
 });

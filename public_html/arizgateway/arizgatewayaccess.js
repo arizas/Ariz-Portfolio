@@ -12,8 +12,9 @@ const CONTRACT_ID = 'arizportfolio.near';
 // The NEP-413 recipient the gateway expects (it defaults recipient to its
 // contract id).
 const RECIPIENT = CONTRACT_ID;
-export const arizgatewayhost = 'https://arizgateway.fly.dev';
-//export const arizgatewayhost = 'http://localhost:15000';
+// A localStorage override lets local dev and the e2e harnesses point the app at
+// a local gateway/store without editing this file.
+export const arizgatewayhost = globalThis.localStorage?.getItem('ariz_gateway_host_override') ?? 'https://arizgateway.fly.dev';
 export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
 // Re-sign before the gateway's NEP-413 validity window (1h) elapses, so a cached
 // token is always accepted.

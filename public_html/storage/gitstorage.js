@@ -7,7 +7,23 @@ import { isProgressBarVisible, setProgressbarValue } from "../ui/progress-bar.js
 // (test_servers/opfs-worker-harness.mjs). Production always uses the worker.
 const useMemFs = typeof globalThis !== 'undefined' && globalThis.__GITSTORAGE_MEMFS__ === true;
 
-const worker = useMemFs ? null : new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
+let worker = useMemFs ? null : new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
+
+/**
+ * Terminate and recreate the git worker (state is in OPFS, so nothing is lost;
+ * configure_user must be re-sent afterwards). Needed when the encrypted-sync
+ * service worker is registered for the FIRST time: this worker was created
+ * before the SW claimed the page, so its /egit requests would bypass the SW —
+ * a worker created after the claim is controlled.
+ */
+export async function restartGitWorker() {
+    if (useMemFs) return;
+    while (currentCommandInProgress) {
+        await currentCommandInProgress.catch(() => { });
+    }
+    worker.terminate();
+    worker = new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
+}
 
 let currentCommandInProgress;
 const workerCommand = async (command, params) => {

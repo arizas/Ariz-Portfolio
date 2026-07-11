@@ -1,5 +1,10 @@
-import { gitCloneCommand, gitConfigCommand, gatewayRepoUrl } from './storage-page.component.js';
+import { gitCloneCommand, gitConfigCommand, gatewayRepoUrl, prepareSyncRemote } from './storage-page.component.js';
 import { mockWalletAuthenticationData } from '../arizgateway/arizgatewayaccess.spec.js';
+import { setEncryptedSyncEnabled, __setTestServiceWorkerContainer } from '../arizgateway/encryptedsync.js';
+import { __clearDekForTests } from '../arizgateway/encryptionkey.js';
+import { fakeWallet, mockStore } from '../arizgateway/encryptionkey.mock.js';
+import { fakeSwContainer } from '../arizgateway/encryptedsync.mock.js';
+import { __setTestWallet } from '../arizgateway/arizgatewayaccess.js';
 
 describe('storage-page component', () => {
     before(() => {
@@ -18,6 +23,45 @@ describe('storage-page component', () => {
 
     it('builds a git config command to refresh an expired token in an existing clone', () => {
         expect(gitConfigCommand('TOKEN123')).to.equal('git config http.extraHeader "Authorization: Bearer TOKEN123"');
+    });
+
+    describe('prepareSyncRemote', () => {
+        let store;
+        let sw;
+
+        beforeEach(() => {
+            __clearDekForTests();
+            localStorage.setItem('ariz_gateway_access_token',
+                JSON.stringify({ token: 'test-token', accountId: 'test.near', issuedAt: Date.now() }));
+            store = mockStore();
+            sw = fakeSwContainer();
+            __setTestServiceWorkerContainer(sw);
+            fakeWallet('test.near');
+        });
+
+        afterEach(() => {
+            setEncryptedSyncEnabled(false);
+            store.restore();
+            __setTestWallet(null);
+            __setTestServiceWorkerContainer(null);
+            localStorage.removeItem('ariz_gateway_access_token');
+        });
+
+        it('uses the plaintext gateway git remote when encrypted sync is off', async () => {
+            setEncryptedSyncEnabled(false);
+            expect(await prepareSyncRemote()).to.equal(gatewayRepoUrl());
+            expect(sw.registerCalls.length).to.equal(0);
+        });
+
+        it('when enabled: configures the service worker and returns /egit/<account>', async () => {
+            setEncryptedSyncEnabled(true);
+            const url = await prepareSyncRemote();
+            expect(url).to.equal(`${location.origin}/egit/test.near`);
+            expect(sw.registerCalls.length).to.equal(1);
+            expect(sw.active.messages.length).to.equal(1);
+            expect(sw.active.messages[0].type).to.equal('egit-set-key');
+            expect(sw.active.messages[0].repoId).to.equal('test.near');
+        });
     });
 
     it('renders the new UI without the legacy access-key / remote-url inputs', async () => {
