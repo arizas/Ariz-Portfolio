@@ -78,17 +78,47 @@ CLI:     git ── remote-helper ──> git-remote-egit ───────�
 
 ## Your key
 
-The encryption key is **derived from a wallet signature** (a fixed,
-app-namespaced NEP-413 message → HKDF-SHA256 → AES-256 key):
+The repository is encrypted with a **random master key (DEK — data-encryption
+key)**, generated on your device at first setup. You never see or remember it —
+your **wallet unlocks it**, using the standard wrapped-key pattern:
 
-- **No extra secret to remember** — any device where you can sign with your
-  wallet can derive the same key.
-- **The key never leaves your device.** It is not stored on, nor recoverable
-  from, the gateway.
-- **Losing wallet access means losing the data** — by design, nobody else can
-  decrypt it. Export and safely store the key if you want an independent backup
-  path.
-- There is no retroactive revocation: anyone who ever held the key can decrypt
+- Signing a fixed, app-namespaced **NEP-413 message** with a wallet key yields a
+  deterministic signature (ed25519: same key + same message → the same signature
+  every time). That signature → HKDF-SHA256 → a **key-encryption key (KEK)**.
+- The DEK is stored **wrapped** — `AES-256-GCM(KEK, DEK)` — as a small
+  ciphertext blob in your store, one wrap per enrolled wallet key (indexed by
+  the public key that signed, which the NEP-413 response identifies).
+
+Why a wrapped master key rather than using the signature-derived key directly:
+
+- **NEAR accounts have multiple full-access keys.** A Ledger and a phone wallet
+  sign with *different* keys and produce *different* signatures. Direct
+  derivation would give each wallet a different encryption key — data written
+  with one would be unreadable with the other. With wrapping, each enrolled
+  wallet key unlocks the **same** DEK: enrolling a second wallet is a one-time
+  step (unlock with an already-enrolled wallet or the exported key, then the
+  app adds a wrap for the new one).
+- **Key rotation survives.** Removing a wallet key just deletes its wrap; the
+  DEK — and your data — remain reachable via the others.
+- **A phished signature alone decrypts nothing.** The message format is public
+  and fixed, so a malicious site could ask your wallet to sign the same payload.
+  With direct derivation that signature *would be* the key; with wrapping the
+  attacker still needs your wrap blob and your ciphertext, both behind NEP-413
+  gateway auth.
+
+Properties and caveats:
+
+- **The DEK and every signature involved stay on your device.** The gateway
+  stores only wraps (ciphertext) and can recover nothing. Signatures are used
+  in memory to derive the KEK and are never persisted or transmitted.
+- **Trust the wallet** — as with every NEP-413 use (including the app login),
+  the wallet sees what it signs. A key-derivation signature deserves extra
+  care because it never expires: treat it like key material, which is exactly
+  why it is only ever a KEK here, never the data key itself.
+- **Losing all enrolled wallet keys AND the exported key means losing the
+  data** — by design, nobody else can decrypt it. Export and safely store the
+  key (it exports the DEK) as an independent recovery path.
+- There is no retroactive revocation: anyone who ever held the DEK can decrypt
   history they already downloaded (the same is true of any E2E-encrypted system).
 
 ## Access from a regular git client
