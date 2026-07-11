@@ -136,6 +136,29 @@ git clone egit::https://arizgateway.fly.dev/store/me
 `me` resolves to your blinded store server-side — you never need to know the
 actual storage path.
 
+## Your data, your custody
+
+The gateway's storage is a **convenience service** — it exists so you can sync
+and restore your repository across devices. It is not the system of record:
+**you are the custodian of your data.** Keep your own copy (the local repository
+in your browser counts; a clone on another device or an exported archive is
+better) and keep your encryption key exported somewhere safe.
+
+This is a deliberate departure from traditional cloud services, where the
+operator can see, inspect, and usually recover your data for you. Here the
+operator can do none of those things — which means more privacy and control for
+you, and also more responsibility: **nobody can reset a lost key.**
+
+Two commitments follow from this model:
+
+- **Getting your data out is always free.** If your ARIZ balance lapses, writes
+  to the store are paused, but reading/cloning your own data remains available —
+  a backup is never held hostage to billing.
+- Even so, do not treat the server as your only copy — especially for a lapsed
+  account. The store guarantees the operator *cannot read* your data; it cannot
+  guarantee eternal availability of any single replica. Your key + any clone is
+  full recovery.
+
 ## Honest limitations
 
 - **Traffic metadata**: the gateway (not the public) can see that your account
