@@ -29,7 +29,9 @@ Staking pools are identified by transactions (deposits, staking, withdrawals) to
 
 This is a web application based on EcmaScript Modules, and no framework like React or Angular. It's meant to be a showcase on what you can do with the modern HTML/Javascript that is built into todays web browsers without using heavy frameworks or polyfills. For a component based development model, it use Web Components (Custom Elements), and since I've always preferred separating HTML markup from code (and I also think this is one of the best things with Angular), I've done the same here. Not as sophisticated and performant as Angular, but performant enough, and simple and easy to understand since it's straight forward use of built-in standard HTML technologies.
 
-For storage it's also different, as it does not rely on a server. All data is stored in your browsers IndexedDB storage, in a GIT repository (provided by https://github.com/petersalomonsen/wasm-git). This means that with a serviceworker (coming soon), this web app can be used offline. If you want, you can synchronize the data with a git server. You get all the data synchronization features of git (fetch, merge, push), as well as the changes history.
+For storage it's also different, as it does not rely on a server. All data is stored in your browser storage (OPFS), in a GIT repository (provided by https://github.com/petersalomonsen/wasm-git). This means that this web app can be used offline. If you want, you can synchronize the data with a git server. You get all the data synchronization features of git (fetch, merge, push), as well as the changes history.
+
+Synchronization to the Ariz gateway can be **end-to-end encrypted**: the whole repository (contents, filenames, history — including which accounts you've grouped and how you've classified counterparties) is encrypted on your device before upload, so neither the gateway operator nor the storage provider can read it. See [docs/encrypted-storage.md](docs/encrypted-storage.md) for the design, threat model, and how your data is protected.
 
 ## Bundling
 
