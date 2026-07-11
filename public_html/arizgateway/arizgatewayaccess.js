@@ -67,6 +67,19 @@ export async function getAccountId() {
 }
 
 /**
+ * NEP-413 signMessage through the connected wallet (or the injected test
+ * wallet). Used for gateway auth tokens and for encryption-key derivation
+ * (encryptionkey.js) — the latter with its own fixed nonce and a recipient
+ * distinct from the auth recipient, so the two signatures can never stand in
+ * for each other.
+ */
+export async function signMessageWithWallet({ message, recipient, nonce }) {
+    const wallet = await currentWallet();
+    if (!wallet) throw new Error('Not signed in to the Ariz gateway');
+    return wallet.signMessage({ message, recipient, nonce });
+}
+
+/**
  * Sign and send a transaction through the connected wallet (NEAR Connect).
  * Prompts a login first if not connected. `actions` use the wallet-selector
  * shape, e.g. [{ type: 'FunctionCall', params: { methodName, args, gas, deposit } }].
