@@ -9,12 +9,22 @@ const useMemFs = typeof globalThis !== 'undefined' && globalThis.__GITSTORAGE_ME
 
 let worker = useMemFs ? null : new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
 
+// A worker is only service-worker controlled if it was CREATED while the page
+// was controlled — a later claim() covers the page but not already-running
+// workers, whose requests keep bypassing the SW (verified in Chromium). Track
+// control at creation time so the encrypted-sync flow knows when a restart is
+// needed, independent of when the page itself got claimed.
+let workerControlled = useMemFs || !!navigator.serviceWorker?.controller;
+
+export function gitWorkerControlled() {
+    return workerControlled;
+}
+
 /**
  * Terminate and recreate the git worker (state is in OPFS, so nothing is lost;
- * configure_user must be re-sent afterwards). Needed when the encrypted-sync
- * service worker is registered for the FIRST time: this worker was created
- * before the SW claimed the page, so its /egit requests would bypass the SW —
- * a worker created after the claim is controlled.
+ * configure_user must be re-sent afterwards). Needed after the encrypted-sync
+ * service worker's first registration: this worker predates the SW's claim, so
+ * its /egit requests would bypass the SW.
  */
 export async function restartGitWorker() {
     if (useMemFs) return;
@@ -23,6 +33,7 @@ export async function restartGitWorker() {
     }
     worker.terminate();
     worker = new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
+    workerControlled = !!navigator.serviceWorker?.controller;
 }
 
 let currentCommandInProgress;

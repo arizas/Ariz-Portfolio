@@ -1,9 +1,9 @@
-import { exists, git_init, git_clone, configure_user, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip, restartGitWorker } from './gitstorage.js';
+import { exists, git_init, git_clone, configure_user, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip, restartGitWorker, gitWorkerControlled } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccessToken, getAccountId, isSignedIn, loginToArizGateway, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
-import { isEncryptedSyncEnabled, configureEgitKey, pageIsControlled, waitForController } from '../arizgateway/encryptedsync.js';
+import { isEncryptedSyncEnabled, configureEgitKey, waitForController } from '../arizgateway/encryptedsync.js';
 
 // One repository per account; the account is implied by the NEP-413 token, so the
 // repo name in the URL is a fixed label.
@@ -24,15 +24,14 @@ export const gitConfigCommand = (token) =>
  * encrypted sync is enabled — the virtual /egit/<account> remote answered by
  * the service worker, which is registered and given the key + a fresh bearer
  * token here (before EVERY sync: the SW keeps its config in memory only and
- * the token expires). On the very first registration the already-running git
- * worker predates service-worker control, so it is restarted once the SW has
- * claimed the page.
+ * the token expires). A git worker created before the SW claimed the page is
+ * not intercepted (a claim() covers the page, not already-running workers), so
+ * it is restarted — gitstorage tracks control at worker creation time.
  */
 export async function prepareSyncRemote() {
     if (!isEncryptedSyncEnabled()) return gatewayRepoUrl();
-    const firstRegistration = !pageIsControlled();
     const { remoteUrl } = await configureEgitKey();
-    if (firstRegistration) {
+    if (!gitWorkerControlled()) {
         await waitForController();
         await restartGitWorker();
     }

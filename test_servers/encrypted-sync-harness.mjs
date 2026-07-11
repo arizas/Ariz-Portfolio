@@ -163,8 +163,20 @@ const results = [];
             const { fakeWallet } = await import('/arizgateway/encryptionkey.mock.js');
             fakeWallet(account);
             const sp = await import('/storage/storage-page.component.js');
+            const es = await import('/arizgateway/encryptedsync.js');
             const controlledBefore = !!navigator.serviceWorker.controller;
+            // The "Enable encrypted sync" button flow: registers + keys the SW
+            // BEFORE any sync happens. Explicitly wait until the SW has claimed
+            // the page — the worst case for the sync below: the PAGE is now
+            // controlled, but the git worker predates the claim and is NOT
+            // (claim() does not cover already-running workers), so
+            // prepareSyncRemote must detect that and restart it.
+            await step('enable (configureEgitKey)', () => es.configureEgitKey());
+            await step('sw claims page', async () => { if (!(await es.waitForController())) throw new Error('never claimed'); });
+            const workerControlledBeforeSync = gs.gitWorkerControlled();
             const url = await step('prepareSyncRemote', () => sp.prepareSyncRemote());
+            if (workerControlledBeforeSync !== false) throw new Error('expected the git worker to predate SW control');
+            if (!gs.gitWorkerControlled()) throw new Error('expected prepareSyncRemote to restart the git worker under SW control');
             await step('configure_user', () => gs.configure_user({ accessToken: 'irrelevant-for-egit', username: account, useremail: account }));
             await step('writeFile', () => gs.writeFile('report.txt', 'encrypted hello'));
             await step('git_init', () => gs.git_init());
