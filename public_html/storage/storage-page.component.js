@@ -1,8 +1,9 @@
-import { exists, git_init, git_clone, configure_user, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip } from './gitstorage.js';
+import { exists, git_init, git_clone, configure_user, set_remote, sync, commit_all, delete_local, readdir, push, exportAndDownloadZip, restartGitWorker, gitWorkerControlled } from './gitstorage.js';
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccessToken, getAccountId, isSignedIn, loginToArizGateway, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
+import { isEncryptedSyncEnabled, configureEgitKey, waitForController } from '../arizgateway/encryptedsync.js';
 
 // One repository per account; the account is implied by the NEP-413 token, so the
 // repo name in the URL is a fixed label.
@@ -17,6 +18,25 @@ export const gitCloneCommand = (token) =>
     `git -c http.extraHeader="Authorization: Bearer ${token}" clone ${gatewayRepoUrl()}`;
 export const gitConfigCommand = (token) =>
     `git config http.extraHeader "Authorization: Bearer ${token}"`;
+
+/**
+ * Resolve the remote for this sync: the plaintext gateway git server, or — when
+ * encrypted sync is enabled — the virtual /egit/<account> remote answered by
+ * the service worker, which is registered and given the key + a fresh bearer
+ * token here (before EVERY sync: the SW keeps its config in memory only and
+ * the token expires). A git worker created before the SW claimed the page is
+ * not intercepted (a claim() covers the page, not already-running workers), so
+ * it is restarted — gitstorage tracks control at worker creation time.
+ */
+export async function prepareSyncRemote() {
+    if (!isEncryptedSyncEnabled()) return gatewayRepoUrl();
+    const { remoteUrl } = await configureEgitKey();
+    if (!gitWorkerControlled()) {
+        await waitForController();
+        await restartGitWorker();
+    }
+    return remoteUrl;
+}
 
 customElements.define('storage-page',
     class extends HTMLElement {
@@ -77,7 +97,10 @@ customElements.define('storage-page',
                 await this.ensureSignedIn();
                 const accessToken = await getAccessToken();
                 const accountId = await getAccountId();
-                const url = gatewayRepoUrl();
+                // Resolve the remote (and prepare the service worker for
+                // encrypted sync) before configuring the worker: a first-time
+                // registration restarts the git worker.
+                const url = await prepareSyncRemote();
                 // Configure the worker's user + bearer token (needed before any
                 // network op). git config user.* is best-effort here if there is no
                 // repo yet, so it's re-applied once a repo exists below.
