@@ -3,7 +3,8 @@ import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { getAccessToken, getAccountId, isSignedIn, loginToArizGateway, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
-import { isEncryptedSyncEnabled, configureEgitKey, waitForController } from '../arizgateway/encryptedsync.js';
+import { isEncryptedSyncEnabled, setEncryptedSyncEnabled, configureEgitKey, waitForController } from '../arizgateway/encryptedsync.js';
+import { obtainDek, currentDekHex, enrollWithExportedKey, NeedsEnrollmentError } from '../arizgateway/encryptionkey.js';
 
 // One repository per account; the account is implied by the NEP-413 token, so the
 // repo name in the URL is a fixed label.
@@ -18,6 +19,14 @@ export const gitCloneCommand = (token) =>
     `git -c http.extraHeader="Authorization: Bearer ${token}" clone ${gatewayRepoUrl()}`;
 export const gitConfigCommand = (token) =>
     `git config http.extraHeader "Authorization: Bearer ${token}"`;
+
+// CLI for the ENCRYPTED store: the git-remote-egit helper (bin of the
+// encrypted-git-storage package) reads the master key from EGIT_KEY and sends
+// EGIT_AUTH as the Authorization header on every store request. The command
+// embeds both — the key never reaches the server, but treat the command as a
+// secret.
+export const egitCloneCommand = (keyHex, token) =>
+    `EGIT_KEY=${keyHex} EGIT_AUTH="Bearer ${token}" git clone "egit::${arizgatewayhost}/store/me" portfolio`;
 
 /**
  * Resolve the remote for this sync: the plaintext gateway git server, or — when
@@ -71,7 +80,94 @@ customElements.define('storage-page',
             this.shadowRoot.getElementById('copyconfigbutton')
                 .addEventListener('click', () => this.copyCommand('config'));
 
+            this.shadowRoot.getElementById('enableencryptedsyncbutton')
+                .addEventListener('click', () => this.enableEncryptedSync());
+            this.shadowRoot.getElementById('disableencryptedsyncbutton')
+                .addEventListener('click', () => {
+                    setEncryptedSyncEnabled(false);
+                    this.refreshEncryptedSyncStatus();
+                });
+            this.shadowRoot.getElementById('exportkeybutton')
+                .addEventListener('click', () => this.exportKey());
+            this.shadowRoot.getElementById('importkeybutton')
+                .addEventListener('click', () => this.importKey());
+            this.shadowRoot.getElementById('copyegitclonebutton')
+                .addEventListener('click', () => this.copyEgitCloneCommand());
+            this.refreshEncryptedSyncStatus();
+
             return this.shadowRoot;
+        }
+
+        refreshEncryptedSyncStatus() {
+            const enabled = isEncryptedSyncEnabled();
+            this.shadowRoot.getElementById('encryptedsyncstatus').innerText = enabled ? 'enabled' : 'disabled';
+            this.shadowRoot.getElementById('enableencryptedsyncbutton').disabled = enabled;
+            this.shadowRoot.getElementById('disableencryptedsyncbutton').disabled = !enabled;
+        }
+
+        async enableEncryptedSync() {
+            setProgressbarValue('indeterminate', 'enabling encrypted sync');
+            try {
+                await this.ensureSignedIn();
+                // Registers the service worker and unlocks (or first-time
+                // creates) the master key — the enable action IS the setup.
+                await configureEgitKey();
+                setEncryptedSyncEnabled(true);
+                setProgressbarValue(null);
+                await modalAlert('Encrypted sync enabled',
+                    'Your next Synchronize will push to the encrypted store. Export your key now and keep a safe copy — you need it to enroll other devices, and to recover your data if you lose access to this wallet key.');
+            } catch (e) {
+                setProgressbarValue(null);
+                if (e instanceof NeedsEnrollmentError) {
+                    await modalAlert('This device needs your exported key', e.message);
+                } else {
+                    console.error(e);
+                    await modalAlert('Could not enable encrypted sync', e);
+                }
+            }
+            this.refreshEncryptedSyncStatus();
+        }
+
+        async exportKey() {
+            try {
+                await this.ensureSignedIn();
+                await obtainDek();
+                const keyHex = currentDekHex();
+                this.shadowRoot.getElementById('exportedkey').textContent = keyHex;
+                try { await navigator.clipboard.writeText(keyHex); } catch { /* shown for manual copy */ }
+            } catch (e) {
+                console.error(e);
+                await modalAlert(e instanceof NeedsEnrollmentError ? 'This device needs your exported key' : 'Could not export the key', e.message ?? e);
+            }
+        }
+
+        async importKey() {
+            const input = this.shadowRoot.getElementById('importkeyinput');
+            try {
+                await this.ensureSignedIn();
+                await enrollWithExportedKey(input.value);
+                input.value = '';
+                setEncryptedSyncEnabled(true);
+                await modalAlert('Key imported',
+                    'This wallet key is now enrolled: from now on it unlocks the encrypted store by signing, without the exported key.');
+            } catch (e) {
+                console.error(e);
+                await modalAlert('Could not import the key', e.message ?? e);
+            }
+            this.refreshEncryptedSyncStatus();
+        }
+
+        async copyEgitCloneCommand() {
+            try {
+                await this.ensureSignedIn();
+                await obtainDek();
+                const cmd = egitCloneCommand(currentDekHex(), await getAccessToken());
+                this.shadowRoot.getElementById('egitclonecmd').textContent = cmd;
+                try { await navigator.clipboard.writeText(cmd); } catch { /* shown for manual copy */ }
+            } catch (e) {
+                console.error(e);
+                await modalAlert(e instanceof NeedsEnrollmentError ? 'This device needs your exported key' : 'Could not generate the command', e.message ?? e);
+            }
         }
 
         async refreshAccount() {
