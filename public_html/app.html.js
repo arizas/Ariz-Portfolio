@@ -96,6 +96,9 @@ export default /*html*/ `
         configuration and the calculations of the software. Users should verify the correctness of
         the calculations and ensure that all relevant data is collected — the software does not
         guarantee correctness in calculations or accuracy and completeness in the underlying data.
+        Your data stays in your custody: server-side storage is a convenience for syncing between
+        devices, and encrypted data can never be read or recovered by the operator — keep your own
+        copy of your data and your encryption key.
         The source code is open and available at
         <a href="https://github.com/arizas/Ariz-Portfolio" target="_blank" rel="noopener noreferrer">
             <i class="bi bi-github"></i> github.com/arizas/Ariz-Portfolio</a>.
