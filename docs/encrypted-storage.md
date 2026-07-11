@@ -145,3 +145,13 @@ actual storage path.
   your public blockchain history server-side — that is the product, not a leak.
   The encrypted store protects the private layer on top of it.
 - **Key loss is unrecoverable** — see above.
+- **You run code the operator serves.** Like every in-browser E2E system, the
+  encryption executes in JavaScript delivered by the service. A *passive or
+  curious* operator (or anyone with the stored bytes) can read nothing; an
+  operator *actively shipping malicious code* could capture keys from your next
+  session. The app is open source so the served code can be audited; pinning
+  the bundle hash on-chain is a possible future hardening.
+- **The store controls availability, not confidentiality.** The operator could
+  delete data or serve an older (still authentic) snapshot of your repository.
+  The app tracks the latest state it has seen and warns if the store goes
+  backwards; your exported key plus any local clone is the ultimate backup.
