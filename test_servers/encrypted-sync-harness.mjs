@@ -15,9 +15,12 @@
 //
 // Covers: first-time SW registration (uncontrolled git worker restarted),
 // wallet-unlocked key first-setup (DEK minted, wrap stored), init/commit/push
-// of encrypted packs, zero-knowledge at rest (ciphertext only), authenticated
-// store requests, and a fresh "device" (new browser context) unlocking via its
-// stored wrap and cloning the pushed data back. Exits non-zero on failure.
+// of encrypted packs over a multi-commit history, a failure era (sync attempts
+// against a broken SW key, like production's stale-SW incident), zero-knowledge
+// at rest (ciphertext only), authenticated store requests, a fresh "device"
+// (new browser context) unlocking via its stored wrap, cloning, editing and
+// pushing back — and device 1 then syncing the other device's commit in via an
+// INCREMENTAL fetch + merge (multi-pack store). Exits non-zero on failure.
 //
 //   node test_servers/encrypted-sync-harness.mjs
 import http from 'http';
@@ -281,13 +284,42 @@ const results = [];
             await step('writeFile', () => gs.writeFile('report.txt', 'encrypted hello'));
             await step('git_init', () => gs.git_init());
             await step('set_remote', () => gs.set_remote(url));
-            await step('commit_all', () => gs.commit_all());
+            // Realistic history: several commits over many JSON-ish files (the
+            // portfolio repo is years of transaction data), so packs contain
+            // deltas and nontrivial sizes.
+            let seed = 1;
+            const rnd = () => { seed ^= seed << 13; seed >>>= 0; seed ^= seed >> 17; seed ^= seed << 5; seed >>>= 0; return seed; };
+            for (let commit = 0; commit < 3; commit++) {
+                for (let f = 0; f < 40; f++) {
+                    const rows = [];
+                    for (let r = 0; r < 120; r++) rows.push({ ts: rnd(), amount: rnd() % 100000, hash: rnd().toString(16).repeat(4), counterparty: `cp-${rnd() % 50}.near` });
+                    await gs.writeFile(`accounts/acct${f}/transactions-${commit}.json`, JSON.stringify(rows, null, 1));
+                }
+                await step(`commit_all #${commit}`, () => gs.commit_all());
+            }
             await step('push', () => gs.push());
+            // Recreate the production failure era: several sync attempts while
+            // the SW answers /egit with 500s (wrong key -> decrypt fails), each
+            // aborting mid-fetch/push — leaving whatever debris they leave.
+            const brokenAck = new Promise((res) => {
+                const ch = new MessageChannel();
+                ch.port1.onmessage = res;
+                navigator.serviceWorker.controller.postMessage(
+                    { type: 'egit-set-key', repoId: account, keyHex: '00'.repeat(32) }, [ch.port2]);
+            });
+            await brokenAck;
+            for (let i = 0; i < 3; i++) {
+                await gs.sync().then(
+                    () => log.push('UNEXPECTED: broken sync ' + i + ' succeeded'),
+                    (e) => log.push('ok:broken sync ' + i + ' failed as expected: ' + String(e).slice(0, 80)));
+            }
+            await step('restore key (configureEgitKey)', () => es.configureEgitKey());
             return { ok: true, url, controlledBefore, controlledAfter: !!navigator.serviceWorker.controller, log };
         } catch (e) { return { ok: false, log, error: String(e?.stack ?? e) }; }
     }, ACCOUNT);
-    await ctx.close();
     results.push({ name: 'device 1: first-time enable + encrypted push', out, errors });
+    // keep device 1 open — it syncs again after device 2 pushes
+    globalThis.__device1 = { ctx, page, errors };
 }
 
 // ---- store at rest: ciphertext only, key wrap present, all requests authed ----
@@ -318,11 +350,38 @@ results.push({ name: 'store at rest', atRest });
             await step('configure_user', () => gs.configure_user({ accessToken: 'irrelevant-for-egit', username: account, useremail: account }));
             await step('git_clone', () => gs.git_clone(url));
             const readback = await step('readTextFile', () => gs.readTextFile('report.txt'));
+            // Edit + push back — device 1 must then be able to sync this in.
+            await step('writeFile', () => gs.writeFile('counterparties.txt', 'added on device 2'));
+            await step('commit_all', () => gs.commit_all());
+            await step('push', () => gs.push());
             return { ok: true, readback, log };
         } catch (e) { return { ok: false, log, error: String(e?.stack ?? e) }; }
     }, ACCOUNT);
     await ctx.close();
-    results.push({ name: 'device 2: unlock via stored wrap + clone', out, errors });
+    results.push({ name: 'device 2: unlock via stored wrap + clone + edit + push', out, errors });
+}
+
+// ---- Device 1 again: the app's sync flow must pull device 2's commit ----
+{
+    const { page, errors } = globalThis.__device1;
+    const out = await page.evaluate(async (account) => {
+        const log = [];
+        const step = async (name, fn) => { try { const r = await fn(); log.push('ok:' + name); return r; } catch (e) { log.push('FAIL:' + name + ':' + String(e?.stack ?? e)); throw e; } };
+        try {
+            const gs = await import('/storage/gitstorage.js');
+            const sp = await import('/storage/storage-page.component.js');
+            // Mirror storage-page synchronize() for an existing repo:
+            const url = await step('prepareSyncRemote', () => sp.prepareSyncRemote());
+            await step('configure_user', () => gs.configure_user({ accessToken: 'irrelevant-for-egit', username: account, useremail: account }));
+            await step('set_remote', () => gs.set_remote(url));
+            await step('commit_all', () => gs.commit_all());
+            await step('sync (fetch+merge+push)', () => gs.sync());
+            const readback = await step('readTextFile', () => gs.readTextFile('counterparties.txt'));
+            return { ok: true, readback, log };
+        } catch (e) { return { ok: false, log, error: String(e?.stack ?? e) }; }
+    }, ACCOUNT);
+    await globalThis.__device1.ctx.close();
+    results.push({ name: 'device 1 again: incremental fetch + merge of device 2 push', out, errors });
 }
 
 await browser.close();
@@ -332,7 +391,7 @@ appServer.close();
 console.log('\n===== ENCRYPTED SYNC RESULTS =====');
 console.log(JSON.stringify(results, null, 2));
 
-const [d1, rest, d2] = results;
+const [d1, rest, d2, d1again] = results;
 const pass =
     d1.out.ok && d1.out.log.includes('ok:push') &&
     d1.out.controlledBefore === false && d1.out.controlledAfter === true &&
@@ -341,6 +400,7 @@ const pass =
     rest.atRest.allEncrypted && rest.atRest.noPlaintext && rest.atRest.badAuthRequests.length === 0 &&
     rest.atRest.verified.page >= 1 && rest.atRest.verified.serviceWorker >= 1 &&
     d2.out.ok && d2.out.readback === 'encrypted hello' &&
-    d1.errors.length === 0 && d2.errors.length === 0;
+    d1again.out.ok && d1again.out.readback === 'added on device 2' &&
+    d1.errors.length === 0 && d2.errors.length === 0 && d1again.errors.length === 0;
 console.log('\n===== ' + (pass ? 'PASS' : 'FAIL') + ' =====');
 process.exit(pass ? 0 : 1);
