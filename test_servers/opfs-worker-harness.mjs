@@ -153,6 +153,75 @@ const browser = await chromium.launch();
     results.push({ name: 'B: IDBFS -> OPFS migration on startup', migrated, errors });
 }
 
+// ---- Test C: repo migrated WITHOUT .git/objects/pack (empty dirs are lost in
+// the IDBFS->OPFS migration) must still be able to fetch — libgit2 cannot
+// create the pack dir itself, so a downloaded pack silently never got indexed
+// ("target OID for the reference doesn't exist"; diagnosed from a real user
+// repo). The worker now recreates the dir; this guards that.
+{
+    const fsp = await import('node:fs/promises');
+    const os = await import('node:os');
+    const pathm = await import('node:path');
+    const root = await fsp.mkdtemp(pathm.join(os.tmpdir(), 'ow-legacy-'));
+    const run = (cwd, ...args) => pexec('git', ['-C', cwd, ...args], { env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } });
+
+    // Upstream bare repo (served by the same git backend) with commits c1 + c2.
+    const legacyBare = pathm.join(pathm.dirname(bareRepo), 'legacy.git');
+    await pexec('git', ['init', '--bare', '--initial-branch=master', legacyBare]);
+    await pexec('git', ['--git-dir=' + legacyBare, 'config', 'http.receivepack', 'true']);
+    const work = pathm.join(root, 'work');
+    await fsp.mkdir(work);
+    await run(work, 'init', '-b', 'master');
+    await fsp.writeFile(pathm.join(work, 'a.txt'), 'first\n');
+    await run(work, 'add', '.'); await run(work, 'commit', '-m', 'c1');
+    await run(work, 'push', legacyBare, 'master');
+    const edit = pathm.join(root, 'edit');
+    await run(root, 'clone', '-q', legacyBare, 'edit');
+    await fsp.writeFile(pathm.join(edit, 'b.txt'), 'second, from another device\n');
+    await run(edit, 'add', '.'); await run(edit, 'commit', '-m', 'c2');
+    await run(edit, 'push', '-q');
+
+    // The device's local repo is at c1 with a LOOSE odb and NO objects/pack dir
+    // (the migration-lost shape).
+    await fsp.rm(pathm.join(work, '.git/objects/pack'), { recursive: true, force: true });
+
+    // Collect the repo's files for import into OPFS.
+    const files = [];
+    const walk = async (dir) => {
+        for (const e of await fsp.readdir(dir, { withFileTypes: true })) {
+            const p = pathm.join(dir, e.name);
+            if (e.isDirectory()) await walk(p);
+            else files.push({ rel: pathm.relative(work, p), b64: (await fsp.readFile(p)).toString('base64') });
+        }
+    };
+    await walk(work);
+
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(`${ORIGIN}/test.html`);
+
+    const out = await page.evaluate(async ({ entries, url }) => {
+        const gs = await import('/storage/gitstorage.js');
+        try {
+            const dirs = [...new Set(entries.map((f) => f.rel.split('/').slice(0, -1).join('/')).filter(Boolean))]
+                .sort((a, b) => a.split('/').length - b.split('/').length);
+            for (const d of dirs) { try { await gs.mkdir(d); } catch { } }
+            for (const { rel, b64 } of entries) {
+                await gs.writeFile(rel, Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+            }
+            await gs.configure_user({ accessToken: 'ANON', username: 't', useremail: 't@t' });
+            await gs.set_remote(url);
+            await gs.sync();
+            return { ok: true, readback: await gs.readTextFile('b.txt') };
+        } catch (e) { return { ok: false, error: String(e).slice(0, 400) }; }
+    }, { entries: files, url: `${ORIGIN}/legacy.git` });
+
+    await ctx.close();
+    results.push({ name: 'C: fetch into migrated repo without .git/objects/pack', out, errors });
+}
+
 await browser.close();
 git.close();
 app.close();
@@ -165,7 +234,7 @@ console.log('\n===== OPFS WORKER RESULTS =====');
 console.log(JSON.stringify(results, null, 2));
 console.log('remote refs:', JSON.stringify(remoteRefs), '\nremote report.txt =', JSON.stringify(remoteFile));
 
-const A = results[0], B = results[1];
+const A = results[0], B = results[1], C = results[2];
 const pass =
     A.out.ok && A.out.readback === 'hello from opfs worker' && A.out.log.includes('ok:push') &&
     remoteRefs.includes('refs/heads/master') &&
@@ -174,6 +243,7 @@ const pass =
     A.delcheck.afterExists === false &&
     remoteFile === 'hello from opfs worker' &&
     B.migrated.readback === '{"legacy":true}' &&
-    A.errors.length === 0 && B.errors.length === 0;
+    C.out.ok && C.out.readback === 'second, from another device\n' &&
+    A.errors.length === 0 && B.errors.length === 0 && C.errors.length === 0;
 console.log('\n===== ' + (pass ? 'PASS' : 'FAIL') + ' =====');
 process.exit(pass ? 0 : 1);

@@ -50,8 +50,19 @@ const ready = (async () => {
     await git.syncRepo(REPO).catch(() => {});
     try { FS.mkdir(WORKDIR); } catch (e) { /* exists */ }
     FS.chdir(WORKDIR);
+    ensureOdbPackDir();
     return git;
 })();
+
+// The IDBFS->OPFS migration copied FILES only, so repos that never held a
+// packfile lost their EMPTY .git/objects/pack directory — and libgit2's fetch
+// cannot create it: the downloaded pack is silently never indexed and the
+// fetch dies with "target OID for the reference doesn't exist" (diagnosed
+// from a real user repo). Recreate it whenever a repo is present.
+function ensureOdbPackDir() {
+    if (!FS.analyzePath(`${WORKDIR}/.git/objects`).exists) return;
+    try { FS.mkdir(`${WORKDIR}/.git/objects/pack`); } catch (e) { /* exists */ }
+}
 
 // Run a git command via the async callMain, capturing stdout/stderr.
 async function runGit(args) {
@@ -110,6 +121,7 @@ self.onmessage = async (msg) => {
                 // so a failing push reports the true root cause instead of a
                 // bare non-fast-forward error.
                 FS.chdir(WORKDIR);
+                ensureOdbPackDir(); // fetch cannot create it (migrated repos lost it)
                 captureOutput = true; stdout = ''; stderr = '';
                 await git.run(['fetch', 'origin']);
                 const fetchErrors = stderr.trim();
