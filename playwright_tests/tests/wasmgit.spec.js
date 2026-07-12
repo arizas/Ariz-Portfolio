@@ -31,3 +31,14 @@ test("storage page shows the gateway git UI (no legacy key/url inputs)", async (
   await expect(page.locator('#remoterepo')).toHaveCount(0);
   await pause500ifRecordingVideo(page);
 });
+
+// The dist build must inline every worker as a blob (rollup.config.js). A
+// worker URL that survives into the single-file bundle resolves against the
+// page origin at runtime, where the SPA fallback answers with index.html — a
+// text/html "module script" that kills the worker (this broke the git-worker
+// restart in production once). app.js legitimately keeps a bare
+// import.meta.url for routing, so assert specifically on worker-URL patterns.
+test("the dist bundle contains no unresolved worker URLs", async ({ request }) => {
+  const html = await (await request.get("http://localhost:8081/")).text();
+  expect(html).not.toMatch(/new URL\([^)]*import\.meta\.url/);
+});
