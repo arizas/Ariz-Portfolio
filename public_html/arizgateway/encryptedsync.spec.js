@@ -89,6 +89,22 @@ describe('encryptedsync (service worker registration + egit-set-key wiring)', ()
         expect(store.wraps.size).to.equal(1);
     });
 
+    it('requires the WALLET, not just a fresh cached token (token outlives the session)', async () => {
+        // Cached token is fresh (seeded in beforeEach) but the wallet session
+        // is gone (no accounts even after a reconnect attempt) —
+        // configureEgitKey must fail asking for the wallet, NOT silently use
+        // the token, and must not touch the service worker.
+        __setTestWallet({
+            async getAccounts() { return []; },
+            async signMessage() { throw new Error('no wallet session'); },
+            async signOut() { },
+        });
+        let message = '';
+        await configureEgitKey().catch((e) => { message = e.message; });
+        expect(message).to.contain('connect your NEAR wallet');
+        expect(sw.active.messages.length).to.equal(0);
+    });
+
     it('propagates NeedsEnrollmentError without configuring the service worker', async () => {
         store.refsExists = true; // data exists, but this wallet key has no wrap
         let error = null;
