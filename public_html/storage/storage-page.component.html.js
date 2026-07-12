@@ -31,6 +31,10 @@ export default /*html*/ `<div class="card">
             <button class="btn btn-primary" id="enableencryptedsyncbutton">Enable encrypted sync</button>
             <button class="btn btn-outline-secondary" id="disableencryptedsyncbutton">Disable</button>
         </p>
+        <p><small class="text-muted">Your wallet will ask you to sign the same message <b>twice</b>: the second
+            signature verifies that your wallet signs deterministically, so it can unlock the same key again
+            later. A wallet that signs differently each time cannot be used to unlock by signing (import an
+            exported key instead).</small></p>
         <hr />
         <h6>Your key</h6>
         <p>Needed to enroll other devices or wallet keys, and to recover your data if you lose access to this wallet key.</p>

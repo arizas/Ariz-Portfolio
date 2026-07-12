@@ -84,10 +84,22 @@ your **wallet unlocks it**, using the standard wrapped-key pattern:
 
 - Signing a fixed, app-namespaced **NEP-413 message** with a wallet key yields a
   deterministic signature (ed25519: same key + same message → the same signature
-  every time). That signature → HKDF-SHA256 → a **key-encryption key (KEK)**.
+  every time). That signature → HKDF-SHA256 → a **key-encryption key (KEK)**,
+  plus a separate HKDF output used as the **wrap id** (the name the wrap is
+  stored under). The id is derived from the *signature*, never from the public
+  key: access keys are public on-chain, so pk-named blobs would let a
+  storage-level observer map stores back to accounts. Only someone who can
+  produce the signature can even compute which blob to look for.
 - The DEK is stored **wrapped** — `AES-256-GCM(KEK, DEK)` — as a small
-  ciphertext blob in your store, one wrap per enrolled wallet key (indexed by
-  the public key that signed, which the NEP-413 response identifies).
+  ciphertext blob in your store, one wrap per enrolled wallet key.
+- **The app asks the wallet to sign that fixed message twice** and compares the
+  two signatures. RFC 8032 ed25519 is deterministic, but *hedged* (randomized)
+  implementations exist — such a wallet would happily set up encryption and
+  then never be able to derive the same KEK again, silently locking the data.
+  A wallet that signs differently each time is rejected as a KEK source; the
+  device can still be enrolled by importing the exported key instead. So when
+  enabling encrypted sync (or unlocking on a new device), expect **two
+  identical signing prompts** — that's the safety check, not a glitch.
 
 Why a wrapped master key rather than using the signature-derived key directly:
 

@@ -7,7 +7,12 @@ import { isProgressBarVisible, setProgressbarValue } from "../ui/progress-bar.js
 // (test_servers/opfs-worker-harness.mjs). Production always uses the worker.
 const useMemFs = typeof globalThis !== 'undefined' && globalThis.__GITSTORAGE_MEMFS__ === true;
 
-let worker = useMemFs ? null : new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
+// Single factory = a single worker-URL expression for the dist build
+// (rollup.config.js) to rewrite into an inlined blob worker. A second
+// occurrence once slipped into the single-file bundle unresolved and broke at
+// runtime (module worker fetched as text/html from the SPA fallback).
+const createGitWorker = () => new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
+let worker = useMemFs ? null : createGitWorker();
 
 // A worker is only service-worker controlled if it was CREATED while the page
 // was controlled — a later claim() covers the page but not already-running
@@ -32,7 +37,7 @@ export async function restartGitWorker() {
         await currentCommandInProgress.catch(() => { });
     }
     worker.terminate();
-    worker = new Worker(new URL('wasmgitworker.js', import.meta.url), { type: 'module' });
+    worker = createGitWorker();
     workerControlled = !!navigator.serviceWorker?.controller;
 }
 
@@ -43,6 +48,16 @@ const workerCommand = async (command, params) => {
     }
     currentCommandInProgress = new Promise((resolve, reject) => {
         const progressBarWasAlreadyVisible = isProgressBarVisible();
+        // A worker that fails to even load (e.g. its script URL resolving wrong)
+        // never posts a message — without this the command (and the progress
+        // bar) would hang forever.
+        worker.onerror = (e) => {
+            if (!progressBarWasAlreadyVisible) {
+                setProgressbarValue(null);
+            }
+            currentCommandInProgress = null;
+            reject(e.message ?? 'the git worker failed');
+        };
         worker.onmessage = (msg) => {
             if (msg.data.error) {
                 if (!progressBarWasAlreadyVisible) {

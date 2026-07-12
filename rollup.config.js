@@ -24,13 +24,19 @@ export default {
         html({ include: '**/*.html', minify: false }),
         (() => ({
             transform(code, id) {
-                const urlMatch = code.match(/(new URL\([^),]+\,\s*import.meta.url\s*\))/);
-                if (urlMatch) {
-                    const urlWithAbsolutePath = urlMatch[1].replace('import.meta.url', `'file://${id}'`);
+                // Rewrite EVERY worker-URL expression, not just the first — a
+                // second `new Worker(new URL(...))` in a module would otherwise
+                // reach the single-file bundle unresolved and fail at runtime
+                // (the SPA fallback serves index.html as the worker script).
+                for (const urlMatch of [...code.matchAll(/new URL\([^),]+\,\s*import.meta.url\s*\)/g)]) {
+                    const urlWithAbsolutePath = urlMatch[0].replace('import.meta.url', `'file://${id}'`);
 
-                    const func = new Function('return ' + urlWithAbsolutePath);
-                    const resolvedUrl = func();
-                    const pathname = resolvedUrl.pathname;
+                    let pathname;
+                    try {
+                        pathname = new Function('return ' + urlWithAbsolutePath)().pathname;
+                    } catch {
+                        continue; // matched text that isn't an evaluable expression (e.g. a comment)
+                    }
 
                     if (pathname.endsWith('.js')) {
                         code = code.replace(urlMatch[0], `URL.createObjectURL(new Blob([
