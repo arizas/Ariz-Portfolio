@@ -51,6 +51,22 @@ describe('encryptedsync (service worker registration + egit-set-key wiring)', ()
         expect(registration.active).to.equal(sw.active);
     });
 
+    it('checks for an updated /sw.js and waits for the new version to activate', async () => {
+        // A stale INSTALLED SW once kept serving v0.1.0 behavior (dropping the
+        // store URL + auth) long after a newer /sw.js was deployed.
+        sw = fakeSwContainer({ updateInstallsNewVersion: true });
+        __setTestServiceWorkerContainer(sw);
+        let resolved = false;
+        const registering = registerEgitServiceWorker().then((r) => { resolved = true; return r; });
+        // Yield so registration reaches the update() check and installs the new version.
+        await new Promise((r) => setTimeout(r, 10));
+        expect(sw.registration.updateCalls).to.equal(1);
+        expect(resolved).to.equal(false); // waiting for the new version to activate
+        sw.registration.installing.activate();
+        const registration = await registering;
+        expect(registration).to.equal(sw.registration);
+    });
+
     it('gives up after the configured attempts and reports the last error', async () => {
         sw = fakeSwContainer({ failures: Infinity });
         __setTestServiceWorkerContainer(sw);

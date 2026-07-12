@@ -76,9 +76,42 @@ export async function waitForController(timeoutMs = 10000) {
     });
 }
 
+// After an update() check, give a newly fetched SW version this long to
+// install + activate before proceeding with whatever is currently active.
+const UPDATE_ACTIVATION_TIMEOUT_MS = 15000;
+
+/**
+ * A stale INSTALLED service worker keeps answering /egit with old behavior
+ * long after a newer /sw.js is deployed (this shipped a v0.1.0 SW that
+ * silently dropped the store URL + auth config). update() re-fetches the
+ * script bypassing the browser cache; if that yields a new version, wait for
+ * it to activate (the SW uses skipWaiting + clients.claim) so the caller
+ * configures the CURRENT code, not the stale one. Best-effort: failures fall
+ * back to the active worker.
+ */
+async function pickUpUpdatedServiceWorker(registration) {
+    try {
+        await registration.update();
+    } catch {
+        return; // offline / transient — keep the active worker
+    }
+    const fresh = registration.installing ?? registration.waiting;
+    if (!fresh) return;
+    await new Promise((resolve) => {
+        const timer = setTimeout(resolve, UPDATE_ACTIVATION_TIMEOUT_MS);
+        fresh.addEventListener('statechange', () => {
+            if (fresh.state === 'activated' || fresh.state === 'redundant') {
+                clearTimeout(timer);
+                resolve();
+            }
+        });
+    });
+}
+
 /**
  * Register /sw.js (module SW, scope '/'), retrying transient failures, and
- * resolve with the ready registration (an active service worker). Safe to call
+ * resolve with the ready registration (an active service worker), after
+ * picking up a newer deployed /sw.js if there is one. Safe to call
  * repeatedly — re-registering an installed SW is a no-op.
  */
 export async function registerEgitServiceWorker({ attempts = REGISTER_ATTEMPTS, retryDelayMs = REGISTER_RETRY_DELAY_MS } = {}) {
@@ -90,7 +123,9 @@ export async function registerEgitServiceWorker({ attempts = REGISTER_ATTEMPTS, 
     for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
             await sw.register(SW_URL, { type: 'module', scope: '/' });
-            return await sw.ready;
+            const registration = await sw.ready;
+            await pickUpUpdatedServiceWorker(registration);
+            return registration;
         } catch (e) {
             lastError = e;
             if (attempt < attempts) {
