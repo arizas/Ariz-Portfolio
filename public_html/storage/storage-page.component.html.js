@@ -29,7 +29,7 @@ export default /*html*/ `<div class="card">
         <hr />
         <h6>Use from the command line (optional)</h6>
         <p>Install the <code>egit::</code> git remote helper once:</p>
-        <pre class="border rounded p-2 bg-light" style="white-space:pre-wrap;word-break:break-all;"><code>npm install -g https://github.com/petersalomonsen/encrypted-git-storage/archive/refs/tags/v0.1.3.tar.gz</code></pre>
+        <pre class="border rounded p-2 bg-light" style="white-space:pre-wrap;word-break:break-all;"><code>npm install -g encrypted-git-storage</code></pre>
         <p>Then clone your encrypted repository (decrypted locally with your exported key):</p>
         <pre class="border rounded p-2 bg-light" style="white-space:pre-wrap;word-break:break-all;"><code id="egitclonecmd">Sign in, then click &ldquo;Copy encrypted clone command&rdquo;.</code></pre>
         <button class="btn btn-sm btn-outline-primary" id="copyegitclonebutton">Copy encrypted clone command</button>
