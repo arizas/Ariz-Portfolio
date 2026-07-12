@@ -1,32 +1,28 @@
 import { test, expect } from "@playwright/test";
 import { pause500ifRecordingVideo } from "../util/videorecording.js";
 
-// The Storage page now authenticates with the signed-in NEAR account (NEP-413)
-// and pushes to the user's repo on the Ariz gateway git server — there is no
-// access-key / remote-URL field any more. This smoke test verifies the new UI
-// replaced the old inputs. The full push/clone round-trip against the gateway
-// (which needs a wallet + the deployed gateway git server) is covered separately.
-test("storage page shows the gateway git UI (no legacy key/url inputs)", async ({ page }) => {
+// The Storage page syncs end-to-end ENCRYPTED only (plaintext /git hosting is
+// retired): Synchronize goes through the egit service worker, the master key
+// is wallet-unlocked, and the CLI path is git-remote-egit. This smoke test
+// verifies the encrypted-only UI in the dist bundle.
+test("storage page shows the encrypted-only sync UI", async ({ page }) => {
   await page.goto("http://localhost:8081");
 
   await page.getByRole('link', { name: 'Storage' }).click();
   await pause500ifRecordingVideo(page);
 
-  // New controls are present (locators pierce the open shadow root).
+  // Encrypted sync controls (locators pierce the open shadow root).
   await expect(page.locator('#syncbutton')).toBeVisible();
-  await expect(page.locator('#copyclonebutton')).toBeVisible();
-  await expect(page.locator('#copyconfigbutton')).toBeVisible();
-  await expect(page.locator('#gatewayaccountspan')).toBeVisible();
   await expect(page.locator('#downloadzipbutton')).toBeVisible();
-
-  // Encrypted sync controls (issue #76) are present; the opt-in defaults to off.
-  await expect(page.locator('#enableencryptedsyncbutton')).toBeVisible();
+  await expect(page.locator('#gatewayaccountspan')).toBeVisible();
   await expect(page.locator('#exportkeybutton')).toBeVisible();
   await expect(page.locator('#importkeybutton')).toBeVisible();
   await expect(page.locator('#copyegitclonebutton')).toBeVisible();
-  await expect(page.locator('#encryptedsyncstatus')).toHaveText('disabled');
 
-  // Legacy inputs are gone.
+  // Plaintext-era and legacy controls are gone.
+  await expect(page.locator('#copyclonebutton')).toHaveCount(0);
+  await expect(page.locator('#copyconfigbutton')).toHaveCount(0);
+  await expect(page.locator('#enableencryptedsyncbutton')).toHaveCount(0);
   await expect(page.locator('#wasmgitaccesskey')).toHaveCount(0);
   await expect(page.locator('#remoterepo')).toHaveCount(0);
   await pause500ifRecordingVideo(page);

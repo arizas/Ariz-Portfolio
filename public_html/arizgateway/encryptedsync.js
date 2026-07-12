@@ -37,19 +37,6 @@ const swContainer = () => _testContainer ?? navigator.serviceWorker;
  */
 export const encryptedRemoteUrl = (accountId) => `${location.origin}/egit/${accountId}`;
 
-// Opt-in flag: while the plaintext /git remote still exists, encrypted sync is
-// enabled per browser from the Storage page (issue #76's migration path).
-export const ENCRYPTED_SYNC_ENABLED_KEY = 'ariz_encrypted_sync_enabled';
-
-export function isEncryptedSyncEnabled() {
-    return localStorage.getItem(ENCRYPTED_SYNC_ENABLED_KEY) === 'true';
-}
-
-export function setEncryptedSyncEnabled(enabled) {
-    if (enabled) localStorage.setItem(ENCRYPTED_SYNC_ENABLED_KEY, 'true');
-    else localStorage.removeItem(ENCRYPTED_SYNC_ENABLED_KEY);
-}
-
 /**
  * Whether this page has been service-worker controlled from the start. After a
  * FIRST-TIME registration the SW claims the page, but workers that already

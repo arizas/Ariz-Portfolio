@@ -240,7 +240,6 @@ async function newAppPage() {
     // signing with the (real) test wallet, exactly like production.
     await ctx.addInitScript(({ storeOrigin, walletParams }) => {
         localStorage.setItem('ariz_gateway_host_override', storeOrigin);
-        localStorage.setItem('ariz_encrypted_sync_enabled', 'true');
         window.__realWalletParams = walletParams;
     }, {
         storeOrigin: STORE_ORIGIN,
