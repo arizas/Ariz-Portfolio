@@ -96,8 +96,29 @@ export async function signAndSendTransaction(receiverId, actions) {
 }
 
 export async function loginToArizGateway() {
+    if (_testWallet) return; // injected test wallet == connected
     const connector = await getConnector();
     await connector.connect(); // opens the wallet-selection modal
+}
+
+/**
+ * The account id of the CONNECTED wallet, reconnecting (wallet dialog) if the
+ * session is gone. A fresh cached bearer token OUTLIVES the wallet session —
+ * isSignedIn() stays true and token-only features (API reads, clone command)
+ * keep working while the connector is disconnected. Features that need wallet
+ * signatures (encrypted-sync key derivation) or the live account id must call
+ * this instead of relying on isSignedIn().
+ */
+export async function requireWalletAccount() {
+    let accountId = await getAccountId();
+    if (!accountId) {
+        await loginToArizGateway();
+        accountId = await getAccountId();
+    }
+    if (!accountId) {
+        throw new Error('Not signed in — connect your NEAR wallet to use encrypted sync');
+    }
+    return accountId;
 }
 
 export async function logout() {

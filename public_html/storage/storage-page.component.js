@@ -2,7 +2,7 @@ import { exists, git_init, git_clone, configure_user, set_remote, sync, commit_a
 import wasmgitComponentHtml from './storage-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { getAccessToken, getAccountId, isSignedIn, loginToArizGateway, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
+import { getAccessToken, getAccountId, isSignedIn, loginToArizGateway, requireWalletAccount, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
 import { isEncryptedSyncEnabled, setEncryptedSyncEnabled, configureEgitKey, waitForController } from '../arizgateway/encryptedsync.js';
 import { obtainDek, currentDekHex, enrollWithExportedKey, NeedsEnrollmentError } from '../arizgateway/encryptionkey.js';
 
@@ -108,7 +108,7 @@ customElements.define('storage-page',
         async enableEncryptedSync() {
             setProgressbarValue('indeterminate', 'enabling encrypted sync');
             try {
-                await this.ensureSignedIn();
+                await this.requireWallet();
                 // Registers the service worker and unlocks (or first-time
                 // creates) the master key — the enable action IS the setup.
                 await configureEgitKey();
@@ -130,7 +130,7 @@ customElements.define('storage-page',
 
         async exportKey() {
             try {
-                await this.ensureSignedIn();
+                await this.requireWallet();
                 await obtainDek();
                 const keyHex = currentDekHex();
                 this.shadowRoot.getElementById('exportedkey').textContent = keyHex;
@@ -144,7 +144,7 @@ customElements.define('storage-page',
         async importKey() {
             const input = this.shadowRoot.getElementById('importkeyinput');
             try {
-                await this.ensureSignedIn();
+                await this.requireWallet();
                 await enrollWithExportedKey(input.value);
                 input.value = '';
                 setEncryptedSyncEnabled(true);
@@ -159,7 +159,7 @@ customElements.define('storage-page',
 
         async copyEgitCloneCommand() {
             try {
-                await this.ensureSignedIn();
+                await this.requireWallet();
                 await obtainDek();
                 const cmd = egitCloneCommand(currentDekHex(), await getAccessToken());
                 this.shadowRoot.getElementById('egitclonecmd').textContent = cmd;
@@ -180,6 +180,14 @@ customElements.define('storage-page',
             if (!(await isSignedIn())) {
                 await loginToArizGateway();
             }
+        }
+
+        // The encrypted-sync features sign with the WALLET; a fresh cached
+        // token is not enough (it outlives the wallet session). Reconnects
+        // via the wallet dialog when needed, then syncs the account display.
+        async requireWallet() {
+            await requireWalletAccount();
+            await this.refreshAccount();
         }
 
         dispatchSyncEvent() {

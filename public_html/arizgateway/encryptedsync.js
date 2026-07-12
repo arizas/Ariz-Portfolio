@@ -1,4 +1,4 @@
-import { arizgatewayhost, getAccessToken, getAccountId } from './arizgatewayaccess.js';
+import { arizgatewayhost, getAccessToken, requireWalletAccount } from './arizgatewayaccess.js';
 import { obtainDek, bytesToHex } from './encryptionkey.js';
 
 // Encrypted gateway sync plumbing (issue #76).
@@ -112,10 +112,10 @@ export async function registerEgitServiceWorker({ attempts = REGISTER_ATTEMPTS, 
  */
 export async function configureEgitKey({ attempts, retryDelayMs } = {}) {
     const registration = await registerEgitServiceWorker({ attempts, retryDelayMs });
-    const accountId = await getAccountId();
-    if (!accountId) {
-        throw new Error('Not signed in — sign in with your NEAR account to use encrypted sync');
-    }
+    // Needs the WALLET (key-derivation signatures + account id), not just a
+    // fresh cached token — reconnects with the wallet dialog if the session
+    // is gone.
+    const accountId = await requireWalletAccount();
     const dek = await obtainDek();
     const token = await getAccessToken();
 
