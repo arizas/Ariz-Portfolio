@@ -39,6 +39,7 @@ const ready = (async () => {
         },
     });
     FS = git.FS;
+    console.log('wasm-git OPFS variant:', git.variant);
 
     // Recover a legacy in-browser repo (IDBFS) into OPFS on first run.
     if (await needsIdbfsMigration(REPO)) {
@@ -104,16 +105,26 @@ self.onmessage = async (msg) => {
                 await runGit(['remote', 'add', 'origin', params.remoteurl]);
                 break;
             case 'sync': {
+                // fetch + merge failures are tolerated ONLY for the empty-remote
+                // first sync (no origin/master yet) — but their stderr is kept,
+                // so a failing push reports the true root cause instead of a
+                // bare non-fast-forward error.
                 FS.chdir(WORKDIR);
                 captureOutput = true; stdout = ''; stderr = '';
                 await git.run(['fetch', 'origin']);
+                const fetchErrors = stderr.trim();
+                stdout = ''; stderr = '';
                 await git.run(['merge', 'origin/master']);
-                // First push to an empty remote has no origin/master; only a failed
-                // push is fatal (mirror of the legacy worker's fix).
+                const mergeErrors = stderr.trim();
                 stdout = ''; stderr = '';
                 await git.run(['push']);
                 captureOutput = false;
-                if (stderr) throw stderr;
+                if (stderr) {
+                    const phases = [`push: ${stderr.trim()}`];
+                    if (mergeErrors) phases.unshift(`merge: ${mergeErrors}`);
+                    if (fetchErrors) phases.unshift(`fetch: ${fetchErrors}`);
+                    throw phases.join('\n');
+                }
                 result = stdout;
                 break;
             }
