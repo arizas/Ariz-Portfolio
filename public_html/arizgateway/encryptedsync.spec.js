@@ -7,7 +7,6 @@ import { __clearDekForTests, currentDekHex, NeedsEnrollmentError } from './encry
 import { fakeWallet, mockStore } from './encryptionkey.mock.js';
 import {
     registerEgitServiceWorker, configureEgitKey, encryptedRemoteUrl,
-    isEncryptedSyncEnabled, setEncryptedSyncEnabled, ENCRYPTED_SYNC_ENABLED_KEY,
     pageIsControlled, waitForController,
     __setTestServiceWorkerContainer,
 } from './encryptedsync.js';
@@ -131,16 +130,6 @@ describe('encryptedsync (service worker registration + egit-set-key wiring)', ()
 
     it('encryptedRemoteUrl targets /egit/<account> on this origin', () => {
         expect(encryptedRemoteUrl('bob.near')).to.equal(`${location.origin}/egit/bob.near`);
-    });
-
-    it('the encrypted-sync opt-in flag toggles and defaults to off', () => {
-        localStorage.removeItem(ENCRYPTED_SYNC_ENABLED_KEY);
-        expect(isEncryptedSyncEnabled()).to.equal(false);
-        setEncryptedSyncEnabled(true);
-        expect(isEncryptedSyncEnabled()).to.equal(true);
-        setEncryptedSyncEnabled(false);
-        expect(isEncryptedSyncEnabled()).to.equal(false);
-        expect(localStorage.getItem(ENCRYPTED_SYNC_ENABLED_KEY)).to.equal(null);
     });
 
     it('waitForController resolves when the service worker claims the page', async () => {

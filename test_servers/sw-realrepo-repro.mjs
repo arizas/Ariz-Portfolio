@@ -136,7 +136,6 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext();
 await ctx.addInitScript(({ storeOrigin, walletParams }) => {
     localStorage.setItem('ariz_gateway_host_override', storeOrigin);
-    localStorage.setItem('ariz_encrypted_sync_enabled', 'true');
     window.__realWalletParams = walletParams;
 }, { storeOrigin: `http://localhost:${STORE_PORT}`, walletParams: { accountId: 'repro.near', privateJwk: walletPrivateJwk, publicKeyStr: walletPublicKey } });
 const page = await ctx.newPage();
