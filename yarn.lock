@@ -2187,9 +2187,9 @@ encodeurl@~2.0.0:
   resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-2.0.0.tgz#7b8ea898077d7e409d3ac45474ea38eaf0857a58"
   integrity sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==
 
-"encrypted-git-storage@github:petersalomonsen/encrypted-git-storage#v0.1.1":
-  version "0.1.1"
-  resolved "https://codeload.github.com/petersalomonsen/encrypted-git-storage/tar.gz/0ada95780c201b97911a968561fcbb94c1ba8b86"
+"encrypted-git-storage@github:petersalomonsen/encrypted-git-storage#v0.1.2":
+  version "0.1.2"
+  resolved "https://codeload.github.com/petersalomonsen/encrypted-git-storage/tar.gz/b3ee2019b97d6dda296105c78a44c758d7ee9940"
   dependencies:
     "@aws-sdk/client-s3" "^3.658.0"
     express "^4.21.2"
