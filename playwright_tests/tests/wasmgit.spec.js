@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readdirSync } from "node:fs";
 import { pause500ifRecordingVideo } from "../util/videorecording.js";
 
 // The Storage page syncs end-to-end ENCRYPTED only (plaintext /git hosting is
@@ -37,4 +38,14 @@ test("storage page shows the encrypted-only sync UI", async ({ page }) => {
 test("the dist bundle contains no unresolved worker URLs", async ({ request }) => {
   const html = await (await request.get("http://localhost:8081/")).text();
   expect(html).not.toMatch(/new URL\([^)]*import\.meta\.url/);
+});
+
+// The gateway deploy ships ONLY dist/index.html, so the bundle must stay fully
+// self-contained. A dynamic import() anywhere in the app makes rollup
+// code-split into extra hashed chunks — index.html then references files that
+// 404 in production, and the inline-js step silently no-ops (it looks for
+// dist/app.js, which the split renames). This caught a real regression.
+test("the dist build is a single self-contained index.html", () => {
+  const files = readdirSync(new URL("../../dist", import.meta.url));
+  expect(files).toEqual(["index.html"]);
 });
