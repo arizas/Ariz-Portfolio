@@ -1,6 +1,12 @@
 import { getAccounts, getRecordsForAccount, writeConfidentialIntentsHistory } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol, resolveDecimals } from '../near/intents-tokens.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
+// Static imports on purpose: a dynamic import() here makes rollup code-split
+// the dist into extra chunks, breaking the single-file bundle contract (the
+// gateway deploy ships only dist/index.html — see the dist guard in
+// playwright_tests/tests/wasmgit.spec.js).
+import { fetchConfidentialHistory as fetchConfidentialIntentsHistory } from '../near/intentshistory.js';
+import { requireWalletAccount } from '../arizgateway/arizgatewayaccess.js';
 import html from './transactions-page.component.html.js';
 
 const NEAR_DECIMALS = 24;
@@ -100,13 +106,9 @@ customElements.define('transactions-page',
             const statusElement = this.shadowRoot.querySelector('#confidentialstatus');
             const show = (text) => { statusElement.style.display = ''; statusElement.textContent = text; };
             try {
-                const [{ fetchConfidentialHistory }, { requireWalletAccount }] = await Promise.all([
-                    import('../near/intentshistory.js'),
-                    import('../arizgateway/arizgatewayaccess.js'),
-                ]);
                 const walletAccount = await requireWalletAccount();
                 setProgressbarValue('indeterminate', 'Fetching confidential intents history…');
-                const items = await fetchConfidentialHistory();
+                const items = await fetchConfidentialIntentsHistory();
                 await writeConfidentialIntentsHistory(walletAccount, items);
                 show(`Fetched ${items.length} confidential intents item(s) for ${walletAccount} — stored only in your repository.`);
                 const accountselect = this.shadowRoot.querySelector('#accountselect');
