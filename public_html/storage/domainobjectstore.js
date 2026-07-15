@@ -5,6 +5,8 @@ import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchRawAccountingExport, convertAccountingExportToTransactions, isV2Format, convertV2ToInternalFormat, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
+import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedConfidentialFtTransaction } from '../near/confidentialledger.js';
+import { resolveDecimals, resolveSymbol } from '../near/intents-tokens.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -120,11 +122,13 @@ export async function getAllFungibleTokenTransactionsByTxHash(account) {
 
 export async function getAllFungibleTokenTransactions(account) {
     const fungibleTokenTransactionsPath = getFungibleTokenTransactionsPath(account);
-    if (await exists(fungibleTokenTransactionsPath)) {
-        return JSON.parse(await readTextFile(fungibleTokenTransactionsPath));
-    } else {
-        return [];
-    }
+    const stored = (await exists(fungibleTokenTransactionsPath))
+        ? JSON.parse(await readTextFile(fungibleTokenTransactionsPath))
+        : [];
+    // The confidential bucket is derived at read time from the (client-only)
+    // confidential history file — never persisted into this file (see
+    // writeFungibleTokenTransactions), so a gateway re-sync can't touch it.
+    return stored.concat(await getConfidentialFtTransactions(account));
 }
 
 export async function getTransactionsForAccount(account, fungibleTokenFilter) {
@@ -189,7 +193,11 @@ export async function fetchFungibleTokenTransactionsForAccount(account, max_time
 export async function writeFungibleTokenTransactions(account, transactions) {
     const fungibleTokenTransactionsPath = getFungibleTokenTransactionsPath(account);
     await makeDirs(fungibleTokenTransactionsPath);
-    await writeFile(fungibleTokenTransactionsPath, JSON.stringify(transactions, null, 1));
+    // Derived confidential rows come from getAllFungibleTokenTransactions'
+    // read-time merge — persisting them here would duplicate them on the next
+    // read and let stale derivations survive re-derivation.
+    const stored = transactions.filter(tx => !isDerivedConfidentialFtTransaction(tx));
+    await writeFile(fungibleTokenTransactionsPath, JSON.stringify(stored, null, 1));
 }
 
 export async function writeTransactions(account, transactions) {
@@ -217,11 +225,71 @@ export async function writeAccountingRecords(account, jsonData) {
  */
 export async function getRecordsForAccount(account) {
     const path = `${accountdatadir}/${account}/records.json`;
+    let records = [];
     if (await exists(path)) {
         const data = JSON.parse(await readTextFile(path));
-        return Array.isArray(data?.records) ? data.records : [];
+        records = Array.isArray(data?.records) ? data.records : [];
+    }
+    // Confidential-bucket rows are derived at read time and never written into
+    // records.json — that file is overwritten wholesale by every gateway sync.
+    return records.concat(await getConfidentialRecordsForAccount(account));
+}
+
+function getConfidentialHistoryPath(account) {
+    return `${accountdatadir}/${account}/confidential_intents_history.json`;
+}
+
+/**
+ * Persist the user's confidential intents history (1Click /v0/account/history
+ * items fetched by intentshistory.js). CLIENT-ONLY DATA: this file lives in
+ * the user's git repository (OPFS) and leaves the device only through the
+ * end-to-end encrypted /store sync — the gateway's accounting files never
+ * contain it. The Transactions page and year report derive the confidential
+ * bucket from it at read time (confidentialledger.js).
+ */
+export async function writeConfidentialIntentsHistory(account, items) {
+    await makeAccountDataDirs(account);
+    const sorted = [...items].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+    await writeFile(getConfidentialHistoryPath(account), JSON.stringify(sorted, null, 1));
+}
+
+export async function getConfidentialIntentsHistory(account) {
+    const path = getConfidentialHistoryPath(account);
+    if (await exists(path)) {
+        return JSON.parse(await readTextFile(path));
     }
     return [];
+}
+
+// Resolve decimals/symbols once per unique asset in the confidential history.
+// Metadata comes from the intents token API / git cache / RPC via the same
+// resolvers the rest of the app uses.
+async function confidentialMetadataByAsset(items) {
+    const assetIds = new Set();
+    for (const item of items) {
+        if (item.originAsset) assetIds.add(item.originAsset);
+        if (item.destinationAsset) assetIds.add(item.destinationAsset);
+    }
+    const metadata = new Map();
+    await Promise.all([...assetIds].map(async (assetId) => {
+        metadata.set(assetId, {
+            decimals: await resolveDecimals(assetId),
+            symbol: await resolveSymbol(assetId),
+        });
+    }));
+    return metadata;
+}
+
+export async function getConfidentialRecordsForAccount(account) {
+    const items = await getConfidentialIntentsHistory(account);
+    if (items.length === 0) return [];
+    return deriveConfidentialRecords(items, await confidentialMetadataByAsset(items));
+}
+
+export async function getConfidentialFtTransactions(account) {
+    const items = await getConfidentialIntentsHistory(account);
+    if (items.length === 0) return [];
+    return deriveConfidentialFtTransactions(items, account, await confidentialMetadataByAsset(items));
 }
 
 function getStakingDataDir(account) {
