@@ -58,21 +58,28 @@ export default /*html*/ `<style>
     }
 </style>
 <h3>Transactions</h3>
-<p class="text-muted small mb-2">Every balance-changing event for the selected account: NEAR, fungible tokens, NEAR Intents, and staking pool balances. Source is the raw worker records from the Ariz gateway.</p>
+<p class="text-muted small mb-2">Every balance-changing event for the selected account: NEAR, fungible tokens, NEAR Intents (public and confidential), and staking pool balances. Source is the raw worker records from the Ariz gateway, plus the confidential intents history fetched directly from the 1Click API and stored only in your repository.</p>
 <div class="row g-2 mb-2">
-    <div class="col-md-6">
+    <div class="col-md-5">
         <label for="accountselect" class="form-label">Account</label>
         <select class="form-select" aria-label="Select account" id="accountselect">
             <option disabled selected value>Select account</option>
         </select>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-5">
         <label for="tokenselect" class="form-label">Token</label>
         <select class="form-select" aria-label="Filter by token" id="tokenselect" disabled>
             <option selected value="">All tokens</option>
         </select>
     </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="button" class="btn btn-outline-primary btn-sm w-100" id="fetchconfidentialbutton"
+            title="Sign one message with your wallet to fetch your confidential NEAR Intents history from the 1Click API. Stored only in your (encrypted) repository — never on the gateway.">
+            Fetch confidential
+        </button>
+    </div>
 </div>
+<div id="confidentialstatus" class="text-muted small mb-2" style="display:none;"></div>
 <template id="transactionrowtemplate">
     <tr>
         <td class="txrow_datetime"></td>

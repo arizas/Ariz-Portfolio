@@ -1,5 +1,20 @@
 import './transactions-page.component.js';
-import { setAccounts, writeAccountingRecords } from '../storage/domainobjectstore.js';
+import { setAccounts, writeAccountingRecords, writeConfidentialIntentsHistory } from '../storage/domainobjectstore.js';
+import { historyItem } from '../near/intentshistory.mock.js';
+
+// Serve the intents token-metadata API from a fixture so symbol/decimals
+// resolution (both intents buckets) is hermetic.
+before(() => {
+    const realFetch = window.fetch;
+    window.fetch = async (url, init) => {
+        if (String(url) === 'https://1click.chaindefuser.com/v0/tokens') {
+            return new Response(JSON.stringify([
+                { assetId: 'nep141:btc.omft.near', symbol: 'BTC', decimals: 8, blockchain: 'btc' },
+            ]), { status: 200, headers: { 'content-type': 'application/json' } });
+        }
+        return realFetch(url, init);
+    };
+});
 
 describe('transactions-page', () => {
     const account = 'test.near';
@@ -163,5 +178,77 @@ describe('transactions-page', () => {
         await component._renderTable();
         const allCount = shadowRoot.querySelectorAll('#transactionstable tr').length;
         expect(allCount).to.equal(3);
+    });
+});
+
+describe('transactions-page with confidential intents history', () => {
+    const account = 'confidential-page-test.near';
+    let component;
+    let shadowRoot;
+
+    before(async () => {
+        await setAccounts([account]);
+        await writeAccountingRecords(account, {
+            version: 2,
+            accountId: account,
+            metadata: { firstBlock: 200, lastBlock: 200, totalRecords: 1, historyComplete: true },
+            records: [
+                {
+                    block_height: 200,
+                    block_timestamp: '2026-07-08T12:00:00.000Z',
+                    token_id: 'nep141:btc.omft.near',
+                    amount: '544253',
+                    balance_before: '0',
+                    balance_after: '544253',
+                    counterparty: 'solver-ref.near',
+                    tx_hash: 'DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD4'
+                },
+            ]
+        });
+        // A shielding later the same day — derived rows come from the
+        // client-only confidential history file, not records.json.
+        await writeConfidentialIntentsHistory(account, [historyItem({
+            createdAt: '2026-07-08T18:04:42.251349Z',
+            depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+            originAsset: 'nep141:btc.omft.near', destinationAsset: 'nep141:btc.omft.near',
+            amountInFormatted: '0.00544253', amountOutFormatted: '0.00544253',
+            depositAddress: 'shieldpage1',
+            quoteTransactions: [{ sender: account, txHash: '5iPna7nUNHTSDxhJRKV6eJYozpCHA9h5EX871W5LGQen' }],
+        })]);
+
+        component = document.createElement('transactions-page');
+        document.body.appendChild(component);
+        shadowRoot = await component.readyPromise;
+        await component.updateView(account);
+    });
+
+    after(() => {
+        component.remove();
+    });
+
+    it('renders the confidential row with its own bucket label, newest-first despite having no block height', () => {
+        const rows = Array.from(shadowRoot.querySelectorAll('#transactionstable tr'));
+        expect(rows.length).to.equal(2);
+        // The confidential shielding (18:04) sorts above the public record (12:00).
+        expect(rows[0].querySelector('.txrow_token_id').textContent)
+            .to.equal('confidential:nep141:btc.omft.near');
+        expect(rows[0].querySelector('.txrow_token_symbol').textContent)
+            .to.equal('BTC ( Confidential / Bitcoin )');
+        expect(rows[0].querySelector('.txrow_change').textContent).to.equal('0.00544253');
+        expect(rows[0].querySelector('.txrow_balance').textContent).to.equal('0.00544253');
+        expect(rows[1].querySelector('.txrow_token_symbol').textContent)
+            .to.equal('BTC ( NEAR Intents / Bitcoin )');
+    });
+
+    it('links the shielding to its real on-chain quote transaction', () => {
+        const rows = Array.from(shadowRoot.querySelectorAll('#transactionstable tr'));
+        const link = rows[0].querySelector('.txrow_hash a');
+        expect(link.href).to.equal('https://explorer.near.org/transactions/5iPna7nUNHTSDxhJRKV6eJYozpCHA9h5EX871W5LGQen');
+    });
+
+    it('offers the confidential bucket in the token filter', () => {
+        const values = Array.from(shadowRoot.querySelectorAll('#tokenselect option')).map(o => o.value);
+        expect(values).to.include('confidential:nep141:btc.omft.near');
+        expect(values).to.include('nep141:btc.omft.near');
     });
 });

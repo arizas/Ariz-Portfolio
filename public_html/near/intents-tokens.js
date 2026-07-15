@@ -71,6 +71,35 @@ async function fetchIntentsTokenMetadata() {
     }
 }
 
+// Confidential (TEE-ledger) holdings are tracked as their own token bucket,
+// keyed by the intents asset id with this prefix (e.g.
+// "confidential:nep141:btc.omft.near"). The prefix keeps confidential balances
+// in a separate year-report FIFO bucket from the public intents bucket, so
+// every shield/unshield/confidential-swap realizes profit/loss like any other
+// bucket move (see docs/tax-classification-intents.md).
+export const CONFIDENTIAL_TOKEN_PREFIX = 'confidential:';
+
+/**
+ * Check if a token ID refers to the confidential (TEE) intents ledger
+ * @param {string} contractId - Contract ID or token ID
+ * @returns {boolean}
+ */
+export function isConfidentialToken(contractId) {
+    return !!contractId && contractId.startsWith(CONFIDENTIAL_TOKEN_PREFIX);
+}
+
+/**
+ * Strip the confidential: prefix so metadata lookups resolve against the
+ * underlying intents asset id
+ * @param {string} contractId
+ * @returns {string}
+ */
+export function stripConfidentialPrefix(contractId) {
+    return isConfidentialToken(contractId)
+        ? contractId.slice(CONFIDENTIAL_TOKEN_PREFIX.length)
+        : contractId;
+}
+
 /**
  * Check if a contract ID is from NEAR Intents
  * @param {string} contractId - Contract ID or token ID
@@ -78,17 +107,20 @@ async function fetchIntentsTokenMetadata() {
  */
 export function isIntentsToken(contractId) {
     if (!contractId) return false;
-    
+
+    // Confidential ids wrap an intents asset id
+    contractId = stripConfidentialPrefix(contractId);
+
     // Check for nep141:/nep245: prefix (intents asset IDs)
     if (/^nep(141|245):/.test(contractId)) {
         return true;
     }
-    
+
     // Check for omft.near suffix (NEAR Intents bridge tokens)
     if (contractId.includes('.omft.near')) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -116,7 +148,8 @@ function getBlockchainDisplayName(blockchain) {
 
 /**
  * Get display symbol for a token, adding network info for intents tokens
- * Format: "SYMBOL ( NEAR Intents / Network )" for intents tokens
+ * Format: "SYMBOL ( NEAR Intents / Network )" for intents tokens,
+ * "SYMBOL ( Confidential / Network )" for confidential (TEE-ledger) holdings
  * @param {string} contractId - Contract ID
  * @param {string} rawSymbol - Raw symbol from storage
  * @param {string} [blockchain] - Optional blockchain name
@@ -124,11 +157,12 @@ function getBlockchainDisplayName(blockchain) {
  */
 export function getDisplaySymbol(contractId, rawSymbol, blockchain) {
     if (isIntentsToken(contractId)) {
+        const bucketLabel = isConfidentialToken(contractId) ? 'Confidential' : 'NEAR Intents';
         const networkName = blockchain ? getBlockchainDisplayName(blockchain) : null;
         if (networkName) {
-            return `${rawSymbol} ( NEAR Intents / ${networkName} )`;
+            return `${rawSymbol} ( ${bucketLabel} / ${networkName} )`;
         }
-        return `${rawSymbol} ( NEAR Intents )`;
+        return `${rawSymbol} ( ${bucketLabel} )`;
     }
     return rawSymbol;
 }
@@ -141,24 +175,29 @@ export function getDisplaySymbol(contractId, rawSymbol, blockchain) {
  */
 export async function resolveDisplaySymbol(contractId, fallbackSymbol) {
     const metadata = await getIntentsTokenMetadata();
-    
+
+    // Metadata is keyed by the underlying intents asset id — strip the
+    // confidential: prefix for lookups, keep the original id for the label.
+    const assetId = stripConfidentialPrefix(contractId);
+    const fallback = fallbackSymbol !== undefined && fallbackSymbol === contractId ? assetId : fallbackSymbol;
+
     // Try to get metadata from cache
-    let symbol = fallbackSymbol;
+    let symbol = fallback;
     let blockchain = null;
-    
-    if (metadata.has(contractId)) {
-        const data = metadata.get(contractId);
+
+    if (metadata.has(assetId)) {
+        const data = metadata.get(assetId);
         symbol = data.symbol;
         blockchain = data.blockchain;
     } else {
-        const normalizedId = contractId.replace(/^nep(141|245):/, '');
+        const normalizedId = assetId.replace(/^nep(141|245):/, '');
         if (metadata.has(normalizedId)) {
             const data = metadata.get(normalizedId);
             symbol = data.symbol;
             blockchain = data.blockchain;
         }
     }
-    
+
     return getDisplaySymbol(contractId, symbol, blockchain);
 }
 
@@ -170,6 +209,10 @@ export async function resolveDisplaySymbol(contractId, fallbackSymbol) {
  */
 export async function resolveSymbol(contractId) {
     if (!contractId) return contractId;
+
+    // Confidential ids resolve like their underlying intents asset (prices are
+    // by symbol, and the confidential form of a token is the same asset).
+    contractId = stripConfidentialPrefix(contractId);
 
     const metadata = await getIntentsTokenMetadata();
 
@@ -226,6 +269,9 @@ export async function resolveSymbol(contractId) {
  * @returns {Promise<number>} Token decimals
  */
 export async function resolveDecimals(contractId, fallbackDecimals = 24) {
+    // Confidential ids share the underlying intents asset's decimals.
+    contractId = stripConfidentialPrefix(contractId);
+
     const metadata = await getIntentsTokenMetadata();
 
     if (metadata.has(contractId)) {
