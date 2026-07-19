@@ -7,6 +7,7 @@ import {
     wrapDek, unwrapDek, currentDekHex, __clearDekForTests,
     bytesToHex, hexToBytes,
     NeedsEnrollmentError, NonDeterministicSignerError, DEK_BYTES,
+    persistCurrentDek, loadPersistedDek, hasPersistedDek, forgetPersistedDek,
 } from './encryptionkey.js';
 import { fakeWallet, mockStore } from './encryptionkey.mock.js';
 
@@ -123,5 +124,42 @@ describe('encryptionkey (wrapped-DEK wallet unlock)', () => {
     it('hexToBytes/bytesToHex round-trip', () => {
         const bytes = crypto.getRandomValues(new Uint8Array(32));
         expect(bytesToHex(hexToBytes(bytesToHex(bytes)))).to.equal(bytesToHex(bytes));
+    });
+
+    describe('opt-in on-device persistence', () => {
+        afterEach(async () => {
+            await forgetPersistedDek('alice.near');
+        });
+
+        it('persists, reloads without any wallet, and forgets the DEK', async () => {
+            fakeWallet('alice.near');
+            const dek = await obtainDek();
+            await persistCurrentDek('alice.near');
+
+            // "New session", and NO wallet available — the stored key must suffice.
+            __clearDekForTests();
+            __setTestWallet(null);
+            expect(await loadPersistedDek('alice.near')).to.equal(true);
+            expect(currentDekHex()).to.equal(bytesToHex(dek));
+            expect(await hasPersistedDek('alice.near')).to.equal(true);
+
+            await forgetPersistedDek('alice.near');
+            __clearDekForTests();
+            expect(await hasPersistedDek('alice.near')).to.equal(false);
+            expect(await loadPersistedDek('alice.near')).to.equal(false);
+        });
+
+        it('is account-scoped and refuses to store when nothing is unlocked', async () => {
+            fakeWallet('alice.near');
+            await obtainDek();
+            await persistCurrentDek('alice.near');
+            expect(await hasPersistedDek('bob.near')).to.equal(false);
+            expect(await loadPersistedDek('bob.near')).to.equal(false);
+
+            __clearDekForTests();
+            let message = '';
+            await persistCurrentDek('alice.near').catch((e) => { message = e.message; });
+            expect(message).to.contain('no unlocked key');
+        });
     });
 });
