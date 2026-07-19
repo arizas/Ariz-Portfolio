@@ -1,9 +1,13 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsFromAccountingExport } from '../storage/domainobjectstore.js';
+import { fetchTransactionsFromAccountingExport, writeConfidentialIntentsHistory } from '../storage/domainobjectstore.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domainobjectstore.js';
 import { exists } from '../storage/gitstorage.js';
+// Static imports on purpose — a dynamic import() breaks the single-file dist
+// (see the dist guard in playwright_tests/tests/wasmgit.spec.js).
+import { fetchConfidentialHistory, ConfidentialHistoryUnavailableError } from '../near/intentshistory.js';
+import { requireWalletAccount } from '../arizgateway/arizgatewayaccess.js';
 
 customElements.define('accounts-page',
     class extends HTMLElement {
@@ -65,10 +69,48 @@ customElements.define('accounts-page',
                 await this.storeAccounts();
                 this.dispatchChangeEvent();
             });
+            accountsRow.querySelector('.fetchConfidentialButton').onclick = () =>
+                this.fetchConfidentialForAccount(accountNameInput.value.trim());
             accountsRow.querySelector('.removeAccountButton').onclick = async () => {
                 accountsRow.remove();
                 await this.storeAccounts();
             };
+        }
+
+        /**
+         * Fetch the confidential NEAR Intents history for one account row.
+         * The 1Click API only reveals the SIGNING account's confidential
+         * ledger, so the connected wallet must be the row's account — anyone
+         * else's confidential data is unreachable by design. The result is
+         * stored client-side only (the user's git repository; it leaves the
+         * device solely via the encrypted store sync).
+         */
+        async fetchConfidentialForAccount(account) {
+            try {
+                if (!account) return;
+                const walletAccount = await requireWalletAccount();
+                if (walletAccount !== account) {
+                    await modalAlert('Wrong wallet for this account',
+                        `Confidential intents history can only be fetched by the account owner's wallet. `
+                        + `You are signed in as ${walletAccount} — to fetch for ${account}, sign in with that account's wallet first.`);
+                    return;
+                }
+                setProgressbarValue('indeterminate', `Fetching confidential intents history for ${account}…`);
+                const items = await fetchConfidentialHistory();
+                await writeConfidentialIntentsHistory(account, items);
+                setProgressbarValue(null);
+                await modalAlert('Confidential history fetched',
+                    `${items.length} confidential intents item(s) stored for ${account} — in your repository only, never on the gateway.`);
+                this.dispatchChangeEvent();
+            } catch (e) {
+                setProgressbarValue(null);
+                console.error(e);
+                await modalAlert(
+                    e instanceof ConfidentialHistoryUnavailableError
+                        ? 'Confidential history not available'
+                        : 'Could not fetch confidential history',
+                    e.message ?? e);
+            }
         }
 
         setAccounts(accountsArray) {
