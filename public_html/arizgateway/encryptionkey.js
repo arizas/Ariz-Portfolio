@@ -146,11 +146,66 @@ async function repoExists() {
     return true;
 }
 
-// The DEK is held in memory only, for this session.
+// The DEK is held in memory for the session; opt-in persistence below.
 let _dek = null;
 
 export function currentDek() {
     return _dek;
+}
+
+// --- opt-in on-device persistence of the DEK (IndexedDB) ---------------------
+// "Remember the key on this device": stores the raw DEK keyed by account so
+// future sessions sync without wallet signatures. Deliberately a user choice,
+// never automatic — anyone with access to this browser profile can read the
+// stored key, and the sync modal says so before enabling. Storing the DEK
+// (not the derivation signature) keeps the exposure minimal: a stored
+// signature would yield the same DEK anyway AND be a replayable NEP-413
+// artifact.
+const DEK_DB_NAME = 'ariz-encrypted-storage';
+const DEK_DB_STORE = 'deks';
+
+function openDekDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DEK_DB_NAME, 1);
+        request.onupgradeneeded = () => request.result.createObjectStore(DEK_DB_STORE);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function dekDbRequest(mode, operation) {
+    const db = await openDekDb();
+    try {
+        return await new Promise((resolve, reject) => {
+            const request = operation(db.transaction(DEK_DB_STORE, mode).objectStore(DEK_DB_STORE));
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    } finally {
+        db.close();
+    }
+}
+
+/** Store the in-memory DEK on this device for `accountId` (user opted in). */
+export async function persistCurrentDek(accountId) {
+    if (!_dek) throw new Error('no unlocked key to store');
+    await dekDbRequest('readwrite', (store) => store.put(new Uint8Array(_dek), accountId));
+}
+
+/** Load a previously stored DEK into memory. Returns false when none is stored. */
+export async function loadPersistedDek(accountId) {
+    const stored = await dekDbRequest('readonly', (store) => store.get(accountId)).catch(() => null);
+    if (!stored || stored.length !== DEK_BYTES) return false;
+    _dek = new Uint8Array(stored);
+    return true;
+}
+
+export async function hasPersistedDek(accountId) {
+    return !!(await dekDbRequest('readonly', (store) => store.get(accountId)).catch(() => null));
+}
+
+export async function forgetPersistedDek(accountId) {
+    await dekDbRequest('readwrite', (store) => store.delete(accountId)).catch(() => { });
 }
 
 export function currentDekHex() {
