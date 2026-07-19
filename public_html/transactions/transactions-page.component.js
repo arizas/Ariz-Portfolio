@@ -1,12 +1,6 @@
-import { getAccounts, getRecordsForAccount, writeConfidentialIntentsHistory } from '../storage/domainobjectstore.js';
+import { getAccounts, getRecordsForAccount } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol, resolveDecimals } from '../near/intents-tokens.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
-// Static imports on purpose: a dynamic import() here makes rollup code-split
-// the dist into extra chunks, breaking the single-file bundle contract (the
-// gateway deploy ships only dist/index.html — see the dist guard in
-// playwright_tests/tests/wasmgit.spec.js).
-import { fetchConfidentialHistory as fetchConfidentialIntentsHistory } from '../near/intentshistory.js';
-import { requireWalletAccount } from '../arizgateway/arizgatewayaccess.js';
 import html from './transactions-page.component.html.js';
 
 const NEAR_DECIMALS = 24;
@@ -90,36 +84,7 @@ customElements.define('transactions-page',
             // changes — no refetch, just a different view of the same data.
             this.tokenselect.addEventListener('change', () => this._renderTable());
 
-            this.shadowRoot.querySelector('#fetchconfidentialbutton')
-                .addEventListener('click', () => this.fetchConfidentialHistory());
-
             return this.shadowRoot;
-        }
-
-        /**
-         * Fetch the connected wallet's confidential intents history from the
-         * 1Click API (one wallet signature) and store it in the repository —
-         * client-side only: the gateway never sees the data, and it syncs only
-         * through the end-to-end encrypted store.
-         */
-        async fetchConfidentialHistory() {
-            const statusElement = this.shadowRoot.querySelector('#confidentialstatus');
-            const show = (text) => { statusElement.style.display = ''; statusElement.textContent = text; };
-            try {
-                const walletAccount = await requireWalletAccount();
-                setProgressbarValue('indeterminate', 'Fetching confidential intents history…');
-                const items = await fetchConfidentialIntentsHistory();
-                await writeConfidentialIntentsHistory(walletAccount, items);
-                show(`Fetched ${items.length} confidential intents item(s) for ${walletAccount} — stored only in your repository.`);
-                const accountselect = this.shadowRoot.querySelector('#accountselect');
-                if (accountselect.value === walletAccount) {
-                    await this.updateView(walletAccount);
-                }
-            } catch (e) {
-                show(`Could not fetch confidential history: ${e.message}`);
-            } finally {
-                setProgressbarValue(null);
-            }
         }
 
         async updateView(account) {

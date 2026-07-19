@@ -1,4 +1,8 @@
 import './accounts-page.component.js';
+import { ACCESS_TOKEN_SESSION_STORAGE_KEY, __setTestWallet } from '../arizgateway/arizgatewayaccess.js';
+import { __resetForTests } from '../near/intentshistory.js';
+import { mockIntentsBackend, signingWallet, historyItem } from '../near/intentshistory.mock.js';
+import { getConfidentialIntentsHistory } from '../storage/domainobjectstore.js';
 
 describe('accounts-page.component', () => {
     let configComponent;
@@ -41,5 +45,73 @@ describe('accounts-page.component', () => {
         accountNameInput.dispatchEvent(new Event('change'));
         await changePromise;
         expect(configComponent.getAccounts()[1]).to.equal('test.near');
+    });
+
+    describe('per-account confidential intents fetch', () => {
+        let backend;
+
+        const until = async (fn, what) => {
+            for (let i = 0; i < 500; i++) {
+                if (fn()) return;
+                await new Promise((r) => setTimeout(r, 10));
+            }
+            throw new Error('timed out waiting for ' + what);
+        };
+        const dismissModal = async () => {
+            await until(() => document.querySelector('common-modal'), 'a modal');
+            const modalEl = document.querySelector('common-modal');
+            const text = modalEl.shadowRoot.textContent;
+            modalEl.shadowRoot.querySelector('button').click();
+            await until(() => !document.querySelector('common-modal'), 'modal dismissal');
+            return text;
+        };
+
+        beforeEach(() => {
+            __resetForTests();
+            localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
+                JSON.stringify({ token: 'test-token', accountId: 'alice.near', issuedAt: Date.now() }));
+            backend = mockIntentsBackend();
+        });
+
+        afterEach(() => {
+            backend.restore();
+            __setTestWallet(null);
+            localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+        });
+
+        it('each account row has a fetch-confidential button', () => {
+            configComponent.setAccounts(['alice.near']);
+            expect(shadowRoot.querySelectorAll('.fetchConfidentialButton').length).to.equal(1);
+        });
+
+        it('refuses when the connected wallet is not the row account (nothing fetched or stored)', async () => {
+            signingWallet('alice.near');
+            configComponent.setAccounts(['bob.near']);
+
+            shadowRoot.querySelector('.fetchConfidentialButton').click();
+            const text = await dismissModal();
+            expect(text).to.contain('Wrong wallet');
+            expect(text).to.contain('alice.near');
+            expect(backend.authenticateCalls).to.equal(0);
+            expect(await getConfidentialIntentsHistory('bob.near')).to.deep.equal([]);
+        });
+
+        it('fetches and stores the history when the wallet matches the row account', async () => {
+            const wallet = signingWallet('alice.near');
+            configComponent.setAccounts(['alice.near']);
+            backend.pages['recipientType=CONFIDENTIAL_INTENTS'] = [[historyItem({
+                depositAddress: 'acctpage1', recipient: 'alice.near',
+            })]];
+
+            shadowRoot.querySelector('.fetchConfidentialButton').click();
+            const text = await dismissModal();
+            expect(text).to.contain('Confidential history fetched');
+            expect(text).to.contain('1 confidential intents item(s)');
+            expect(wallet.signatureCount).to.equal(1);
+
+            const stored = await getConfidentialIntentsHistory('alice.near');
+            expect(stored.length).to.equal(1);
+            expect(stored[0].depositAddress).to.equal('acctpage1');
+        });
     });
 });
