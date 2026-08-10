@@ -11,7 +11,10 @@
 
 import { migrateIdbfsToOpfs, needsIdbfsMigration, clearLegacyIdbfs } from './migrate-idbfs-to-opfs.js';
 
-const WASM_GIT_BASE = 'https://unpkg.com/wasm-git@0.0.16/';
+// wasm-git (loader + the ~1MB wasm fetched from the same base) comes from
+// jsdelivr, not unpkg: unpkg answers 500 for long stretches — after a ~30s hang —
+// which takes the whole git worker down with it. Same CDN as jszip below.
+const WASM_GIT_BASE = 'https://cdn.jsdelivr.net/npm/wasm-git@0.0.16/';
 const REPO = 'portfolio';
 const WORKDIR = `/opfs/${REPO}`;
 
