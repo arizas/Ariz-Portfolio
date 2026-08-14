@@ -166,6 +166,13 @@ async function api(config, path, { method = 'GET', body, bearer, base } = {}) {
 }
 
 function storeSession(authJson) {
+    // Never store a session without a token: the history host answers an
+    // unauthenticated request with 200 and *other accounts'* records rather
+    // than an error, so a tokenless session would silently pull in foreign
+    // transactions instead of failing (see requireBearer).
+    if (!authJson?.accessToken) {
+        throw new Error('1Click auth response contained no accessToken');
+    }
     const now = Date.now();
     _session = {
         accessToken: authJson.accessToken,
@@ -231,6 +238,24 @@ async function obtainBearer(config) {
     return authenticate(config);
 }
 
+/**
+ * A session token, or an error — never undefined.
+ *
+ * The history host does not require authentication to answer: without an
+ * `authorization` header it returns 200 and a global feed of other accounts'
+ * confidential deposits (an invalid token, by contrast, is properly rejected
+ * with 401). Sending the request tokenless would therefore write strangers'
+ * transactions into the user's own confidential ledger and year report, so
+ * refuse to make the call at all.
+ */
+async function requireBearer(config) {
+    const bearer = await obtainBearer(config);
+    if (!bearer) {
+        throw new Error('refusing to request confidential history without a session token');
+    }
+    return bearer;
+}
+
 // Unique key of a history item — the tuple that identified duplicates when
 // unioning the two filtered queries against real data.
 export function historyItemKey(item) {
@@ -249,7 +274,7 @@ async function fetchHistoryPages(config, filter, byKey, { retryDelayMs, maxPages
         // with backoff before giving up.
         let last;
         for (let attempt = 0; attempt < 5; attempt++) {
-            last = await api(config, query, { bearer: await obtainBearer(config), base });
+            last = await api(config, query, { bearer: await requireBearer(config), base });
             if (last.status < 500) break;
             await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (attempt + 1)));
         }

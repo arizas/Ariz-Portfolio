@@ -103,6 +103,46 @@ describe('intentshistory (1Click confidential history)', () => {
         expect(backend.historyRequests[0].bearer).to.equal('access-1');
     });
 
+    it('never requests history without a session token', async () => {
+        // The history host answers an unauthenticated request with 200 and a
+        // global feed of other accounts' confidential deposits (an *invalid*
+        // token is properly rejected with 401). So a session that somehow
+        // carries no token must fail loudly rather than fetch strangers'
+        // transactions into this user's ledger.
+        seedTypicalPages();
+        __setSessionForTests({
+            accessToken: undefined,
+            accessExpiresAt: Date.now() + 900_000,
+            refreshExpiresAt: Date.now() + 900_000,
+        });
+
+        let error;
+        try {
+            await fetchConfidentialHistory();
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error, 'expected a refusal, got history back').to.be.an('error');
+        expect(error.message).to.contain('without a session token');
+        expect(backend.historyRequests.length, 'no request may leave the client').to.equal(0);
+    });
+
+    it('rejects an auth response that carries no accessToken', async () => {
+        backend.authResponse = { expiresIn: 900, refreshExpiresIn: 604800 };
+
+        let error;
+        try {
+            await fetchConfidentialHistory();
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error, 'expected a refusal, got history back').to.be.an('error');
+        expect(error.message).to.contain('no accessToken');
+        expect(backend.historyRequests.length).to.equal(0);
+    });
+
     it('signs the exact trezu-style auth payload (message shape, recipient, nonce layout)', async () => {
         seedTypicalPages();
         await fetchConfidentialHistory();

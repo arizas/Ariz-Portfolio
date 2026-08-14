@@ -1,4 +1,4 @@
-import { CONFIDENTIAL_TOKEN_PREFIX } from './intents-tokens.js';
+import { CONFIDENTIAL_TOKEN_PREFIX, normalizeIntentsAssetId } from './intents-tokens.js';
 
 // Derivation of the confidential (TEE-ledger) token bucket from 1Click history
 // items (issue #75). The confidential ledger is invisible to every public API,
@@ -40,7 +40,9 @@ export function confidentialMovementsForItem(item) {
     const movements = [];
     if (item.depositType === 'CONFIDENTIAL_INTENTS') {
         movements.push({
-            assetId: item.originAsset,
+            // Normalized so the two spellings of one asset share a bucket —
+            // see normalizeIntentsAssetId.
+            assetId: normalizeIntentsAssetId(item.originAsset),
             direction: 'out',
             amountFormatted: item.amountInFormatted,
             createdAt: item.createdAt,
@@ -50,7 +52,7 @@ export function confidentialMovementsForItem(item) {
     }
     if (item.recipientType === 'CONFIDENTIAL_INTENTS') {
         movements.push({
-            assetId: item.destinationAsset,
+            assetId: normalizeIntentsAssetId(item.destinationAsset),
             direction: 'in',
             amountFormatted: item.amountOutFormatted,
             createdAt: item.createdAt,

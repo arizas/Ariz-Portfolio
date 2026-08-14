@@ -71,6 +71,26 @@ async function fetchIntentsTokenMetadata() {
     }
 }
 
+// The confidential history API spells some asset ids with a chain-qualified
+// wrapper — "1cs_v1:near:nep141:zec.omft.near" is the same asset as
+// "nep141:zec.omft.near". Both spellings occur in one account's history (a ZEC
+// shielding arrives as nep141:, a later confidential swap returns 1cs_v1:), so
+// without normalization the same token lands in two FIFO buckets and the year
+// report realizes profit/loss against a position that never closes. Metadata
+// lookups also miss, since the token API is keyed by the bare asset id.
+const CHAIN_QUALIFIED_ASSET_RE = /^1cs_v\d+:[^:]+:/;
+
+/**
+ * Canonical intents asset id: strips the confidential API's "1cs_v<n>:<chain>:"
+ * wrapper, leaving the asset id every other surface uses. Any other id is
+ * returned unchanged.
+ * @param {string} assetId
+ * @returns {string}
+ */
+export function normalizeIntentsAssetId(assetId) {
+    return typeof assetId === 'string' ? assetId.replace(CHAIN_QUALIFIED_ASSET_RE, '') : assetId;
+}
+
 // Confidential (TEE-ledger) holdings are tracked as their own token bucket,
 // keyed by the intents asset id with this prefix (e.g.
 // "confidential:nep141:btc.omft.near"). The prefix keeps confidential balances

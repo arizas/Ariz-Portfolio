@@ -76,6 +76,7 @@ export function mockIntentsBackend() {
             'depositType=CONFIDENTIAL_INTENTS': [[]],
         },
         failBeforeSuccess: 0, // next N history requests answer 500
+        authResponse: null,   // override the /v0/auth/authenticate body
         authenticateCalls: 0,
         refreshCalls: 0,
         refreshStatus: 200,
@@ -150,7 +151,9 @@ export function mockIntentsBackend() {
                     return json(400, { message: 'malformed signedData' });
                 }
                 state.tokenCounter++;
-                return json(201, {
+                // `authResponse` lets a test return a malformed body (e.g. one
+                // with no accessToken) without hand-rolling a fetch stub.
+                return json(201, state.authResponse ?? {
                     accessToken: `access-${state.tokenCounter}`,
                     refreshToken: `refresh-${state.tokenCounter}`,
                     expiresIn: 900,
