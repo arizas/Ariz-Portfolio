@@ -6,7 +6,7 @@ import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchRawAccountingExport, convertAccountingExportToTransactions, isV2Format, convertV2ToInternalFormat, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
 import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedConfidentialFtTransaction } from '../near/confidentialledger.js';
-import { resolveDecimals, resolveSymbol } from '../near/intents-tokens.js';
+import { resolveDecimals, resolveSymbol, normalizeIntentsAssetId } from '../near/intents-tokens.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -265,10 +265,13 @@ export async function getConfidentialIntentsHistory(account) {
 // Metadata comes from the intents token API / git cache / RPC via the same
 // resolvers the rest of the app uses.
 async function confidentialMetadataByAsset(items) {
+    // Keyed by the same normalized asset id the movements use, so the two
+    // spellings of one asset resolve to a single metadata entry (and the
+    // token API, which only knows the bare id, actually finds it).
     const assetIds = new Set();
     for (const item of items) {
-        if (item.originAsset) assetIds.add(item.originAsset);
-        if (item.destinationAsset) assetIds.add(item.destinationAsset);
+        if (item.originAsset) assetIds.add(normalizeIntentsAssetId(item.originAsset));
+        if (item.destinationAsset) assetIds.add(normalizeIntentsAssetId(item.destinationAsset));
     }
     const metadata = new Map();
     await Promise.all([...assetIds].map(async (assetId) => {

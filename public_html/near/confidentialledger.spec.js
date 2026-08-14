@@ -60,6 +60,42 @@ describe('confidentialledger (derivation of the confidential bucket)', () => {
         expect(confidentialMovementsForItem(failed)).to.deep.equal([]);
     });
 
+    it('treats the 1cs_v1 spelling of an asset as the same bucket as the bare one', () => {
+        // Real capture: a ZEC shielding arrives as "nep141:zec.omft.near", and a
+        // later confidential swap returns the same asset as
+        // "1cs_v1:near:nep141:zec.omft.near". Keyed literally these are two
+        // buckets, so the shielded ZEC is never drawn down and the swap's ZEC
+        // has no cost basis — silently wrong realized profit/loss.
+        const zecMetadata = new Map([
+            ['nep141:zec.omft.near', { decimals: 8, symbol: 'ZEC' }],
+            ['nep141:usdc.omft.near', { decimals: 6, symbol: 'USDC' }],
+        ]);
+        const zecShieldIn = historyItem({
+            createdAt: '2026-07-27T04:45:25.931239Z',
+            depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+            originAsset: 'nep141:zec.omft.near', destinationAsset: 'nep141:zec.omft.near',
+            amountInFormatted: '0.19866247', amountOutFormatted: '0.19866247',
+            depositAddress: 'zecshield',
+        });
+        const swapIntoZec = historyItem({
+            createdAt: '2026-08-09T20:28:01.661242Z',
+            depositType: 'CONFIDENTIAL_INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+            originAsset: 'nep141:usdc.omft.near',
+            destinationAsset: '1cs_v1:near:nep141:zec.omft.near',
+            amountInFormatted: '37.313729', amountOutFormatted: '0.07201488',
+            depositAddress: 'zecswap',
+        });
+
+        expect(confidentialMovementsForItem(swapIntoZec).map((m) => `${m.direction}:${m.assetId}`))
+            .to.deep.equal(['out:nep141:usdc.omft.near', 'in:nep141:zec.omft.near']);
+
+        // Both ZEC inflows accumulate in one bucket, so the balance carries over.
+        const records = deriveConfidentialRecords([zecShieldIn, swapIntoZec], zecMetadata);
+        const zec = records.filter((r) => r.token_id === 'confidential:nep141:zec.omft.near');
+        expect(zec.length).to.equal(2);
+        expect(zec.at(-1).balance_after).to.equal('27067735'); // 0.19866247 + 0.07201488 ZEC
+    });
+
     it('derives records with running confidential balances, oldest-first', () => {
         // Deliberately unsorted input — derivation sorts by createdAt.
         const records = deriveConfidentialRecords([unshielding, confidentialSwap, shielding, failed], metadataByAsset);

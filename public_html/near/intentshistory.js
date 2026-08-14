@@ -14,8 +14,22 @@ import { callViewFunction } from './rpc.js';
 // Auth/nonce scheme mirrors NEAR-DevHub/trezu nt-be/examples/
 // check_confidential_balance.rs, verified end-to-end by
 // scripts/intents-history-poc.mjs.
+//
+// HOST SPLIT: `/v0/auth/*` (and balances) live on the public 1Click host
+// (`config.apiUrl`, e.g. https://1click.chaindefuser.com), but that host serves
+// `/v0/account/history` as an allowlisted preview — a non-invited account gets
+// `403 "History is invite-only for now"`. The history data itself lives on a
+// separate, ungated Defuse host, and the same JWT authenticates against both.
+// So we authenticate on `config.apiUrl` and read history from the history host.
+// Mirrors trezu nt-be/.../bronze/api.rs (`DEFAULT_HISTORY_BASE_URL`), which
+// deliberately points history at a different host than balances.
 
 export const INTENTS_CONTRACT_ID = 'intents.near';
+
+// Dedicated confidential-history host (trezu's DEFAULT_HISTORY_BASE_URL). The
+// gateway config may override it via `historyApiUrl`; otherwise this default is
+// used. NOT the public 1Click host — that one gates history behind an invite.
+export const CONFIDENTIAL_HISTORY_API_URL = 'https://q8v3n6.defuse.org';
 
 /** Confidential history needs ONECLICK_API_KEY configured on the gateway. */
 export class ConfidentialHistoryUnavailableError extends Error { }
@@ -134,11 +148,13 @@ export async function getIntentsApiConfig() {
 }
 
 // ---- 1Click API ------------------------------------------------------------------
-async function api(config, path, { method = 'GET', body, bearer } = {}) {
+// `base` overrides the host for endpoints that don't live on the auth host
+// (history — see the HOST SPLIT note at the top of the file).
+async function api(config, path, { method = 'GET', body, bearer, base } = {}) {
     const headers = { 'x-api-key': config.apiKey };
     if (body) headers['content-type'] = 'application/json';
     if (bearer) headers.authorization = `Bearer ${bearer}`;
-    const response = await fetch(config.apiUrl + path, {
+    const response = await fetch((base ?? config.apiUrl) + path, {
         method,
         headers,
         body: body && JSON.stringify(body),
@@ -150,6 +166,13 @@ async function api(config, path, { method = 'GET', body, bearer } = {}) {
 }
 
 function storeSession(authJson) {
+    // Never store a session without a token: the history host answers an
+    // unauthenticated request with 200 and *other accounts'* records rather
+    // than an error, so a tokenless session would silently pull in foreign
+    // transactions instead of failing (see requireBearer).
+    if (!authJson?.accessToken) {
+        throw new Error('1Click auth response contained no accessToken');
+    }
     const now = Date.now();
     _session = {
         accessToken: authJson.accessToken,
@@ -215,6 +238,24 @@ async function obtainBearer(config) {
     return authenticate(config);
 }
 
+/**
+ * A session token, or an error — never undefined.
+ *
+ * The history host does not require authentication to answer: without an
+ * `authorization` header it returns 200 and a global feed of other accounts'
+ * confidential deposits (an invalid token, by contrast, is properly rejected
+ * with 401). Sending the request tokenless would therefore write strangers'
+ * transactions into the user's own confidential ledger and year report, so
+ * refuse to make the call at all.
+ */
+async function requireBearer(config) {
+    const bearer = await obtainBearer(config);
+    if (!bearer) {
+        throw new Error('refusing to request confidential history without a session token');
+    }
+    return bearer;
+}
+
 // Unique key of a history item — the tuple that identified duplicates when
 // unioning the two filtered queries against real data.
 export function historyItemKey(item) {
@@ -222,6 +263,9 @@ export function historyItemKey(item) {
 }
 
 async function fetchHistoryPages(config, filter, byKey, { retryDelayMs, maxPages }) {
+    // History lives on the dedicated (ungated) host, not the auth host — see the
+    // HOST SPLIT note at the top of the file. The auth JWT works on both.
+    const base = config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
     let cursor = null;
     for (let page = 0; page < maxPages; page++) {
         const query = `/v0/account/history?limit=50&${filter}` +
@@ -230,7 +274,7 @@ async function fetchHistoryPages(config, filter, byKey, { retryDelayMs, maxPages
         // with backoff before giving up.
         let last;
         for (let attempt = 0; attempt < 5; attempt++) {
-            last = await api(config, query, { bearer: await obtainBearer(config) });
+            last = await api(config, query, { bearer: await requireBearer(config), base });
             if (last.status < 500) break;
             await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (attempt + 1)));
         }

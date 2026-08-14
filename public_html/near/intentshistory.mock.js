@@ -6,6 +6,8 @@ import { rpcUrl } from './rpc.js';
 // captures (see scripts/intents-history-poc.mjs).
 
 export const ONECLICK_TEST_URL = 'https://oneclick.example.test';
+// History lives on a separate host from auth (see intentshistory.js HOST SPLIT).
+export const ONECLICK_HISTORY_TEST_URL = 'https://oneclick-history.example.test';
 
 /** Deterministic fake wallet that counts NEP-413 signatures. */
 export function signingWallet(accountId) {
@@ -62,7 +64,11 @@ export function historyItem(overrides = {}) {
 export function mockIntentsBackend() {
     const state = {
         configStatus: 200,
-        config: { apiUrl: ONECLICK_TEST_URL, apiKey: 'test-oneclick-key' },
+        config: {
+            apiUrl: ONECLICK_TEST_URL,
+            historyApiUrl: ONECLICK_HISTORY_TEST_URL,
+            apiKey: 'test-oneclick-key',
+        },
         salt: 'aabbccdd',
         // pages per filter: filter string -> array of pages (arrays of items)
         pages: {
@@ -70,6 +76,7 @@ export function mockIntentsBackend() {
             'depositType=CONFIDENTIAL_INTENTS': [[]],
         },
         failBeforeSuccess: 0, // next N history requests answer 500
+        authResponse: null,   // override the /v0/auth/authenticate body
         authenticateCalls: 0,
         refreshCalls: 0,
         refreshStatus: 200,
@@ -100,37 +107,10 @@ export function mockIntentsBackend() {
             return json(200, { error: { message: `unexpected view ${body.params?.method_name}` } });
         }
 
-        if (u.startsWith(ONECLICK_TEST_URL)) {
-            const path = u.slice(ONECLICK_TEST_URL.length);
+        if (u.startsWith(ONECLICK_HISTORY_TEST_URL)) {
+            const path = u.slice(ONECLICK_HISTORY_TEST_URL.length);
             if (init.headers?.['x-api-key'] !== state.config.apiKey) {
                 return json(403, { message: 'invalid api key' });
-            }
-            if (path === '/v0/auth/authenticate') {
-                state.authenticateCalls++;
-                state.lastAuthBody = JSON.parse(init.body);
-                const sd = state.lastAuthBody.signedData;
-                if (sd?.standard !== 'nep413' || !sd.payload?.message || !sd.payload?.nonce
-                    || !sd.public_key?.startsWith('ed25519:') || !sd.signature?.startsWith('ed25519:')) {
-                    return json(400, { message: 'malformed signedData' });
-                }
-                state.tokenCounter++;
-                return json(201, {
-                    accessToken: `access-${state.tokenCounter}`,
-                    refreshToken: `refresh-${state.tokenCounter}`,
-                    expiresIn: 900,
-                    refreshExpiresIn: 604800,
-                });
-            }
-            if (path === '/v0/auth/refresh') {
-                state.refreshCalls++;
-                if (state.refreshStatus !== 200) return json(state.refreshStatus, { message: 'refresh rejected' });
-                state.tokenCounter++;
-                return json(201, {
-                    accessToken: `access-${state.tokenCounter}`,
-                    refreshToken: `refresh-${state.tokenCounter}`,
-                    expiresIn: 900,
-                    refreshExpiresIn: 604800,
-                });
             }
             if (path.startsWith('/v0/account/history')) {
                 const params = new URL(u).searchParams;
@@ -152,6 +132,43 @@ export function mockIntentsBackend() {
                 return json(200, {
                     items,
                     nextCursor: page + 1 < pages.length ? String(page + 1) : null,
+                });
+            }
+            return json(404, { message: `unexpected history path ${path}` });
+        }
+
+        if (u.startsWith(ONECLICK_TEST_URL)) {
+            const path = u.slice(ONECLICK_TEST_URL.length);
+            if (init.headers?.['x-api-key'] !== state.config.apiKey) {
+                return json(403, { message: 'invalid api key' });
+            }
+            if (path === '/v0/auth/authenticate') {
+                state.authenticateCalls++;
+                state.lastAuthBody = JSON.parse(init.body);
+                const sd = state.lastAuthBody.signedData;
+                if (sd?.standard !== 'nep413' || !sd.payload?.message || !sd.payload?.nonce
+                    || !sd.public_key?.startsWith('ed25519:') || !sd.signature?.startsWith('ed25519:')) {
+                    return json(400, { message: 'malformed signedData' });
+                }
+                state.tokenCounter++;
+                // `authResponse` lets a test return a malformed body (e.g. one
+                // with no accessToken) without hand-rolling a fetch stub.
+                return json(201, state.authResponse ?? {
+                    accessToken: `access-${state.tokenCounter}`,
+                    refreshToken: `refresh-${state.tokenCounter}`,
+                    expiresIn: 900,
+                    refreshExpiresIn: 604800,
+                });
+            }
+            if (path === '/v0/auth/refresh') {
+                state.refreshCalls++;
+                if (state.refreshStatus !== 200) return json(state.refreshStatus, { message: 'refresh rejected' });
+                state.tokenCounter++;
+                return json(201, {
+                    accessToken: `access-${state.tokenCounter}`,
+                    refreshToken: `refresh-${state.tokenCounter}`,
+                    expiresIn: 900,
+                    refreshExpiresIn: 604800,
                 });
             }
             return json(404, { message: `unexpected 1Click path ${path}` });
