@@ -6,6 +6,8 @@ import { rpcUrl } from './rpc.js';
 // captures (see scripts/intents-history-poc.mjs).
 
 export const ONECLICK_TEST_URL = 'https://oneclick.example.test';
+// History lives on a separate host from auth (see intentshistory.js HOST SPLIT).
+export const ONECLICK_HISTORY_TEST_URL = 'https://oneclick-history.example.test';
 
 /** Deterministic fake wallet that counts NEP-413 signatures. */
 export function signingWallet(accountId) {
@@ -62,7 +64,11 @@ export function historyItem(overrides = {}) {
 export function mockIntentsBackend() {
     const state = {
         configStatus: 200,
-        config: { apiUrl: ONECLICK_TEST_URL, apiKey: 'test-oneclick-key' },
+        config: {
+            apiUrl: ONECLICK_TEST_URL,
+            historyApiUrl: ONECLICK_HISTORY_TEST_URL,
+            apiKey: 'test-oneclick-key',
+        },
         salt: 'aabbccdd',
         // pages per filter: filter string -> array of pages (arrays of items)
         pages: {
@@ -100,6 +106,36 @@ export function mockIntentsBackend() {
             return json(200, { error: { message: `unexpected view ${body.params?.method_name}` } });
         }
 
+        if (u.startsWith(ONECLICK_HISTORY_TEST_URL)) {
+            const path = u.slice(ONECLICK_HISTORY_TEST_URL.length);
+            if (init.headers?.['x-api-key'] !== state.config.apiKey) {
+                return json(403, { message: 'invalid api key' });
+            }
+            if (path.startsWith('/v0/account/history')) {
+                const params = new URL(u).searchParams;
+                state.historyRequests.push({
+                    query: path,
+                    bearer: init.headers?.authorization?.replace('Bearer ', ''),
+                });
+                if (state.failBeforeSuccess > 0) {
+                    state.failBeforeSuccess--;
+                    return json(500, { message: 'AMQP Request failed' });
+                }
+                const filter = ['recipientType', 'depositType']
+                    .filter((k) => params.has(k))
+                    .map((k) => `${k}=${params.get(k)}`)
+                    .join('&');
+                const pages = state.pages[filter] ?? [[]];
+                const page = Number(params.get('nextCursor') ?? 0);
+                const items = pages[page] ?? [];
+                return json(200, {
+                    items,
+                    nextCursor: page + 1 < pages.length ? String(page + 1) : null,
+                });
+            }
+            return json(404, { message: `unexpected history path ${path}` });
+        }
+
         if (u.startsWith(ONECLICK_TEST_URL)) {
             const path = u.slice(ONECLICK_TEST_URL.length);
             if (init.headers?.['x-api-key'] !== state.config.apiKey) {
@@ -130,28 +166,6 @@ export function mockIntentsBackend() {
                     refreshToken: `refresh-${state.tokenCounter}`,
                     expiresIn: 900,
                     refreshExpiresIn: 604800,
-                });
-            }
-            if (path.startsWith('/v0/account/history')) {
-                const params = new URL(u).searchParams;
-                state.historyRequests.push({
-                    query: path,
-                    bearer: init.headers?.authorization?.replace('Bearer ', ''),
-                });
-                if (state.failBeforeSuccess > 0) {
-                    state.failBeforeSuccess--;
-                    return json(500, { message: 'AMQP Request failed' });
-                }
-                const filter = ['recipientType', 'depositType']
-                    .filter((k) => params.has(k))
-                    .map((k) => `${k}=${params.get(k)}`)
-                    .join('&');
-                const pages = state.pages[filter] ?? [[]];
-                const page = Number(params.get('nextCursor') ?? 0);
-                const items = pages[page] ?? [];
-                return json(200, {
-                    items,
-                    nextCursor: page + 1 < pages.length ? String(page + 1) : null,
                 });
             }
             return json(404, { message: `unexpected 1Click path ${path}` });

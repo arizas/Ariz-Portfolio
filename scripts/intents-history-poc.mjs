@@ -31,6 +31,10 @@ const env = { ...Object.fromEntries(
 
 const API_KEY = env.ONECLICK_API_KEY ?? env['1CLICK_API_KEY'];
 const BASE = env.ONECLICK_API_URL ?? 'https://1click.chaindefuser.com';
+// History lives on a separate, ungated Defuse host — the public 1Click host
+// answers /v0/account/history with 403 "History is invite-only for now".
+// The auth JWT (minted on BASE) authenticates against this host too.
+const HISTORY_BASE = env.ONECLICK_HISTORY_API_URL ?? 'https://q8v3n6.defuse.org';
 const RPC = env.NEAR_RPC_URL ?? 'https://rpc.mainnet.fastnear.com';
 if (!API_KEY) exit('missing 1CLICK_API_KEY / ONECLICK_API_KEY (in .env or env)');
 
@@ -105,11 +109,11 @@ async function buildAuthPayload(accountId) {
 }
 
 // ---- 1Click API -------------------------------------------------------------------
-async function api(path, { method = 'GET', body, bearer } = {}) {
+async function api(path, { method = 'GET', body, bearer, base = BASE } = {}) {
     const headers = { 'x-api-key': API_KEY };
     if (body) headers['content-type'] = 'application/json';
     if (bearer) headers.authorization = `Bearer ${bearer}`;
-    const res = await fetch(BASE + path, { method, headers, body: body && JSON.stringify(body) });
+    const res = await fetch(base + path, { method, headers, body: body && JSON.stringify(body) });
     const text = await res.text();
     let json; try { json = JSON.parse(text); } catch { json = { raw: text.slice(0, 300) }; }
     return { status: res.status, json };
@@ -147,7 +151,7 @@ async function fetchAndPrintHistory(bearer) {
         // with backoff before giving up.
         let last;
         for (let attempt = 0; attempt < 5; attempt++) {
-            last = await api(q, { bearer });
+            last = await api(q, { bearer, base: HISTORY_BASE });
             if (last.status < 500) break;
             console.log(`  (server ${last.status} on page ${page}, retry ${attempt + 1}…)`);
             await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
@@ -281,7 +285,7 @@ const server = http.createServer(async (req, res) => {
             // Single-page probe with arbitrary history filters — for bisecting
             // server-side 500s without burning wallet signatures.
             if (!lastBearer) throw new Error('no session yet — sign first');
-            const { status, json } = await api(`/v0/account/history?${url.searchParams.toString()}`, { bearer: lastBearer });
+            const { status, json } = await api(`/v0/account/history?${url.searchParams.toString()}`, { bearer: lastBearer, base: HISTORY_BASE });
             res.writeHead(200, { 'content-type': 'application/json' });
             return res.end(JSON.stringify({ status, count: json.items?.length, nextCursor: json.nextCursor ?? null, items: json.items ?? json }));
         }

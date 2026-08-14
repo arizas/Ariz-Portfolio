@@ -12,7 +12,12 @@ import {
     __resetForTests,
     __setSessionForTests,
 } from './intentshistory.js';
-import { mockIntentsBackend, signingWallet, historyItem } from './intentshistory.mock.js';
+import {
+    mockIntentsBackend,
+    signingWallet,
+    historyItem,
+    ONECLICK_HISTORY_TEST_URL,
+} from './intentshistory.mock.js';
 
 describe('intentshistory (1Click confidential history)', () => {
     let backend;
@@ -76,6 +81,26 @@ describe('intentshistory (1Click confidential history)', () => {
         expect(wallet.signatureCount).to.equal(1);
         // 2 pages + 1 page — pagination followed per filter.
         expect(backend.historyRequests.length).to.equal(3);
+    });
+
+    it('reads history from the dedicated history host, not the (invite-gated) auth host', async () => {
+        // Regression: the public 1Click host answers /v0/account/history with
+        // 403 "History is invite-only for now" — history must go to the
+        // separate host while the same JWT still authenticates it.
+        seedTypicalPages();
+
+        const items = await fetchConfidentialHistory();
+
+        expect(items.length).to.equal(4);
+        // Every history request the module made hit the history host.
+        expect(backend.historyRequests.length).to.equal(3);
+        expect(backend.historyRequests.every((r) => r.query.startsWith('/v0/account/history')))
+            .to.equal(true);
+        // The mock only serves /v0/account/history under ONECLICK_HISTORY_TEST_URL;
+        // that four items came back proves history was fetched from that host.
+        expect(ONECLICK_HISTORY_TEST_URL).to.not.equal(backend.config.apiUrl);
+        // Same bearer minted on the auth host authenticates the history host.
+        expect(backend.historyRequests[0].bearer).to.equal('access-1');
     });
 
     it('signs the exact trezu-style auth payload (message shape, recipient, nonce layout)', async () => {

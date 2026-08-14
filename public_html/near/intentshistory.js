@@ -14,8 +14,22 @@ import { callViewFunction } from './rpc.js';
 // Auth/nonce scheme mirrors NEAR-DevHub/trezu nt-be/examples/
 // check_confidential_balance.rs, verified end-to-end by
 // scripts/intents-history-poc.mjs.
+//
+// HOST SPLIT: `/v0/auth/*` (and balances) live on the public 1Click host
+// (`config.apiUrl`, e.g. https://1click.chaindefuser.com), but that host serves
+// `/v0/account/history` as an allowlisted preview — a non-invited account gets
+// `403 "History is invite-only for now"`. The history data itself lives on a
+// separate, ungated Defuse host, and the same JWT authenticates against both.
+// So we authenticate on `config.apiUrl` and read history from the history host.
+// Mirrors trezu nt-be/.../bronze/api.rs (`DEFAULT_HISTORY_BASE_URL`), which
+// deliberately points history at a different host than balances.
 
 export const INTENTS_CONTRACT_ID = 'intents.near';
+
+// Dedicated confidential-history host (trezu's DEFAULT_HISTORY_BASE_URL). The
+// gateway config may override it via `historyApiUrl`; otherwise this default is
+// used. NOT the public 1Click host — that one gates history behind an invite.
+export const CONFIDENTIAL_HISTORY_API_URL = 'https://q8v3n6.defuse.org';
 
 /** Confidential history needs ONECLICK_API_KEY configured on the gateway. */
 export class ConfidentialHistoryUnavailableError extends Error { }
@@ -134,11 +148,13 @@ export async function getIntentsApiConfig() {
 }
 
 // ---- 1Click API ------------------------------------------------------------------
-async function api(config, path, { method = 'GET', body, bearer } = {}) {
+// `base` overrides the host for endpoints that don't live on the auth host
+// (history — see the HOST SPLIT note at the top of the file).
+async function api(config, path, { method = 'GET', body, bearer, base } = {}) {
     const headers = { 'x-api-key': config.apiKey };
     if (body) headers['content-type'] = 'application/json';
     if (bearer) headers.authorization = `Bearer ${bearer}`;
-    const response = await fetch(config.apiUrl + path, {
+    const response = await fetch((base ?? config.apiUrl) + path, {
         method,
         headers,
         body: body && JSON.stringify(body),
@@ -222,6 +238,9 @@ export function historyItemKey(item) {
 }
 
 async function fetchHistoryPages(config, filter, byKey, { retryDelayMs, maxPages }) {
+    // History lives on the dedicated (ungated) host, not the auth host — see the
+    // HOST SPLIT note at the top of the file. The auth JWT works on both.
+    const base = config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
     let cursor = null;
     for (let page = 0; page < maxPages; page++) {
         const query = `/v0/account/history?limit=50&${filter}` +
@@ -230,7 +249,7 @@ async function fetchHistoryPages(config, filter, byKey, { retryDelayMs, maxPages
         // with backoff before giving up.
         let last;
         for (let attempt = 0; attempt < 5; attempt++) {
-            last = await api(config, query, { bearer: await obtainBearer(config) });
+            last = await api(config, query, { bearer: await obtainBearer(config), base });
             if (last.status < 500) break;
             await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (attempt + 1)));
         }
