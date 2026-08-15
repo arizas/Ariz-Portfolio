@@ -54,11 +54,12 @@ test('expanding the description resizes the table, collapsing it restores the he
     await page.setViewportSize({ width: 390, height: 844 });
     await loadTestAccountAndOpenTransactions(page);
 
+    const description = page.locator('transactions-page').locator('#pagedescription');
+    await expect(description).toHaveJSProperty('open', false);
     const collapsed = await measureTransactionsTable(page);
 
     // Reading the description is still possible on a phone, and the table
     // resizes around it instead of keeping a stale height.
-    const description = page.locator('transactions-page').locator('#pagedescription');
     await description.locator('summary').click();
     await expect(description).toHaveJSProperty('open', true);
 

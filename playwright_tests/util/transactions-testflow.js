@@ -15,14 +15,35 @@ export const TEST_ACCOUNT_ROW_COUNT = 3;
 
 /**
  * Follow a navbar link. At phone widths the navbar is collapsed behind the
- * hamburger button, so it has to be opened first.
+ * hamburger button, so it has to be opened first — and the app collapses it
+ * again after navigating.
+ *
+ * Both transitions are animated, and while the menu is open or closing the
+ * navbar is several rows tall and pushes the page content down, so wait for
+ * each to finish. Bootstrap marks a running transition with `collapsing` and
+ * only adds `show` once the menu is fully open.
+ *
+ * Waiting for `show` before clicking the link is what makes this reliable:
+ * Bootstrap's hide() is a no-op while the open transition runs, so a click that
+ * lands too early leaves the menu open for the rest of the test. Playwright's
+ * own actionability check does not catch it — the container animates its
+ * height with the links already at their final positions inside, so the link
+ * looks perfectly stable from the first frame.
  */
 export async function navigateTo(page, linkName) {
-    const navbarToggler = page.locator('app-near-account-report').locator('.navbar-toggler');
-    if (await navbarToggler.isVisible()) {
+    const navbar = page.locator('app-near-account-report');
+    const navbarToggler = navbar.locator('.navbar-toggler');
+    const navbarCollapse = navbar.locator('#navbarNavAltMarkup');
+
+    const collapsible = await navbarToggler.isVisible();
+    if (collapsible) {
         await navbarToggler.click();
+        await expect(navbarCollapse).toHaveClass(/\bshow\b/);
     }
     await page.getByRole('link', { name: linkName }).click();
+    if (collapsible) {
+        await expect(navbarCollapse).toBeHidden();
+    }
 }
 
 /**

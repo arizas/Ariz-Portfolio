@@ -107,11 +107,20 @@ customElements.define('transactions-page',
             this._onViewportChange = () => this._sizeTableViewport();
             window.addEventListener('resize', this._onViewportChange);
             window.addEventListener('orientationchange', this._onViewportChange);
+
+            // Anything that changes height above the table moves it, and the
+            // page height moves with it. The navbar is the case that matters:
+            // on mobile it is still animating shut when this page opens from
+            // the hamburger menu, so a height measured right then is a couple
+            // of hundred pixels short until the next resize.
+            this._documentResizeObserver = new ResizeObserver(this._onViewportChange);
+            this._documentResizeObserver.observe(document.documentElement);
         }
 
         disconnectedCallback() {
             window.removeEventListener('resize', this._onViewportChange);
             window.removeEventListener('orientationchange', this._onViewportChange);
+            this._documentResizeObserver?.disconnect();
         }
 
         /**
@@ -131,7 +140,13 @@ customElements.define('transactions-page',
             // Clamped: once the page is scrolled past the chrome the top goes
             // negative, which would otherwise inflate the height beyond a screenful.
             const top = Math.max(0, tableElement.getBoundingClientRect().top);
-            tableElement.style.height = (window.innerHeight - top) + 'px';
+            const height = (window.innerHeight - top) + 'px';
+            // Only write when it actually changes: this runs from a
+            // ResizeObserver on the document, and re-setting the height it just
+            // settled on would keep the observer firing.
+            if (tableElement.style.height !== height) {
+                tableElement.style.height = height;
+            }
         }
 
         async updateView(account) {
