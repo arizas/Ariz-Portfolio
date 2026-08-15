@@ -109,7 +109,11 @@ export default /*html*/ `<style>
     }
 </style>
 <h3>Transactions</h3>
-<details id="pagedescription" class="text-muted small mb-2">
+<!-- Ships open: on a roomy screen the summary below is hidden by CSS, so a
+     description that started closed and never got collapsed/expanded by the
+     component would have no control left to open it. The component collapses
+     it for phone-sized screens synchronously, before the first paint. -->
+<details id="pagedescription" class="text-muted small mb-2" open>
     <summary>About this page</summary>
     <p>Every balance-changing event for the selected account: NEAR, fungible tokens, NEAR Intents (public and confidential), and staking pool balances. Source is the raw worker records from the Ariz gateway, plus the confidential intents history (fetched per account on the <b>Accounts</b> page, stored only in your repository).</p>
 </details>

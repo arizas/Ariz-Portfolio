@@ -20,6 +20,15 @@ export default /*html*/ `<style>
             max-height: 100%;
         }
 
+        /* Floor for the JS-computed height: if the chrome above leaves less
+           room than this the document grows past the viewport, so the page
+           itself can be scrolled down to the table instead of clipping it.
+           Only the report table — the transaction modal injects a
+           .table-responsive of its own and should size to its content. */
+        #dailybalancescontainer {
+            min-height: 15rem;
+        }
+
         table thead,
         table tfoot {
             position: sticky;
@@ -115,7 +124,7 @@ export default /*html*/ `<style>
         </td>
     </tr>
 </template>
-<div class="table-responsive">
+<div class="table-responsive" id="dailybalancescontainer">
     <table class="table table-sm table-hover">
         <thead class="table-dark">
             <th scope="col">

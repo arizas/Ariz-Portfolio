@@ -3,6 +3,7 @@ import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol } from '../near/intents-tokens.js';
 import { renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
+import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 
 customElements.define('year-report-page',
     class extends HTMLElement {
@@ -89,6 +90,29 @@ customElements.define('year-report-page',
             return this.shadowRoot;
         }
 
+        connectedCallback() {
+            // Safe to run twice: custom elements get this on every insertion.
+            this._viewportLayout ??= onViewportLayoutChange(() => this._sizeTableViewport());
+        }
+
+        disconnectedCallback() {
+            this._viewportLayout?.stop();
+            this._viewportLayout = undefined;
+        }
+
+        /**
+         * Keep the daily-balance table filling the screen below its own top
+         * edge — including after a rotation, which a height computed once at
+         * render time does not survive.
+         *
+         * Addressed by id, not by class: the transaction modal injects a second
+         * `.table-responsive` into this same shadow root.
+         */
+        _sizeTableViewport() {
+            sizeToViewportBottom(this.shadowRoot.querySelector('#dailybalancescontainer'),
+                { hasContent: this.shadowRoot.querySelector('#dailybalancestable')?.childElementCount > 0 });
+        }
+
         async updateView(convertToCurrency, numDecimals, token) {
             this.convertToCurrency = convertToCurrency;
             this.numDecimals = numDecimals;
@@ -140,9 +164,9 @@ ${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}<
                 `;
                         this.showTransactionsModal.show();
                     });
-                    const tableElement = this.shadowRoot.querySelector('.table-responsive');
-                    tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
                 }
             });
+            // Once, after the table is built — not once per rendered row.
+            this._sizeTableViewport();
         }
     });

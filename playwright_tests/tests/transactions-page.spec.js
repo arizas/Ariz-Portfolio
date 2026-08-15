@@ -35,6 +35,13 @@ test('Transactions page renders FT + Intents records, not just NEAR', async ({ p
   const rows = page.locator('transactions-page').locator('#transactionstable tr');
   expect(await rows.count()).toBe(TEST_ACCOUNT_ROW_COUNT);
 
+  // At this width the description's <summary> is hidden by CSS, so the
+  // description has to be expanded — collapsed, there would be no control left
+  // to open it and the text would be unreachable.
+  const description = page.locator('transactions-page').locator('#pagedescription');
+  await expect(description).toHaveJSProperty('open', true);
+  await expect(description.locator('p')).toBeVisible();
+
   // Distinct token_ids cover NEAR + FT + Intents (staking pool is filtered out)
   const rawTokenIds = await page.locator('transactions-page').locator('.txrow_token_id').allTextContents();
   const uniqueTokenIds = new Set(rawTokenIds);

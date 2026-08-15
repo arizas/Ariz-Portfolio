@@ -1,6 +1,7 @@
 import { getAccounts, getRecordsForAccount } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol, resolveDecimals } from '../near/intents-tokens.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
+import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 import html from './transactions-page.component.html.js';
 
 const NEAR_DECIMALS = 24;
@@ -59,6 +60,12 @@ customElements.define('transactions-page',
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
+            // The description is collapsed on phone-sized screens so the table
+            // starts near the top, and expanded when there is room to spare
+            // (where its summary is hidden by CSS, so the page reads as before).
+            // The query has to match the one in the stylesheet.
+            this._roomyScreen = window.matchMedia('(min-width: 768px) and (min-height: 600px)');
+            this._onRoomyScreenChange = () => this._syncDescriptionToScreen();
             this.readyPromise = this.loadHTML();
         }
 
@@ -67,6 +74,19 @@ customElements.define('transactions-page',
             this.transactionsTable = this.shadowRoot.getElementById('transactionstable');
             this.emptyState = this.shadowRoot.getElementById('emptystate');
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            // Collapse the description before anything here can await. The
+            // markup ships it open, because on a roomy screen its summary is
+            // hidden by CSS and a description left closed there would have no
+            // control to open it — so if this component never gets past its
+            // first await it fails to the readable state, not the unreachable
+            // one. Nothing has been painted yet at this point (the constructor
+            // runs during createElement), so the phone layout never flashes the
+            // expanded version.
+            const description = this.shadowRoot.querySelector('#pagedescription');
+            this._syncDescriptionToScreen();
+            // Expanding/collapsing moves the table, so it needs a new height.
+            description.addEventListener('toggle', () => this._sizeTableViewport());
 
             const accountselect = this.shadowRoot.querySelector('#accountselect');
             const accounts = await getAccounts();
@@ -84,43 +104,34 @@ customElements.define('transactions-page',
             // changes — no refetch, just a different view of the same data.
             this.tokenselect.addEventListener('change', () => this._renderTable());
 
-            // The description is collapsed on phone-sized screens so the table
-            // starts near the top, and expanded when there is room to spare
-            // (where its summary is hidden by CSS, so the page reads as before).
-            // The query has to match the one in the stylesheet.
-            const description = this.shadowRoot.querySelector('#pagedescription');
-            const roomyScreen = window.matchMedia('(min-width: 768px) and (min-height: 600px)');
-            description.open = roomyScreen.matches;
-            roomyScreen.addEventListener('change', () => {
-                description.open = roomyScreen.matches;
-                this._sizeTableViewport();
-            });
-            // Expanding/collapsing moves the table, so it needs a new height.
-            description.addEventListener('toggle', () => this._sizeTableViewport());
-
-            this._sizeTableViewport();
-
             return this.shadowRoot;
         }
 
         connectedCallback() {
-            this._onViewportChange = () => this._sizeTableViewport();
-            window.addEventListener('resize', this._onViewportChange);
-            window.addEventListener('orientationchange', this._onViewportChange);
-
-            // Anything that changes height above the table moves it, and the
-            // page height moves with it. The navbar is the case that matters:
-            // on mobile it is still animating shut when this page opens from
-            // the hamburger menu, so a height measured right then is a couple
-            // of hundred pixels short until the next resize.
-            this._documentResizeObserver = new ResizeObserver(this._onViewportChange);
-            this._documentResizeObserver.observe(document.documentElement);
+            // Custom elements get connectedCallback on every insertion, a move
+            // within the DOM included, so this has to be safe to run twice:
+            // reinstalling the observer would orphan the previous one, and its
+            // listeners would keep firing on a detached component.
+            this._viewportLayout ??= onViewportLayoutChange(() => this._sizeTableViewport());
+            // Same handler reference every time, so a repeat add is a no-op.
+            this._roomyScreen.addEventListener('change', this._onRoomyScreenChange);
         }
 
         disconnectedCallback() {
-            window.removeEventListener('resize', this._onViewportChange);
-            window.removeEventListener('orientationchange', this._onViewportChange);
-            this._documentResizeObserver?.disconnect();
+            this._viewportLayout?.stop();
+            this._viewportLayout = undefined;
+            this._roomyScreen.removeEventListener('change', this._onRoomyScreenChange);
+        }
+
+        /**
+         * Match the description's expanded state to the screen. Writing `open`
+         * fires a `toggle` event, whose handler resizes the table — no need to
+         * do that here as well.
+         */
+        _syncDescriptionToScreen() {
+            const description = this.shadowRoot.querySelector('#pagedescription');
+            if (!description) return;
+            description.open = this._roomyScreen.matches;
         }
 
         /**
@@ -128,25 +139,10 @@ customElements.define('transactions-page',
          * top edge and the bottom of the screen. Recomputed whenever the layout
          * changes (resize, rotation, description toggle) — a fixed height set
          * once at render time is wrong as soon as the phone is rotated.
-         *
-         * The height is only a lower bound on what the user can reach: when the
-         * chrome above is tall enough that less than the CSS `min-height` is
-         * left, the container keeps that minimum and the document simply grows
-         * past the viewport, so the page scrolls down to the table.
          */
         _sizeTableViewport() {
-            const tableElement = this.shadowRoot.querySelector('.table-responsive');
-            if (!tableElement) return;
-            // Clamped: once the page is scrolled past the chrome the top goes
-            // negative, which would otherwise inflate the height beyond a screenful.
-            const top = Math.max(0, tableElement.getBoundingClientRect().top);
-            const height = (window.innerHeight - top) + 'px';
-            // Only write when it actually changes: this runs from a
-            // ResizeObserver on the document, and re-setting the height it just
-            // settled on would keep the observer firing.
-            if (tableElement.style.height !== height) {
-                tableElement.style.height = height;
-            }
+            sizeToViewportBottom(this.shadowRoot.querySelector('.table-responsive'),
+                { hasContent: this._renderedRowCount > 0 });
         }
 
         async updateView(account) {
@@ -246,6 +242,8 @@ customElements.define('transactions-page',
             if (!this._hasAnyRecords) {
                 this.emptyState.style.display = '';
                 this.emptyState.textContent = `No records for ${this._account}. Visit the Accounts page and click "load from server" to fetch.`;
+                this._renderedRowCount = 0;
+                this._sizeTableViewport();
                 return;
             }
             this.emptyState.style.display = 'none';
@@ -266,7 +264,10 @@ customElements.define('transactions-page',
             const rowTemplate = this.shadowRoot.querySelector('#transactionrowtemplate');
 
             // Pre-size the scroll container before any rows append so the
-            // sticky header doesn't jump as chunks arrive.
+            // sticky header doesn't jump as chunks arrive. The count is what
+            // tells the sizer there is something to scroll — the rows
+            // themselves are still to come.
+            this._renderedRowCount = sorted.length;
             this._sizeTableViewport();
 
             // Chunked render: large accounts (20k+ records) would block the
