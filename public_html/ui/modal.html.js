@@ -9,9 +9,15 @@ export const modalTemplate = (modalcontent) => /*html*/ `<style>
         margin: auto;
         z-index: 1000;
         background-color: rgba(255, 255, 255, 0.7);
+        /* Allow the overlay itself to scroll if the modal is taller than the
+           viewport, so the buttons stay reachable on small/mobile screens. */
+        overflow-y: auto;
+        padding: 10px;
+        box-sizing: border-box;
     }
     .modaldiv {
         margin: auto;
+        box-sizing: border-box;
         text-align: center;
         padding: 20px;
         background-color: rgba(0, 0, 0, 0.8);
@@ -20,7 +26,18 @@ export const modalTemplate = (modalcontent) => /*html*/ `<style>
         font-family: monospace;
         font-size: 20px;
         max-width: 800px;
+        /* Keep the modal within the viewport and scroll its own content when
+           it does not fit, so buttons at the bottom are always accessible. */
+        max-height: 100%;
+        overflow-y: auto;
         border-radius: 50px;
+    }
+    @media (max-height: 700px), (max-width: 600px) {
+        .modaldiv {
+            padding: 15px;
+            font-size: 17px;
+            border-radius: 20px;
+        }
     }
     button, textarea, select {
         font-family: monospace;
