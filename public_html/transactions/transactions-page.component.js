@@ -84,7 +84,54 @@ customElements.define('transactions-page',
             // changes — no refetch, just a different view of the same data.
             this.tokenselect.addEventListener('change', () => this._renderTable());
 
+            // The description is collapsed on phone-sized screens so the table
+            // starts near the top, and expanded when there is room to spare
+            // (where its summary is hidden by CSS, so the page reads as before).
+            // The query has to match the one in the stylesheet.
+            const description = this.shadowRoot.querySelector('#pagedescription');
+            const roomyScreen = window.matchMedia('(min-width: 768px) and (min-height: 600px)');
+            description.open = roomyScreen.matches;
+            roomyScreen.addEventListener('change', () => {
+                description.open = roomyScreen.matches;
+                this._sizeTableViewport();
+            });
+            // Expanding/collapsing moves the table, so it needs a new height.
+            description.addEventListener('toggle', () => this._sizeTableViewport());
+
+            this._sizeTableViewport();
+
             return this.shadowRoot;
+        }
+
+        connectedCallback() {
+            this._onViewportChange = () => this._sizeTableViewport();
+            window.addEventListener('resize', this._onViewportChange);
+            window.addEventListener('orientationchange', this._onViewportChange);
+        }
+
+        disconnectedCallback() {
+            window.removeEventListener('resize', this._onViewportChange);
+            window.removeEventListener('orientationchange', this._onViewportChange);
+        }
+
+        /**
+         * Size the scroll container so the table fills the space between its own
+         * top edge and the bottom of the screen. Recomputed whenever the layout
+         * changes (resize, rotation, description toggle) — a fixed height set
+         * once at render time is wrong as soon as the phone is rotated.
+         *
+         * The height is only a lower bound on what the user can reach: when the
+         * chrome above is tall enough that less than the CSS `min-height` is
+         * left, the container keeps that minimum and the document simply grows
+         * past the viewport, so the page scrolls down to the table.
+         */
+        _sizeTableViewport() {
+            const tableElement = this.shadowRoot.querySelector('.table-responsive');
+            if (!tableElement) return;
+            // Clamped: once the page is scrolled past the chrome the top goes
+            // negative, which would otherwise inflate the height beyond a screenful.
+            const top = Math.max(0, tableElement.getBoundingClientRect().top);
+            tableElement.style.height = (window.innerHeight - top) + 'px';
         }
 
         async updateView(account) {
@@ -205,8 +252,7 @@ customElements.define('transactions-page',
 
             // Pre-size the scroll container before any rows append so the
             // sticky header doesn't jump as chunks arrive.
-            const tableElement = this.shadowRoot.querySelector('.table-responsive');
-            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+            this._sizeTableViewport();
 
             // Chunked render: large accounts (20k+ records) would block the
             // main thread for seconds if rendered in one pass. Build chunks

@@ -1,0 +1,93 @@
+import { expect } from '@playwright/test';
+import { setupApiMocks } from './api-mocks.js';
+
+/**
+ * Shared driving code for the Transactions page end-to-end tests.
+ *
+ * The fixture account is the synthetic V2 export in
+ * testdata/accountingexport/accounts_tx-page-test.near_download_json.json,
+ * with a known mix of NEAR + FT + Intents + staking-pool records.
+ */
+export const TEST_ACCOUNT = 'tx-page-test.near';
+
+/** Number of records in the fixture that end up as table rows. */
+export const TEST_ACCOUNT_ROW_COUNT = 3;
+
+/**
+ * Follow a navbar link. At phone widths the navbar is collapsed behind the
+ * hamburger button, so it has to be opened first.
+ */
+export async function navigateTo(page, linkName) {
+    const navbarToggler = page.locator('app-near-account-report').locator('.navbar-toggler');
+    if (await navbarToggler.isVisible()) {
+        await navbarToggler.click();
+    }
+    await page.getByRole('link', { name: linkName }).click();
+}
+
+/**
+ * Add the fixture account from the Accounts page, load its records from the
+ * (mocked) gateway, then open the Transactions page for it.
+ */
+export async function loadTestAccountAndOpenTransactions(page) {
+    await setupApiMocks(page);
+
+    await page.goto('/');
+
+    await navigateTo(page, 'Accounts');
+    await page.getByRole('button', { name: 'Add account' }).click();
+    await page.getByRole('textbox').fill(TEST_ACCOUNT);
+    await page.getByRole('button', { name: 'load from server' }).click();
+
+    const progressbar = page.locator('progress-bar');
+    try {
+        await progressbar.waitFor({ state: 'visible', timeout: 10_000 });
+    } catch {
+        // The load may already have finished before we got here.
+    }
+    // The progress bar is a fixed full-screen overlay, so nothing else is
+    // clickable until it is gone.
+    await progressbar.waitFor({ state: 'hidden', timeout: 90_000 });
+    await page.waitForTimeout(2000);
+
+    await navigateTo(page, 'Transactions');
+
+    const accountSelect = page.locator('transactions-page').locator('#accountselect');
+    await expect(accountSelect).toBeVisible();
+    await accountSelect.selectOption(TEST_ACCOUNT);
+    await expect(page.locator('transactions-page').locator('#transactionstable tr'))
+        .toHaveCount(TEST_ACCOUNT_ROW_COUNT);
+}
+
+/** Geometry of the table scroll container, measured in viewport coordinates. */
+export function measureTransactionsTable(page) {
+    return page.evaluate(() => {
+        // The page component lives inside the app shell's shadow root.
+        const appRoot = document.querySelector('app-near-account-report').shadowRoot;
+        const shadowRoot = appRoot.querySelector('transactions-page').shadowRoot;
+        const container = shadowRoot.querySelector('.table-responsive');
+        const headerRow = shadowRoot.querySelector('table thead tr');
+        const bodyRow = shadowRoot.querySelector('#transactionstable tr');
+        const { top, height } = container.getBoundingClientRect();
+        return {
+            top,
+            visibleHeight: height,
+            headerHeight: headerRow.getBoundingClientRect().height,
+            rowHeight: bodyRow.getBoundingClientRect().height,
+            viewportHeight: window.innerHeight,
+            descriptionOpen: shadowRoot.querySelector('#pagedescription').open,
+        };
+    });
+}
+
+/**
+ * The whole table has to be reachable: either it ends at the bottom of the
+ * screen, or it keeps its CSS minimum height and the document has grown past
+ * the viewport, so the page itself scrolls down to it.
+ */
+export async function expectTableReachable(page, table) {
+    const documentScrollable = await page.evaluate(() =>
+        document.documentElement.scrollHeight > window.innerHeight);
+    const fitsOnScreen = table.top + table.visibleHeight <= table.viewportHeight + 1;
+    expect(fitsOnScreen || documentScrollable).toBe(true);
+}
