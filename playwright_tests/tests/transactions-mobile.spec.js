@@ -44,7 +44,7 @@ for (const viewport of [
         const visibleRows = (table.visibleHeight - table.headerHeight) / table.rowHeight;
         expect(visibleRows).toBeGreaterThanOrEqual(6);
 
-        await expectTableReachable(page, table);
+        expectTableReachable(table);
     });
 }
 
@@ -65,7 +65,7 @@ test('expanding the description resizes the table, collapsing it restores the he
 
     const expanded = await measureTransactionsTable(page);
     expect(expanded.top).toBeGreaterThan(collapsed.top);
-    await expectTableReachable(page, expanded);
+    expectTableReachable(expanded);
 
     await description.locator('summary').click();
     await expect(description).toHaveJSProperty('open', false);
@@ -83,11 +83,10 @@ test('rotating to landscape resizes the table to the new viewport', async ({ pag
     const portrait = await measureTransactionsTable(page);
 
     await page.setViewportSize({ width: 844, height: 390 });
-    await page.waitForTimeout(200);
     const landscape = await measureTransactionsTable(page);
 
     // The height used to be computed once at render time, so after a rotation
     // the table kept its portrait height and hung far below the screen.
     expect(landscape.visibleHeight).toBeLessThan(portrait.visibleHeight);
-    await expectTableReachable(page, landscape);
+    expectTableReachable(landscape);
 });

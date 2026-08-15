@@ -80,12 +80,30 @@ export async function loadTestAccountAndOpenTransactions(page) {
         .toHaveCount(TEST_ACCOUNT_ROW_COUNT);
 }
 
-/** Geometry of the table scroll container, measured in viewport coordinates. */
-export function measureTransactionsTable(page) {
-    return page.evaluate(() => {
-        // The page component lives inside the app shell's shadow root.
-        const appRoot = document.querySelector('app-near-account-report').shadowRoot;
-        const shadowRoot = appRoot.querySelector('transactions-page').shadowRoot;
+/**
+ * Geometry of the table scroll container, measured in viewport coordinates.
+ *
+ * The component sizes the container to the space below it, and re-does that
+ * whenever the layout above changes — so a measurement taken mid-adjustment
+ * catches a new position with the old height. Wait for the height to agree with
+ * the position first, and take everything, page scrollability included, in a
+ * single evaluate so the whole snapshot describes one instant.
+ */
+export async function measureTransactionsTable(page) {
+    // The page component lives inside the app shell's shadow root.
+    const pageRoot = `document.querySelector('app-near-account-report').shadowRoot
+        .querySelector('transactions-page').shadowRoot`;
+
+    await page.waitForFunction(`(() => {
+        const container = ${pageRoot}.querySelector('.table-responsive');
+        const { top, height } = container.getBoundingClientRect();
+        const available = window.innerHeight - Math.max(0, top);
+        const floor = parseFloat(getComputedStyle(container).minHeight) || 0;
+        return Math.abs(height - Math.max(available, floor)) < 1;
+    })()`);
+
+    return page.evaluate(`(() => {
+        const shadowRoot = ${pageRoot};
         const container = shadowRoot.querySelector('.table-responsive');
         const headerRow = shadowRoot.querySelector('table thead tr');
         const bodyRow = shadowRoot.querySelector('#transactionstable tr');
@@ -97,8 +115,9 @@ export function measureTransactionsTable(page) {
             rowHeight: bodyRow.getBoundingClientRect().height,
             viewportHeight: window.innerHeight,
             descriptionOpen: shadowRoot.querySelector('#pagedescription').open,
+            documentScrollable: document.documentElement.scrollHeight > window.innerHeight,
         };
-    });
+    })()`);
 }
 
 /**
@@ -106,9 +125,7 @@ export function measureTransactionsTable(page) {
  * screen, or it keeps its CSS minimum height and the document has grown past
  * the viewport, so the page itself scrolls down to it.
  */
-export async function expectTableReachable(page, table) {
-    const documentScrollable = await page.evaluate(() =>
-        document.documentElement.scrollHeight > window.innerHeight);
+export function expectTableReachable(table) {
     const fitsOnScreen = table.top + table.visibleHeight <= table.viewportHeight + 1;
-    expect(fitsOnScreen || documentScrollable).toBe(true);
+    expect(fitsOnScreen || table.documentScrollable).toBe(true);
 }
