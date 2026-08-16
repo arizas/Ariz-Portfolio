@@ -156,6 +156,32 @@ export default /*html*/ `
     .legend-swatch.liquid { background: #2a78d6; }
     .legend-swatch.staked { background: #1baf7a; }
 
+    /* Concentration — economic assets, not tokens. See asset-groups.js. */
+    .conc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 0.75rem; margin-bottom: 0.6rem; }
+    .conc-head .value { font-size: 1.35rem; font-weight: 600; line-height: 1.2; }
+    .conc-head .cap { font-size: 0.78rem; color: #6c757d; }
+    .conc-row { display: grid; grid-template-columns: minmax(84px, auto) 1fr minmax(52px, auto) minmax(76px, auto);
+        align-items: center; gap: 0.5rem 0.75rem; padding: 0.3rem 0; }
+    .conc-row + .conc-row { border-top: 1px solid rgba(0,0,0,0.05); }
+    .conc-name { font-weight: 600; }
+    .conc-members { font-size: 0.75rem; color: #6c757d; font-weight: 400; }
+    .conc-track { background: rgba(42,120,214,0.12); border-radius: 3px; height: 8px; overflow: hidden; }
+    .conc-fill { background: #2a78d6; height: 100%; border-radius: 3px; }
+    .conc-pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .conc-val { text-align: right; font-variant-numeric: tabular-nums; color: #6c757d; font-size: 0.85rem; }
+    #risk { margin-top: 0.6rem; }
+    .risk-body { padding: 0.9rem 1.1rem; }
+    .risk-lead { font-size: 0.95rem; line-height: 1.6; }
+    .risk-lead strong { font-weight: 600; }
+    .risk-curve { display: grid; grid-template-columns: auto auto 1fr; gap: 0.15rem 0.6rem;
+        align-items: baseline; margin-top: 0.7rem; font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+    .risk-curve .arrow { color: #adb5bd; }
+    .risk-curve .cut { color: #6c757d; font-size: 0.82rem; }
+    @media (max-width: 560px) {
+        .conc-row { grid-template-columns: 1fr minmax(52px, auto) minmax(76px, auto); }
+        .conc-track { grid-column: 1 / -1; order: 3; }
+    }
+
     .chart-canvas { position: relative; flex: 1 1 auto; min-height: 210px; }
     .chart-empty {
         display: flex; align-items: center; justify-content: center;
@@ -185,6 +211,9 @@ export default /*html*/ `
 
     @media (prefers-color-scheme: dark) {
         .card-surface, .holding-card { background: #1e1e1e; border-color: #343a40; }
+        .conc-row + .conc-row { border-top-color: rgba(255,255,255,0.07); }
+        .conc-track { background: rgba(57,135,229,0.18); }
+        .conc-fill { background: #3987e5; }
         .holding-card.excluded { background: #161616; }
         .metric-card.result { background: #15321f; border-color: #1f5132; }
         .hero-sub { color: #ced4da; }
@@ -233,8 +262,14 @@ export default /*html*/ `
         </div>
     </div>
 
+    <div id="concentration-section" hidden>
+        <div class="section-label">Concentration · by economic asset</div>
+        <div id="concentration" class="card-surface"></div>
+        <div id="risk" class="card-surface" hidden></div>
+    </div>
+
     <div id="holdings-section" hidden>
-        <div class="section-label">Holdings</div>
+        <div class="section-label">Holdings · by token</div>
         <div id="holdings"></div>
         <div id="excluded-note" class="portfolio-note" hidden></div>
     </div>

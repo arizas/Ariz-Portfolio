@@ -1,6 +1,9 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import { calculatePortfolio, calculatePortfolioSeries } from './portfolio-data.js';
 import { renderPortfolioChart } from './portfolio-chart.js';
+import { groupHoldings, effectivePositions } from './asset-groups.js';
+import { computeRisk } from './portfolio-risk.js';
+import { getEODPriceMap } from '../pricedata/pricedata.js';
 import html from './portfolio-page.component.html.js';
 
 const PREFERRED_DEFAULT_CURRENCY = 'nok';
@@ -25,6 +28,11 @@ customElements.define('portfolio-page',
             this.valueChart = this.shadowRoot.querySelector('#value-chart');
             this.holdingsEl = this.shadowRoot.querySelector('#holdings');
             this.holdingsSection = this.shadowRoot.querySelector('#holdings-section');
+            this.concentrationSection = this.shadowRoot.querySelector('#concentration-section');
+            this.concentrationEl = this.shadowRoot.querySelector('#concentration');
+            this.riskEl = this.shadowRoot.querySelector('#risk');
+            // Seam so the risk panel can be tested without OPFS or the network.
+            this.__getEODPriceMap = getEODPriceMap;
             this.excludedNoteEl = this.shadowRoot.querySelector('#excluded-note');
             this.currencySelect = this.shadowRoot.querySelector('#currencyselect');
             this.fromMonthSelect = this.shadowRoot.querySelector('#frommonthselect');
@@ -111,6 +119,7 @@ customElements.define('portfolio-page',
                 this.setBusy(false, '');
                 // Value-over-time chart reuses the (now cached) heavy computation.
                 await this.renderChart(force);
+                await this.renderRisk(portfolio);
             } catch (e) {
                 console.error('Failed to calculate portfolio', e);
                 this.setBusy(false, '');
@@ -214,6 +223,8 @@ customElements.define('portfolio-page',
                 </div>
             `;
 
+            this.renderConcentration(portfolio, money);
+
             // Holdings (liquid), with a dedicated staked row on top when present.
             this.holdingsSection.hidden = false;
             const maxValue = Math.max(1, ...portfolio.holdings.map(h => h.value ?? 0));
@@ -251,6 +262,129 @@ customElements.define('portfolio-page',
             } else {
                 this.excludedNoteEl.hidden = true;
             }
+        }
+
+        // Concentration by economic asset. The holdings table below lists one row
+        // per token, which is right for cost basis and wrong for exposure: NEAR,
+        // wNEAR, stNEAR and staked NEAR are four rows and one position.
+        renderConcentration(portfolio, money) {
+            const { groups, total, unpriced, herfindahl } = groupHoldings(portfolio);
+            if (!groups.length) {
+                this.concentrationSection.hidden = true;
+                return;
+            }
+            this.concentrationSection.hidden = false;
+            const effective = effectivePositions(herfindahl);
+            const top = groups[0];
+            const rows = groups.map(g => {
+                const members = g.members.length > 1
+                    ? `<span class="conc-members">${escapeHtml(g.members.map(m => m.displaySymbol).join(' + '))}</span>`
+                    : '';
+                return `
+                <div class="conc-row">
+                    <div class="conc-name">${escapeHtml(g.asset)}${members ? `<br>${members}` : ''}</div>
+                    <div class="conc-track"><div class="conc-fill" style="width:${(g.weight * 100).toFixed(1)}%"></div></div>
+                    <div class="conc-pct">${(g.weight * 100).toFixed(1)}%</div>
+                    <div class="conc-val">${money(g.value)}</div>
+                </div>`;
+            }).join('');
+            // The hero total deliberately leaves liquid-staking tokens out (they are
+            // reported against the staking line instead), so this panel's total is
+            // larger. Say so rather than leaving two different totals on one page.
+            const excluded = (portfolio.holdings ?? []).filter(h => h.excluded && h.value > 0);
+            const excludedNote = excluded.length
+                ? `<div class="footnote">This total is ${money(excluded.reduce((a, h) => a + h.value, 0))} higher than `
+                    + `<em>Total value now</em> above, which reports `
+                    + `${escapeHtml(excluded.map(h => h.displaySymbol).join(', '))} against the staking line instead of in the total.</div>`
+                : '';
+            const unpricedNote = unpriced.length
+                ? `<div class="footnote">No current price, so left out of the weights: `
+                    + `${escapeHtml(unpriced.map(u => u.displaySymbol).join(', '))}.</div>`
+                : '';
+            this.concentrationEl.innerHTML = `
+                <div style="padding:0.9rem 1.1rem">
+                    <div class="conc-head">
+                        <span class="value">${escapeHtml(top.asset)} ${(top.weight * 100).toFixed(1)}%</span>
+                        <span class="cap">largest exposure · ${effective != null ? `equivalent to ${effective.toFixed(1)} equally weighted position${effective.toFixed(1) === '1.0' ? '' : 's'}` : ''} · ${money(total)} total</span>
+                    </div>
+                    ${rows}
+                    ${excludedNote}
+                    ${unpricedNote}
+                    <div class="footnote">
+                        Grouped by economic asset, so a wrapper or liquid-staking token counts as its
+                        underlying and staked NEAR counts as NEAR. The holdings list below stays per token,
+                        because cost basis and tax follow the token, not the exposure.
+                    </div>
+                </div>`;
+        }
+
+        // What the concentration costs in risk terms. Async because it needs a
+        // price series per exposure; failures are silent-but-visible (the block
+        // simply stays hidden) since this is context, not a number the page owes.
+        async renderRisk(portfolio) {
+            const { groups } = groupHoldings(portfolio);
+            if (groups.length < 1) { this.riskEl.hidden = true; return; }
+            const currency = portfolio.currency;
+
+            const series = new Map();
+            await Promise.all(groups.map(async g => {
+                // Price the exposure with its largest member that has a token id;
+                // a group that is only staked NEAR falls back to native NEAR.
+                const member = g.members.find(m => m.token != null) ?? g.members[0];
+                try {
+                    const map = await this.__getEODPriceMap(currency, member?.token ?? '');
+                    if (map && Object.keys(map).some(k => /^\d{4}-/.test(k))) series.set(g.asset, map);
+                } catch { /* leave it out; computeRisk reports what it omitted */ }
+            }));
+
+            const risk = computeRisk(groups, series);
+            if (!risk) { this.riskEl.hidden = true; return; }
+            this.riskEl.hidden = false;
+
+            // Never round a share up to 100 %: the other positions do contribute,
+            // and "100 % of the risk" would be a false statement about them.
+            const pct = (v, d = 0) => {
+                let shown = (v * 100).toFixed(d);
+                // A share below 1 must never round up to 100 %: the other positions
+                // do contribute, and "100 % of the risk" would be false about them.
+                if (v < 1 && Number(shown) >= 100) shown = (100 - 10 ** -d).toFixed(d);
+                return `${shown}\u00a0%`;
+            };
+            const top = [...risk.assets].sort((a, b) => b.riskShare - a.riskShare)[0];
+            const diversified = risk.diversification != null && risk.diversification > 1.02
+                ? `Holding them together removes <strong>${pct(1 - 1 / risk.diversification)}</strong> of the volatility you would carry holding each on its own.`
+                : `Holding them together removes <strong>almost none</strong> of the volatility you would carry holding each on its own.`;
+            const concentrationLine = risk.assets.length > 1
+                ? `<strong>${escapeHtml(top.asset)}</strong> accounts for <strong>${pct(top.riskShare, 1)}</strong> of that risk on ${pct(top.weight, 1)} of the money. `
+                : '';
+
+            const curve = risk.curve.length > 1 ? `
+                <div class="risk-curve">
+                    ${risk.curve.slice(1).map(pt => `
+                        <span class="cut">${escapeHtml(top.asset)} at ${pct(pt.weight)}</span>
+                        <span class="arrow">&rarr;</span>
+                        <span>${pct(pt.vol)} per year</span>
+                    `).join('')}
+                </div>
+                <div class="footnote">
+                    What the same money would have swung by at other weights, spreading the
+                    difference across everything else you hold. A description of the past,
+                    not a projection — and it says nothing about return.
+                </div>` : '';
+
+            this.riskEl.innerHTML = `
+                <div class="risk-body">
+                    <div class="section-label" style="margin-top:0">Risk · what this mix has swung by</div>
+                    <div class="risk-lead">
+                        Portfolio volatility <strong>${pct(risk.portfolioVol)} per year</strong>.
+                        ${concentrationLine}${diversified}
+                    </div>
+                    ${curve}
+                    <div class="footnote">
+                        ${risk.observations} daily closes, ${escapeHtml(risk.from)} to ${escapeHtml(risk.to)}, annualised on calendar time.
+                        ${risk.omitted.length ? `No price history for ${escapeHtml(risk.omitted.join(', '))}, so they are left out.` : ''}
+                    </div>
+                </div>`;
         }
 
         renderHolding(h, money, maxValue) {
