@@ -13,6 +13,10 @@ export default /*html*/ `<style>
 
     .table-responsive {
         max-height: 100%;
+        /* Floor for the JS-computed height: if the chrome above leaves less
+           room than this the document grows past the viewport, so the page
+           itself can be scrolled down to the table instead of clipping it. */
+        min-height: 15rem;
     }
 
     table thead,

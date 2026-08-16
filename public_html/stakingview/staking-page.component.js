@@ -2,6 +2,7 @@ import { getCurrencyList, getEODPrice } from '../pricedata/pricedata.js';
 import { getStakingAccounts } from '../near/stakingpool.js';
 
 import { getAccounts, getStakingRewardsForAccountAndPool } from '../storage/domainobjectstore.js';
+import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 import html from './staking-page.component.html.js';
 
 customElements.define('staking-page',
@@ -43,6 +44,26 @@ customElements.define('staking-page',
             currencyselect.addEventListener('change', viewSettingsChange);
 
             return this.shadowRoot;
+        }
+
+        connectedCallback() {
+            // Safe to run twice: custom elements get this on every insertion.
+            this._viewportLayout ??= onViewportLayoutChange(() => this._sizeTableViewport());
+        }
+
+        disconnectedCallback() {
+            this._viewportLayout?.stop();
+            this._viewportLayout = undefined;
+        }
+
+        /**
+         * Keep the rewards table filling the screen below its own top edge —
+         * including after a rotation, which a height computed once at render
+         * time does not survive.
+         */
+        _sizeTableViewport() {
+            sizeToViewportBottom(this.shadowRoot.querySelector('.table-responsive'),
+                { hasContent: this.stakingRewardsTable?.childElementCount > 0 });
         }
 
         async updateView(account, convertToCurrency, numDecimals) {
@@ -89,12 +110,12 @@ customElements.define('staking-page',
                         this.stakingRewardsTable.appendChild(stakingRewardRow);
                     }
                     this.shadowRoot.querySelector('#totalEarnings').innerHTML = totalEarnings.toFixed(numDecimals);
-
+                    // The table only has rows to scroll from here on.
+                    this._sizeTableViewport();
                 });
                 stakingPoolSelect.appendChild(option);
             });
 
-            const tableElement = this.shadowRoot.querySelector('.table-responsive');
-            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+            this._sizeTableViewport();
         }
     });

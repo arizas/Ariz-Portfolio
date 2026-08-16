@@ -1,6 +1,7 @@
 import { getAccounts, getRecordsForAccount } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol, resolveDecimals } from '../near/intents-tokens.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
+import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 import html from './transactions-page.component.html.js';
 
 const NEAR_DECIMALS = 24;
@@ -59,6 +60,12 @@ customElements.define('transactions-page',
         constructor() {
             super();
             this.attachShadow({ mode: 'open' });
+            // The description is collapsed on phone-sized screens so the table
+            // starts near the top, and expanded when there is room to spare
+            // (where its summary is hidden by CSS, so the page reads as before).
+            // The query has to match the one in the stylesheet.
+            this._roomyScreen = window.matchMedia('(min-width: 768px) and (min-height: 600px)');
+            this._onRoomyScreenChange = () => this._syncDescriptionToScreen();
             this.readyPromise = this.loadHTML();
         }
 
@@ -67,6 +74,19 @@ customElements.define('transactions-page',
             this.transactionsTable = this.shadowRoot.getElementById('transactionstable');
             this.emptyState = this.shadowRoot.getElementById('emptystate');
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
+
+            // Collapse the description before anything here can await. The
+            // markup ships it open, because on a roomy screen its summary is
+            // hidden by CSS and a description left closed there would have no
+            // control to open it — so if this component never gets past its
+            // first await it fails to the readable state, not the unreachable
+            // one. Nothing has been painted yet at this point (the constructor
+            // runs during createElement), so the phone layout never flashes the
+            // expanded version.
+            const description = this.shadowRoot.querySelector('#pagedescription');
+            this._syncDescriptionToScreen();
+            // Expanding/collapsing moves the table, so it needs a new height.
+            description.addEventListener('toggle', () => this._sizeTableViewport());
 
             const accountselect = this.shadowRoot.querySelector('#accountselect');
             const accounts = await getAccounts();
@@ -85,6 +105,44 @@ customElements.define('transactions-page',
             this.tokenselect.addEventListener('change', () => this._renderTable());
 
             return this.shadowRoot;
+        }
+
+        connectedCallback() {
+            // Custom elements get connectedCallback on every insertion, a move
+            // within the DOM included, so this has to be safe to run twice:
+            // reinstalling the observer would orphan the previous one, and its
+            // listeners would keep firing on a detached component.
+            this._viewportLayout ??= onViewportLayoutChange(() => this._sizeTableViewport());
+            // Same handler reference every time, so a repeat add is a no-op.
+            this._roomyScreen.addEventListener('change', this._onRoomyScreenChange);
+        }
+
+        disconnectedCallback() {
+            this._viewportLayout?.stop();
+            this._viewportLayout = undefined;
+            this._roomyScreen.removeEventListener('change', this._onRoomyScreenChange);
+        }
+
+        /**
+         * Match the description's expanded state to the screen. Writing `open`
+         * fires a `toggle` event, whose handler resizes the table — no need to
+         * do that here as well.
+         */
+        _syncDescriptionToScreen() {
+            const description = this.shadowRoot.querySelector('#pagedescription');
+            if (!description) return;
+            description.open = this._roomyScreen.matches;
+        }
+
+        /**
+         * Size the scroll container so the table fills the space between its own
+         * top edge and the bottom of the screen. Recomputed whenever the layout
+         * changes (resize, rotation, description toggle) — a fixed height set
+         * once at render time is wrong as soon as the phone is rotated.
+         */
+        _sizeTableViewport() {
+            sizeToViewportBottom(this.shadowRoot.querySelector('.table-responsive'),
+                { hasContent: this._renderedRowCount > 0 });
         }
 
         async updateView(account) {
@@ -184,6 +242,8 @@ customElements.define('transactions-page',
             if (!this._hasAnyRecords) {
                 this.emptyState.style.display = '';
                 this.emptyState.textContent = `No records for ${this._account}. Visit the Accounts page and click "load from server" to fetch.`;
+                this._renderedRowCount = 0;
+                this._sizeTableViewport();
                 return;
             }
             this.emptyState.style.display = 'none';
@@ -204,9 +264,11 @@ customElements.define('transactions-page',
             const rowTemplate = this.shadowRoot.querySelector('#transactionrowtemplate');
 
             // Pre-size the scroll container before any rows append so the
-            // sticky header doesn't jump as chunks arrive.
-            const tableElement = this.shadowRoot.querySelector('.table-responsive');
-            tableElement.style.height = (window.innerHeight - tableElement.getBoundingClientRect().top) + 'px';
+            // sticky header doesn't jump as chunks arrive. The count is what
+            // tells the sizer there is something to scroll — the rows
+            // themselves are still to come.
+            this._renderedRowCount = sorted.length;
+            this._sizeTableViewport();
 
             // Chunked render: large accounts (20k+ records) would block the
             // main thread for seconds if rendered in one pass. Build chunks
