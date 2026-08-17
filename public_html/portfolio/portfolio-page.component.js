@@ -328,18 +328,35 @@ customElements.define('portfolio-page',
 
             const series = new Map();
             await Promise.all(groups.map(async g => {
-                // Price the exposure with its largest member that has a token id;
-                // a group that is only staked NEAR falls back to native NEAR.
-                const member = g.members.find(m => m.token != null) ?? g.members[0];
+                // Price the exposure by its economic symbol — the same key
+                // calculatePortfolio prices holdings with. Going via one member's
+                // token id would take a different resolution path for no gain.
                 try {
-                    const map = await this.__getEODPriceMap(currency, member?.token ?? '');
+                    const map = await this.__getEODPriceMap(currency, g.asset);
                     if (map && Object.keys(map).some(k => /^\d{4}-/.test(k))) series.set(g.asset, map);
                 } catch { /* leave it out; computeRisk reports what it omitted */ }
             }));
 
             const risk = computeRisk(groups, series);
-            if (!risk) { this.riskEl.hidden = true; return; }
             this.riskEl.hidden = false;
+            if (!risk.ok) {
+                // Say why rather than vanish: a panel that silently disappears is
+                // indistinguishable from one that is broken.
+                const why = {
+                    'no-material-positions': 'every position is too small to affect portfolio volatility',
+                    'no-price-history': 'no daily price history for the positions that matter',
+                    'insufficient-overlap': `only ${risk.observations} days of price history overlap across your positions`,
+                }[risk.reason] ?? risk.reason;
+                this.riskEl.innerHTML = `
+                    <div class="risk-body">
+                        <div class="section-label" style="margin-top:0">Risk · what this mix has swung by</div>
+                        <div class="footnote" style="margin-top:0">
+                            Not calculated — ${escapeHtml(why)}.
+                            ${risk.omitted?.length ? `No usable history for ${escapeHtml(risk.omitted.join(', '))}.` : ''}
+                        </div>
+                    </div>`;
+                return;
+            }
 
             // Never round a share up to 100 %: the other positions do contribute,
             // and "100 % of the risk" would be a false statement about them.
@@ -382,7 +399,8 @@ customElements.define('portfolio-page',
                     ${curve}
                     <div class="footnote">
                         ${risk.observations} daily closes, ${escapeHtml(risk.from)} to ${escapeHtml(risk.to)}, annualised on calendar time.
-                        ${risk.omitted.length ? `No price history for ${escapeHtml(risk.omitted.join(', '))}, so they are left out.` : ''}
+                        ${risk.omitted.length ? `No usable price history for ${escapeHtml(risk.omitted.join(', '))}, so they are left out.` : ''}
+                        ${risk.dust?.length ? `Positions too small to affect the result are excluded: ${escapeHtml(risk.dust.join(', '))}.` : ''}
                     </div>
                 </div>`;
         }

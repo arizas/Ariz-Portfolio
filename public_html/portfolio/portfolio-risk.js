@@ -83,30 +83,53 @@ export function commonDates(seriesByAsset, limit = 365) {
  *
  * @param {Array<{asset: string, weight: number}>} groups from groupHoldings
  * @param {Map<string, object>} seriesByAsset asset -> daily price map
- * @param {{lookback?: number}} [options]
- * @returns {null|{
- *   assets: Array<{asset, weight, vol, riskShare}>,
- *   portfolioVol: number, weightedAvgVol: number, diversification: number,
- *   observations: number, from: string, to: string,
- *   omitted: string[], curve: Array<{weight: number, vol: number}>
- * }}
- *   null when there is not enough overlapping history to say anything.
+ * @param {{lookback?: number, minWeight?: number}} [options]
+ * @returns {{ok: true, ...}|{ok: false, reason: string, ...}}
+ *   Always returns a result. When it cannot compute it says why, because a
+ *   panel that silently disappears is indistinguishable from one that is broken.
  */
-export function computeRisk(groups, seriesByAsset, { lookback = 365 } = {}) {
-    const usable = groups.filter(g => g.weight > 0 && seriesByAsset.has(g.asset));
-    const omitted = groups.filter(g => g.weight > 0 && !seriesByAsset.has(g.asset)).map(g => g.asset);
-    if (!usable.length) return null;
+export function computeRisk(groups, seriesByAsset, { lookback = 365, minWeight = 0.001 } = {}) {
+    const held = groups.filter(g => g.weight > 0);
+
+    // Dust is excluded before anything else. The floor is 0.1 %, which lines up
+    // with what the panel renders as "0.0 %" — so anything shown as zero is
+    // exactly what is left out here. Such a position cannot move portfolio
+    // volatility, and — the reason this matters rather than being a nicety — a
+    // single sparsely priced dust token would otherwise collapse the
+    // common-date intersection below and take the whole calculation with it.
+    const dust = held.filter(g => g.weight < minWeight).map(g => g.asset);
+    const material = held.filter(g => g.weight >= minWeight);
+    if (!material.length) return { ok: false, reason: 'no-material-positions', dust, omitted: [] };
+
+    const noSeries = material.filter(g => !seriesByAsset.has(g.asset)).map(g => g.asset);
+    let usable = material.filter(g => seriesByAsset.has(g.asset));
+
+    // Then drop anything whose own history is too short, again before
+    // intersecting: one asset listed last month must not shorten the window for
+    // everything else.
+    const tooShort = [];
+    usable = usable.filter(g => {
+        const own = commonDates(new Map([[g.asset, seriesByAsset.get(g.asset)]]), lookback);
+        if (own.length >= MIN_OBSERVATIONS) return true;
+        tooShort.push(g.asset);
+        return false;
+    });
+
+    const omitted = [...noSeries, ...tooShort];
+    if (!usable.length) return { ok: false, reason: 'no-price-history', omitted, dust };
 
     const subset = new Map(usable.map(g => [g.asset, seriesByAsset.get(g.asset)]));
     const dates = commonDates(subset, lookback);
-    if (dates.length < MIN_OBSERVATIONS) return null;
+    if (dates.length < MIN_OBSERVATIONS) {
+        return { ok: false, reason: 'insufficient-overlap', observations: dates.length, omitted, dust };
+    }
 
     const factor = annualisationFactor(dates);
     const returns = usable.map(g => logReturns(dates.map(d => subset.get(g.asset)[d])));
     const vols = returns.map(r => stdev(r) * factor);
 
-    // Renormalise weights across the assets we can actually measure, so the
-    // portfolio figure is internally consistent even when one is omitted.
+    // Renormalise across what is actually measured, so the portfolio figure is
+    // internally consistent even when something was left out.
     const totalWeight = usable.reduce((a, g) => a + g.weight, 0);
     const w = usable.map(g => g.weight / totalWeight);
 
@@ -134,6 +157,7 @@ export function computeRisk(groups, seriesByAsset, { lookback = 365 } = {}) {
     const weightedAvgVol = w.reduce((a, wi, i) => a + wi * vols[i], 0);
 
     return {
+        ok: true,
         assets,
         portfolioVol,
         weightedAvgVol,
@@ -143,6 +167,7 @@ export function computeRisk(groups, seriesByAsset, { lookback = 365 } = {}) {
         from: dates[0],
         to: dates[dates.length - 1],
         omitted,
+        dust,
         curve: reductionCurve(w, vols, cov, n),
     };
 }

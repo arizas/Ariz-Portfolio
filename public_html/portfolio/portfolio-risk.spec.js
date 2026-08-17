@@ -94,6 +94,7 @@ describe('computeRisk', () => {
         // sigma 3 % per day -> about 57 % annualised.
         const series = new Map([['A', seriesOf(dates, walk(400, 0.03, 11))]]);
         const risk = computeRisk([{ asset: 'A', weight: 1 }], series);
+        expect(risk.ok).to.equal(true);
         expect(risk.assets[0].vol).to.be.closeTo(0.03 * Math.sqrt(365.25), 0.06);
         expect(risk.portfolioVol).to.be.closeTo(risk.assets[0].vol, 1e-9);
     });
@@ -165,14 +166,79 @@ describe('computeRisk', () => {
         expect(risk.assets[0].weight).to.be.closeTo(1, 1e-12);
     });
 
-    it('returns null rather than a number built on too little history', () => {
+    it('says why rather than returning a bare null', () => {
         const short = isoDates(30);
-        expect(computeRisk(
+        const tooShort = computeRisk(
             [{ asset: 'A', weight: 1 }],
             new Map([['A', seriesOf(short, walk(30, 0.03, 71))]]),
-        )).to.equal(null);
-        expect(computeRisk([{ asset: 'A', weight: 1 }], new Map())).to.equal(null);
-        expect(computeRisk([], new Map())).to.equal(null);
+        );
+        expect(tooShort.ok).to.equal(false);
+        expect(tooShort.reason).to.equal('no-price-history');
+        expect(tooShort.omitted).to.deep.equal(['A']);
+
+        const noSeries = computeRisk([{ asset: 'A', weight: 1 }], new Map());
+        expect(noSeries.ok).to.equal(false);
+        expect(noSeries.reason).to.equal('no-price-history');
+
+        const nothing = computeRisk([], new Map());
+        expect(nothing.ok).to.equal(false);
+        expect(nothing.reason).to.equal('no-material-positions');
+    });
+
+    // The bug that kept the panel off a real portfolio: eleven exposures, four of
+    // them dust tokens with a handful of price points. commonDates intersects
+    // every series, so one sparse dust token collapsed the window below the
+    // minimum and the whole calculation returned nothing.
+    it('is not defeated by dust positions with sparse history', () => {
+        const groups = [
+            { asset: 'NEAR', weight: 0.969 },
+            { asset: 'BTC', weight: 0.024 },
+            { asset: 'ETH', weight: 0.003 },
+            { asset: 'SHITZU', weight: 0.0000001 },
+            { asset: 'NEKO', weight: 0.0000001 },
+            { asset: 'MOON', weight: 0.0000001 },
+        ];
+        const sparse = isoDates(8, Date.UTC(2026, 0, 1));
+        const series = new Map([
+            ['NEAR', seriesOf(dates, walk(400, 0.05, 91))],
+            ['BTC', seriesOf(dates, walk(400, 0.02, 92))],
+            ['ETH', seriesOf(dates, walk(400, 0.03, 93))],
+            ['SHITZU', seriesOf(sparse, walk(8, 0.2, 94))],
+            ['NEKO', seriesOf(sparse, walk(8, 0.2, 95))],
+            ['MOON', seriesOf(sparse, walk(8, 0.2, 96))],
+        ]);
+        const risk = computeRisk(groups, series);
+        expect(risk.ok).to.equal(true);
+        expect(risk.assets.map(a => a.asset)).to.deep.equal(['NEAR', 'BTC', 'ETH']);
+        expect(risk.dust).to.deep.equal(['SHITZU', 'NEKO', 'MOON']);
+        expect(risk.observations).to.equal(365);   // the default lookback
+    });
+
+    it('drops a material position whose own history is too short, and names it', () => {
+        const risk = computeRisk(
+            [{ asset: 'A', weight: 0.9 }, { asset: 'NEW', weight: 0.1 }],
+            new Map([
+                ['A', seriesOf(dates, walk(400, 0.03, 96))],
+                ['NEW', seriesOf(isoDates(20, Date.UTC(2026, 5, 1)), walk(20, 0.05, 97))],
+            ]),
+        );
+        expect(risk.ok).to.equal(true);
+        expect(risk.omitted).to.deep.equal(['NEW']);
+        expect(risk.observations).to.equal(365);
+        expect(risk.assets[0].weight).to.be.closeTo(1, 1e-12);
+    });
+
+    it('reports insufficient overlap when material positions barely intersect', () => {
+        const risk = computeRisk(
+            [{ asset: 'A', weight: 0.5 }, { asset: 'B', weight: 0.5 }],
+            new Map([
+                ['A', seriesOf(isoDates(200, Date.UTC(2025, 0, 1)), walk(200, 0.03, 98))],
+                ['B', seriesOf(isoDates(200, Date.UTC(2025, 6, 20)), walk(200, 0.03, 99))],
+            ]),
+        );
+        expect(risk.ok).to.equal(false);
+        expect(risk.reason).to.equal('insufficient-overlap');
+        expect(risk.observations).to.be.lessThan(60);
     });
 
     it('reports the window it actually used', () => {

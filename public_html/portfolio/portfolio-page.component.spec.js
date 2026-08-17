@@ -162,18 +162,45 @@ describe('portfolio risk panel', () => {
         expect(el.riskEl.querySelectorAll('.risk-curve span').length).to.be.greaterThan(3);
     });
 
-    it('stays hidden when there is not enough price history', async () => {
+    it('says why instead of vanishing when there is not enough price history', async () => {
         const el = makePage();
         el.__getEODPriceMap = async () => ({ '2025-01-01': 1, '2025-01-02': 1.01 });
         await el.renderRisk({ ...portfolio, currency: 'nok' });
-        expect(el.riskEl.hidden).to.equal(true);
+        expect(el.riskEl.hidden).to.equal(false);
+        expect(el.riskEl.textContent).to.include('Not calculated');
+        expect(el.riskEl.textContent).to.include('no daily price history');
     });
 
-    it('stays hidden rather than throwing when the price service fails', async () => {
+    it('says why rather than throwing when the price service fails', async () => {
         const el = makePage();
         el.__getEODPriceMap = async () => { throw new Error('offline'); };
         await el.renderRisk({ ...portfolio, currency: 'nok' });
-        expect(el.riskEl.hidden).to.equal(true);
+        expect(el.riskEl.hidden).to.equal(false);
+        expect(el.riskEl.textContent).to.include('Not calculated');
+    });
+
+    // A real portfolio has a tail of dust tokens with almost no price history.
+    // They must not be able to suppress the panel for the positions that matter.
+    it('still calculates when dust tokens have almost no history', async () => {
+        const el = makePage();
+        const long = {}; let px = 100;
+        for (let i = 0; i < 400; i++) {
+            px *= 1 + ((i * 37) % 11 - 5) / 100;
+            long[new Date(Date.UTC(2025, 0, 1) + i * 86400000).toISOString().slice(0, 10)] = px;
+        }
+        const sparse = { '2026-08-01': 1, '2026-08-02': 1.2 };
+        el.__getEODPriceMap = async (_c, asset) => (asset === 'NEAR' || asset === 'BTC') ? long : sparse;
+        await el.renderRisk({
+            ...portfolio,
+            currency: 'nok',
+            holdings: [
+                ...portfolio.holdings,
+                { token: 'x.near', symbol: 'SHITZU', displaySymbol: 'SHITZU', amount: 1, value: 0.79, costBasis: 1 },
+                { token: 'y.near', symbol: 'NEKO', displaySymbol: 'NEKO', amount: 1, value: 0.15, costBasis: 1 },
+            ],
+        });
+        expect(el.riskEl.textContent).to.include('Portfolio volatility');
+        expect(el.riskEl.textContent).to.include('too small to affect the result');
     });
 });
 
@@ -190,13 +217,15 @@ describe('risk share rounding', () => {
                 out[new Date(Date.UTC(2025, 0, 1) + i * 86400000).toISOString().slice(0, 10)] = price; }
             return out;
         }
-        // A 99.99 %-dominant position: the share must render as 99.9, not 100.0.
-        el.__getEODPriceMap = async (_c, token) => token === '' ? flat(400, 0.06, 9) : flat(400, 0.001, 8);
+        // ZEC is above the 0.1 % dust floor so it is measured, but is almost
+        // motionless — so NEAR carries ~99.99 % of the risk and the share must
+        // render as 99.9, not round up to 100.0.
+        el.__getEODPriceMap = async (_c, asset) => asset === 'NEAR' ? flat(400, 0.06, 9) : flat(400, 0.00002, 8);
         await el.renderRisk({
             currency: 'nok',
             holdings: [
-                { token: '', symbol: 'NEAR', displaySymbol: 'NEAR', amount: 1, value: 99990, costBasis: 1 },
-                { token: 'zec.omft.near', symbol: 'ZEC', displaySymbol: 'ZEC', amount: 1, value: 10, costBasis: 1 },
+                { token: '', symbol: 'NEAR', displaySymbol: 'NEAR', amount: 1, value: 99500, costBasis: 1 },
+                { token: 'zec.omft.near', symbol: 'ZEC', displaySymbol: 'ZEC', amount: 1, value: 500, costBasis: 1 },
             ],
         });
         expect(el.riskEl.textContent).to.not.include('100.0');
