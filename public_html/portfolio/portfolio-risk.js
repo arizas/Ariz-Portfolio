@@ -81,62 +81,87 @@ export function commonDates(seriesByAsset, limit = 365) {
 /**
  * Volatility, correlation and risk contribution for a grouped portfolio.
  *
+ * Estimated pairwise-complete: each asset's volatility comes from its own
+ * history, and each correlation from the overlap of the two assets involved.
+ * The alternative — one window common to everything — lets the shortest series
+ * decide for all of them, which in practice meant dropping a real 2.4 %
+ * position because it had 57 days of history against a 60-day floor, and
+ * silently renormalising the other weights up to cover it.
+ *
  * @param {Array<{asset: string, weight: number}>} groups from groupHoldings
  * @param {Map<string, object>} seriesByAsset asset -> daily price map
- * @param {{lookback?: number, minWeight?: number}} [options]
+ * @param {{lookback?: number, minWeight?: number, minPairOverlap?: number}} [options]
  * @returns {{ok: true, ...}|{ok: false, reason: string, ...}}
  *   Always returns a result. When it cannot compute it says why, because a
  *   panel that silently disappears is indistinguishable from one that is broken.
  */
-export function computeRisk(groups, seriesByAsset, { lookback = 365, minWeight = 0.001 } = {}) {
+export function computeRisk(groups, seriesByAsset, {
+    lookback = 365, minWeight = 0.001, minPairOverlap = 30,
+} = {}) {
     const held = groups.filter(g => g.weight > 0);
 
     // Dust is excluded before anything else. The floor is 0.1 %, which lines up
     // with what the panel renders as "0.0 %" — so anything shown as zero is
-    // exactly what is left out here. Such a position cannot move portfolio
-    // volatility, and — the reason this matters rather than being a nicety — a
-    // single sparsely priced dust token would otherwise collapse the
-    // common-date intersection below and take the whole calculation with it.
+    // exactly what is left out here, and such a position cannot move portfolio
+    // volatility in any case.
     const dust = held.filter(g => g.weight < minWeight).map(g => g.asset);
     const material = held.filter(g => g.weight >= minWeight);
     if (!material.length) return { ok: false, reason: 'no-material-positions', dust, omitted: [] };
 
     // Omissions carry their reason and their count. "No usable price history"
     // covers two quite different situations — nothing at all, versus a series
-    // too short to measure — and only the second one tells you to wait for a
-    // backfill rather than go looking for a broken price lookup.
-    const omitted = material
-        .filter(g => !seriesByAsset.has(g.asset))
-        .map(g => ({ asset: g.asset, reason: 'no-history', observations: 0 }));
+    // too short to measure — and only the second one means "wait for a backfill"
+    // rather than "go find the broken price lookup".
+    const omitted = [];
+    let candidates = [];
+    for (const g of material) {
+        if (!seriesByAsset.has(g.asset)) {
+            omitted.push({ asset: g.asset, reason: 'no-history', observations: 0 });
+            continue;
+        }
+        const dates = commonDates(new Map([[g.asset, seriesByAsset.get(g.asset)]]), lookback);
+        if (dates.length < MIN_OBSERVATIONS) {
+            omitted.push({ asset: g.asset, reason: 'short-history', observations: dates.length });
+            continue;
+        }
+        candidates.push({
+            ...g,
+            dates,
+            byDate: seriesByAsset.get(g.asset),
+            returns: logReturns(dates.map(d => seriesByAsset.get(g.asset)[d])),
+        });
+    }
+    if (!candidates.length) return { ok: false, reason: 'no-price-history', omitted, dust };
 
-    // Drop anything whose own history is too short before intersecting: one
-    // asset listed last month must not shorten the window for everything else.
-    const usable = material.filter(g => {
-        if (!seriesByAsset.has(g.asset)) return false;
-        const own = commonDates(new Map([[g.asset, seriesByAsset.get(g.asset)]]), lookback);
-        if (own.length >= MIN_OBSERVATIONS) return true;
-        omitted.push({ asset: g.asset, reason: 'short-history', observations: own.length });
-        return false;
-    });
-    if (!usable.length) return { ok: false, reason: 'no-price-history', omitted, dust };
-
-    const subset = new Map(usable.map(g => [g.asset, seriesByAsset.get(g.asset)]));
-    const dates = commonDates(subset, lookback);
-    if (dates.length < MIN_OBSERVATIONS) {
-        return { ok: false, reason: 'insufficient-overlap', observations: dates.length, omitted, dust, required: MIN_OBSERVATIONS };
+    // A correlation needs the two series to overlap. Where a pair does not
+    // overlap enough, drop the shorter history rather than the whole
+    // calculation, and keep dropping until every remaining pair can be
+    // estimated.
+    for (;;) {
+        const bad = worstPair(candidates, minPairOverlap);
+        if (!bad) break;
+        const [i, j] = bad;
+        const drop = candidates[i].dates.length <= candidates[j].dates.length ? i : j;
+        omitted.push({
+            asset: candidates[drop].asset,
+            reason: 'no-overlap',
+            observations: candidates[drop].dates.length,
+        });
+        candidates = candidates.filter((_, k) => k !== drop);
+        if (candidates.length < 2) break;
     }
 
-    const factor = annualisationFactor(dates);
-    const returns = usable.map(g => logReturns(dates.map(d => subset.get(g.asset)[d])));
-    const vols = returns.map(r => stdev(r) * factor);
+    const n = candidates.length;
+    const factors = candidates.map(c => annualisationFactor(c.dates));
+    const vols = candidates.map((c, i) => stdev(c.returns) * factors[i]);
 
     // Renormalise across what is actually measured, so the portfolio figure is
     // internally consistent even when something was left out.
-    const totalWeight = usable.reduce((a, g) => a + g.weight, 0);
-    const w = usable.map(g => g.weight / totalWeight);
+    const totalWeight = candidates.reduce((a, g) => a + g.weight, 0);
+    const w = candidates.map(g => g.weight / totalWeight);
 
-    const n = usable.length;
-    const cov = (i, j) => (i === j ? vols[i] ** 2 : correlation(returns[i], returns[j]) * vols[i] * vols[j]);
+    const rho = pairwiseCorrelations(candidates, minPairOverlap);
+    const cov = (i, j) => (i === j ? vols[i] ** 2 : rho[i][j] * vols[i] * vols[j]);
 
     let variance = 0;
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) variance += w[i] * w[j] * cov(i, j);
@@ -144,7 +169,7 @@ export function computeRisk(groups, seriesByAsset, { lookback = 365, minWeight =
 
     // Euler risk contribution: w_i * (Sigma w)_i / sigma_p. These sum to sigma_p,
     // so the shares sum to 1 — the honest way to say "NEAR is 99 % of your risk".
-    const assets = usable.map((g, i) => {
+    const assets = candidates.map((g, i) => {
         let marginal = 0;
         for (let j = 0; j < n; j++) marginal += w[j] * cov(i, j);
         const contribution = portfolioVol > 0 ? (w[i] * marginal) / portfolioVol : 0;
@@ -152,11 +177,15 @@ export function computeRisk(groups, seriesByAsset, { lookback = 365, minWeight =
             asset: g.asset,
             weight: w[i],
             vol: vols[i],
+            observations: g.dates.length,
+            from: g.dates[0],
+            to: g.dates[g.dates.length - 1],
             riskShare: portfolioVol > 0 ? contribution / portfolioVol : 0,
         };
     });
 
     const weightedAvgVol = w.reduce((a, wi, i) => a + wi * vols[i], 0);
+    const longest = assets.reduce((a, b) => (a.observations >= b.observations ? a : b));
 
     return {
         ok: true,
@@ -165,14 +194,54 @@ export function computeRisk(groups, seriesByAsset, { lookback = 365, minWeight =
         weightedAvgVol,
         // 1.0 means the mix removes no risk at all; higher is more diversified.
         diversification: portfolioVol > 0 ? weightedAvgVol / portfolioVol : null,
-        observations: dates.length,
-        from: dates[0],
-        to: dates[dates.length - 1],
+        // The longest series measured; individual assets carry their own window,
+        // which is the point of estimating pairwise.
+        observations: longest.observations,
+        from: longest.from,
+        to: longest.to,
+        shortest: assets.reduce((a, b) => (a.observations <= b.observations ? a : b)),
         omitted,
         dust,
         required: MIN_OBSERVATIONS,
         curve: reductionCurve(w, vols, cov, n),
     };
+}
+
+/** Dates two assets both have a price for, within the lookback. */
+function overlap(a, b) {
+    return a.dates.filter(d => b.byDate[d] > 0);
+}
+
+/** First pair whose overlap is too short to correlate, or null. */
+function worstPair(candidates, minPairOverlap) {
+    for (let i = 0; i < candidates.length; i++) {
+        for (let j = i + 1; j < candidates.length; j++) {
+            if (overlap(candidates[i], candidates[j]).length < minPairOverlap) return [i, j];
+        }
+    }
+    return null;
+}
+
+/** Correlation matrix, each entry from that pair's own overlapping dates. */
+function pairwiseCorrelations(candidates, minPairOverlap) {
+    const n = candidates.length;
+    const rho = Array.from({ length: n }, () => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+        rho[i][i] = 1;
+        for (let j = i + 1; j < n; j++) {
+            const dates = overlap(candidates[i], candidates[j]);
+            let r = 0;
+            if (dates.length >= minPairOverlap) {
+                const ri = logReturns(dates.map(d => candidates[i].byDate[d]));
+                const rj = logReturns(dates.map(d => candidates[j].byDate[d]));
+                const c = correlation(ri, rj);
+                r = Number.isFinite(c) ? c : 0;
+            }
+            rho[i][j] = r;
+            rho[j][i] = r;
+        }
+    }
+    return rho;
 }
 
 /**

@@ -398,7 +398,12 @@ customElements.define('portfolio-page',
                     </div>
                     ${curve}
                     <div class="footnote">
-                        ${risk.observations} daily closes, ${escapeHtml(risk.from)} to ${escapeHtml(risk.to)}, annualised on calendar time.
+                        ${risk.shortest && risk.shortest.observations < risk.observations
+                            ? `Measured over each position's own history — ${risk.observations} daily closes for `
+                                + `${escapeHtml(risk.assets.find(a => a.observations === risk.observations).asset)}, `
+                                + `${risk.shortest.observations} for ${escapeHtml(risk.shortest.asset)} — `
+                                + `with correlations over the days they share. Annualised on calendar time.`
+                            : `${risk.observations} daily closes, ${escapeHtml(risk.from)} to ${escapeHtml(risk.to)}, annualised on calendar time.`}
                         ${this.omittedNote(risk)}
                         ${risk.dust?.length ? `Positions too small to affect the result are excluded: ${escapeHtml(risk.dust.join(', '))}.` : ''}
                     </div>
@@ -419,6 +424,10 @@ customElements.define('portfolio-page',
             for (const o of short) {
                 parts.push(`${escapeHtml(o.asset)} has only ${o.observations} day${o.observations === 1 ? '' : 's'} `
                     + `of price history and needs ${risk.required}, so it is left out.`);
+            }
+            for (const o of risk.omitted.filter(x => x.reason === 'no-overlap')) {
+                parts.push(`${escapeHtml(o.asset)}'s price history barely overlaps the rest, `
+                    + `so it cannot be correlated and is left out.`);
             }
             return parts.join(' ');
         }

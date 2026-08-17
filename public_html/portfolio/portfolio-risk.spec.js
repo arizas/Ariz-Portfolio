@@ -211,7 +211,7 @@ describe('computeRisk', () => {
         expect(risk.ok).to.equal(true);
         expect(risk.assets.map(a => a.asset)).to.deep.equal(['NEAR', 'BTC', 'ETH']);
         expect(risk.dust).to.deep.equal(['SHITZU', 'NEKO', 'MOON']);
-        expect(risk.observations).to.equal(365);   // the default lookback
+        expect(risk.observations).to.equal(365);   // NEAR keeps the full lookback
     });
 
     it('drops a material position whose own history is too short, and names it', () => {
@@ -228,17 +228,67 @@ describe('computeRisk', () => {
         expect(risk.assets[0].weight).to.be.closeTo(1, 1e-12);
     });
 
-    it('reports insufficient overlap when material positions barely intersect', () => {
+    // The case that motivated pairwise estimation: BTC had 57 days of history
+    // against a 60-day floor and was dropped, which renormalised a 96.9 %
+    // position up to 99.4 %. A short series must cost only its own precision,
+    // never the long history of everything else.
+    it('keeps a short-history position and leaves the long windows intact', () => {
+        const long = seriesOf(dates, walk(400, 0.05, 111));
+        const shortDates = dates.slice(-120);
+        const risk = computeRisk(
+            [{ asset: 'NEAR', weight: 0.969 }, { asset: 'BTC', weight: 0.024 }],
+            new Map([['NEAR', long], ['BTC', seriesOf(shortDates, walk(120, 0.02, 112))]]),
+        );
+        expect(risk.ok).to.equal(true);
+        expect(risk.assets.map(a => a.asset)).to.deep.equal(['NEAR', 'BTC']);
+        expect(risk.omitted).to.deep.equal([]);
+        // NEAR keeps its full window; BTC is measured over its own.
+        expect(risk.assets[0].observations).to.equal(365);
+        expect(risk.assets[1].observations).to.equal(120);
+        expect(risk.observations).to.equal(365);
+        expect(risk.shortest.asset).to.equal('BTC');
+        // And the weights are not renormalised away from the real ones.
+        expect(risk.assets[0].weight).to.be.closeTo(0.969 / 0.993, 1e-9);
+    });
+
+    it('still drops a series too short to measure at all', () => {
+        const risk = computeRisk(
+            [{ asset: 'NEAR', weight: 0.9 }, { asset: 'NEW', weight: 0.1 }],
+            new Map([
+                ['NEAR', seriesOf(dates, walk(400, 0.05, 113))],
+                ['NEW', seriesOf(dates.slice(-20), walk(20, 0.05, 114))],
+            ]),
+        );
+        expect(risk.ok).to.equal(true);
+        expect(risk.omitted).to.deep.equal([{ asset: 'NEW', reason: 'short-history', observations: 20 }]);
+        expect(risk.assets[0].observations).to.equal(365);
+    });
+
+    it('drops the shorter side when two series do not overlap enough', () => {
+        const a = isoDates(200, Date.UTC(2024, 0, 1));
+        const b = isoDates(80, Date.UTC(2025, 6, 1));   // no shared dates at all
+        const risk = computeRisk(
+            [{ asset: 'A', weight: 0.7 }, { asset: 'B', weight: 0.3 }],
+            new Map([['A', seriesOf(a, walk(200, 0.03, 115))], ['B', seriesOf(b, walk(80, 0.03, 116))]]),
+        );
+        expect(risk.ok).to.equal(true);
+        expect(risk.assets.map(x => x.asset)).to.deep.equal(['A']);
+        expect(risk.omitted).to.deep.equal([{ asset: 'B', reason: 'no-overlap', observations: 80 }]);
+    });
+
+    it('correlates two staggered series over the days they share', () => {
+        // 200 days each, offset by half — plenty of overlap, so both survive and
+        // each keeps its own window.
         const risk = computeRisk(
             [{ asset: 'A', weight: 0.5 }, { asset: 'B', weight: 0.5 }],
             new Map([
                 ['A', seriesOf(isoDates(200, Date.UTC(2025, 0, 1)), walk(200, 0.03, 98))],
-                ['B', seriesOf(isoDates(200, Date.UTC(2025, 6, 20)), walk(200, 0.03, 99))],
+                ['B', seriesOf(isoDates(200, Date.UTC(2025, 3, 20)), walk(200, 0.03, 99))],
             ]),
         );
-        expect(risk.ok).to.equal(false);
-        expect(risk.reason).to.equal('insufficient-overlap');
-        expect(risk.observations).to.be.lessThan(60);
+        expect(risk.ok).to.equal(true);
+        expect(risk.assets).to.have.lengthOf(2);
+        expect(risk.assets.every(a => a.observations === 200)).to.equal(true);
     });
 
     it('reports the window it actually used', () => {

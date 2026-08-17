@@ -266,3 +266,36 @@ describe('risk panel omissions', () => {
         expect(withOmissions({ required: 60 })).to.equal('');
     });
 });
+
+describe('risk panel window reporting', () => {
+    it('names each position\'s own window when they differ', async () => {
+        const el = makePage();
+        const series = (n, start, sigma, seed) => {
+            let a = seed >>> 0;
+            const u = () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+            const nrm = () => Math.sqrt(-2 * Math.log(Math.max(u(), 1e-12))) * Math.cos(2 * Math.PI * u());
+            const out = {}; let px = 100;
+            for (let i = 0; i < n; i++) { px *= Math.exp(sigma * nrm());
+                out[new Date(start + i * 86400000).toISOString().slice(0, 10)] = px; }
+            return out;
+        };
+        const base = Date.UTC(2025, 0, 1);
+        el.__getEODPriceMap = async (_c, asset) => asset === 'NEAR'
+            ? series(400, base, 0.05, 21)
+            : series(120, base + 280 * 86400000, 0.02, 22);
+        await el.renderRisk({
+            currency: 'nok',
+            holdings: [
+                { token: '', symbol: 'NEAR', displaySymbol: 'NEAR', amount: 1, value: 96900, costBasis: 1 },
+                { token: 'nbtc.bridge.near', symbol: 'BTC', displaySymbol: 'BTC', amount: 1, value: 2400, costBasis: 1 },
+            ],
+        });
+        const text = el.riskEl.textContent;
+        expect(text).to.include("each position's own history");
+        expect(text).to.include('for NEAR');
+        expect(text).to.include('for BTC');
+        // BTC is measured, not dropped — so it still carries its real weight.
+        expect(text).to.not.include('left out');
+    });
+});
