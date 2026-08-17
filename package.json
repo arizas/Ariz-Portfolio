@@ -16,7 +16,7 @@
     "test:e2e:watch": "npx playwright test --ui",
     "test:e2e:watch:codespaces": "yarn test:e2e --ui-host=0.0.0.0",
     "generateimportmap": "(cd public_html && jspm link index.html -o index.html)",
-    "serve": "http-server --cors -p 8081 public_html/",
+    "serve": "node test_servers/dev-server.mjs",
     "dist": "rm -Rf dist && rollup -c rollup.config.js",
     "create:car": "ipfs-car pack dist/index.html --output dist/index.car",
     "upload:car": "echo 'nearfs removed - use alternative upload method'",
