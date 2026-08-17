@@ -101,27 +101,29 @@ export function computeRisk(groups, seriesByAsset, { lookback = 365, minWeight =
     const material = held.filter(g => g.weight >= minWeight);
     if (!material.length) return { ok: false, reason: 'no-material-positions', dust, omitted: [] };
 
-    const noSeries = material.filter(g => !seriesByAsset.has(g.asset)).map(g => g.asset);
-    let usable = material.filter(g => seriesByAsset.has(g.asset));
+    // Omissions carry their reason and their count. "No usable price history"
+    // covers two quite different situations — nothing at all, versus a series
+    // too short to measure — and only the second one tells you to wait for a
+    // backfill rather than go looking for a broken price lookup.
+    const omitted = material
+        .filter(g => !seriesByAsset.has(g.asset))
+        .map(g => ({ asset: g.asset, reason: 'no-history', observations: 0 }));
 
-    // Then drop anything whose own history is too short, again before
-    // intersecting: one asset listed last month must not shorten the window for
-    // everything else.
-    const tooShort = [];
-    usable = usable.filter(g => {
+    // Drop anything whose own history is too short before intersecting: one
+    // asset listed last month must not shorten the window for everything else.
+    const usable = material.filter(g => {
+        if (!seriesByAsset.has(g.asset)) return false;
         const own = commonDates(new Map([[g.asset, seriesByAsset.get(g.asset)]]), lookback);
         if (own.length >= MIN_OBSERVATIONS) return true;
-        tooShort.push(g.asset);
+        omitted.push({ asset: g.asset, reason: 'short-history', observations: own.length });
         return false;
     });
-
-    const omitted = [...noSeries, ...tooShort];
     if (!usable.length) return { ok: false, reason: 'no-price-history', omitted, dust };
 
     const subset = new Map(usable.map(g => [g.asset, seriesByAsset.get(g.asset)]));
     const dates = commonDates(subset, lookback);
     if (dates.length < MIN_OBSERVATIONS) {
-        return { ok: false, reason: 'insufficient-overlap', observations: dates.length, omitted, dust };
+        return { ok: false, reason: 'insufficient-overlap', observations: dates.length, omitted, dust, required: MIN_OBSERVATIONS };
     }
 
     const factor = annualisationFactor(dates);
@@ -168,6 +170,7 @@ export function computeRisk(groups, seriesByAsset, { lookback = 365, minWeight =
         to: dates[dates.length - 1],
         omitted,
         dust,
+        required: MIN_OBSERVATIONS,
         curve: reductionCurve(w, vols, cov, n),
     };
 }

@@ -161,7 +161,7 @@ describe('computeRisk', () => {
             [{ asset: 'A', weight: 0.6 }, { asset: 'GONE', weight: 0.4 }],
             new Map([['A', seriesOf(dates, walk(400, 0.03, 61))]]),
         );
-        expect(risk.omitted).to.deep.equal(['GONE']);
+        expect(risk.omitted).to.deep.equal([{ asset: 'GONE', reason: 'no-history', observations: 0 }]);
         expect(risk.assets).to.have.lengthOf(1);
         expect(risk.assets[0].weight).to.be.closeTo(1, 1e-12);
     });
@@ -174,7 +174,7 @@ describe('computeRisk', () => {
         );
         expect(tooShort.ok).to.equal(false);
         expect(tooShort.reason).to.equal('no-price-history');
-        expect(tooShort.omitted).to.deep.equal(['A']);
+        expect(tooShort.omitted).to.deep.equal([{ asset: 'A', reason: 'short-history', observations: 30 }]);
 
         const noSeries = computeRisk([{ asset: 'A', weight: 1 }], new Map());
         expect(noSeries.ok).to.equal(false);
@@ -223,7 +223,7 @@ describe('computeRisk', () => {
             ]),
         );
         expect(risk.ok).to.equal(true);
-        expect(risk.omitted).to.deep.equal(['NEW']);
+        expect(risk.omitted).to.deep.equal([{ asset: 'NEW', reason: 'short-history', observations: 20 }]);
         expect(risk.observations).to.equal(365);
         expect(risk.assets[0].weight).to.be.closeTo(1, 1e-12);
     });

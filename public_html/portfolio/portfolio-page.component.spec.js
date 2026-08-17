@@ -232,3 +232,37 @@ describe('risk share rounding', () => {
         expect(el.riskEl.textContent).to.include('99.9');
     });
 });
+
+describe('risk panel omissions', () => {
+    const withOmissions = risk => {
+        const el = makePage();
+        return el.omittedNote(risk);
+    };
+
+    it('distinguishes "no history at all" from "history too short"', () => {
+        const note = withOmissions({
+            required: 60,
+            omitted: [
+                { asset: 'BTC', reason: 'no-history', observations: 0 },
+                { asset: 'ZEC', reason: 'short-history', observations: 12 },
+            ],
+        });
+        expect(note).to.include('No price history for BTC');
+        expect(note).to.include('ZEC has only 12 days of price history and needs 60');
+    });
+
+    it('agrees in number', () => {
+        expect(withOmissions({ required: 60, omitted: [{ asset: 'BTC', reason: 'no-history' }] }))
+            .to.include('so it is left out');
+        expect(withOmissions({ required: 60, omitted: [
+            { asset: 'BTC', reason: 'no-history' }, { asset: 'ETH', reason: 'no-history' }] }))
+            .to.include('so they are left out');
+        expect(withOmissions({ required: 60, omitted: [{ asset: 'ZEC', reason: 'short-history', observations: 1 }] }))
+            .to.include('only 1 day of price history');
+    });
+
+    it('says nothing when nothing was omitted', () => {
+        expect(withOmissions({ required: 60, omitted: [] })).to.equal('');
+        expect(withOmissions({ required: 60 })).to.equal('');
+    });
+});

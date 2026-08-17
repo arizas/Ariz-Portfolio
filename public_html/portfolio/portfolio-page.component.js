@@ -352,7 +352,7 @@ customElements.define('portfolio-page',
                         <div class="section-label" style="margin-top:0">Risk · what this mix has swung by</div>
                         <div class="footnote" style="margin-top:0">
                             Not calculated — ${escapeHtml(why)}.
-                            ${risk.omitted?.length ? `No usable history for ${escapeHtml(risk.omitted.join(', '))}.` : ''}
+                            ${this.omittedNote(risk)}
                         </div>
                     </div>`;
                 return;
@@ -399,10 +399,28 @@ customElements.define('portfolio-page',
                     ${curve}
                     <div class="footnote">
                         ${risk.observations} daily closes, ${escapeHtml(risk.from)} to ${escapeHtml(risk.to)}, annualised on calendar time.
-                        ${risk.omitted.length ? `No usable price history for ${escapeHtml(risk.omitted.join(', '))}, so they are left out.` : ''}
+                        ${this.omittedNote(risk)}
                         ${risk.dust?.length ? `Positions too small to affect the result are excluded: ${escapeHtml(risk.dust.join(', '))}.` : ''}
                     </div>
                 </div>`;
+        }
+
+        // Name what was left out and why. "No usable price history" hides two
+        // different situations: nothing at all, versus a series too short to
+        // measure. Only the second means "wait for the backfill".
+        omittedNote(risk) {
+            if (!risk.omitted?.length) return '';
+            const none = risk.omitted.filter(o => o.reason === 'no-history').map(o => o.asset);
+            const short = risk.omitted.filter(o => o.reason === 'short-history');
+            const parts = [];
+            if (none.length) {
+                parts.push(`No price history for ${escapeHtml(none.join(', '))}, so ${none.length > 1 ? 'they are' : 'it is'} left out.`);
+            }
+            for (const o of short) {
+                parts.push(`${escapeHtml(o.asset)} has only ${o.observations} day${o.observations === 1 ? '' : 's'} `
+                    + `of price history and needs ${risk.required}, so it is left out.`);
+            }
+            return parts.join(' ');
         }
 
         renderHolding(h, money, maxValue) {
