@@ -43,3 +43,42 @@ describe('pricedata from Ariz gateway', () => {
         expect(document.querySelector('common-modal')).to.equal(null);
     });
 });
+
+describe('price history is merged, never replaced', () => {
+    before(async function () {
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+    });
+
+    // A single missing date triggers a whole-history fetch, and the gateway
+    // answers with whatever its own cache holds for that token — which can be far
+    // less than what is already stored locally. Overwriting cost one real store
+    // 4 252 days of BTC history, replaced by 19, the first time a 2026 BTC
+    // transaction asked for a date the local file did not have.
+    it('keeps dates the gateway did not return', async function () {
+        const { getHistoricalPriceData, setHistoricalPriceData } =
+            await import('../storage/domainobjectstore.js');
+
+        const deepHistory = { '2014-07-18': 100, '2019-01-01': 200, '2024-01-01': 300 };
+        await setHistoricalPriceData('NEAR', 'NOK', deepHistory);
+
+        // The mocked gateway answers with its own (recent) window.
+        await fetchHistoricalPricesFromArizGateway({ currency: 'NOK', todate: '2024-05-30' });
+
+        const after = await getHistoricalPriceData('NEAR', 'NOK');
+        for (const [date, price] of Object.entries(deepHistory)) {
+            expect(after[date], `lost ${date}`).to.equal(price);
+        }
+        // And it did gain whatever the gateway had.
+        expect(Object.keys(after).length).to.be.greaterThan(Object.keys(deepHistory).length);
+    });
+
+    it('is idempotent — a second fetch changes nothing', async function () {
+        const { getHistoricalPriceData } = await import('../storage/domainobjectstore.js');
+        await fetchHistoricalPricesFromArizGateway({ currency: 'NOK', todate: '2024-05-30' });
+        const first = await getHistoricalPriceData('NEAR', 'NOK');
+        await fetchHistoricalPricesFromArizGateway({ currency: 'NOK', todate: '2024-05-30' });
+        const second = await getHistoricalPriceData('NEAR', 'NOK');
+        expect(second).to.deep.equal(first);
+    });
+});
