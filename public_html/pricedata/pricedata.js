@@ -79,7 +79,19 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     // Convert symbol to CoinGecko ID (e.g., "BTC" -> "bitcoin")
     const coinGeckoId = symbolToCoinGeckoId[baseToken.toUpperCase()] || baseToken.toLowerCase();
     const pricesMap = await fetchFromArizGateway(`/api/prices/history?basetoken=${coinGeckoId}&currency=${currency}&todate=${todate}`);
-    await setHistoricalPriceData(baseToken, currency, pricesMap);
+
+    // Merge, never replace. This is triggered whenever a single date is missing
+    // — a newly acquired token, a gap — and the gateway answers with whatever
+    // its own cache happens to hold for that token, which can be far less than
+    // what is already stored here. Overwriting cost one real store 4 252 days of
+    // BTC history (2014-07-18 onwards), replaced by 19 days, the first time a
+    // 2026 BTC transaction asked for a date the local file did not have.
+    //
+    // Existing entries win: they were written by this same endpoint earlier, and
+    // keeping them makes the merge idempotent and order-independent.
+    const existing = await getHistoricalPriceData(baseToken, currency);
+    const merged = { ...pricesMap, ...existing };
+    await setHistoricalPriceData(baseToken, currency, merged);
 }
 
 // Real market symbols are short and contain no whitespace, slashes or URL
