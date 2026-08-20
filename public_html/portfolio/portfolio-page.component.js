@@ -280,14 +280,35 @@ customElements.define('portfolio-page',
             if (!r.ok) {
                 // Refuse rather than guess. An unpriced flow does not make the
                 // answer approximate, it makes it wrong in a way that looks fine.
-                const why = r.reason === 'unpriced-flows'
-                    ? `no price on the day for ${escapeHtml([...new Set(r.unpriced.map(u => u.symbol || u.token))].join(', '))}`
-                    : `a transaction moved value both in and out but the two sides do not match, so it cannot be told apart from a swap`;
+                if (r.reason === 'unpriced-flows') {
+                    const names = escapeHtml([...new Set(r.unpriced.map(u => u.symbol || u.token))].join(', '));
+                    this.flowsEl.innerHTML = `
+                        <div class="flows-body">
+                            <div class="flow-warn">Not calculated — no price on the day for ${names}.
+                            Splitting the change needs every movement priced on the day it happened;
+                            guessing at one would shift everything that follows.</div>
+                        </div>`;
+                    return;
+                }
+                // Name the transactions and the sides. The usual cause is one leg
+                // priced from the wrong asset, and the symbols are how anyone
+                // would see that — a bare "does not match" is not actionable.
+                const rows = (r.suspect ?? []).slice(0, 8).map(x => `
+                    <div class="flow-row">
+                        <span class="flow-label">${escapeHtml(x.date ?? '')} ·
+                            ${escapeHtml(x.outTokens.join(', '))} &rarr; ${escapeHtml(x.inTokens.join(', '))}</span>
+                        <span class="amount">${money(x.outValue)} &rarr; ${money(x.inValue)}
+                            <span class="muted">(${(x.gap * 100).toFixed(0)} % apart)</span></span>
+                    </div>`).join('');
                 this.flowsEl.innerHTML = `
                     <div class="flows-body">
-                        <div class="flow-warn">Not calculated — ${why}.
-                        Splitting the change needs every movement priced on the day it happened;
-                        guessing at one would shift everything that follows.</div>
+                        <div class="flow-warn">
+                            Not calculated — ${r.suspect.length} transaction${r.suspect.length === 1 ? '' : 's'}
+                            moved value both in and out, but the two sides are too far apart to be a swap.
+                            Either it carried a transfer as well, or one side is priced from the wrong asset.
+                        </div>
+                        ${rows}
+                        ${r.suspect.length > 8 ? `<div class="footnote">and ${r.suspect.length - 8} more.</div>` : ''}
                     </div>`;
                 return;
             }

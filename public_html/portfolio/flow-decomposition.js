@@ -196,11 +196,25 @@ function separateSwaps(movements, price, tolerance) {
         }
         const scale = Math.max(inValue, outValue);
         const gap = scale > 0 ? Math.abs(inValue - outValue) / scale : 0;
+        const detail = {
+            swapKey: key,
+            date: legs[0]?.date,
+            inValue,
+            outValue,
+            net: inValue - outValue,
+            gap,
+            legs: legs.length,
+            // Naming the sides is what makes a refusal actionable: the usual
+            // cause is one leg priced from the wrong asset, and the symbol is
+            // how anyone would spot that.
+            inTokens: [...new Set(ins.map(m => m.symbol || m.token))],
+            outTokens: [...new Set(outs.map(m => m.symbol || m.token))],
+        };
         if (gap > tolerance) {
-            suspect.push({ swapKey: key, inValue, outValue, gap, legs: legs.length });
+            suspect.push(detail);
             continue;
         }
-        internal.push({ swapKey: key, inValue, outValue, gap, legs: legs.length });
+        internal.push(detail);
     }
     return { internal, external, suspect };
 }

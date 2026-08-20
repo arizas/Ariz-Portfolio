@@ -92,11 +92,36 @@ describe('when it will not answer', () => {
         expect(el.flowsEl.textContent).to.include('BTC');
     });
 
-    it('refuses when a transaction cannot be told apart from a swap', async () => {
-        const el = makePage({ ok: false, reason: 'ambiguous-swap', suspect: [{ swapKey: 'x', gap: 0.9 }] });
+    // A bare "does not match" is not actionable. The usual cause is one side
+    // priced from the wrong asset, so the refusal has to name the sides.
+    it('names the transactions it could not tell apart from a swap', async () => {
+        const el = makePage({
+            ok: false, reason: 'ambiguous-swap',
+            suspect: [{
+                swapKey: 'x', date: '2026-05-02', gap: 0.9,
+                inValue: 1000, outValue: 100, net: 900, legs: 2,
+                outTokens: ['MOON'], inTokens: ['NEAR'],
+            }],
+        });
         await el.renderFlows();
-        expect(el.flowsEl.textContent).to.include('Not calculated');
-        expect(el.flowsEl.textContent).to.include('do not match');
+        const text = el.flowsEl.textContent.replace(/\s+/g, ' ');
+        expect(text).to.include('Not calculated');
+        expect(text).to.include('too far apart to be a swap');
+        expect(text).to.include('2026-05-02');
+        expect(text).to.include('MOON');
+        expect(text).to.include('NEAR');
+        expect(text).to.include('90 % apart');
+    });
+
+    it('caps how many it lists and says how many more there are', async () => {
+        const suspect = Array.from({ length: 11 }, (_, i) => ({
+            swapKey: `k${i}`, date: '2026-05-02', gap: 0.9, inValue: 10, outValue: 1,
+            outTokens: ['A'], inTokens: ['B'],
+        }));
+        const el = makePage({ ok: false, reason: 'ambiguous-swap', suspect });
+        await el.renderFlows();
+        expect(el.flowsEl.querySelectorAll('.flow-row').length).to.equal(8);
+        expect(el.flowsEl.textContent).to.include('and 3 more');
     });
 
     // A disagreement is shown rather than hidden, and says what it might be —
