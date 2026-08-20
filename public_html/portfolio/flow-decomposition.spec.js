@@ -286,3 +286,58 @@ describe('reconciliation against the FIFO engine', () => {
         expect(far.reconciliation.agrees).to.equal(false);
     });
 });
+
+describe('movements too small to matter', () => {
+    const tiny = [{ date: '2026-08-19', token: 'npro.nearmobile.near', symbol: 'NPRO', units: 20, kind: 'yield' }];
+
+    // Price history routinely lags the last few days. Refusing over a movement
+    // that cannot move the answer trades one wrong result for no result.
+    it('skips an unpriceable movement whose value cannot matter', () => {
+        const r = decomposeFlows({
+            movements: tiny,
+            price: () => null,
+            estimateValue: (_t, units) => units * 2,      // 40 against 300 000
+            opening: 300000, closing: 304000,
+        });
+        expect(r.ok).to.equal(true);
+        expect(r.immaterial).to.have.lengthOf(1);
+        expect(r.immaterial[0].symbol).to.equal('NPRO');
+        expect(r.gain).to.equal(4000);
+    });
+
+    it('still refuses when the bound could move the answer', () => {
+        const r = decomposeFlows({
+            movements: [{ date: '2026-08-19', token: 'x', symbol: 'X', units: 1000, kind: 'deposit' }],
+            price: () => null,
+            estimateValue: (_t, units) => units * 50,     // 50 000 against 304 000
+            opening: 300000, closing: 304000,
+        });
+        expect(r.ok).to.equal(false);
+        expect(r.reason).to.equal('unpriced-flows');
+    });
+
+    it('refuses when it cannot even bound the value', () => {
+        const r = decomposeFlows({
+            movements: tiny, price: () => null, estimateValue: () => null,
+            opening: 300000, closing: 304000,
+        });
+        expect(r.ok).to.equal(false);
+    });
+
+    it('refuses when given no way to estimate at all', () => {
+        const r = decomposeFlows({ movements: tiny, price: () => null, opening: 300000, closing: 304000 });
+        expect(r.ok).to.equal(false);
+    });
+
+    it('judges the whole set together, not one movement at a time', () => {
+        // Individually each is under the floor; together they are not.
+        const many = Array.from({ length: 20 }, (_, i) => ({
+            date: `2026-08-${String(i + 1).padStart(2, '0')}`, token: 'x', symbol: 'X', units: 100, kind: 'deposit',
+        }));
+        const r = decomposeFlows({
+            movements: many, price: () => null, estimateValue: (_t, u) => u * 2,
+            opening: 300000, closing: 304000,
+        });
+        expect(r.ok).to.equal(false);
+    });
+});

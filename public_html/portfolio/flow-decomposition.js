@@ -42,6 +42,10 @@ const OUTFLOW = new Set(['withdrawal', 'expense']);
  * @param {Set<string>} [args.neverPriced]  tokens with no market anywhere
  * @param {number} [args.swapTolerance]  how far a swap's two legs may differ
  *   in end-of-day value before the pair is treated as suspect
+ * @param {(token: string, units: number) => number|null} [args.estimateValue]
+ *   an upper bound on what an unpriceable movement could be worth — today's
+ *   price is enough, since the question is only whether it could matter
+ * @param {number} [args.materialityFloor]  as a fraction of `closing`
  * @param {number} [args.reconcileTolerance]  as a fraction of `closing`
  * @returns {object} see below; `ok: false` when it refuses to guess
  */
@@ -54,6 +58,8 @@ export function decomposeFlows({
     neverPriced = new Set(),
     swapTolerance = 0.25,
     reconcileTolerance = 0.01,
+    estimateValue = null,
+    materialityFloor = 0.001,
 }) {
     // A token with no market anywhere has no value to move across the boundary,
     // so it contributes nothing. This is not a guess, and it is what stops a
@@ -87,6 +93,31 @@ export function decomposeFlows({
         else if (m.kind === 'yield') earned += value;
     }
 
+    // Refusing is right when the unknown value could move the answer. It is not
+    // right when it cannot: a movement worth two kroner should not stop a
+    // decomposition of three hundred thousand, and price history that lags the
+    // last few days is a common reason for one to be unpriceable.
+    //
+    // So bound it rather than guess it. Today's price times the units is an
+    // upper bound on what a recent movement could be worth, and if everything
+    // unpriceable together stays under the floor, it is reported and skipped
+    // instead of blocking the answer.
+    let immaterial = [];
+    if (unpriced.length && estimateValue) {
+        let bound = 0;
+        let bounded = true;
+        for (const u of unpriced) {
+            const est = estimateValue(u.token, u.units);
+            if (est == null || !Number.isFinite(est)) { bounded = false; break; }
+            bound += Math.abs(est);
+        }
+        const allowed = Math.max(Math.abs(closing), 1) * materialityFloor;
+        if (bounded && bound <= allowed) {
+            immaterial = unpriced.map(u => ({ ...u, estimatedValue: estimateValue(u.token, u.units) }));
+            unpriced.length = 0;
+        }
+    }
+
     if (unpriced.length) {
         return { ok: false, reason: 'unpriced-flows', unpriced, ignoredNoMarket, suspect };
     }
@@ -111,6 +142,7 @@ export function decomposeFlows({
         gain,
         internal,
         ignoredNoMarket,
+        immaterial,
         reconciliation: reconcile({ gain, earned, closing, fifo, reconcileTolerance }),
     };
 }

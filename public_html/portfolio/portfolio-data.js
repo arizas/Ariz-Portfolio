@@ -586,11 +586,24 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
         return map[date] ?? null;
     };
 
+    // An upper bound for movements that cannot be priced on their day — price
+    // history routinely lags the last few days for smaller tokens. Today's price
+    // is enough: the only question is whether the movement could matter.
+    const currentBySymbol = {};
+    for (const h of base.holdings) {
+        if (h.price != null) currentBySymbol[h.token] = h.price;
+    }
+    const estimateValue = (token, units) => {
+        const p = currentBySymbol[token];
+        return p == null ? null : units * p;
+    };
+
     const stakedUnrealizedNow = portfolio.stakedUnrealized ?? 0;
     const result = decomposeFlows({
         movements,
         price,
         neverPriced,
+        estimateValue,
         opening: portfolio.ibWithStaked ?? 0,
         closing: portfolio.totalWithStaked ?? 0,
         fifo: {

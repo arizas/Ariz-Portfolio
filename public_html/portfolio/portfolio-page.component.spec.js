@@ -128,3 +128,25 @@ describe('when it will not answer', () => {
         expect(el.flowsSection.hidden).to.equal(true);
     });
 });
+
+describe('movements it could not price but could bound', () => {
+    it('says what was skipped and what it could be worth at most', async () => {
+        const el = makePage({
+            ...base,
+            immaterial: [
+                { token: 'npro.nearmobile.near', symbol: 'NPRO', date: '2026-08-19', units: 20, estimatedValue: 40 },
+                { token: 'aa-harvest-moon.near', symbol: 'MOON', date: '2026-08-19', units: 100, estimatedValue: 2.3 },
+            ],
+        });
+        await el.renderFlows();
+        const text = el.flowsEl.textContent.replace(/\s+/g, ' ');
+        expect(text).to.include('2 movements in NPRO, MOON had no price on the day');
+        expect(text).to.include('too little to change the split');
+    });
+
+    it('says nothing when everything was priced', async () => {
+        const el = makePage(base);
+        await el.renderFlows();
+        expect(el.flowsEl.textContent).to.not.include('had no price on the day');
+    });
+});

@@ -327,6 +327,10 @@ customElements.define('portfolio-page',
                         Swaps are not flows — ${r.internal.length} recognised and excluded.
                         ${r.yieldReceived ? `Yield of ${money(r.yieldReceived)} counts as earned, not added.` : ''}
                         ${r.ignoredNoMarket.length ? `Tokens with no market anywhere are ignored: ${escapeHtml(r.ignoredNoMarket.join(', '))}.` : ''}
+                        ${r.immaterial?.length ? `${r.immaterial.length} movement${r.immaterial.length === 1 ? '' : 's'} in `
+                            + `${escapeHtml([...new Set(r.immaterial.map(u => u.symbol || u.token))].join(', '))} had no price on the day; `
+                            + `together they are worth at most ${money(r.immaterial.reduce((a, u) => a + Math.abs(u.estimatedValue ?? 0), 0))}, `
+                            + `too little to change the split, so they are left out.` : ''}
                     </div>
                     ${recNote}
                 </div>`;
