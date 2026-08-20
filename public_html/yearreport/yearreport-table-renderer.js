@@ -1,10 +1,11 @@
 import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue, getTokenSymbol } from './yearreportdata.js';
+import { browserLocale } from '../util/locale.js';
 
 const numDecimals = 2;
 
 export function getNumberFormatter(currency) {
-    const format = currency ? Intl.NumberFormat(navigator.language, { style: 'currency', currency: currency }).format :
-        Intl.NumberFormat(navigator.language).format;
+    const format = currency ? Intl.NumberFormat(browserLocale(), { style: 'currency', currency: currency }).format :
+        Intl.NumberFormat(browserLocale()).format;
     return (number) => number !== null && number !== undefined && !isNaN(number) ? format(number) : '';;
 }
 

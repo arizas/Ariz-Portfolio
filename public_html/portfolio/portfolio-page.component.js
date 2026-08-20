@@ -2,6 +2,7 @@ import { getCurrencyList } from '../pricedata/pricedata.js';
 import { calculatePortfolio, calculatePortfolioSeries, calculateFlowDecomposition } from './portfolio-data.js';
 import { renderPortfolioChart } from './portfolio-chart.js';
 import html from './portfolio-page.component.html.js';
+import { browserLocale } from '../util/locale.js';
 
 const PREFERRED_DEFAULT_CURRENCY = 'nok';
 
@@ -421,7 +422,7 @@ function makeMoneyFormatter(currencyUpper) {
     // Some "currencies" from the provider are crypto (BTC, ETH) and not valid ISO
     // currency codes, so format as a plain number with the code appended.
     // Follow the app-wide convention of using the browser locale for numbers.
-    const numberFormatter = new Intl.NumberFormat(navigator.language, {
+    const numberFormatter = new Intl.NumberFormat(browserLocale(), {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
@@ -431,7 +432,7 @@ function makeMoneyFormatter(currencyUpper) {
 function formatTokenAmount(amount) {
     const abs = Math.abs(amount);
     const maxDecimals = abs >= 1000 ? 2 : abs >= 1 ? 4 : 6;
-    return new Intl.NumberFormat(navigator.language, {
+    return new Intl.NumberFormat(browserLocale(), {
         minimumFractionDigits: 0,
         maximumFractionDigits: maxDecimals
     }).format(amount);
