@@ -28,6 +28,9 @@ import {
 } from '../yearreport/yearreportdata.js';
 import { resolveSymbol, resolveDisplaySymbol } from '../near/intents-tokens.js';
 import { getCurrentPrices, getEODPrice, getEODPriceMap, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
+import { getReceivedAccounts } from '../storage/domainobjectstore.js';
+import { movementsForToken, receivedClassifier, DEFAULT_RECEIVED_TYPES } from './flow-extract.js';
+import { decomposeFlows } from './flow-decomposition.js';
 
 // Liquid-staking token symbols excluded from the portfolio total (treated as staking).
 export const EXCLUDED_STAKING_SYMBOLS = new Set(['STNEAR', 'LINEAR', 'NEARX', 'LST']);
@@ -515,4 +518,87 @@ export async function calculatePortfolioSeries(currency, fromDate, granularity =
     }
 
     return { currency, fromDate, granularity, series };
+}
+
+
+// ---------------------------------------------------------------------------
+// Where the money came from
+// ---------------------------------------------------------------------------
+
+/**
+ * Split the change in portfolio value since `fromDate` into what crossed the
+ * boundary and what was earned:
+ *
+ *     opening + net flows + gain = closing
+ *
+ * Reuses the cached FIFO pass, so this costs price lookups rather than a second
+ * traversal. See docs/performance-comparison.md §0.
+ *
+ * @returns {Promise<object>} the decomposeFlows result, plus `currency` and
+ *   `fromDate`. `ok: false` when it refuses to guess at an unpriced flow.
+ */
+export async function calculateFlowDecomposition(currency, fromDate, onProgress = () => {}, { force = false } = {}) {
+    const base = await computeBase(currency, onProgress, force);
+    const portfolio = await calculatePortfolio(currency, fromDate, onProgress, { force });
+
+    const storedReceived = await getReceivedAccounts();
+    // Shipped defaults sit under the user's own choices, the same way deposit
+    // accounts already work, so a known payer arrives pre-classified and a later
+    // correction still reaches anyone who never touched that counterparty.
+    const classify = receivedClassifier({ ...DEFAULT_RECEIVED_TYPES, ...storedReceived });
+
+    const movements = [];
+    const priceByToken = new Map();
+    const neverPriced = new Set();
+
+    for (const holding of base.holdings) {
+        const own = movementsForToken({
+            token: holding.token,
+            symbol: holding.symbol,
+            dailyBalances: holding.dailyBalances,
+            decimalConversionValue: holding.decimalConversionValue,
+            classifyReceived: classify,
+            from: fromDate,
+        });
+        if (own.length === 0) continue;
+        movements.push(...own);
+
+        onProgress(`Pricing movements for ${holding.displaySymbol}`);
+        let map = {};
+        try {
+            map = await getEODPriceMap(currency, holding.token) ?? {};
+        } catch {
+            map = {};
+        }
+        // No dated entries at all means no market anywhere — a scam airdrop
+        // rather than a real asset with a hole in its history. Those two have to
+        // be told apart or a worthless token vetoes the whole calculation.
+        if (!Object.keys(map).some(k => /^\d{4}-\d{2}-\d{2}$/.test(k)) && map.__constant == null) {
+            neverPriced.add(holding.token);
+        }
+        priceByToken.set(holding.token, map);
+    }
+
+    const price = (token, date) => {
+        const map = priceByToken.get(token);
+        if (!map) return null;
+        if (map.__constant != null) return map.__constant;
+        return map[date] ?? null;
+    };
+
+    const stakedUnrealizedNow = portfolio.stakedUnrealized ?? 0;
+    const result = decomposeFlows({
+        movements,
+        price,
+        neverPriced,
+        opening: portfolio.ibWithStaked ?? 0,
+        closing: portfolio.totalWithStaked ?? 0,
+        fifo: {
+            realized: portfolio.totalRealized ?? 0,
+            unrealizedNow: (portfolio.totalUnrealized ?? 0) + stakedUnrealizedNow,
+            unrealizedOpening: (portfolio.ibValue ?? 0) - (portfolio.ibCost ?? 0)
+        }
+    });
+
+    return { ...result, currency, fromDate };
 }

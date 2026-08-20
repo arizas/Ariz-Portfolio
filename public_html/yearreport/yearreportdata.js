@@ -70,6 +70,11 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
             ) {
                 tx.receivedBalance = tx.changedBalance;
+                // Remember which counterparty matched. The daily aggregate loses
+                // it, and it is what decides whether this is income from outside
+                // or yield on holdings already here — a distinction the FIFO
+                // engine cannot make, since both arrive as lots at market value.
+                tx.receivedFrom = receivedaccounts[tx.signer_id] ? tx.signer_id : tx.involved_account_id;
                 tx.changedBalance = 0n;
             }
 
@@ -171,7 +176,14 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
             deposit: 0,
             withdrawal: 0,
             received: 0n,
-            expense: 0n
+            receivedFrom: [],
+            expense: 0n,
+            // Per-transaction detail behind `deposit` and `withdrawal`. The
+            // aggregate cannot tell a swap from money crossing the portfolio
+            // boundary: a swap shows up as a withdrawal in one token's pass and
+            // a deposit in another's, and the only thing tying those two legs
+            // together is the hash. See portfolio/flow-decomposition.js.
+            flows: []
         };
         currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
         accounts.forEach(account => {
@@ -192,6 +204,10 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                     tx.changedBalance = 0n;
                     if (tx.receivedBalance) {
                         dailyBalances[datestring].received += tx.receivedBalance;
+                        dailyBalances[datestring].receivedFrom.push({
+                            account: tx.receivedFrom,
+                            amount: Number(tx.receivedBalance)
+                        });
                         tx.receivedBalance = 0n;
                     }
                     if (tx.expenseBalance) {
@@ -201,6 +217,12 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 });
 
                 if (!allStakingAccounts[tx.signer_id] && !allStakingAccounts[tx.receiver_id]) {
+                    if (changedBalanceForHashAllAccounts !== BigInt(0)) {
+                        dailyBalances[datestring].flows.push({
+                            hash: tx.hash,
+                            changed: Number(changedBalanceForHashAllAccounts)
+                        });
+                    }
                     if (changedBalanceForHashAllAccounts >= BigInt(0)) {
                         dailyBalances[datestring].deposit += Number(changedBalanceForHashAllAccounts);
                     } else {

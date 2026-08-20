@@ -1,5 +1,5 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
-import { calculatePortfolio, calculatePortfolioSeries } from './portfolio-data.js';
+import { calculatePortfolio, calculatePortfolioSeries, calculateFlowDecomposition } from './portfolio-data.js';
 import { renderPortfolioChart } from './portfolio-chart.js';
 import html from './portfolio-page.component.html.js';
 
@@ -25,6 +25,10 @@ customElements.define('portfolio-page',
             this.valueChart = this.shadowRoot.querySelector('#value-chart');
             this.holdingsEl = this.shadowRoot.querySelector('#holdings');
             this.holdingsSection = this.shadowRoot.querySelector('#holdings-section');
+            this.flowsSection = this.shadowRoot.querySelector('#flows-section');
+            this.flowsEl = this.shadowRoot.querySelector('#flows');
+            // Seam so the panel can be tested without OPFS or the network.
+            this.__calculateFlowDecomposition = calculateFlowDecomposition;
             this.excludedNoteEl = this.shadowRoot.querySelector('#excluded-note');
             this.currencySelect = this.shadowRoot.querySelector('#currencyselect');
             this.fromMonthSelect = this.shadowRoot.querySelector('#frommonthselect');
@@ -111,6 +115,7 @@ customElements.define('portfolio-page',
                 this.setBusy(false, '');
                 // Value-over-time chart reuses the (now cached) heavy computation.
                 await this.renderChart(force);
+                await this.renderFlows(force);
             } catch (e) {
                 console.error('Failed to calculate portfolio', e);
                 this.setBusy(false, '');
@@ -251,6 +256,80 @@ customElements.define('portfolio-page',
             } else {
                 this.excludedNoteEl.hidden = true;
             }
+        }
+
+        // Where the money came from. The page shows opening and now but cannot
+        // say how much of the difference was deposited and how much was earned —
+        // the difference between doubling your money and adding to it.
+        async renderFlows(force = false) {
+            if (!this.currentCurrency) return;
+            const cur = this.currentCurrency.toUpperCase();
+            const money = makeMoneyFormatter(cur);
+            const signed = v => formatSigned(v, money);
+            let r;
+            try {
+                r = await this.__calculateFlowDecomposition(
+                    this.currentCurrency, this.currentFromDate, () => {}, { force });
+            } catch (e) {
+                console.error('Failed to decompose flows', e);
+                this.flowsSection.hidden = true;
+                return;
+            }
+            this.flowsSection.hidden = false;
+
+            if (!r.ok) {
+                // Refuse rather than guess. An unpriced flow does not make the
+                // answer approximate, it makes it wrong in a way that looks fine.
+                const why = r.reason === 'unpriced-flows'
+                    ? `no price on the day for ${escapeHtml([...new Set(r.unpriced.map(u => u.symbol || u.token))].join(', '))}`
+                    : `a transaction moved value both in and out but the two sides do not match, so it cannot be told apart from a swap`;
+                this.flowsEl.innerHTML = `
+                    <div class="flows-body">
+                        <div class="flow-warn">Not calculated — ${why}.
+                        Splitting the change needs every movement priced on the day it happened;
+                        guessing at one would shift everything that follows.</div>
+                    </div>`;
+                return;
+            }
+
+            const added = r.netFlow;
+            const change = r.closing - r.opening;
+            const row = (label, value, cls = '') => `
+                <div class="flow-row ${cls}">
+                    <span class="flow-label">${label}</span>
+                    <span class="amount">${value}</span>
+                </div>`;
+            const rec = r.reconciliation;
+            const recNote = rec?.available && !rec.agrees ? `
+                <div class="flow-warn">
+                    These flows and the FIFO ledger disagree by ${money(Math.abs(rec.difference))}.
+                    One of them is wrong: either a movement was priced or classified incorrectly here,
+                    or the opening cost basis for staked NEAR — which is not tracked separately — is
+                    carrying the difference. Treat the split as indicative until it reconciles.
+                </div>` : '';
+
+            this.flowsEl.innerHTML = `
+                <div class="flows-body">
+                    ${row(`Opening · ${escapeHtml(formatDate(r.fromDate))}`, money(r.opening))}
+                    ${r.deposits ? row('Deposits in', signed(r.deposits)) : ''}
+                    ${r.income ? row('Income received', signed(r.income)) : ''}
+                    ${r.withdrawals ? row('Withdrawals out', signed(-r.withdrawals)) : ''}
+                    ${row('Added, net', signed(added), 'sum')}
+                    ${row('Earned', signed(r.gain), '')}
+                    ${row('Now', money(r.closing), 'sum')}
+                    <div class="flow-lead">
+                        ${change >= 0 ? 'Of the' : 'Of the'} <strong>${money(Math.abs(change))}</strong>
+                        ${change >= 0 ? 'increase' : 'decrease'},
+                        <strong>${money(Math.abs(added))}</strong> was ${added >= 0 ? 'money you added' : 'money you took out'}
+                        and <strong>${money(Math.abs(r.gain))}</strong> was ${r.gain >= 0 ? 'earned' : 'lost'}.
+                    </div>
+                    <div class="footnote">
+                        Swaps are not flows — ${r.internal.length} recognised and excluded.
+                        ${r.yieldReceived ? `Yield of ${money(r.yieldReceived)} counts as earned, not added.` : ''}
+                        ${r.ignoredNoMarket.length ? `Tokens with no market anywhere are ignored: ${escapeHtml(r.ignoredNoMarket.join(', '))}.` : ''}
+                    </div>
+                    ${recNote}
+                </div>`;
         }
 
         renderHolding(h, money, maxValue) {
