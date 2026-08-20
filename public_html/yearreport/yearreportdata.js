@@ -163,6 +163,9 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
     const dailyBalances = {};
     let prevDateString;
+    // Last staking balance seen per account, so a gap in the source data does
+    // not read as an unstaking.
+    const lastStakingBalance = {};
     let currentDate = new Date(2020, 0, 1);
     const endDate = new Date();
     const accountDailyBalances = {};
@@ -188,11 +191,21 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
         accounts.forEach(account => {
             const transactionsObj = accountTransactions[account];
-            if (transactionsObj.stakingBalances[datestring]) {
-                dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[datestring].totalStakingBalance;
-                dailyBalances[datestring].stakingEarnings += transactionsObj.stakingBalances[datestring].totalEarnings;
-            } else if (prevDateString && transactionsObj.stakingBalances[prevDateString]) {
-                dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[prevDateString].totalStakingBalance;
+            const todaysStaking = transactionsObj.stakingBalances[datestring];
+            if (todaysStaking) {
+                lastStakingBalance[account] = todaysStaking.totalStakingBalance;
+                dailyBalances[datestring].stakingBalance += todaysStaking.totalStakingBalance;
+                dailyBalances[datestring].stakingEarnings += todaysStaking.totalEarnings;
+            } else if (lastStakingBalance[account] != null) {
+                // Carry the last known balance forward for as long as the series
+                // is missing, not for a single day. A one-day carry-forward looks
+                // right until the source data lags by two: the staked balance
+                // then reads as zero, which is not a fact about the account but
+                // about what has been fetched. It reached the portfolio as a
+                // staked position with no cost basis, and an unrealized loss of
+                // the whole position's basis reported against what was left
+                // liquid. A balance does not disappear because nobody asked.
+                dailyBalances[datestring].stakingBalance += lastStakingBalance[account];
             }
         });
         if (transactionsByDate[datestring]) {
