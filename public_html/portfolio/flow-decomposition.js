@@ -42,6 +42,8 @@ const OUTFLOW = new Set(['withdrawal', 'expense']);
  * @param {Set<string>} [args.neverPriced]  tokens with no market anywhere
  * @param {number} [args.swapTolerance]  how far a swap's two legs may differ
  *   in end-of-day value before the pair is treated as suspect
+ * @param {number} [args.dustFraction]  a leg smaller than this share of the
+ *   largest leg in its transaction is a cost, not a side of a trade
  * @param {(token: string, units: number) => number|null} [args.estimateValue]
  *   an upper bound on what an unpriceable movement could be worth — today's
  *   price is enough, since the question is only whether it could matter
@@ -57,6 +59,7 @@ export function decomposeFlows({
     fifo = null,
     neverPriced = new Set(),
     swapTolerance = 0.25,
+    dustFraction = 0.01,
     reconcileTolerance = 0.01,
     estimateValue = null,
     materialityFloor = 0.001,
@@ -72,7 +75,7 @@ export function decomposeFlows({
         return false;
     });
 
-    const { internal, external, suspect } = separateSwaps(live, price, swapTolerance);
+    const { internal, external, suspect, costs } = separateSwaps(live, price, swapTolerance, dustFraction);
 
     // Price what is left. A missing price here is refused rather than treated as
     // zero: the value is real and unknown, and a wrong flow shifts everything
@@ -141,6 +144,7 @@ export function decomposeFlows({
         netFlow,
         gain,
         internal,
+        transactionCosts: costs,
         ignoredNoMarket,
         immaterial,
         reconciliation: reconcile({ gain, earned, closing, fifo, reconcileTolerance }),
@@ -168,7 +172,7 @@ export function decomposeFlows({
  * genuine transfer will typically be out by most of its value. 25 % sits well
  * clear of the first and well under the second.
  */
-function separateSwaps(movements, price, tolerance) {
+function separateSwaps(movements, price, tolerance, dustFraction) {
     const groups = new Map();
     const external = [];
     for (const m of movements) {
@@ -179,7 +183,18 @@ function separateSwaps(movements, price, tolerance) {
 
     const internal = [];
     const suspect = [];
-    for (const [key, legs] of groups) {
+    const costs = [];
+    for (const [key, all] of groups) {
+        // Every transaction that moves a token also moves native NEAR, by the
+        // gas it burned and the unused portion it refunded. Those specks share
+        // the hash, so a plain transfer arrives looking like a trade with one
+        // side worth nothing — which is how 46 ordinary transfers came to be
+        // reported as swaps that did not balance.
+        //
+        // Gas is a cost of transacting, not value crossing the boundary, so the
+        // specks are set aside rather than counted. What they cost is already in
+        // the closing value, which puts it in `gain`, where a fee belongs.
+        const legs = stripTransactionCosts(all, price, dustFraction, costs);
         const ins = legs.filter(m => INFLOW.has(m.kind));
         const outs = legs.filter(m => OUTFLOW.has(m.kind));
         if (!ins.length || !outs.length) {
@@ -216,7 +231,33 @@ function separateSwaps(movements, price, tolerance) {
         }
         internal.push(detail);
     }
-    return { internal, external, suspect };
+    return { internal, external, suspect, costs };
+}
+
+/**
+ * Separate the specks from the substance within one transaction. A leg worth
+ * less than `dustFraction` of the biggest leg beside it is the gas, not a side
+ * of a trade.
+ */
+function stripTransactionCosts(legs, price, dustFraction, costs) {
+    if (legs.length < 2) return legs;
+    const valued = legs.map(m => {
+        const p = price(m.token, m.date);
+        return { m, value: p == null || !Number.isFinite(p) ? null : Math.abs(m.units * p) };
+    });
+    // An unpriceable leg is not dust by default — it is unknown, and the pricing
+    // pass has to see it.
+    const scale = Math.max(...valued.map(v => v.value ?? 0));
+    if (!(scale > 0)) return legs;
+    const kept = [];
+    for (const v of valued) {
+        if (v.value != null && v.value < scale * dustFraction) {
+            costs.push({ token: v.m.token, symbol: v.m.symbol, date: v.m.date, value: v.value });
+            continue;
+        }
+        kept.push(v.m);
+    }
+    return kept.length ? kept : legs;
 }
 
 function sumValue(legs, price) {

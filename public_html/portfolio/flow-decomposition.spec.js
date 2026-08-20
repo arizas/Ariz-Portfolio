@@ -341,3 +341,79 @@ describe('movements too small to matter', () => {
         expect(r.ok).to.equal(false);
     });
 });
+
+describe('gas is a cost, not a side of a trade', () => {
+    // Observed on a real portfolio: 46 ordinary transfers reported as swaps that
+    // did not balance, every one of them with a side worth 0.00. The speck was
+    // the native NEAR gas refund, sharing the transaction hash.
+    it('does not turn a transfer with a gas refund into a mismatched swap', () => {
+        const r = decomposeFlows({
+            movements: [
+                { date: '2026-05-24', token: 'usdc.near', symbol: 'USDC', units: 20, kind: 'withdrawal', swapKey: 'tx' },
+                { date: '2026-05-24', token: '', symbol: 'NEAR', units: 0.0004, kind: 'deposit', swapKey: 'tx' },
+            ],
+            price: (t) => (t === 'usdc.near' ? 10.43 : 16.6),
+            opening: 1000, closing: 791.4,
+        });
+        expect(r.ok).to.equal(true);
+        // The USDC really did leave; only the speck is set aside.
+        expect(r.withdrawals).to.be.closeTo(208.6, 0.1);
+        expect(r.internal).to.have.lengthOf(0);
+        expect(r.transactionCosts).to.have.lengthOf(1);
+        expect(r.transactionCosts[0].symbol).to.equal('NEAR');
+    });
+
+    it('does the same when the gas is spent rather than refunded', () => {
+        const r = decomposeFlows({
+            movements: [
+                { date: '2026-02-15', token: '', symbol: 'NEAR', units: 0.0003, kind: 'withdrawal', swapKey: 'tx' },
+                { date: '2026-02-15', token: 'usdc.near', symbol: 'USDC', units: 0.92, kind: 'deposit', swapKey: 'tx' },
+            ],
+            price: (t) => (t === 'usdc.near' ? 10.43 : 16.6),
+            opening: 100, closing: 109.6,
+        });
+        expect(r.ok).to.equal(true);
+        expect(r.deposits).to.be.closeTo(9.6, 0.1);
+        expect(r.transactionCosts).to.have.lengthOf(1);
+    });
+
+    it('still nets a real swap, where neither side is a speck', () => {
+        const r = decomposeFlows({
+            movements: [
+                { date: '2026-07-21', token: '', symbol: 'NEAR', units: 178.7, kind: 'withdrawal', swapKey: 's' },
+                { date: '2026-07-21', token: 'btc', symbol: 'BTC', units: 0.0055, kind: 'deposit', swapKey: 's' },
+                { date: '2026-07-21', token: '', symbol: 'NEAR', units: 0.0004, kind: 'deposit', swapKey: 's' },
+            ],
+            price: (t) => (t === 'btc' ? 655000 : 19.2),
+            opening: 1000, closing: 1020,
+        });
+        expect(r.ok).to.equal(true);
+        expect(r.netFlow).to.equal(0);
+        expect(r.internal).to.have.lengthOf(1);
+        expect(r.transactionCosts).to.have.lengthOf(1);
+    });
+
+    it('leaves an unpriceable leg alone rather than assuming it is dust', () => {
+        const r = decomposeFlows({
+            movements: [
+                { date: '2026-05-24', token: 'a', symbol: 'A', units: 20, kind: 'withdrawal', swapKey: 'tx' },
+                { date: '2026-05-24', token: 'b', symbol: 'B', units: 1, kind: 'deposit', swapKey: 'tx' },
+            ],
+            price: (t) => (t === 'a' ? 10 : null),
+            opening: 1000, closing: 800,
+        });
+        expect(r.ok).to.equal(false);
+        expect(r.reason).to.equal('unpriced-flows');
+        expect(r.unpriced[0].symbol).to.equal('B');
+    });
+
+    it('does not strip a lone movement', () => {
+        const r = decomposeFlows({
+            movements: [{ date: '2026-05-24', token: '', symbol: 'NEAR', units: 0.0004, kind: 'withdrawal', swapKey: 'tx' }],
+            price: () => 16.6, opening: 100, closing: 99.99,
+        });
+        expect(r.ok).to.equal(true);
+        expect(r.withdrawals).to.be.greaterThan(0);
+        expect(r.transactionCosts).to.have.lengthOf(0);
+    });
+});

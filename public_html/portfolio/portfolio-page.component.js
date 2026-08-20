@@ -346,6 +346,8 @@ customElements.define('portfolio-page',
                     </div>
                     <div class="footnote">
                         Swaps are not flows — ${r.internal.length} recognised and excluded.
+                        ${r.transactionCosts?.length ? `Gas on ${r.transactionCosts.length} transaction${r.transactionCosts.length === 1 ? '' : 's'} `
+                            + `counts as a cost, not money leaving.` : ''}
                         ${r.yieldReceived ? `Yield of ${money(r.yieldReceived)} counts as earned, not added.` : ''}
                         ${r.ignoredNoMarket.length ? `Tokens with no market anywhere are ignored: ${escapeHtml(r.ignoredNoMarket.join(', '))}.` : ''}
                         ${r.immaterial?.length ? `${r.immaterial.length} movement${r.immaterial.length === 1 ? '' : 's'} in `

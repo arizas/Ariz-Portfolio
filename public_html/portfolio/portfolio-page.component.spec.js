@@ -175,3 +175,12 @@ describe('movements it could not price but could bound', () => {
         expect(el.flowsEl.textContent).to.not.include('had no price on the day');
     });
 });
+
+describe('gas', () => {
+    it('says gas was treated as a cost rather than money leaving', async () => {
+        const el = makePage({ ...base, transactionCosts: [{ symbol: 'NEAR', value: 0.4 }, { symbol: 'NEAR', value: 0.2 }] });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent.replace(/\s+/g, ' '))
+            .to.include('Gas on 2 transactions counts as a cost');
+    });
+});
