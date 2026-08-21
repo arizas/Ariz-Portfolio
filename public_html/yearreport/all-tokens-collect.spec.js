@@ -87,12 +87,43 @@ describe('days it cannot price', () => {
             tokens: [],
             deps: deps({
                 calculateYearReportData: async () => ({
-                    dailyBalances: { '2026-03-01': day({ deposit: 100 }) }, transactionsByDate: {},
+                    dailyBalances: {
+                        '2026-03-01': day({ deposit: 100 }),
+                        '2026-03-02': day({ deposit: 100 }),
+                    },
+                    transactionsByDate: {},
                 }),
-                getConvertedValuesForDay: async () => ({ ...zero(), conversionRate: 0 }),
+                // Priced on the second day, so the first is a hole rather than an
+                // asset that never had a market.
+                getConvertedValuesForDay: async (rowdata, currency, date) =>
+                    ({ ...zero(), conversionRate: date === '2026-03-01' ? 0 : 42 }),
             }),
         });
-        expect(contributions[0].priced).to.equal(false);
+        expect(contributions.find(c => c.date === '2026-03-01').priced).to.equal(false);
+        expect(contributions.find(c => c.date === '2026-03-02').priced).to.equal(true);
+    });
+
+    // A store collects airdropped tokens that never had a market. Treated as
+    // holes they would put a warning on all 365 days and bury the one day where
+    // a real asset is genuinely missing a price.
+    it('reports a token with no market once instead of on every day', async () => {
+        const { contributions, neverPriced } = await run({
+            tokens: [{ contractId: 'scam.near', symbol: 'FREE NEAR at http://…' }],
+            deps: deps({
+                calculateYearReportData: async () => ({
+                    dailyBalances: {
+                        '2026-03-01': day({ totalBalance: 1e9 }),
+                        '2026-03-02': day({ totalBalance: 1e9 }),
+                    },
+                    transactionsByDate: {},
+                }),
+                getConvertedValuesForDay: async () => ({ ...zero(), conversionRate: 30 }),
+                getFungibleTokenConvertedValuesForDay: async () => ({ ...zero(), conversionRate: 0 }),
+            }),
+        });
+        expect(neverPriced.map(t => t.token)).to.deep.equal(['scam.near']);
+        expect(contributions.some(c => c.token === 'scam.near')).to.equal(false);
+        expect(contributions.some(c => c.symbol === 'NEAR')).to.equal(true);
     });
 
     // A token that held nothing that day has no price to be missing. Flagging it

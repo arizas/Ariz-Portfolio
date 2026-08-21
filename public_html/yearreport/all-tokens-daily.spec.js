@@ -57,13 +57,28 @@ describe('combineDailyRows', () => {
     it('records an unpriced token instead of adding it as zero', () => {
         const { rows, totals } = combineDailyRows([
             day('a', 'A', '2026-03-01', { deposit: 100 }),
-            day('x', 'NPRO', '2026-03-01', { deposit: 999, priced: false }),
+            day('x', 'NPRO', '2026-03-01', { deposit: 999, priced: false, movedUnits: true }),
         ]);
         expect(rows[0].deposit).to.equal(100);
         expect(rows[0].unpriced).to.deep.equal(['NPRO']);
         expect(totals.unpriced).to.deep.equal(['NPRO']);
         // It is still listed, so the reader can see what was left out.
         expect(rows[0].tokens.map(t => t.symbol)).to.include('NPRO');
+    });
+
+    // A token that merely sits there unpriced makes the balance short, not the
+    // flows. Told apart, because otherwise one dormant token puts a warning on
+    // every day of the year and buries the days that actually moved.
+    it('separates a movement it could not price from a balance it could not value', () => {
+        const { rows, totals } = combineDailyRows([
+            day('a', 'A', '2026-03-01', { deposit: 100 }),
+            day('x', 'NPRO', '2026-03-01', { priced: false, movedUnits: true }),
+            day('y', 'SHITZU', '2026-03-01', { priced: false, movedUnits: false }),
+        ]);
+        expect(rows[0].unpriced).to.deep.equal(['NPRO']);
+        expect(rows[0].unvalued).to.deep.equal(['SHITZU']);
+        expect(totals.unpriced).to.deep.equal(['NPRO']);
+        expect(totals.unvalued).to.deep.equal(['SHITZU']);
     });
 
     it('totals every column across the period', () => {

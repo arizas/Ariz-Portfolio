@@ -236,7 +236,7 @@ export async function renderAllTokensPeriodTable({
         return empty;
     }
 
-    const { contributions, transactionsByDate, failed } = await collect({
+    const { contributions, transactionsByDate, failed, neverPriced = [] } = await collect({
         tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress,
     });
     const { rows, totals } = combineDailyRows(contributions);
@@ -249,6 +249,14 @@ export async function renderAllTokensPeriodTable({
     if (failed.length) {
         yearReportTable.appendChild(messageRow(
             `Left out: ${failed.map(f => `${f.symbol} (${f.message})`).join(', ')}. The totals below are short those tokens.`));
+    }
+    if (neverPriced.length) {
+        yearReportTable.appendChild(messageRow(
+            `No market in this period, so not counted: ${nameList(neverPriced.map(t => t.symbol))}.`));
+    }
+    if (totals.unvalued.length) {
+        yearReportTable.appendChild(messageRow(
+            `Held on some days with no price that day, so the balance columns are short them: ${nameList(totals.unvalued)}. Days where one of them actually moved are marked on the row.`));
     }
 
     for (const rowdata of rows) {
@@ -271,8 +279,16 @@ export async function renderAllTokensPeriodTable({
         row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss);
 
         if (rowdata.unpriced.length) {
+            // Built as nodes rather than markup: a token symbol here can be an
+            // attacker-chosen string, and some of them are literally URLs.
             const dateCell = row.querySelector('.dailybalancerow_datetime');
-            dateCell.innerHTML = `${datestring}<br /><span class="text-warning small" title="No price that day, so this token is missing from the day's totals">no price: ${rowdata.unpriced.join(', ')}</span>`;
+            const note = document.createElement('span');
+            note.className = 'text-warning small';
+            note.title = "No price that day, so this token is missing from the day's totals";
+            note.innerText = `no price: ${nameList(rowdata.unpriced)}`;
+            dateCell.innerText = datestring;
+            dateCell.appendChild(document.createElement('br'));
+            dateCell.appendChild(note);
         }
 
         await perRowFunction({
@@ -284,7 +300,7 @@ export async function renderAllTokensPeriodTable({
         // being added together. The breakdown lives behind the transactions button.
         row.querySelector('.inforow')?.remove();
 
-        if (rowdata.tokens.length || rowdata.unpriced.length ||
+        if (rowdata.tokens.length || rowdata.unpriced.length || rowdata.unvalued.length ||
             datestring === periodStartDateString || datestring === periodEndDateString ||
             datestring.endsWith('12-31') || datestring.endsWith('01-01')) {
             yearReportTable.appendChild(row);
@@ -310,8 +326,18 @@ export async function renderAllTokensPeriodTable({
         outboundBalance: rows.find(r => r.date === periodEndDateString),
         inboundBalance: rows.find(r => r.date === periodStartDateString),
         unpriced: totals.unpriced,
+        unvalued: totals.unvalued,
         failed,
+        neverPriced,
     };
+}
+
+// An airdropped token can carry a whole sentence, or a URL, as its symbol. The
+// line is about which tokens were left out, not about reproducing their bait.
+function nameList(symbols, limit = 6) {
+    const shown = symbols.slice(0, limit).map(s => s.length > 14 ? `${s.substring(0, 14)}\u2026` : s);
+    const rest = symbols.length - shown.length;
+    return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(', ');
 }
 
 function messageRow(text) {

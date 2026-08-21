@@ -36,7 +36,8 @@ const defaultDeps = {
  * @param {string} options.convertToCurrency  required — token units cannot be added
  * @param {(message: string) => void} [options.onProgress]
  * @param {object} [options.deps]  seam for tests
- * @returns {Promise<{contributions: Array, transactionsByDate: Object<string, Array>, failed: Array}>}
+ * @returns {Promise<{contributions: Array, transactionsByDate: Object<string, Array>,
+ *   failed: Array, neverPriced: Array}>}
  */
 export async function collectAllTokenDays({
     tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress = () => { }, deps,
@@ -50,6 +51,7 @@ export async function collectAllTokenDays({
     const contributions = [];
     const transactionsByDate = {};
     const failed = [];
+    const neverPriced = [];
 
     const all = [{ contractId: NATIVE_NEAR, symbol: 'NEAR' }, ...(tokens ?? [])];
     let done = 0;
@@ -72,6 +74,11 @@ export async function collectAllTokenDays({
 
         const decimalConversionValue = token === NATIVE_NEAR
             ? Math.pow(10, -24) : d.getDecimalConversionValue(token);
+
+        // Held back until the whole period is read, so a token that turns out to
+        // have no market anywhere can be reported once instead of on every day.
+        const tokenContributions = [];
+        let pricedAnyDay = false;
 
         for (const date of dates) {
             const rowdata = dailyBalances[date];
@@ -99,11 +106,18 @@ export async function collectAllTokenDays({
             // No rate is only a problem when there was something to convert. A
             // token that held nothing that day is not an unpriced day, it is an
             // absent one, and listing it would bury the days that do matter.
-            const somethingToPrice = Object.values(units).some(v => v !== 0);
+            // A missing price is two different problems. On a day the token moved,
+            // the day's deposits and withdrawals are wrong. On a day it only sat
+            // there, just the balance column is short. Only the first one changes
+            // the numbers you would check a flow against.
+            const movedUnits = units.stakingRewards !== 0 || units.received !== 0
+                || units.deposit !== 0 || units.withdrawal !== 0 || units.expense !== 0;
+            const somethingToPrice = movedUnits || units.totalBalance !== 0 || units.totalChange !== 0;
             const priced = conversionRate !== 0 || !somethingToPrice;
+            if (conversionRate !== 0) pricedAnyDay = true;
 
-            contributions.push({
-                token, symbol, date, priced,
+            tokenContributions.push({
+                token, symbol, date, priced, movedUnits,
                 stakingReward, received, deposit, withdrawal, expense,
                 profit: Number(rowdata.profit ?? 0),
                 loss: Number(rowdata.loss ?? 0),
@@ -120,9 +134,21 @@ export async function collectAllTokenDays({
                 (transactionsByDate[date] ??= []).push({ ...tx, token, symbol, decimalConversionValue });
             }
         }
+
+        // Two different things look identical on a single day: a real asset with
+        // a hole in its price history, and an airdropped token that has never had
+        // a market at all. Left together, a store full of scam tokens puts a
+        // warning on all 365 days and buries the one day that matters. A token
+        // that was never priced across the whole period is the second kind: said
+        // once, above the table, and kept out of the days.
+        if (!pricedAnyDay && tokenContributions.some(c => c.priced === false)) {
+            neverPriced.push({ token, symbol });
+            continue;
+        }
+        contributions.push(...tokenContributions);
     }
 
-    return { contributions, transactionsByDate, failed };
+    return { contributions, transactionsByDate, failed, neverPriced };
 }
 
 /** Every yyyy-MM-dd in the period, oldest first. */

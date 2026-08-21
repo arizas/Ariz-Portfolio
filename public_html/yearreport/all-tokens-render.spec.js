@@ -27,7 +27,7 @@ async function render(collectResult, { convertToCurrency = 'nok', perRowFunction
         periodEndDate: new Date('2026-03-05'),
         convertToCurrency,
         perRowFunction,
-        collect: async () => ({ contributions: [], transactionsByDate: {}, failed: [], ...collectResult }),
+        collect: async () => ({ contributions: [], transactionsByDate: {}, failed: [], neverPriced: [], ...collectResult }),
     });
     return { shadowRoot, result, body: shadowRoot.querySelector('#dailybalancestable') };
 }
@@ -103,6 +103,22 @@ describe('what it will not add up quietly', () => {
         });
         expect(body.innerText).to.include('no price');
         expect(body.innerText).to.include('MOON');
+    });
+
+    // Long enough to be a sentence, and sometimes a URL. What matters is which
+    // tokens were left out, not reproducing their bait at full length.
+    it('names tokens with no market once, trimmed, above the table', async () => {
+        const { body } = await render({
+            contributions: [contribution({ deposit: 1000 })],
+            neverPriced: [
+                { token: 'scam.near', symbol: 'Claim Near Airdrop at https://event.example' },
+                { token: 'ariz.near', symbol: 'ARIZ' },
+            ],
+        });
+        expect(body.innerText).to.include('No market in this period');
+        expect(body.innerText).to.include('ARIZ');
+        expect(body.innerText).to.not.include('https://event.example');
+        expect(body.innerText).to.not.include('no price:');
     });
 
     it('says which token it could not read at all', async () => {

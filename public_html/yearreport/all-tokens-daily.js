@@ -59,13 +59,20 @@ export function combineDailyRows(contributions) {
                 ...Object.fromEntries(SUMMED.map(k => [k, 0])),
                 tokens: [],
                 unpriced: [],
+                unvalued: [],
             });
         }
         const row = byDate.get(c.date);
         // An unpriced token is recorded, not silently added as zero: a day whose
         // total is missing a leg should say so rather than look complete.
         if (c.priced === false) {
-            if (!row.unpriced.includes(c.symbol)) row.unpriced.push(c.symbol);
+            // Split by what the missing price actually costs you: a movement that
+            // cannot be priced makes the day's flows wrong, a balance that cannot
+            // be priced only makes the balance short. Both are said, not equally
+            // loudly — a token that merely sits there unpriced would otherwise put
+            // a warning on every day of the year and bury the days that moved.
+            const list = c.movedUnits ? row.unpriced : row.unvalued;
+            if (!list.includes(c.symbol)) list.push(c.symbol);
         } else {
             for (const k of SUMMED) row[k] += Number(c[k] ?? 0);
         }
@@ -83,6 +90,7 @@ export function combineDailyRows(contributions) {
     totals.net = totals.deposit + totals.received - totals.withdrawal - totals.expense;
     totals.days = rows.length;
     totals.unpriced = [...new Set(rows.flatMap(r => r.unpriced))];
+    totals.unvalued = [...new Set(rows.flatMap(r => r.unvalued))];
 
     return { rows, totals };
 }
@@ -106,5 +114,5 @@ function movementSize(c) {
  * nothing happened; the ones that matter are the ones that moved.
  */
 export function daysWithActivity(rows) {
-    return rows.filter(r => r.tokens.length > 0 || r.unpriced.length > 0);
+    return rows.filter(r => r.tokens.length > 0 || r.unpriced.length > 0 || r.unvalued.length > 0);
 }
