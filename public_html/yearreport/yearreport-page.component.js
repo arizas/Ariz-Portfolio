@@ -5,6 +5,35 @@ import { resolveDisplaySymbol } from '../near/intents-tokens.js';
 import { renderMonthPeriodReportTable, getNumberFormatter } from './yearreport-table-renderer.js';
 import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 
+// The attached deposit is yoctoNEAR, as a decimal string too long for a Number
+// to hold exactly. This used to go through a `nearApi` global that is not
+// defined anywhere in this app, so every click on the transactions button threw
+// before it drew a row.
+/**
+ * A daily balance snapshot from the accounting export, not a transaction: it
+ * carries a synthetic `block-<height>` hash — which links nowhere on an explorer
+ * — and moves nothing.
+ */
+export function isBalanceMarker(tx) {
+    const movedNothing = Number(tx?.visibleChangedBalance ?? 0) === 0
+        && (tx?.delta_amount === undefined || Number(tx.delta_amount) === 0);
+    return movedNothing && typeof tx?.hash === 'string' && tx.hash.startsWith('block-');
+}
+
+export function formatAttachedDeposit(yocto) {
+    if (yocto === undefined || yocto === null || yocto === '') return '';
+    let digits;
+    try {
+        digits = BigInt(yocto).toString();
+    } catch {
+        return '';
+    }
+    const padded = digits.padStart(25, '0');
+    const whole = padded.slice(0, -24).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    const fraction = padded.slice(-24).replace(/0+$/, '');
+    return fraction ? `${whole}.${fraction}` : whole;
+}
+
 customElements.define('year-report-page',
     class extends HTMLElement {
         constructor() {
@@ -57,12 +86,17 @@ customElements.define('year-report-page',
             const tokenselect = this.shadowRoot.querySelector('#tokenselect');
             const tokenEntries = await getAllFungibleTokenEntries();
             this.tokenEntries = tokenEntries;
+            this.displaySymbols = new Map();
             for (const entry of tokenEntries) {
                 const symboloption = document.createElement('option');
                 // Use contract_id as value to ensure uniqueness
                 symboloption.value = entry.contractId;
                 // Display with network info for intents tokens
                 symboloption.text = await resolveDisplaySymbol(entry.contractId, entry.symbol);
+                // Two contracts can share a symbol — NPRO and wNEAR each exist
+                // natively and inside intents. Combined, they would appear twice
+                // under one name; this is the name the selector already gives them.
+                this.displaySymbols.set(entry.contractId, symboloption.text);
                 tokenselect.appendChild(symboloption);
             }
 
@@ -128,15 +162,23 @@ customElements.define('year-report-page',
          */
         transactionsModalBody({ transactions, decimalConversionValue, allTokens, tokenBreakdown }) {
             const formatNumber = getNumberFormatter(this.convertToCurrency);
-            const sorted = [...(transactions ?? [])]
+            const label = (t) => this.displaySymbols?.get(t.token) ?? t.symbol ?? '';
+
+            const all = [...(transactions ?? [])]
                 .sort((a, b) => Number(BigInt(a.block_timestamp) - BigInt(b.block_timestamp)));
+            // The accounting export emits a daily balance marker per account per
+            // token, with a synthetic hash and nothing moved. In a list meant to
+            // show what happened on a day they are noise with a dead link — but
+            // they are counted, so the list is not quietly shorter than the data.
+            const sorted = all.filter(tx => !isBalanceMarker(tx));
+            const markers = all.length - sorted.length;
 
             const breakdown = allTokens && tokenBreakdown?.length ? `
                 <table class="table table-sm table-dark">
                 <thead><th>Token</th><th>Received</th><th>Deposit</th><th>Withdrawal</th><th>Expense</th><th>Reward</th></thead>
                 <tbody>
                 ${tokenBreakdown.map(t => `<tr>
-                    <td>${t.symbol}${t.priced === false ? ' <span class="text-warning">(no price)</span>' : ''}</td>
+                    <td>${label(t)}${t.priced === false ? ' <span class="text-warning">(no price)</span>' : ''}</td>
                     <td>${formatNumber(t.received)}</td>
                     <td>${formatNumber(t.deposit)}</td>
                     <td>${formatNumber(t.withdrawal)}</td>
@@ -147,9 +189,9 @@ customElements.define('year-report-page',
                 </table>` : '';
 
             // A transaction is shaped by which ledger it came from: native NEAR
-            // rows name a signer and a receiver, fungible token rows name the
-            // accounts involved and a delta. Combined, that has to be decided per
-            // transaction rather than once for the table.
+            // rows name a signer and a receiver, fungible token rows name your
+            // account and the counterparty. Combined, that has to be decided per
+            // transaction rather than once for the whole table.
             const isFungible = (tx) => allTokens ? !!tx.token : !!this.token;
             const decimalsFor = (tx) => allTokens ? (tx.decimalConversionValue ?? 1) : decimalConversionValue;
 
@@ -160,8 +202,8 @@ customElements.define('year-report-page',
                     <thead>
                         <th>Time</th>
                         ${allTokens ? '<th>Token</th>' : ''}
-                        <th>Signer</th>
-                        <th>Received</th>
+                        <th>Counterparty</th>
+                        <th>Account</th>
                         <th>Changed balance</th>
                         <th>Attached deposit</th>
                         <th></th>
@@ -169,15 +211,16 @@ customElements.define('year-report-page',
                     <tbody>
                     ${sorted.map(tx => `<tr>
                         <td>${new Date(Number(BigInt(tx.block_timestamp) / 1_000_000n)).toJSON().substring('yyyy-MM-dd '.length)}</td>
-                        ${allTokens ? `<td>${tx.symbol ?? ''}</td>` : ''}
-${isFungible(tx) ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalsFor(tx)}</td>` :
+                        ${allTokens ? `<td>${label(tx)}</td>` : ''}
+${isFungible(tx) ? `<td>${tx.involved_account_id ?? ''}</td><td>${tx.account_id ?? ''}</td><td>${tx.delta_amount * decimalsFor(tx)}</td>` :
                     `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
-<td>${nearApi.utils.format.formatNearAmount(tx.args?.deposit)}</td>
+<td>${formatAttachedDeposit(tx.args?.deposit)}</td>
 <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</a></td>
 </tr>`).join('')}
                     </tbody>
                     </table>
                     </div>
+                    ${markers ? `<p class="text-muted small mb-0">${markers} daily balance marker${markers === 1 ? '' : 's'} not shown — they record a balance, they do not move anything.</p>` : ''}
                 `;
         }
 
