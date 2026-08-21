@@ -2,7 +2,7 @@ import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol } from '../near/intents-tokens.js';
-import { renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
+import { renderMonthPeriodReportTable, getNumberFormatter } from './yearreport-table-renderer.js';
 import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 
 customElements.define('year-report-page',
@@ -56,6 +56,7 @@ customElements.define('year-report-page',
 
             const tokenselect = this.shadowRoot.querySelector('#tokenselect');
             const tokenEntries = await getAllFungibleTokenEntries();
+            this.tokenEntries = tokenEntries;
             for (const entry of tokenEntries) {
                 const symboloption = document.createElement('option');
                 // Use contract_id as value to ensure uniqueness
@@ -120,7 +121,68 @@ customElements.define('year-report-page',
             await this.refreshView();
         }
 
+        /**
+         * What a day was made of. With one token that is the transactions; with
+         * every token it is also which tokens made up the day's figures, because
+         * the whole point of the combined row is being able to take it apart.
+         */
+        transactionsModalBody({ transactions, decimalConversionValue, allTokens, tokenBreakdown }) {
+            const formatNumber = getNumberFormatter(this.convertToCurrency);
+            const sorted = [...(transactions ?? [])]
+                .sort((a, b) => Number(BigInt(a.block_timestamp) - BigInt(b.block_timestamp)));
+
+            const breakdown = allTokens && tokenBreakdown?.length ? `
+                <table class="table table-sm table-dark">
+                <thead><th>Token</th><th>Received</th><th>Deposit</th><th>Withdrawal</th><th>Expense</th><th>Reward</th></thead>
+                <tbody>
+                ${tokenBreakdown.map(t => `<tr>
+                    <td>${t.symbol}${t.priced === false ? ' <span class="text-warning">(no price)</span>' : ''}</td>
+                    <td>${formatNumber(t.received)}</td>
+                    <td>${formatNumber(t.deposit)}</td>
+                    <td>${formatNumber(t.withdrawal)}</td>
+                    <td>${formatNumber(t.expense)}</td>
+                    <td>${formatNumber(t.stakingReward)}</td>
+                </tr>`).join('')}
+                </tbody>
+                </table>` : '';
+
+            // A transaction is shaped by which ledger it came from: native NEAR
+            // rows name a signer and a receiver, fungible token rows name the
+            // accounts involved and a delta. Combined, that has to be decided per
+            // transaction rather than once for the table.
+            const isFungible = (tx) => allTokens ? !!tx.token : !!this.token;
+            const decimalsFor = (tx) => allTokens ? (tx.decimalConversionValue ?? 1) : decimalConversionValue;
+
+            return `
+                ${breakdown}
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark">
+                    <thead>
+                        <th>Time</th>
+                        ${allTokens ? '<th>Token</th>' : ''}
+                        <th>Signer</th>
+                        <th>Received</th>
+                        <th>Changed balance</th>
+                        <th>Attached deposit</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    ${sorted.map(tx => `<tr>
+                        <td>${new Date(Number(BigInt(tx.block_timestamp) / 1_000_000n)).toJSON().substring('yyyy-MM-dd '.length)}</td>
+                        ${allTokens ? `<td>${tx.symbol ?? ''}</td>` : ''}
+${isFungible(tx) ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalsFor(tx)}</td>` :
+                    `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
+<td>${nearApi.utils.format.formatNearAmount(tx.args?.deposit)}</td>
+<td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</a></td>
+</tr>`).join('')}
+                    </tbody>
+                    </table>
+                    </div>
+                `;
+        }
+
         async refreshView() {
+            const progress = this.shadowRoot.querySelector('#reportprogress');
             await renderMonthPeriodReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
@@ -129,39 +191,23 @@ customElements.define('year-report-page',
                 year: this.year,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,
+                tokens: this.tokenEntries,
+                onProgress: (message) => { if (progress) progress.innerText = message; },
                 perRowFunction: async ({
                     datestring,
                     transactionsByDate,
                     decimalConversionValue,
-                    numDecimals,
-                    row
+                    row,
+                    allTokens,
+                    tokenBreakdown
                 }) => {
                     row.querySelector('.show_transactions_button').addEventListener('click', () => {
-                        const transactions = transactionsByDate[datestring].sort((a, b) => Number(BigInt(a.block_timestamp) - BigInt(b.block_timestamp)));
                         this.transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
-                        this.transactionsModalElement.querySelector('.modal-body').innerHTML = `
-                <div class="table-responsive">
-                    <table class="table table-sm table-dark">
-                    <thead>
-                        <th>Time</th>
-                        <th>Signer</th>
-                        <th>Received</th>                        
-                        <th>Changed balance</th>
-                        <th>Attached deposit</th>
-                        <th></th>
-                    </thead>
-                    <tbody>
-                    ${transactions ? transactions.map(tx => `<tr>
-                        <td>${new Date(Number(BigInt(tx.block_timestamp) / 1_000_000n)).toJSON().substring('yyyy-MM-dd '.length)}</td>
-${this.token ? `<td>${tx.involved_account_id}</td><td>${tx.affected_account_id}</td><td>${tx.delta_amount * decimalConversionValue}</td>` :
-                                `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
-<td>${nearApi.utils.format.formatNearAmount(tx.args?.deposit)}</td>
-<td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</button></a>
-</tr>`).join('') : ''}
-                    </tbody>
-                    </table>
-                    </div>
-                `;
+                        this.transactionsModalElement.querySelector('.modal-body').innerHTML =
+                            this.transactionsModalBody({
+                                transactions: transactionsByDate[datestring],
+                                decimalConversionValue, allTokens, tokenBreakdown
+                            });
                         this.showTransactionsModal.show();
                     });
                 }

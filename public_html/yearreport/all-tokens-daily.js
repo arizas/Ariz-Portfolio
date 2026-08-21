@@ -29,11 +29,17 @@ export const ALL_TOKENS = '__all__';
  * @property {number} [loss]
  * @property {number} [totalBalance]   value held at the end of the day
  * @property {number} [totalChange]
+ * @property {number} [accountBalance]  liquid part of it; a fungible token is
+ *   all liquid, so only NEAR ever splits
+ * @property {number} [accountChange]
+ * @property {number} [stakingBalance]
+ * @property {number} [stakingChange]
  * @property {boolean} [priced]  false when no rate was available that day
  */
 
 const SUMMED = ['stakingReward', 'received', 'deposit', 'withdrawal', 'expense',
-    'profit', 'loss', 'totalBalance', 'totalChange'];
+    'profit', 'loss', 'totalBalance', 'totalChange',
+    'accountBalance', 'accountChange', 'stakingBalance', 'stakingChange'];
 
 /**
  * One row per date, summing every token that contributed to it.

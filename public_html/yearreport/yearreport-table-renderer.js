@@ -1,5 +1,7 @@
 import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue, getTokenSymbol } from './yearreportdata.js';
 import { browserLocale } from '../util/locale.js';
+import { ALL_TOKENS, combineDailyRows } from './all-tokens-daily.js';
+import { collectAllTokenDays } from './all-tokens-collect.js';
 
 const numDecimals = 2;
 
@@ -36,19 +38,24 @@ export function calculatePeriodStartAndEndDate(year, month, periodLengthMonths) 
     return { periodStartDate, periodEndDate };
 }
 
-export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
+export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction, tokens, onProgress }) {
     const periodEndDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
     const periodStartDate = new Date(`${year}-01-01`);
-    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction, tokens, onProgress });
 }
 
-export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction }) {
+export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction, tokens, onProgress }) {
     const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(year, month, periodLengthMonths);
     console.log(year, month, periodLengthMonths, periodStartDate, periodEndDate);
-    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction, tokens, onProgress });
 }
 
-export async function renderPeriodReportTable({ shadowRoot, token, periodStartDate, periodEndDate, convertToCurrency, perRowFunction }) {
+export async function renderPeriodReportTable({ shadowRoot, token, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, onProgress, collect }) {
+    if (token === ALL_TOKENS) {
+        return await renderAllTokensPeriodTable({
+            shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, onProgress, collect,
+        });
+    }
     let currentDate = periodEndDate;
 
     let { dailyBalances, transactionsByDate } = await calculateYearReportData(token);
@@ -192,4 +199,127 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         outboundBalance: dailyBalances[outboundBalanceDate],
         inboundBalance: dailyBalances[inboundBalanceDate]
     }
+}
+
+/**
+ * Every token on one row per day, in the chosen currency.
+ *
+ * The per-token table is the right shape for cost basis and the wrong shape for
+ * "what did I actually put in on the 14th?" — that answer is spread over as many
+ * tables as there are tokens. Here it is one row, with the tokens that made it
+ * up behind it.
+ *
+ * Token amounts are gone from this view. Units of different tokens cannot be
+ * added, and a column that sometimes means NEAR and sometimes means BTC is worse
+ * than no column.
+ */
+export async function renderAllTokensPeriodTable({
+    shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens,
+    onProgress = () => { }, collect = collectAllTokenDays,
+}) {
+    const yearReportTable = shadowRoot.querySelector('#dailybalancestable');
+    while (yearReportTable.lastElementChild) {
+        yearReportTable.removeChild(yearReportTable.lastElementChild);
+    }
+
+    const empty = {
+        totalStakingReward: 0, totalReceived: 0, totalDeposit: 0, totalWithdrawal: 0,
+        totalExpense: 0, totalProfit: 0, totalLoss: 0,
+        outboundBalance: undefined, inboundBalance: undefined,
+    };
+
+    // Say why rather than render something meaningless: without a currency there
+    // is nothing the tokens can be added in.
+    if (!convertToCurrency) {
+        yearReportTable.appendChild(messageRow(
+            'Pick a currency to see every token together — token amounts cannot be added across tokens.'));
+        return empty;
+    }
+
+    const { contributions, transactionsByDate, failed } = await collect({
+        tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress,
+    });
+    const { rows, totals } = combineDailyRows(contributions);
+
+    const formatNumber = getNumberFormatter(convertToCurrency);
+    const periodStartDateString = periodStartDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+    const periodEndDateString = periodEndDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+    const rowTemplate = shadowRoot.querySelector('#dailybalancerowtemplate');
+
+    if (failed.length) {
+        yearReportTable.appendChild(messageRow(
+            `Left out: ${failed.map(f => `${f.symbol} (${f.message})`).join(', ')}. The totals below are short those tokens.`));
+    }
+
+    for (const rowdata of rows) {
+        const datestring = rowdata.date;
+        const row = rowTemplate.cloneNode(true).content;
+
+        row.querySelector('.dailybalancerow_datetime').innerText = datestring;
+        row.querySelector('.dailybalancerow_totalbalance').innerText = formatNumber(rowdata.totalBalance);
+        row.querySelector('.dailybalancerow_change').innerText = formatNumber(rowdata.totalChange);
+        row.querySelector('.dailybalancerow_accountbalance').innerText = formatNumber(rowdata.accountBalance);
+        row.querySelector('.dailybalancerow_accountchange').innerText = formatNumber(rowdata.accountChange);
+        row.querySelector('.dailybalancerow_stakingbalance').innerText = formatNumber(rowdata.stakingBalance);
+        row.querySelector('.dailybalancerow_stakingchange').innerText = formatNumber(rowdata.stakingChange);
+        row.querySelector('.dailybalancerow_stakingreward').innerText = formatNumber(rowdata.stakingReward);
+        row.querySelector('.dailybalancerow_received').innerText = formatNumber(rowdata.received);
+        row.querySelector('.dailybalancerow_deposit').innerText = formatNumber(rowdata.deposit);
+        row.querySelector('.dailybalancerow_withdrawal').innerText = formatNumber(rowdata.withdrawal);
+        row.querySelector('.dailybalancerow_expense').innerText = formatNumber(rowdata.expense);
+        row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit);
+        row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss);
+
+        if (rowdata.unpriced.length) {
+            const dateCell = row.querySelector('.dailybalancerow_datetime');
+            dateCell.innerHTML = `${datestring}<br /><span class="text-warning small" title="No price that day, so this token is missing from the day's totals">no price: ${rowdata.unpriced.join(', ')}</span>`;
+        }
+
+        await perRowFunction({
+            transactionsByDate, datestring, row, decimalConversionValue: 1, numDecimals,
+            allTokens: true, tokenBreakdown: rowdata.tokens,
+        });
+
+        // The detail row belongs to per-token realizations, which do not survive
+        // being added together. The breakdown lives behind the transactions button.
+        row.querySelector('.inforow')?.remove();
+
+        if (rowdata.tokens.length || rowdata.unpriced.length ||
+            datestring === periodStartDateString || datestring === periodEndDateString ||
+            datestring.endsWith('12-31') || datestring.endsWith('01-01')) {
+            yearReportTable.appendChild(row);
+        }
+    }
+
+    shadowRoot.querySelector('#totalreward').innerText = formatNumber(totals.stakingReward);
+    shadowRoot.querySelector('#totalreceived').innerText = formatNumber(totals.received);
+    shadowRoot.querySelector('#totaldeposit').innerText = formatNumber(totals.deposit);
+    shadowRoot.querySelector('#totalwithdrawal').innerText = formatNumber(totals.withdrawal);
+    shadowRoot.querySelector('#totalexpense').innerText = formatNumber(totals.expense);
+    shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totals.profit);
+    shadowRoot.querySelector('#totalloss').innerText = formatNumber(totals.loss);
+
+    return {
+        totalStakingReward: totals.stakingReward,
+        totalReceived: totals.received,
+        totalDeposit: totals.deposit,
+        totalWithdrawal: totals.withdrawal,
+        totalExpense: totals.expense,
+        totalProfit: totals.profit,
+        totalLoss: totals.loss,
+        outboundBalance: rows.find(r => r.date === periodEndDateString),
+        inboundBalance: rows.find(r => r.date === periodStartDateString),
+        unpriced: totals.unpriced,
+        failed,
+    };
+}
+
+function messageRow(text) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 15;
+    td.className = 'text-muted';
+    td.innerText = text;
+    tr.appendChild(td);
+    return tr;
 }

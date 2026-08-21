@@ -90,6 +90,10 @@ export async function collectAllTokenDays({
                 expense: Number(rowdata.expense ?? 0),
                 totalBalance: Number(rowdata.totalBalance ?? 0),
                 totalChange: Number(rowdata.totalChange ?? 0),
+                accountBalance: Number(rowdata.accountBalance ?? 0),
+                accountChange: Number(rowdata.accountChange ?? 0),
+                stakingBalance: Number(rowdata.stakingBalance ?? 0),
+                stakingChange: Number(rowdata.stakingChange ?? 0),
             };
 
             // No rate is only a problem when there was something to convert. A
@@ -105,6 +109,10 @@ export async function collectAllTokenDays({
                 loss: Number(rowdata.loss ?? 0),
                 totalBalance: conversionRate * units.totalBalance * decimalConversionValue,
                 totalChange: conversionRate * units.totalChange * decimalConversionValue,
+                accountBalance: conversionRate * units.accountBalance * decimalConversionValue,
+                accountChange: conversionRate * units.accountChange * decimalConversionValue,
+                stakingBalance: conversionRate * units.stakingBalance * decimalConversionValue,
+                stakingChange: conversionRate * units.stakingChange * decimalConversionValue,
                 units, decimalConversionValue,
             });
 

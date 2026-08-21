@@ -75,6 +75,7 @@ export default /*html*/ `<style>
         <label for="tokenselect" class="form-label">Fungible token</label>
         <select class="form-select" aria-label="Select fungible token" id="tokenselect">
             <option value="">NEAR</option>
+            <option value="__all__">All tokens (combined value)</option>
         </select>        
     </div>
     <div class="col-md-2">
@@ -88,6 +89,8 @@ export default /*html*/ `<style>
         <button class="btn btn-light" id="print_current_token_button">Print (selected token)</button>
     </div>
 </div>
+
+<div id="reportprogress" class="text-muted small mt-2"></div>
 
 <template id="dailybalancerowtemplate">
     <tr>
