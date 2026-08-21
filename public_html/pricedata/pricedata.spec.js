@@ -1,4 +1,4 @@
-import { getEODPrice, fetchHistoricalPricesFromArizGateway, __resetNoPriceTokens } from "./pricedata.js";
+import { getEODPrice, getEODPriceMap, fetchHistoricalPricesFromArizGateway, clearPriceHistoryCache, __resetNoPriceTokens } from "./pricedata.js";
 import { mockWalletAuthenticationData, mockArizGatewayAccess } from "../arizgateway/arizgatewayaccess.spec.js";
 
 describe('pricedata from Ariz gateway', () => {
@@ -80,5 +80,43 @@ describe('price history is merged, never replaced', () => {
         await fetchHistoricalPricesFromArizGateway({ currency: 'NOK', todate: '2024-05-30' });
         const second = await getHistoricalPriceData('NEAR', 'NOK');
         expect(second).to.deep.equal(first);
+    });
+});
+
+// A report asks for one date at a time out of a file holding every date. Summed
+// over every token for a year that is thousands of reads of the same file, so the
+// parse is held for the session.
+describe('a price history is read once per session', () => {
+    before(async function () {
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+        clearPriceHistoryCache();
+    });
+
+    it('serves later dates without re-reading storage', async function () {
+        const { setHistoricalPriceData } = await import('../storage/domainobjectstore.js');
+        await setHistoricalPriceData('CACHED', 'NOK', { '2024-01-01': 10, '2024-01-02': 20 });
+        clearPriceHistoryCache();
+
+        expect(await getEODPrice('NOK', '2024-01-01', 'CACHED')).to.equal(10);
+
+        // Written behind the cache's back. Still the cached parse, because that is
+        // what "read once" means — and why the writer has to invalidate.
+        await setHistoricalPriceData('CACHED', 'NOK', { '2024-01-01': 999, '2024-01-02': 999 });
+        expect(await getEODPrice('NOK', '2024-01-02', 'CACHED')).to.equal(20);
+
+        clearPriceHistoryCache();
+        expect(await getEODPrice('NOK', '2024-01-02', 'CACHED')).to.equal(999);
+    });
+
+    // The same object now goes to every caller, so one that wrote into it would
+    // change what every later reader sees. Frozen, it throws at the write instead.
+    it('hands out a history that cannot be written into', async function () {
+        const { setHistoricalPriceData } = await import('../storage/domainobjectstore.js');
+        await setHistoricalPriceData('FROZEN', 'NOK', { '2024-01-01': 10 });
+        clearPriceHistoryCache();
+
+        const map = await getEODPriceMap('NOK', 'FROZEN');
+        expect(() => { map['2024-01-01'] = 0; }).to.throw();
     });
 });

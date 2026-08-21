@@ -1,10 +1,41 @@
 import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
-import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
+import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData as readHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
 import { retry } from "../near/retry.js";
 
 const defaultToken = 'NEAR';
 const skipFetchingPrices = {};
+
+// A price history is one file holding every date for one token/currency. Reading
+// it is a whole OPFS read plus a JSON.parse, and a report asks for one date at a
+// time: a year of NEAR is 365 reads of the same file. Per token that was merely
+// slow; summing every token over a year it is the difference between a usable
+// view and an unusable one.
+//
+// So the parsed file is held for the session. The only production writer is
+// fetchHistoricalPricesFromArizGateway below, which drops its own key after
+// writing, so a token whose history arrives mid-session is picked up on the next
+// read rather than staying at its pre-fetch state.
+const priceHistoryCache = new Map();
+
+async function getHistoricalPriceData(token, currency) {
+    const key = `${token}\u0000${currency}`;
+    if (!priceHistoryCache.has(key)) {
+        // Frozen because the same object is now handed to every caller. A caller
+        // that writes into it would poison the session silently; frozen, it
+        // throws at the write instead.
+        priceHistoryCache.set(key, Object.freeze(await readHistoricalPriceData(token, currency)));
+    }
+    return priceHistoryCache.get(key);
+}
+
+/**
+ * Forget cached price histories. Called after a write, and by tests that put
+ * price data straight into storage.
+ */
+export function clearPriceHistoryCache() {
+    priceHistoryCache.clear();
+}
 
 /**
  * Thrown when the price service (Ariz gateway) can't be reached for the current
@@ -89,9 +120,13 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     //
     // Existing entries win: they were written by this same endpoint earlier, and
     // keeping them makes the merge idempotent and order-independent.
-    const existing = await getHistoricalPriceData(baseToken, currency);
+    // Straight from storage, not from the session cache: this merge is what keeps
+    // an existing history from being replaced by a shorter one, and it must not
+    // depend on the cache having seen every writer.
+    const existing = await readHistoricalPriceData(baseToken, currency);
     const merged = { ...pricesMap, ...existing };
     await setHistoricalPriceData(baseToken, currency, merged);
+    priceHistoryCache.delete(`${baseToken}\u0000${currency}`);
 }
 
 // Real market symbols are short and contain no whitespace, slashes or URL
