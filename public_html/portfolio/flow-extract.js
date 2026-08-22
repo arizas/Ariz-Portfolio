@@ -104,6 +104,24 @@ export function receivedClassifier(receivedAccounts = {}) {
     return account => (receivedAccounts[account]?.type === 'yield' ? 'yield' : 'income');
 }
 
+/**
+ * Shipped classifications under the user's own, merged field by field.
+ *
+ * Replacing whole entries looked equivalent and was not. A user who has
+ * `distribution.nearmobile.near` saved with a description and no type — which is
+ * how the account gets counted as received at all — replaced the shipped
+ * `type: 'yield'` with nothing, and their NPRO staking rewards were booked as
+ * money they added. The default could therefore never apply to anyone it was
+ * written for.
+ */
+export function mergedReceivedTypes(stored = {}, defaults = DEFAULT_RECEIVED_TYPES) {
+    const out = { ...defaults };
+    for (const [account, entry] of Object.entries(stored)) {
+        out[account] = { ...defaults[account], ...entry };
+    }
+    return out;
+}
+
 /** Known payers whose transfers are yield, not income, shipped pre-classified. */
 export const DEFAULT_RECEIVED_TYPES = {
     // NPRO is distributed daily for staking in the NPRO pool — a different token

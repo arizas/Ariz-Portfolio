@@ -29,7 +29,7 @@ import {
 import { resolveSymbol, resolveDisplaySymbol } from '../near/intents-tokens.js';
 import { getCurrentPrices, getEODPrice, getEODPriceMap, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
 import { getReceivedAccounts } from '../storage/domainobjectstore.js';
-import { movementsForToken, receivedClassifier, DEFAULT_RECEIVED_TYPES } from './flow-extract.js';
+import { movementsForToken, receivedClassifier, mergedReceivedTypes } from './flow-extract.js';
 import { decomposeFlows } from './flow-decomposition.js';
 
 // Liquid-staking token symbols excluded from the portfolio total (treated as staking).
@@ -541,11 +541,10 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
     const base = await computeBase(currency, onProgress, force);
     const portfolio = await calculatePortfolio(currency, fromDate, onProgress, { force });
 
-    const storedReceived = await getReceivedAccounts();
     // Shipped defaults sit under the user's own choices, the same way deposit
     // accounts already work, so a known payer arrives pre-classified and a later
-    // correction still reaches anyone who never touched that counterparty.
-    const classify = receivedClassifier({ ...DEFAULT_RECEIVED_TYPES, ...storedReceived });
+    // correction still reaches anyone who never set a type for that counterparty.
+    const classify = receivedClassifier(mergedReceivedTypes(await getReceivedAccounts()));
 
     const movements = [];
     const priceByToken = new Map();

@@ -1,4 +1,4 @@
-import { movementsForToken, swapKeyForHash, receivedClassifier, DEFAULT_RECEIVED_TYPES } from "./flow-extract.js";
+import { movementsForToken, swapKeyForHash, receivedClassifier, mergedReceivedTypes, DEFAULT_RECEIVED_TYPES } from "./flow-extract.js";
 
 const YOCTO = 1e-24;
 const day = extra => ({ deposit: 0, withdrawal: 0, received: 0n, receivedFrom: [], expense: 0n, flows: [], ...extra });
@@ -137,5 +137,36 @@ describe('receivedClassifier', () => {
         expect(c('b.near')).to.equal('yield');
         expect(c('c.near')).to.equal('income');
         expect(c('unknown.near')).to.equal('income');
+    });
+});
+
+// The shipped classification for distribution.nearmobile.near could never apply
+// to anyone it was written for: having the account saved is what makes its
+// transfers count as received at all, and a saved entry replaced the whole
+// default — including the type it existed to supply.
+describe('shipped classifications under the user\'s own', () => {
+    it('keeps a shipped type when the saved entry does not set one', () => {
+        const merged = mergedReceivedTypes({
+            'distribution.nearmobile.near': { description: 'staking rewards' },
+        });
+        expect(receivedClassifier(merged)('distribution.nearmobile.near')).to.equal('yield');
+        // And the user's own words survive.
+        expect(merged['distribution.nearmobile.near'].description).to.equal('staking rewards');
+    });
+
+    it('lets the user override the shipped type', () => {
+        const merged = mergedReceivedTypes({
+            'distribution.nearmobile.near': { type: 'income' },
+        });
+        expect(receivedClassifier(merged)('distribution.nearmobile.near')).to.equal('income');
+    });
+
+    it('still ships the default to someone who has saved nothing', () => {
+        expect(receivedClassifier(mergedReceivedTypes({}))('distribution.nearmobile.near')).to.equal('yield');
+    });
+
+    it('leaves accounts it knows nothing about as income', () => {
+        const merged = mergedReceivedTypes({ 'someone.near': { description: 'a refund' } });
+        expect(receivedClassifier(merged)('someone.near')).to.equal('income');
     });
 });
