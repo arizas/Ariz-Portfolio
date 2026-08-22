@@ -2,7 +2,7 @@ import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol } from '../near/intents-tokens.js';
-import { renderMonthPeriodReportTable, getNumberFormatter } from './yearreport-table-renderer.js';
+import { renderMonthPeriodReportTable, getNumberFormatter, getAmountFormatter } from './yearreport-table-renderer.js';
 import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 
 // The attached deposit is yoctoNEAR, as a decimal string too long for a Number
@@ -160,8 +160,8 @@ customElements.define('year-report-page',
          * every token it is also which tokens made up the day's figures, because
          * the whole point of the combined row is being able to take it apart.
          */
-        transactionsModalBody({ transactions, decimalConversionValue, allTokens, tokenBreakdown }) {
-            const formatNumber = getNumberFormatter(this.convertToCurrency);
+        transactionsModalBody({ transactions, decimalConversionValue, allTokens, tokenBreakdown, flows }) {
+            const formatNumber = allTokens ? getAmountFormatter() : getNumberFormatter(this.convertToCurrency);
             const label = (t) => this.displaySymbols?.get(t.token) ?? t.symbol ?? '';
 
             const all = [...(transactions ?? [])]
@@ -172,6 +172,25 @@ customElements.define('year-report-page',
             // they are counted, so the list is not quietly shorter than the data.
             const sorted = all.filter(tx => !isBalanceMarker(tx));
             const markers = all.length - sorted.length;
+
+            // The row says what crossed the portfolio's edge; this table says what
+            // each token did. They differ by the swaps, and the difference is the
+            // whole reason someone opens this — so it is stated, not left to be
+            // worked out from two sets of numbers.
+            const reconcile = allTokens && flows ? `
+                <p class="small mb-2">
+                    Crossing the portfolio's edge this day:
+                    <strong>${formatNumber(flows.deposit)}</strong> in,
+                    <strong>${formatNumber(flows.withdrawal)}</strong> out.
+                    ${flows.internalCount ? `${flows.internalCount} transaction${flows.internalCount === 1 ? '' : 's'}
+                        moved about ${formatNumber(flows.internalValue)} between your own tokens and count as neither.` : ''}
+                    ${flows.ambiguous?.length ? `<span class="text-warning">${flows.ambiguous.length}
+                        moved value both ways without the sides matching, so ${flows.ambiguous.length === 1 ? 'it is' : 'they are'}
+                        counted as crossing — worth checking.</span>` : ''}
+                </p>
+                <p class="text-muted small mb-2">Per token below, every arrival is a deposit and every
+                    departure a withdrawal, including both sides of a swap.
+                    Amounts in ${(this.convertToCurrency || '').toUpperCase()}.</p>` : '';
 
             const breakdown = allTokens && tokenBreakdown?.length ? `
                 <table class="table table-sm table-dark">
@@ -196,6 +215,7 @@ customElements.define('year-report-page',
             const decimalsFor = (tx) => allTokens ? (tx.decimalConversionValue ?? 1) : decimalConversionValue;
 
             return `
+                ${reconcile}
                 ${breakdown}
                 <div class="table-responsive">
                     <table class="table table-sm table-dark">
@@ -242,14 +262,15 @@ ${isFungible(tx) ? `<td>${tx.involved_account_id ?? ''}</td><td>${tx.account_id 
                     decimalConversionValue,
                     row,
                     allTokens,
-                    tokenBreakdown
+                    tokenBreakdown,
+                    flows
                 }) => {
                     row.querySelector('.show_transactions_button').addEventListener('click', () => {
                         this.transactionsModalElement.querySelector('.modal-title').innerHTML = `Transactions ${datestring}`;
                         this.transactionsModalElement.querySelector('.modal-body').innerHTML =
                             this.transactionsModalBody({
                                 transactions: transactionsByDate[datestring],
-                                decimalConversionValue, allTokens, tokenBreakdown
+                                decimalConversionValue, allTokens, tokenBreakdown, flows
                             });
                         this.showTransactionsModal.show();
                     });

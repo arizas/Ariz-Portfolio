@@ -10,6 +10,10 @@ function table() {
     return el.getRootNode().shadowRoot;
 }
 
+// The test browser's locale decides the separators, so the expected text is
+// formatted the same way rather than written out.
+const amount = (n) => Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
 const contribution = (over = {}) => ({
     token: '', symbol: 'NEAR', date: '2026-03-02', priced: true,
     stakingReward: 0, received: 0, deposit: 0, withdrawal: 0, expense: 0,
@@ -27,24 +31,68 @@ async function render(collectResult, { convertToCurrency = 'nok', perRowFunction
         periodEndDate: new Date('2026-03-05'),
         convertToCurrency,
         perRowFunction,
-        collect: async () => ({ contributions: [], transactionsByDate: {}, failed: [], neverPriced: [], ...collectResult }),
+        collect: async () => ({
+            contributions: [], transactionsByDate: {}, failed: [], neverPriced: [], flowsByDate: {},
+            ...collectResult,
+        }),
     });
     return { shadowRoot, result, body: shadowRoot.querySelector('#dailybalancestable') };
 }
 
+const flows = (over = {}) => ({
+    deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0, ambiguous: [], unpriced: [], ...over,
+});
+
 describe('every token on one row', () => {
-    it('adds the day up across tokens', async () => {
-        const { body, result } = await render({
+    it('adds the balances up across tokens', async () => {
+        const { body } = await render({
             contributions: [
-                contribution({ symbol: 'NEAR', deposit: 1000, totalBalance: 5000 }),
-                contribution({ symbol: 'BTC', token: 'btc.omft.near', withdrawal: 400, totalBalance: 9000 }),
+                contribution({ symbol: 'NEAR', totalBalance: 5000 }),
+                contribution({ symbol: 'BTC', token: 'btc.omft.near', totalBalance: 9000, deposit: 1 }),
             ],
         });
         const row = [...body.querySelectorAll('tr')].find(r => r.innerText.includes('2026-03-02'));
-        expect(row.querySelector('.dailybalancerow_deposit').innerText).to.include('1');
         expect(row.querySelector('.dailybalancerow_totalbalance').innerText).to.include('14');
-        expect(result.totalDeposit).to.equal(1000);
-        expect(result.totalWithdrawal).to.equal(400);
+    });
+
+    // The per-token sums are gross: a swap arrives as a withdrawal in one token
+    // and a deposit in another, so adding them up answers a question nobody
+    // asked. The row shows what crossed the portfolio's edge.
+    it('shows what crossed the edge, not the sum of every token movement', async () => {
+        const { body, result } = await render({
+            contributions: [
+                contribution({ symbol: 'NEAR', withdrawal: 888 }),
+                contribution({ symbol: 'USDC', token: 'usdc.near', deposit: 1140, withdrawal: 1140 }),
+            ],
+            flowsByDate: { '2026-03-02': flows({ deposit: 0, withdrawal: 250 }) },
+        });
+        const row = [...body.querySelectorAll('tr')].find(r => r.innerText.includes('2026-03-02'));
+        expect(row.querySelector('.dailybalancerow_deposit').innerText).to.equal(amount(0));
+        expect(row.querySelector('.dailybalancerow_withdrawal').innerText).to.equal(amount(250));
+        expect(result.totalDeposit).to.equal(0);
+        expect(result.totalWithdrawal).to.equal(250);
+        // The gross is still there for anyone who wants it.
+        expect(result.grossWithdrawal).to.equal(2028);
+    });
+
+    it('says the two columns mean something else here', async () => {
+        const { shadowRoot } = await render({ contributions: [contribution({ deposit: 5 })] });
+        expect(shadowRoot.querySelector('#header_deposit').innerText).to.equal('added in');
+        expect(shadowRoot.querySelector('#header_withdrawal').innerText).to.equal('taken out');
+    });
+
+    // Repeating the currency on every cell is noise when every column is the
+    // same currency; it earns its place only beside a token amount.
+    it('names the currency once instead of on every amount', async () => {
+        const { shadowRoot, body } = await render({
+            contributions: [contribution({ totalBalance: 1000, deposit: 1234.5 })],
+            flowsByDate: { '2026-03-02': flows({ deposit: 1234.5 }) },
+        });
+        expect(shadowRoot.querySelector('#reportcaption').innerText).to.include('NOK');
+        const row = [...body.querySelectorAll('tr')].find(r => r.innerText.includes('2026-03-02'));
+        expect(row.querySelector('.dailybalancerow_deposit').innerText).to.equal(amount(1234.5));
+        expect(body.innerText).to.not.include('kr');
+        expect(body.innerText).to.not.include('NOK');
     });
 
     // Units of NEAR and units of BTC cannot be added, and a column that sometimes
@@ -71,16 +119,27 @@ describe('every token on one row', () => {
         expect(dates).to.not.include('2026-03-03');
     });
 
-    it('hands the day\'s tokens to the row so it can be taken apart', async () => {
+    it('hands the day\'s tokens and its flows to the row so it can be taken apart', async () => {
         let seen;
         await render({
             contributions: [
                 contribution({ symbol: 'NEAR', deposit: 1000 }),
                 contribution({ symbol: 'BTC', token: 'btc.omft.near', withdrawal: 400 }),
             ],
+            flowsByDate: { '2026-03-02': flows({ deposit: 12, internalCount: 3 }) },
         }, { perRowFunction: async (args) => { if (args.datestring === '2026-03-02') seen = args; } });
         expect(seen.allTokens).to.equal(true);
         expect(seen.tokenBreakdown.map(t => t.symbol).sort()).to.deep.equal(['BTC', 'NEAR']);
+        expect(seen.flows.internalCount).to.equal(3);
+    });
+
+    // A day of pure swapping crosses the edge nowhere, and still happened.
+    it('keeps a day whose movements were all internal', async () => {
+        const { body } = await render({
+            contributions: [contribution({ symbol: 'NEAR', withdrawal: 888 })],
+            flowsByDate: { '2026-03-02': flows() },
+        });
+        expect(body.innerText).to.include('2026-03-02');
     });
 });
 
@@ -119,6 +178,25 @@ describe('what it will not add up quietly', () => {
         expect(body.innerText).to.include('ARIZ');
         expect(body.innerText).to.not.include('https://event.example');
         expect(body.innerText).to.not.include('no price:');
+    });
+
+    // Refusing is what the flow panel does; a year of days cannot disappear over
+    // one transaction, so it is counted and marked instead.
+    it('marks a day whose transaction is not clearly a swap', async () => {
+        const { body } = await render({
+            contributions: [contribution({ deposit: 100 })],
+            flowsByDate: { '2026-03-02': flows({ deposit: 100, ambiguous: [{ swapKey: 'x' }] }) },
+        });
+        expect(body.innerText).to.include('not clearly a swap');
+    });
+
+    it('says when a movement had no price, separately from a balance', async () => {
+        const { body } = await render({
+            contributions: [contribution({ deposit: 100 })],
+            flowsByDate: { '2026-03-02': flows({ unpriced: ['MOON'] }) },
+        });
+        expect(body.innerText).to.include('flow not priced');
+        expect(body.innerText).to.include('MOON');
     });
 
     it('says which token it could not read at all', async () => {

@@ -1,4 +1,4 @@
-import { collectAllTokenDays, datesInPeriod } from './all-tokens-collect.js';
+import { collectAllTokenDays, datesInPeriod, portfolioFlows } from './all-tokens-collect.js';
 
 // Every dependency is injected, so these exercise the gathering itself: which
 // tokens are asked for, what a day contributes, and what happens when a token
@@ -178,5 +178,101 @@ describe('the days in a period', () => {
     it('runs from the first to the last, inclusive', () => {
         expect(datesInPeriod(new Date('2026-03-01'), new Date('2026-03-04')))
             .to.deep.equal(['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04']);
+    });
+});
+
+// Summing each token's deposits and withdrawals answers a different question
+// than "what was added to the portfolio". These pin the difference.
+describe('what crossed the portfolio edge', () => {
+    const prices = (entries) => new Map(Object.entries(entries));
+    const move = (over) => ({ date: '2026-03-01', units: 1, kind: 'deposit', ...over });
+
+    it('counts a swap as neither added nor taken out', () => {
+        const byDate = portfolioFlows({
+            movements: [
+                move({ token: 'wnear', symbol: 'wNEAR', units: 100, kind: 'withdrawal', swapKey: 'tx1' }),
+                move({ token: 'usdc', symbol: 'USDC', units: 1000, kind: 'deposit', swapKey: 'tx1' }),
+            ],
+            priceByToken: prices({ wnear: { '2026-03-01': 10 }, usdc: { '2026-03-01': 1 } }),
+        });
+        expect(byDate['2026-03-01'].deposit).to.equal(0);
+        expect(byDate['2026-03-01'].withdrawal).to.equal(0);
+        expect(byDate['2026-03-01'].internalCount).to.equal(1);
+        expect(byDate['2026-03-01'].internalValue).to.equal(1000);
+    });
+
+    it('still counts money that genuinely came in or went out', () => {
+        const byDate = portfolioFlows({
+            movements: [
+                move({ token: 'near', symbol: 'NEAR', units: 50, kind: 'deposit', swapKey: 'tx2' }),
+                move({ token: 'near', symbol: 'NEAR', units: 20, kind: 'withdrawal', swapKey: 'tx3' }),
+            ],
+            priceByToken: prices({ near: { '2026-03-01': 30 } }),
+        });
+        expect(byDate['2026-03-01'].deposit).to.equal(1500);
+        expect(byDate['2026-03-01'].withdrawal).to.equal(600);
+    });
+
+    // The gap between two legs at end-of-day prices is mostly the intraday move.
+    // Netting by value would book that as a deposit nobody made; recognising the
+    // pair by its transaction and removing it whole does not.
+    it('does not turn the intraday move into a flow', () => {
+        const byDate = portfolioFlows({
+            movements: [
+                move({ token: 'wnear', units: 100, kind: 'withdrawal', swapKey: 'tx1' }),
+                move({ token: 'usdc', units: 1050, kind: 'deposit', swapKey: 'tx1' }),
+            ],
+            priceByToken: prices({ wnear: { '2026-03-01': 10 }, usdc: { '2026-03-01': 1 } }),
+        });
+        expect(byDate['2026-03-01'].deposit).to.equal(0);
+        expect(byDate['2026-03-01'].withdrawal).to.equal(0);
+    });
+
+    // The flow panel refuses over one of these. A year of days cannot disappear
+    // over a single transaction, so the money is counted and the day marked.
+    it('counts a transaction whose sides do not match, and marks it', () => {
+        const byDate = portfolioFlows({
+            movements: [
+                move({ token: 'wnear', units: 100, kind: 'withdrawal', swapKey: 'tx1' }),
+                move({ token: 'usdc', units: 10, kind: 'deposit', swapKey: 'tx1' }),
+            ],
+            priceByToken: prices({ wnear: { '2026-03-01': 10 }, usdc: { '2026-03-01': 1 } }),
+        });
+        expect(byDate['2026-03-01'].withdrawal).to.equal(1000);
+        expect(byDate['2026-03-01'].deposit).to.equal(10);
+        expect(byDate['2026-03-01'].ambiguous).to.have.lengthOf(1);
+    });
+
+    it('drops tokens with no market rather than pricing them at nothing', () => {
+        const byDate = portfolioFlows({
+            movements: [move({ token: 'scam.near', units: 1e9, kind: 'deposit' })],
+            priceByToken: prices({}),
+            skip: new Set(['scam.near']),
+        });
+        expect(byDate['2026-03-01']).to.equal(undefined);
+    });
+
+    // Understating a flow silently is the failure worth avoiding: the day looks
+    // quieter than it was.
+    it('names a movement it could not price instead of counting it as zero', () => {
+        const byDate = portfolioFlows({
+            movements: [move({ token: 'moon.near', symbol: 'MOON', units: 100, kind: 'deposit' })],
+            priceByToken: prices({ 'moon.near': { '2026-02-01': 5 } }),
+        });
+        expect(byDate['2026-03-01'].deposit).to.equal(0);
+        expect(byDate['2026-03-01'].unpriced).to.deep.equal(['MOON']);
+    });
+
+    it('keeps each day separate', () => {
+        const byDate = portfolioFlows({
+            movements: [
+                move({ date: '2026-03-01', token: 'near', units: 1, kind: 'deposit' }),
+                move({ date: '2026-03-02', token: 'near', units: 2, kind: 'withdrawal' }),
+            ],
+            priceByToken: prices({ near: { '2026-03-01': 30, '2026-03-02': 30 } }),
+        });
+        expect(byDate['2026-03-01'].deposit).to.equal(30);
+        expect(byDate['2026-03-02'].withdrawal).to.equal(60);
+        expect(byDate['2026-03-01'].withdrawal).to.equal(0);
     });
 });

@@ -171,8 +171,16 @@ export function decomposeFlows({
  * end-of-day prices with nothing wrong with it; a batched transaction carrying a
  * genuine transfer will typically be out by most of its value. 25 % sits well
  * clear of the first and well under the second.
+ *
+ * Exported because the same question — did this money leave the portfolio, or
+ * only change token inside it? — is asked per day by the combined year report.
+ * One classification, so the two views cannot disagree about what a swap is.
+ *
+ * @returns {{internal: object[], external: Movement[], suspect: object[], costs: object[]}}
+ *   `internal` and `suspect` are one entry per transaction, each carrying the
+ *   legs it was decided from in `movements`.
  */
-function separateSwaps(movements, price, tolerance, dustFraction) {
+export function separateSwaps(movements, price, tolerance = 0.25, dustFraction = 0.01) {
     const groups = new Map();
     const external = [];
     for (const m of movements) {
@@ -219,6 +227,9 @@ function separateSwaps(movements, price, tolerance, dustFraction) {
             net: inValue - outValue,
             gap,
             legs: legs.length,
+            // The legs themselves, for callers that must account for the money
+            // rather than refuse: this view cannot drop a year over one day.
+            movements: legs,
             // Naming the sides is what makes a refusal actionable: the usual
             // cause is one leg priced from the wrong asset, and the symbol is
             // how anyone would spot that.

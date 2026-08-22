@@ -5,6 +5,19 @@ import { collectAllTokenDays } from './all-tokens-collect.js';
 
 const numDecimals = 2;
 
+/**
+ * Amounts with no currency on each one. When every column is the same currency,
+ * repeating it on every cell is noise — it earns its place only beside a token
+ * amount, where there are two units on the row to tell apart. Two decimals
+ * always, so the columns line up.
+ */
+export function getAmountFormatter() {
+    const format = Intl.NumberFormat(browserLocale(), {
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+    }).format;
+    return (number) => number !== null && number !== undefined && !isNaN(number) ? format(number) : '';
+}
+
 export function getNumberFormatter(currency) {
     const format = currency ? Intl.NumberFormat(browserLocale(), { style: 'currency', currency: currency }).format :
         Intl.NumberFormat(browserLocale()).format;
@@ -56,6 +69,12 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
             shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, onProgress, collect,
         });
     }
+    // Switching back from the combined view: those columns mean what they say
+    // again, and there is no single currency to caption.
+    setHeader(shadowRoot, '#header_deposit', 'deposit');
+    setHeader(shadowRoot, '#header_withdrawal', 'withdrawals');
+    setCaption(shadowRoot, '');
+
     let currentDate = periodEndDate;
 
     let { dailyBalances, transactionsByDate } = await calculateYearReportData(token);
@@ -236,12 +255,18 @@ export async function renderAllTokensPeriodTable({
         return empty;
     }
 
-    const { contributions, transactionsByDate, failed, neverPriced = [] } = await collect({
+    const { contributions, transactionsByDate, failed, neverPriced = [], flowsByDate = {} } = await collect({
         tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress,
     });
     const { rows, totals } = combineDailyRows(contributions);
 
-    const formatNumber = getNumberFormatter(convertToCurrency);
+    const formatNumber = getAmountFormatter();
+    // The flow columns answer a different question here than they do per token,
+    // so they say so. Per token, "deposit" is every unit that arrived. Combined,
+    // it is only what came from outside the portfolio.
+    setHeader(shadowRoot, '#header_deposit', 'added in');
+    setHeader(shadowRoot, '#header_withdrawal', 'taken out');
+    setCaption(shadowRoot, `All amounts in ${convertToCurrency.toUpperCase()}. "Added in" and "taken out" are what crossed the portfolio's edge — a swap moves value between your own tokens and is not counted as either. Open a day to see every token's own deposits and withdrawals.`);
     const periodStartDateString = periodStartDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
     const periodEndDateString = periodEndDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
     const rowTemplate = shadowRoot.querySelector('#dailybalancerowtemplate');
@@ -259,8 +284,12 @@ export async function renderAllTokensPeriodTable({
             `Held on some days with no price that day, so the balance columns are short them: ${nameList(totals.unvalued)}. Days where one of them actually moved are marked on the row.`));
     }
 
+    const flowTotals = { deposit: 0, withdrawal: 0 };
     for (const rowdata of rows) {
         const datestring = rowdata.date;
+        const flows = flowsByDate[datestring] ?? EMPTY_FLOWS;
+        flowTotals.deposit += flows.deposit;
+        flowTotals.withdrawal += flows.withdrawal;
         const row = rowTemplate.cloneNode(true).content;
 
         row.querySelector('.dailybalancerow_datetime').innerText = datestring;
@@ -272,28 +301,42 @@ export async function renderAllTokensPeriodTable({
         row.querySelector('.dailybalancerow_stakingchange').innerText = formatNumber(rowdata.stakingChange);
         row.querySelector('.dailybalancerow_stakingreward').innerText = formatNumber(rowdata.stakingReward);
         row.querySelector('.dailybalancerow_received').innerText = formatNumber(rowdata.received);
-        row.querySelector('.dailybalancerow_deposit').innerText = formatNumber(rowdata.deposit);
-        row.querySelector('.dailybalancerow_withdrawal').innerText = formatNumber(rowdata.withdrawal);
+        row.querySelector('.dailybalancerow_deposit').innerText = formatNumber(flows.deposit);
+        row.querySelector('.dailybalancerow_withdrawal').innerText = formatNumber(flows.withdrawal);
         row.querySelector('.dailybalancerow_expense').innerText = formatNumber(rowdata.expense);
         row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit);
         row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss);
 
-        if (rowdata.unpriced.length) {
-            // Built as nodes rather than markup: a token symbol here can be an
-            // attacker-chosen string, and some of them are literally URLs.
-            const dateCell = row.querySelector('.dailybalancerow_datetime');
+        // Built as nodes rather than markup: a token symbol here can be an
+        // attacker-chosen string, and some of them are literally URLs.
+        const dateCell = row.querySelector('.dailybalancerow_datetime');
+        const noteOnDate = (text, title) => {
             const note = document.createElement('span');
             note.className = 'text-warning small';
-            note.title = "No price that day, so this token is missing from the day's totals";
-            note.innerText = `no price: ${nameList(rowdata.unpriced)}`;
-            dateCell.innerText = datestring;
+            note.title = title;
+            note.innerText = text;
             dateCell.appendChild(document.createElement('br'));
             dateCell.appendChild(note);
+        };
+        if (rowdata.unpriced.length) {
+            noteOnDate(`no price: ${nameList(rowdata.unpriced)}`,
+                "No price that day, so this token is missing from the day's totals");
+        }
+        if (flows.unpriced.length) {
+            noteOnDate(`flow not priced: ${nameList(flows.unpriced)}`,
+                'A movement on this day had no price, so what crossed the edge is understated');
+        }
+        // Counted as crossing the edge rather than dropped — but a transaction
+        // whose two sides do not match may be a swap and a real transfer sharing
+        // one hash, and then this day's figures are too high.
+        if (flows.ambiguous.length) {
+            noteOnDate(`${flows.ambiguous.length} transaction${flows.ambiguous.length === 1 ? '' : 's'} not clearly a swap`,
+                'Both sides moved but the values do not match; counted as added and taken out, worth checking');
         }
 
         await perRowFunction({
             transactionsByDate, datestring, row, decimalConversionValue: 1, numDecimals,
-            allTokens: true, tokenBreakdown: rowdata.tokens,
+            allTokens: true, tokenBreakdown: rowdata.tokens, flows,
         });
 
         // The detail row belongs to per-token realizations, which do not survive
@@ -309,8 +352,8 @@ export async function renderAllTokensPeriodTable({
 
     shadowRoot.querySelector('#totalreward').innerText = formatNumber(totals.stakingReward);
     shadowRoot.querySelector('#totalreceived').innerText = formatNumber(totals.received);
-    shadowRoot.querySelector('#totaldeposit').innerText = formatNumber(totals.deposit);
-    shadowRoot.querySelector('#totalwithdrawal').innerText = formatNumber(totals.withdrawal);
+    shadowRoot.querySelector('#totaldeposit').innerText = formatNumber(flowTotals.deposit);
+    shadowRoot.querySelector('#totalwithdrawal').innerText = formatNumber(flowTotals.withdrawal);
     shadowRoot.querySelector('#totalexpense').innerText = formatNumber(totals.expense);
     shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totals.profit);
     shadowRoot.querySelector('#totalloss').innerText = formatNumber(totals.loss);
@@ -318,8 +361,10 @@ export async function renderAllTokensPeriodTable({
     return {
         totalStakingReward: totals.stakingReward,
         totalReceived: totals.received,
-        totalDeposit: totals.deposit,
-        totalWithdrawal: totals.withdrawal,
+        totalDeposit: flowTotals.deposit,
+        totalWithdrawal: flowTotals.withdrawal,
+        grossDeposit: totals.deposit,
+        grossWithdrawal: totals.withdrawal,
         totalExpense: totals.expense,
         totalProfit: totals.profit,
         totalLoss: totals.loss,
@@ -338,6 +383,20 @@ function nameList(symbols, limit = 6) {
     const shown = symbols.slice(0, limit).map(s => s.length > 14 ? `${s.substring(0, 14)}\u2026` : s);
     const rest = symbols.length - shown.length;
     return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(', ');
+}
+
+const EMPTY_FLOWS = Object.freeze({
+    deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0, ambiguous: [], unpriced: [],
+});
+
+function setHeader(shadowRoot, selector, text) {
+    const cell = shadowRoot.querySelector(selector);
+    if (cell) cell.innerText = text;
+}
+
+function setCaption(shadowRoot, text) {
+    const el = shadowRoot.querySelector('#reportcaption');
+    if (el) el.innerText = text ?? '';
 }
 
 function messageRow(text) {

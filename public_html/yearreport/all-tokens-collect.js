@@ -15,6 +15,10 @@ import {
     getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay,
     getDecimalConversionValue, getTokenSymbol,
 } from './yearreportdata.js';
+import { getEODPriceMap } from '../pricedata/pricedata.js';
+import { getReceivedAccounts } from '../storage/domainobjectstore.js';
+import { movementsForToken, receivedClassifier, mergedReceivedTypes } from '../portfolio/flow-extract.js';
+import { separateSwaps } from '../portfolio/flow-decomposition.js';
 
 /** Native NEAR is the token whose id is the empty string, everywhere in here. */
 export const NATIVE_NEAR = '';
@@ -23,6 +27,7 @@ const defaultDeps = {
     calculateYearReportData, calculateProfitLoss,
     getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay,
     getDecimalConversionValue, getTokenSymbol,
+    getEODPriceMap, getReceivedAccounts, separateSwaps,
 };
 
 /**
@@ -52,6 +57,13 @@ export async function collectAllTokenDays({
     const transactionsByDate = {};
     const failed = [];
     const neverPriced = [];
+    const tokenMovements = [];
+    const priceByToken = new Map();
+
+    // Shipped defaults sit under the user's own choices, the same way the flow
+    // panel does it, so a known payer arrives pre-classified.
+    const classify = receivedClassifier(
+        mergedReceivedTypes(await d.getReceivedAccounts().catch(() => ({}))));
 
     const all = [{ contractId: NATIVE_NEAR, symbol: 'NEAR' }, ...(tokens ?? [])];
     let done = 0;
@@ -79,6 +91,16 @@ export async function collectAllTokenDays({
         // have no market anywhere can be reported once instead of on every day.
         const tokenContributions = [];
         let pricedAnyDay = false;
+
+        // One movement per transaction, which is what makes a swap recognisable
+        // later: the daily deposit and withdrawal totals cannot be taken back
+        // apart once summed.
+        tokenMovements.push(...movementsForToken({
+            token, symbol, dailyBalances, decimalConversionValue,
+            classifyReceived: classify,
+            from: dates[0], to: dates[dates.length - 1],
+        }));
+        priceByToken.set(token, await priceMap(d, convertToCurrency, token));
 
         for (const date of dates) {
             const rowdata = dailyBalances[date];
@@ -148,7 +170,85 @@ export async function collectAllTokenDays({
         contributions.push(...tokenContributions);
     }
 
-    return { contributions, transactionsByDate, failed, neverPriced };
+    const flowsByDate = portfolioFlows({
+        movements: tokenMovements,
+        priceByToken,
+        skip: new Set(neverPriced.map(t => t.token)),
+        separate: d.separateSwaps,
+    });
+
+    return { contributions, transactionsByDate, failed, neverPriced, flowsByDate };
+}
+
+/** The whole EOD history for one token, in the shape the price lookup wants. */
+async function priceMap(d, currency, token) {
+    try {
+        return await d.getEODPriceMap(currency, token) ?? {};
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * What actually crossed the portfolio's edge, per day.
+ *
+ * Summing each token's deposits and withdrawals answers a different question
+ * than the one being asked. A swap is a withdrawal in one token's pass and a
+ * deposit in another's, so a day spent moving 1 700 kr between your own tokens
+ * reads as 1 700 kr added and 2 780 kr taken out — gross churn, with the real
+ * answer nowhere on the row.
+ *
+ * Netting the two by value does not fix it either: prices are end-of-day, the
+ * swap executed intraday, and the leftover is the intraday move — real
+ * performance, which would then be booked as a deposit nobody made. The pair has
+ * to be recognised by its transaction and removed whole, which is exactly what
+ * the flow panel does, through the same function.
+ *
+ * Where that panel refuses over a transaction whose sides do not match, this one
+ * cannot: a year of days must not disappear over one of them. Such a transaction
+ * is counted as crossing the edge — the conservative reading — and the day is
+ * marked so it can be looked at.
+ */
+export function portfolioFlows({ movements, priceByToken, skip = new Set(), separate = separateSwaps }) {
+    const live = movements.filter(m => !skip.has(m.token));
+    const price = (token, date) => {
+        const map = priceByToken.get(token);
+        if (!map) return null;
+        if (map.__constant != null) return map.__constant;
+        const p = map[date];
+        return p == null || p === 0 ? null : p;
+    };
+
+    const { internal, external, suspect } = separate(live, price);
+    const byDate = {};
+    const dayOf = (date) => (byDate[date] ??= {
+        deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0,
+        ambiguous: [], unpriced: [],
+    });
+
+    const add = (m) => {
+        const day = dayOf(m.date);
+        const p = price(m.token, m.date);
+        if (p == null || !Number.isFinite(p)) {
+            if (!day.unpriced.includes(m.symbol ?? m.token)) day.unpriced.push(m.symbol ?? m.token);
+            return;
+        }
+        const value = Math.abs(m.units * p);
+        if (m.kind === 'deposit') day.deposit += value;
+        else if (m.kind === 'withdrawal' || m.kind === 'expense') day.withdrawal += value;
+    };
+
+    for (const m of external) add(m);
+    for (const detail of suspect) {
+        dayOf(detail.date).ambiguous.push(detail);
+        for (const m of detail.movements ?? []) add(m);
+    }
+    for (const detail of internal) {
+        const day = dayOf(detail.date);
+        day.internalCount += 1;
+        day.internalValue += Math.max(detail.inValue ?? 0, detail.outValue ?? 0);
+    }
+    return byDate;
 }
 
 /** Every yyyy-MM-dd in the period, oldest first. */

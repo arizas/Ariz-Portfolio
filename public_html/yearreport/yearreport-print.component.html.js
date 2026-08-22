@@ -110,6 +110,7 @@ export default /*html*/ `<style>
 <div class="pagebreak"></div>
 
 <h1>Daily changes</h1>
+<div id="reportcaption" class="text-muted small"></div>
 <p>
 The following table shows the first and last day of the year, and each day where there are changes in the balance.
 Any transfer to other accounts than those reported for, are counted as withdrawals.
@@ -146,10 +147,10 @@ is obtained by calling the staking contract for the balance for that specific da
         <th scope="col" class="numeric">
             ext received
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_deposit" scope="col" class="numeric">
             deposit
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_withdrawal" scope="col" class="numeric">
             withdrawals
         </th>
         <th scope="col" class="numeric">

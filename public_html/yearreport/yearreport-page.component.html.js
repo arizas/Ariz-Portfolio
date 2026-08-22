@@ -91,6 +91,7 @@ export default /*html*/ `<style>
 </div>
 
 <div id="reportprogress" class="text-muted small mt-2"></div>
+<div id="reportcaption" class="text-muted small"></div>
 
 <template id="dailybalancerowtemplate">
     <tr>
@@ -157,10 +158,10 @@ export default /*html*/ `<style>
             <th scope="col">
                 ext received
             </th>
-            <th scope="col">
+            <th scope="col" id="header_deposit">
                 deposit
             </th>
-            <th scope="col">
+            <th scope="col" id="header_withdrawal">
                 withdrawals
             </th>
             <th scope="col">
