@@ -119,3 +119,42 @@ describe('the order the two rules run in', () => {
         expect(internal[0].reason).to.equal('bucket-transfer');
     });
 });
+
+// Against a real store these two carried 157 306 of "taken out" and 5 343 of
+// "added in" that never went anywhere: NEAR wrapped into wNEAR, and NEAR staked
+// with a liquid staking pool and unstaked again.
+describe('contracts that hold your value in another form', () => {
+    const out = (over) => ({ date: '2026-02-10', kind: 'withdrawal', units: 6000.001, token: '', symbol: 'NEAR', counterparties: [], ...over });
+
+    it('does not call wrapping NEAR a withdrawal', () => {
+        const { internal, external } = separatePortfolioTransfers([out({ counterparties: ['wrap.near'] })]);
+        expect(external).to.have.lengthOf(0);
+        expect(internal[0].reason).to.equal('own-venue');
+    });
+
+    it('does not call staking or unstaking a flow', () => {
+        expect(separatePortfolioTransfers([out({ counterparties: ['meta-pool.near'] })]).external).to.have.lengthOf(0);
+        expect(separatePortfolioTransfers([out({ kind: 'deposit', counterparties: ['meta-pool.near'] })]).external).to.have.lengthOf(0);
+    });
+
+    // wNEAR is NEAR under another name, so the two legs of a wrap pair up even
+    // when only one of them names the contract.
+    it('sees wNEAR and NEAR as one asset', () => {
+        expect(baseAsset('wrap.near')).to.equal('near');
+        expect(baseAsset('nep141:wrap.near')).to.equal('near');
+        expect(baseAsset('confidential:nep141:wrap.near')).to.equal('near');
+    });
+
+    it('pairs NEAR leaving with wNEAR arriving in another bucket', () => {
+        const leaving = out({ units: 1272.4411 });
+        const arriving = { date: '2026-02-10', kind: 'deposit', units: 1272.4411, token: 'nep141:wrap.near', symbol: 'wNEAR', counterparties: [] };
+        const { internal, external } = separatePortfolioTransfers([leaving, arriving]);
+        expect(external).to.have.lengthOf(0);
+        expect(internal[0].reason).to.equal('bucket-transfer');
+    });
+
+    // An exchange you sold on is not a venue: the position is not yours after.
+    it('still counts a transfer to somewhere else', () => {
+        expect(separatePortfolioTransfers([out({ counterparties: ['some-exchange.near'] })]).external).to.have.lengthOf(1);
+    });
+});

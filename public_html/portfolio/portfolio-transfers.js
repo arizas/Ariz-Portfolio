@@ -15,8 +15,32 @@
 // adds up is a coincidence waiting to be wrong, and end-of-day prices make two
 // sides of the same move differ anyway.
 
-/** Accounts that hold this portfolio's own balances. */
-export const PORTFOLIO_VENUES = new Set(['intents.near']);
+/**
+ * Contracts that hold this portfolio's own value in another form. Sending to one
+ * of these is not spending: you get the same value back under a different name,
+ * and you can send it back whenever you like.
+ *
+ *  - intents.near   your balance inside NEAR Intents
+ *  - wrap.near      native NEAR as the wNEAR fungible token, one for one
+ *  - meta-pool.near NEAR staked for stNEAR, and unstaked again
+ *
+ * Not the same thing as an exchange you sold on. The test is whether the
+ * position is still yours afterwards.
+ */
+export const PORTFOLIO_VENUES = new Set([
+    'intents.near',
+    'wrap.near',
+    'meta-pool.near',
+]);
+
+/**
+ * Tokens that are one asset wearing two names. wNEAR is NEAR — wrapping is a
+ * change of form, not of ownership — so a movement of one pairs with a movement
+ * of the other.
+ */
+const SAME_ASSET = new Map([
+    ['wrap.near', 'near'],
+]);
 
 const CONFIDENTIAL = 'confidential:';
 const INTENTS = /^nep(141|245):/;
@@ -37,7 +61,7 @@ export function baseAsset(token) {
     if (typeof token !== 'string' || token === '') return 'near';
     let id = token.startsWith(CONFIDENTIAL) ? token.slice(CONFIDENTIAL.length) : token;
     id = id.replace(INTENTS, '');
-    return id;
+    return SAME_ASSET.get(id) ?? id;
 }
 
 /**
