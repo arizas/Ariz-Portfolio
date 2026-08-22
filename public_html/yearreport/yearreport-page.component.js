@@ -182,8 +182,11 @@ customElements.define('year-report-page',
                     Crossing the portfolio's edge this day:
                     <strong>${formatNumber(flows.deposit)}</strong> in,
                     <strong>${formatNumber(flows.withdrawal)}</strong> out.
-                    ${flows.internalCount ? `${flows.internalCount} transaction${flows.internalCount === 1 ? '' : 's'}
+                    ${flows.internalCount ? `${flows.internalCount} swap${flows.internalCount === 1 ? '' : 's'}
                         moved about ${formatNumber(flows.internalValue)} between your own tokens and count as neither.` : ''}
+                    ${flows.transferCount ? `${flows.transferCount} move${flows.transferCount === 1 ? '' : 's'}
+                        of about ${formatNumber(flows.transferValue)} went between your own buckets — native, intents,
+                        confidential — and count as neither.` : ''}
                     ${flows.ambiguous?.length ? `<span class="text-warning">${flows.ambiguous.length}
                         moved value both ways without the sides matching, so ${flows.ambiguous.length === 1 ? 'it is' : 'they are'}
                         counted as crossing — worth checking.</span>` : ''}

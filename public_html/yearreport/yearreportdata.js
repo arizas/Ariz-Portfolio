@@ -211,8 +211,16 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         if (transactionsByDate[datestring]) {
             transactionsByDate[datestring].forEach(tx => {
                 let changedBalanceForHashAllAccounts = BigInt(0);
+                // Who was on the other side. A movement to one of the portfolio's
+                // own venues — the intents contract, a confidential address — is
+                // not money leaving, and the hash alone cannot say so: the two
+                // sides of a bucket transfer are two different transactions.
+                const counterparties = new Set();
                 const allTxEntriesForHash = transactionsByHash[tx.hash];
                 allTxEntriesForHash.forEach(tx => {
+                    for (const candidate of [tx.involved_account_id, tx.signer_id, tx.receiver_id]) {
+                        if (candidate && !accountsMap[candidate]) counterparties.add(candidate);
+                    }
                     changedBalanceForHashAllAccounts += tx.changedBalance;
                     tx.changedBalance = 0n;
                     if (tx.receivedBalance) {
@@ -233,7 +241,8 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                     if (changedBalanceForHashAllAccounts !== BigInt(0)) {
                         dailyBalances[datestring].flows.push({
                             hash: tx.hash,
-                            changed: Number(changedBalanceForHashAllAccounts)
+                            changed: Number(changedBalanceForHashAllAccounts),
+                            counterparties: [...counterparties]
                         });
                     }
                     if (changedBalanceForHashAllAccounts >= BigInt(0)) {

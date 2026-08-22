@@ -347,6 +347,8 @@ customElements.define('portfolio-page',
                     </div>
                     <div class="footnote">
                         Swaps are not flows — ${r.internal.length} recognised and excluded.
+                        ${r.transfers?.length ? `Neither is carrying an asset between your own buckets — `
+                            + `${r.transfers.length} move${r.transfers.length === 1 ? '' : 's'} between native, intents and confidential excluded too.` : ''}
                         ${r.transactionCosts?.length ? `Gas on ${r.transactionCosts.length} transaction${r.transactionCosts.length === 1 ? '' : 's'} `
                             + `counts as a cost, not money leaving.` : ''}
                         ${r.yieldReceived ? `Yield of ${money(r.yieldReceived)} counts as earned, not added.` : ''}

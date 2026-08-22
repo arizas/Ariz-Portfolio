@@ -19,6 +19,7 @@ import { getEODPriceMap } from '../pricedata/pricedata.js';
 import { getReceivedAccounts } from '../storage/domainobjectstore.js';
 import { movementsForToken, receivedClassifier, mergedReceivedTypes } from '../portfolio/flow-extract.js';
 import { separateSwaps } from '../portfolio/flow-decomposition.js';
+import { separatePortfolioTransfers } from '../portfolio/portfolio-transfers.js';
 
 /** Native NEAR is the token whose id is the empty string, everywhere in here. */
 export const NATIVE_NEAR = '';
@@ -219,11 +220,14 @@ export function portfolioFlows({ movements, priceByToken, skip = new Set(), sepa
         return p == null || p === 0 ? null : p;
     };
 
-    const { internal, external, suspect } = separate(live, price);
+    const { internal, external: crossedOrMoved, suspect } = separate(live, price);
+    // Swaps share a transaction; a move between the portfolio's own buckets does
+    // not, and is just as much not a flow.
+    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved);
     const byDate = {};
     const dayOf = (date) => (byDate[date] ??= {
         deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0,
-        ambiguous: [], unpriced: [],
+        transferCount: 0, transferValue: 0, ambiguous: [], unpriced: [],
     });
 
     const add = (m) => {
@@ -247,6 +251,13 @@ export function portfolioFlows({ movements, priceByToken, skip = new Set(), sepa
         const day = dayOf(detail.date);
         day.internalCount += 1;
         day.internalValue += Math.max(detail.inValue ?? 0, detail.outValue ?? 0);
+    }
+    for (const detail of transfers) {
+        const day = dayOf(detail.date);
+        day.transferCount += 1;
+        const leg = detail.movements[0];
+        const p = price(leg.token, leg.date);
+        if (p != null && Number.isFinite(p)) day.transferValue += Math.abs(leg.units * p);
     }
     return byDate;
 }

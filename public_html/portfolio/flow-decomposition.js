@@ -13,6 +13,8 @@
 // dailyBalances and supplies a price lookup; nothing is fetched, cached or
 // stored. See docs/performance-comparison.md §0.
 
+import { separatePortfolioTransfers } from './portfolio-transfers.js';
+
 /** A movement's sign: does it bring value in, or take it out? */
 const INFLOW = new Set(['deposit', 'income']);
 const OUTFLOW = new Set(['withdrawal', 'expense']);
@@ -75,7 +77,15 @@ export function decomposeFlows({
         return false;
     });
 
-    const { internal, external, suspect, costs } = separateSwaps(live, price, swapTolerance, dustFraction);
+    const { internal, external: crossedOrMoved, suspect, costs } =
+        separateSwaps(live, price, swapTolerance, dustFraction);
+
+    // A swap is not the only way to move value without any of it leaving. The
+    // same asset carried from one bucket to another — native, intents,
+    // confidential — arrives as a withdrawal in one token's pass and a deposit
+    // in another's, under two different transactions, so the hash cannot tie
+    // them together. See portfolio-transfers.js.
+    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved);
 
     // Price what is left. A missing price here is refused rather than treated as
     // zero: the value is real and unknown, and a wrong flow shifts everything
@@ -144,6 +154,7 @@ export function decomposeFlows({
         netFlow,
         gain,
         internal,
+        transfers,
         transactionCosts: costs,
         ignoredNoMarket,
         immaterial,
