@@ -75,11 +75,29 @@ describe('who was on the other side', () => {
     // confidential bucket only ever exchanges with the intents one. That needs
     // just the one leg, which is what makes it work when the other side sits in
     // a bucket this report does not cover.
-    it('counts a move to the account holding your own balance as internal', () => {
-        const m = move({ token: 'confidential:nep141:eth-0xa0b8.omft.near', symbol: 'USDC', kind: 'withdrawal', units: 121.35, counterparties: ['intents.near'] });
+    it('counts value arriving from your own venue as internal', () => {
+        const m = move({ token: 'confidential:nep141:eth-0xa0b8.omft.near', symbol: 'USDC', kind: 'deposit', units: 121.35, counterparties: ['intents.near'] });
         const { internal, external } = separatePortfolioTransfers([m]);
         expect(external).to.have.lengthOf(0);
         expect(internal[0].reason).to.equal('own-venue');
+    });
+
+    // Withdrawing USDC from intents to an exchange and moving USDC from intents
+    // into the confidential bucket are the same shape with the same
+    // counterparty. Only the first left. Judged by counterparty alone, three
+    // real withdrawals to Revolut — 3 352 USDC — disappeared from a real store.
+    it('will not call an outgoing leg internal on the counterparty alone', () => {
+        const m = move({ token: 'nep141:eth-0xa0b8.omft.near', symbol: 'USDC', kind: 'withdrawal', units: 1622.05, counterparties: ['intents.near'] });
+        expect(separatePortfolioTransfers([m]).external).to.have.lengthOf(1);
+    });
+
+    // Corroborated, it is internal again: the value is seen arriving.
+    it('accepts an outgoing leg once the value is seen arriving elsewhere', () => {
+        const out = move({ token: 'nep141:eth-0xa0b8.omft.near', symbol: 'USDC', kind: 'withdrawal', units: 1622.05, counterparties: ['intents.near'] });
+        const into = move({ token: 'confidential:nep141:eth-0xa0b8.omft.near', symbol: 'USDC', kind: 'deposit', units: 1622.05, counterparties: ['intents.near'] });
+        const { internal, external } = separatePortfolioTransfers([out, into]);
+        expect(external).to.have.lengthOf(0);
+        expect(internal[0].reason).to.equal('bucket-transfer');
     });
 
     it('leaves a transfer to someone else alone', () => {
@@ -126,15 +144,22 @@ describe('the order the two rules run in', () => {
 describe('contracts that hold your value in another form', () => {
     const out = (over) => ({ date: '2026-02-10', kind: 'withdrawal', units: 6000.001, token: '', symbol: 'NEAR', counterparties: [], ...over });
 
-    it('does not call wrapping NEAR a withdrawal', () => {
-        const { internal, external } = separatePortfolioTransfers([out({ counterparties: ['wrap.near'] })]);
+    // Unwrapping and unstaking bring value back from a contract that was
+    // holding it, so the arrival is internal whatever else is going on.
+    it('does not call unwrapping NEAR a deposit', () => {
+        const { internal, external } = separatePortfolioTransfers([out({ kind: 'deposit', counterparties: ['wrap.near'] })]);
         expect(external).to.have.lengthOf(0);
         expect(internal[0].reason).to.equal('own-venue');
     });
 
-    it('does not call staking or unstaking a flow', () => {
-        expect(separatePortfolioTransfers([out({ counterparties: ['meta-pool.near'] })]).external).to.have.lengthOf(0);
+    it('does not call unstaking a deposit', () => {
         expect(separatePortfolioTransfers([out({ kind: 'deposit', counterparties: ['meta-pool.near'] })]).external).to.have.lengthOf(0);
+    });
+
+    // The NEAR going the other way is matched by the wNEAR that arrives, below,
+    // rather than trusted on the counterparty alone.
+    it('needs the wrapped side to be visible before calling the wrap internal', () => {
+        expect(separatePortfolioTransfers([out({ counterparties: ['wrap.near'] })]).external).to.have.lengthOf(1);
     });
 
     // wNEAR is NEAR under another name, so the two legs of a wrap pair up even

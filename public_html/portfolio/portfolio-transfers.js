@@ -166,16 +166,30 @@ export function separatePortfolioTransfers(movements = [], {
         }
     }
 
-    // 3. Whatever is left, judged by who was on the other side. A transfer to or
-    //    from an account that holds this portfolio's own balance did not leave
-    //    it — and unlike the pairing above, this needs only one of the two legs,
-    //    which is what makes it work when the other side is in a bucket this
-    //    report does not cover.
+    // 3. Whatever is left, judged by who was on the other side — but only in one
+    //    direction, and this is the important part.
+    //
+    //    Value arriving from an account that holds this portfolio's own balance
+    //    came from inside it. An arrival cannot be money leaving, so calling it
+    //    internal can overstate nothing.
+    //
+    //    Going the other way it is not decidable. Withdrawing USDC from intents
+    //    to Ethereum and moving USDC from intents into the confidential bucket
+    //    are the same transaction shape with the same counterparty —
+    //    intents.near — and only the first left the portfolio. This rule used to
+    //    apply both ways, and on one real store it hid three genuine
+    //    withdrawals to an exchange, 3 352 USDC, because the counterparty looked
+    //    like a venue. Overstating what left is a number someone can argue with;
+    //    hiding it is money that quietly stops existing.
+    //
+    //    So an outgoing leg must be corroborated instead: the pairing above has
+    //    to see the value arrive somewhere, or the trade rule has to recognise
+    //    it. Neither, and it is treated as having left.
     const external = [];
     for (const m of movements) {
         if (taken.has(m)) continue;
         const parties = m.counterparties ?? [];
-        if (parties.length && parties.every(p => venues.has(p))) {
+        if (m.kind === 'deposit' && parties.length && parties.every(p => venues.has(p))) {
             internal.push({
                 reason: 'own-venue',
                 date: m.date,
