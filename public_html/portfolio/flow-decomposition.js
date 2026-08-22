@@ -85,7 +85,7 @@ export function decomposeFlows({
     // confidential — arrives as a withdrawal in one token's pass and a deposit
     // in another's, under two different transactions, so the hash cannot tie
     // them together. See portfolio-transfers.js.
-    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved);
+    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved, { price });
 
     // Price what is left. A missing price here is refused rather than treated as
     // zero: the value is real and unknown, and a wrong flow shifts everything

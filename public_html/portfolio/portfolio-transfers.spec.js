@@ -158,3 +158,64 @@ describe('contracts that hold your value in another form', () => {
         expect(separatePortfolioTransfers([out({ counterparties: ['some-exchange.near'] })]).external).to.have.lengthOf(1);
     });
 });
+
+// NEAR Intents books the asset going out and the asset coming in as two
+// transactions, so the hash cannot tie them together. They land seconds apart
+// because one intent execution produced both: nine and a half seconds and
+// sixteen blocks, in the case this was written for.
+describe('a trade settled as two transactions', () => {
+    const T0 = 1787142611537000000n;
+    // Nanoseconds, built from milliseconds so a fractional second survives.
+    const at = (seconds) => String(T0 + BigInt(Math.round(seconds * 1000)) * 1_000_000n);
+    const price = (token) => ({
+        'nep141:npro.nearmobile.near': 1.9192,
+        'nep141:sol.omft.near': 723.031,
+        'confidential:nep141:sol.omft.near': 723.031,
+    }[token] ?? null);
+
+    const gave = { date: '2026-08-19', kind: 'withdrawal', units: 96.877202, token: 'nep141:npro.nearmobile.near', symbol: 'NPRO', counterparties: ['540927c5'], at: at(0) };
+    const got = { date: '2026-08-19', kind: 'deposit', units: 0.26225103, token: 'nep141:sol.omft.near', symbol: 'SOL', counterparties: ['solver-priv-liq.near'], at: at(9.5) };
+
+    it('pairs two legs that landed seconds apart', () => {
+        const { internal, external } = separatePortfolioTransfers([gave, got], { price });
+        expect(external).to.have.lengthOf(0);
+        expect(internal[0].reason).to.equal('venue-trade');
+        expect(internal[0].secondsApart).to.be.closeTo(9.5, 0.01);
+    });
+
+    // The same SOL moved on to the confidential bucket thirteen minutes later.
+    // That is a different event and must not be swallowed into the trade.
+    it('leaves legs that landed far apart alone', () => {
+        const later = { ...got, at: at(778) };
+        expect(separatePortfolioTransfers([gave, later], { price }).external).to.have.lengthOf(2);
+    });
+
+    // Value gets a veto, not a vote: an mt_transfer to someone else's intents
+    // account is a real transfer out, and the owner of this code makes them.
+    it('will not pair two legs of wildly different size', () => {
+        const tiny = { ...got, units: 0.001 };
+        expect(separatePortfolioTransfers([gave, tiny], { price }).external).to.have.lengthOf(2);
+    });
+
+    it('leaves a lone transfer out where it is', () => {
+        expect(separatePortfolioTransfers([gave], { price }).external).to.have.lengthOf(1);
+    });
+
+    it('will not pair the same asset with itself — that is a transfer, not a trade', () => {
+        const sameAsset = { ...got, token: 'nep141:npro.nearmobile.near', symbol: 'NPRO', units: 96.877202, kind: 'deposit' };
+        const { internal } = separatePortfolioTransfers([gave, sameAsset], { price });
+        expect(internal.every(i => i.reason !== 'venue-trade')).to.equal(true);
+    });
+
+    it('does nothing without prices, rather than pairing on time alone', () => {
+        expect(separatePortfolioTransfers([gave, got]).external).to.have.lengthOf(2);
+    });
+
+    it('takes the closest leg in time when several could match', () => {
+        const near = { ...got, at: at(5) };
+        const far = { ...got, at: at(100) };
+        const { internal, external } = separatePortfolioTransfers([gave, far, near], { price });
+        expect(internal[0].secondsApart).to.be.closeTo(5, 0.01);
+        expect(external).to.have.lengthOf(1);
+    });
+});

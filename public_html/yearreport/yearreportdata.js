@@ -242,7 +242,10 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                         dailyBalances[datestring].flows.push({
                             hash: tx.hash,
                             changed: Number(changedBalanceForHashAllAccounts),
-                            counterparties: [...counterparties]
+                            counterparties: [...counterparties],
+                            // When it happened. Two sides of one swap settle
+                            // seconds apart even when they are two transactions.
+                            at: tx.block_timestamp
                         });
                     }
                     if (changedBalanceForHashAllAccounts >= BigInt(0)) {

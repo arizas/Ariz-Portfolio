@@ -77,6 +77,7 @@ export function baseAsset(token) {
  */
 export function separatePortfolioTransfers(movements = [], {
     venues = PORTFOLIO_VENUES, unitTolerance = 1e-6,
+    price = null, tradeWindowSeconds = 120, tradeTolerance = 0.25,
 } = {}) {
     const internal = [];
     const taken = new Set();
@@ -116,7 +117,56 @@ export function separatePortfolioTransfers(movements = [], {
         }
     }
 
-    // 2. Whatever is left, judged by who was on the other side. A transfer to or
+    // 2. A trade inside one venue, settled as two transactions. NEAR Intents
+    //    books the asset going out and the asset coming in separately, so the
+    //    hash cannot tie them together — but they land seconds apart, because
+    //    one intent execution produced both. Nine and a half seconds, sixteen
+    //    blocks, in the case this was written for.
+    //
+    //    Time is the signal, not value. Value alone would also match an
+    //    mt_transfer to someone else's intents account that happened to be
+    //    about the right size, and those are real transfers out; the owner of
+    //    this code does make them. Value only gets a veto: two legs far apart in
+    //    size are not one trade however close together they landed.
+    if (price) {
+        const inVenue = movable.filter(m => !taken.has(m) && bucketOf(m.token) !== 'native' && m.at != null);
+        for (let i = 0; i < inVenue.length; i++) {
+            const a = inVenue[i];
+            if (taken.has(a)) continue;
+            let best = null;
+            for (let j = 0; j < inVenue.length; j++) {
+                const b = inVenue[j];
+                if (b === a || taken.has(b)) continue;
+                if (a.kind === b.kind) continue;
+                if (bucketOf(a.token) !== bucketOf(b.token)) continue;
+                if (baseAsset(a.token) === baseAsset(b.token)) continue;
+                const apart = secondsApart(a.at, b.at);
+                if (apart == null || apart > tradeWindowSeconds) continue;
+                const av = valueOf(a, price), bv = valueOf(b, price);
+                if (av == null || bv == null) continue;
+                const scale = Math.max(av, bv);
+                if (!(scale > 0) || Math.abs(av - bv) / scale > tradeTolerance) continue;
+                if (!best || apart < best.apart) best = { b, apart, av, bv };
+            }
+            if (!best) continue;
+            taken.add(a); taken.add(best.b);
+            const gave = a.kind === 'withdrawal' ? a : best.b;
+            const got = a.kind === 'withdrawal' ? best.b : a;
+            internal.push({
+                reason: 'venue-trade',
+                date: a.date,
+                asset: baseAsset(gave.token),
+                symbol: `${gave.symbol ?? gave.token} -> ${got.symbol ?? got.token}`,
+                units: gave.units,
+                from: bucketOf(gave.token),
+                to: bucketOf(got.token),
+                secondsApart: best.apart,
+                movements: [gave, got],
+            });
+        }
+    }
+
+    // 3. Whatever is left, judged by who was on the other side. A transfer to or
     //    from an account that holds this portfolio's own balance did not leave
     //    it — and unlike the pairing above, this needs only one of the two legs,
     //    which is what makes it work when the other side is in a bucket this
@@ -142,4 +192,19 @@ export function separatePortfolioTransfers(movements = [], {
     }
 
     return { internal, external };
+}
+
+function valueOf(m, price) {
+    const p = price(m.token, m.date);
+    return p == null || !Number.isFinite(p) ? null : Math.abs(m.units * p);
+}
+
+/** Block timestamps are nanoseconds, as strings too long for a Number. */
+function secondsApart(a, b) {
+    try {
+        const diff = BigInt(a) - BigInt(b);
+        return Number((diff < 0n ? -diff : diff) / 1000000n) / 1000;
+    } catch {
+        return null;
+    }
 }

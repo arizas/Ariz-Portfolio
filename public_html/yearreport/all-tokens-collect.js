@@ -223,7 +223,7 @@ export function portfolioFlows({ movements, priceByToken, skip = new Set(), sepa
     const { internal, external: crossedOrMoved, suspect } = separate(live, price);
     // Swaps share a transaction; a move between the portfolio's own buckets does
     // not, and is just as much not a flow.
-    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved);
+    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved, { price });
     const byDate = {};
     const dayOf = (date) => (byDate[date] ??= {
         deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0,

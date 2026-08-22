@@ -71,6 +71,7 @@ export function movementsForToken({
                 kind: units > 0 ? 'deposit' : 'withdrawal',
                 swapKey: swapKeyForHash(flow.hash),
                 counterparties: flow.counterparties ?? [],
+                at: flow.at,
             });
         }
 
