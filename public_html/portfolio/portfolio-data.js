@@ -640,8 +640,9 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
             realized: portfolio.totalRealized ?? 0,
             unrealizedNow: (portfolio.totalUnrealized ?? 0) + stakedUnrealizedNow,
             // Staked on both ends or neither. Counting it now and not at the
-            // opening made the period look 57 082 better than it was on one
-            // real store, and the reconciliation blamed the flows for it.
+            // opening made the period look better than it was by the whole of a
+            // staked position's unrealized loss, and the reconciliation blamed
+            // the flows for it.
             unrealizedOpening: (portfolio.ibValue ?? 0) - (portfolio.ibCost ?? 0)
                 + (portfolio.ibStakedUnrealized ?? 0)
         }

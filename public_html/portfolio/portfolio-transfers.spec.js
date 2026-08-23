@@ -85,7 +85,8 @@ describe('who was on the other side', () => {
     // Withdrawing USDC from intents to an exchange and moving USDC from intents
     // into the confidential bucket are the same shape with the same
     // counterparty. Only the first left. Judged by counterparty alone, three
-    // real withdrawals to Revolut — 3 352 USDC — disappeared from a real store.
+    // real withdrawals to an exchange disappeared from a real store, each one
+    // confirmed by the receiving address on chain.
     it('will not call an outgoing leg internal on the counterparty alone', () => {
         const m = move({ token: 'nep141:eth-0xa0b8.omft.near', symbol: 'USDC', kind: 'withdrawal', units: 1622.05, counterparties: ['intents.near'] });
         expect(separatePortfolioTransfers([m]).external).to.have.lengthOf(1);
@@ -138,9 +139,9 @@ describe('the order the two rules run in', () => {
     });
 });
 
-// Against a real store these two carried 157 306 of "taken out" and 5 343 of
-// "added in" that never went anywhere: NEAR wrapped into wNEAR, and NEAR staked
-// with a liquid staking pool and unstaked again.
+// Against a real store these two carried a large share of "taken out" and some
+// of "added in" that never went anywhere: NEAR wrapped into wNEAR, and NEAR
+// staked with a liquid staking pool and unstaked again.
 describe('contracts that hold your value in another form', () => {
     const out = (over) => ({ date: '2026-02-10', kind: 'withdrawal', units: 6000.001, token: '', symbol: 'NEAR', counterparties: [], ...over });
 
@@ -297,7 +298,8 @@ describe('custody against gateway', () => {
 // The trade rule catches a swap whose legs land seconds apart. It cannot catch
 // one whose payment was already, correctly, called internal — NEAR wrapped on
 // its way into intents — leaving only the purchase, looking like a gift. On a
-// real store that was 103 889 of "added in" with no counterpart within a day.
+// real store that was a quarter of "added in", with no counterpart within a
+// day.
 describe('trading with a market maker', () => {
     const leg = (over) => ({ date: '2026-03-17', kind: 'deposit', units: 1888.4, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['solver-multichain-asset.near'], ...over });
 

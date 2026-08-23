@@ -1,7 +1,7 @@
 // Where the money came from.
 //
-// A portfolio that went from 155 541 to 303 974 either doubled or was topped
-// up, and the page currently cannot tell you which. This splits the change:
+// A portfolio that doubled and one that was topped up look identical when all
+// the page shows is an opening and a closing balance. This splits the change:
 //
 //     opening  +  net flows  +  gain  =  closing
 //
@@ -96,7 +96,7 @@ export function decomposeFlows({
     //
     // So the two models genuinely differ here, and the check has to know it or
     // it reports a disagreement that is really its own blind spot. On one store
-    // this was 10 634 of the 9 739 it was reporting.
+    // this accounted for the whole of what it was reporting.
     let oneSidedInternal = 0;
     for (const detail of transfers) {
         const legs = detail.movements ?? [];
@@ -168,8 +168,8 @@ export function decomposeFlows({
     // staking pays them, and they raise the balance without any transfer. The
     // rest is the price moving, which you have not received and can lose again
     // tomorrow. One word for both invites the reader to treat a paper gain as
-    // income; on one real year the split was 11 512 received against 80 951 of
-    // price.
+    // income; on one real year seven eighths of it was price, and the word was
+    // doing most of its work on the wrong number.
     const rewards = earned + stakingRewards;
     const valueChange = gain - rewards;
 

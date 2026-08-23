@@ -205,9 +205,9 @@ async function priceMap(d, currency, token, unavailable) {
  *
  * Summing each token's deposits and withdrawals answers a different question
  * than the one being asked. A swap is a withdrawal in one token's pass and a
- * deposit in another's, so a day spent moving 1 700 kr between your own tokens
- * reads as 1 700 kr added and 2 780 kr taken out — gross churn, with the real
- * answer nowhere on the row.
+ * deposit in another's, so a day spent moving money between your own tokens
+ * reads as a large sum added and a larger one taken out — gross churn, with the
+ * real answer nowhere on the row.
  *
  * Netting the two by value does not fix it either: prices are end-of-day, the
  * swap executed intraday, and the leftover is the intraday move — real

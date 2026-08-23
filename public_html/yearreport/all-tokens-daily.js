@@ -50,9 +50,9 @@ const PRICED = ['stakingReward', 'received', 'deposit', 'withdrawal', 'expense',
  * day's price. A realization is worked out when the disposal happens; it does
  * not become unknown because the end-of-day quote is missing.
  *
- * Lumping these in with the priced fields dropped 103 547,98 of realized loss
- * from one real year — the combined total disagreed with the per-token report
- * it is supposed to be a sum of, which is the whole point of having one.
+ * Lumping these in with the priced fields dropped more than half the realized
+ * loss from one real year — the combined total disagreed with the per-token
+ * report it is supposed to be a sum of, which is the whole point of having one.
  */
 const ALWAYS_SUMMED = ['profit', 'loss'];
 

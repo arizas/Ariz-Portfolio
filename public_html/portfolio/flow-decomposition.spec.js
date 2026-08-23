@@ -420,7 +420,7 @@ describe('gas is a cost, not a side of a trade', () => {
 
 // "Earned" covered two things that are not alike: rewards you were paid, and
 // the price moving. One word for both invites a paper gain to be read as
-// income — on one real year, 11 512 received against 80 951 of price.
+// income — on one real year, seven eighths of it was price.
 describe('what "earned" was hiding', () => {
     const base = {
         movements: [], price: () => 10, opening: 100000, closing: 200000,
@@ -471,7 +471,8 @@ describe('what "earned" was hiding', () => {
 
 // The two sides of the check must count the same things. Staked value was in
 // the "now" figure and absent from the opening one, so a period looked better
-// than it was — 57 082 on one real store, blamed on the flows.
+// than it was by the whole of a staked position's unrealized loss, and the
+// check blamed the flows for it.
 describe('the reconciliation counts staking at both ends', () => {
     const withStaked = (unrealizedOpening) => decomposeFlows({
         movements: [], price: () => 10, opening: 150000, closing: 250000,
@@ -498,7 +499,7 @@ describe('the reconciliation counts staking at both ends', () => {
 // the other side is in a bucket this report does not cover. The flows are right
 // that nothing crossed the edge — and the FIFO ledger, which is not looking at
 // edges, still books a disposal and moves cost basis. Not telling the check
-// about that made it report 9 739 of disagreement that was its own blind spot.
+// about that made it report a disagreement that was its own blind spot.
 describe('movements recognised from one leg alone', () => {
     const at = (s) => String(1787142611537000000n + BigInt(s) * 1000000000n);
     const base = {

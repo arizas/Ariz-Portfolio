@@ -135,9 +135,9 @@ describe('ALL_TOKENS', () => {
 
 // A realization is worked out when the disposal happens, in the target
 // currency. It does not become unknown because that day's end-of-day quote is
-// missing — and treating it as if it did dropped 103 547,98 of realized loss
-// from one real year, leaving the combined total disagreeing with the per-token
-// report it is a sum of.
+// missing — and treating it as if it did dropped more than half the realized
+// loss from one real year, leaving the combined total disagreeing with the
+// per-token report it is a sum of.
 describe('realizations on a day with no price', () => {
     it('still counts them', () => {
         const { rows, totals } = combineDailyRows([

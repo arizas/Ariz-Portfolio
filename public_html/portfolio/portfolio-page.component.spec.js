@@ -32,8 +32,8 @@ describe('where the money came from', () => {
     });
 
     // "Earned" covered two things that are not alike: rewards you were paid,
-    // and the price moving. On one real year that was 11 512 received against
-    // 80 951 of price, under one word that reads as income.
+    // and the price moving. On one real year seven eighths of it was price,
+    // under one word that reads as income.
     it('separates what was paid to you from what merely changed in value', async () => {
         const el = makePage({ ...base, rewards: 11511.62, valueChange: 80951.29, gain: 92462.91 });
         await el.renderFlows();

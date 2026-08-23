@@ -26,7 +26,7 @@ const fungibleTokenData = {
  *
  * On one real store that misdated a withdrawal by two days, split another into
  * two legs, and turned observations that reversed themselves a second later
- * into about 3 145 USDC of movements that never happened.
+ * into a run of movements that never happened.
  *
  * So the chain runs from one real transaction to the next and an observation
  * contributes nothing. The rows are left in place: `balance` is what the daily

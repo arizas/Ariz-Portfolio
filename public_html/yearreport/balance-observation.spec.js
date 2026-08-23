@@ -5,7 +5,7 @@ import { deriveChangedBalances, isBalanceObservation } from './yearreportdata.js
 // the same balance, so a difference taken between consecutive rows lands on
 // whichever comes first — the observation — leaving the real transaction at
 // zero. On a real store that misdated withdrawals by up to two days and
-// conjured about 3 145 USDC out of observations that reversed themselves.
+// conjured a run of movements out of observations that reversed themselves.
 describe('telling an observation from a movement', () => {
     it('recognises the synthetic hash', () => {
         expect(isBalanceObservation({ transaction_hash: 'block-189976766' })).to.equal(true);
@@ -28,7 +28,7 @@ describe('what each transaction moved', () => {
         expect(changes([row('c', 30), row('b', 20), row('a', 5)])).to.deep.equal([10, 15, 5]);
     });
 
-    // The real store: 2026-02-10, a withdrawal of 5 913,44 USDC written twice.
+    // The shape of a real case: one withdrawal written twice.
     // Both rows carry balance 0, so the difference used to land on the earlier
     // one — the observation — and the transaction that actually happened, at
     // 11:23:58 and confirmed by the receiving exchange, was left at zero.

@@ -8,8 +8,8 @@
 // withdrawal in one token's pass and a deposit in another's, under two
 // different transactions. The hash cannot tie those together.
 //
-// On one real day that mattered: the row read 379 added and 1 516 taken out, on
-// a day when almost nothing crossed the edge at all.
+// On one real day the row read four times the money in and eight times the
+// money out, on a day when almost nothing crossed the edge at all.
 //
 // Two signals, both structural. Neither compares values — a pair that merely
 // adds up is a coincidence waiting to be wrong, and end-of-day prices make two
@@ -50,8 +50,8 @@ export const PORTFOLIO_VENUES = new Set([...CUSTODY_VENUES, ...GATEWAY_VENUES]);
  * apart. It cannot catch one whose payment was something this report has
  * already, correctly, called internal — NEAR wrapped into wNEAR on its way into
  * intents, for instance. Then only the purchase is left, looking like money
- * someone gave you. On one real store that was 103 889 of "added in" with no
- * counterpart anywhere within a day.
+ * someone gave you. On one real store that was a quarter of everything counted
+ * as "added in", with no counterpart anywhere within a day.
  *
  * Named accounts only, deliberately. Another person's intents account is a
  * 64-character implicit address, and a rule broad enough to cover those would
@@ -168,8 +168,8 @@ export function separatePortfolioTransfers(movements = [], {
     //    wrapping it first, so the payment leaves the native bucket and the
     //    purchase arrives inside intents — and the wrap adds minutes. One real
     //    trade put 254 seconds between them, which is why the window is not
-    //    tight: a narrow one left the purchase looking like 56 234 kroner
-    //    somebody gave away.
+    //    tight: a narrow one left the largest purchase of the year looking like
+    //    money somebody gave away.
     //
     //    What keeps a window that wide safe is the requirement that the two
     //    assets differ. On that same day the purchased USDC left for an exchange
@@ -224,8 +224,8 @@ export function separatePortfolioTransfers(movements = [], {
     //    intents to an exchange and moving USDC from intents into the
     //    confidential bucket are the same transaction shape with the same
     //    counterparty, and only the first left the portfolio; judging that on
-    //    the counterparty alone hid three genuine withdrawals, 3 352 USDC, on a
-    //    real store. Overstating what left is a number someone can argue with;
+    //    the counterparty alone hid three genuine withdrawals to an exchange on
+    //    a real store, each confirmed by the receiving address on chain. Overstating what left is a number someone can argue with;
     //    hiding it is money that quietly stops existing. So a leg going out
     //    through a gateway has to be corroborated instead — the pairing above
     //    has to see the value arrive, or the trade rule has to recognise it.
