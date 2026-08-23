@@ -325,9 +325,11 @@ customElements.define('portfolio-page',
             const recNote = rec?.available && !rec.agrees ? `
                 <div class="flow-warn">
                     These flows and the FIFO ledger disagree by ${money(Math.abs(rec.difference))}.
-                    One of them is wrong: either a movement was priced or classified incorrectly here,
-                    or the opening cost basis for staked NEAR — which is not tracked separately — is
-                    carrying the difference. Treat the split as indicative until it reconciles.
+                    They reach the same figure by routes that share almost nothing, so a gap means one
+                    of them is wrong — and the ledger is the more likely of the two. It counts every
+                    swap as a disposal at the closing price of the day, while the swap happened at some
+                    price during it, and it books a realization at nothing at all when a day's price is
+                    missing. Treat the split as indicative until it reconciles.
                 </div>` : '';
 
             this.flowsEl.innerHTML = `

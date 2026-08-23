@@ -468,3 +468,28 @@ describe('what "earned" was hiding', () => {
         expect(r.valueChange).to.be.lessThan(0);
     });
 });
+
+// The two sides of the check must count the same things. Staked value was in
+// the "now" figure and absent from the opening one, so a period looked better
+// than it was — 57 082 on one real store, blamed on the flows.
+describe('the reconciliation counts staking at both ends', () => {
+    const withStaked = (unrealizedOpening) => decomposeFlows({
+        movements: [], price: () => 10, opening: 150000, closing: 250000,
+        fifo: { realized: -30000, unrealizedNow: 151805, unrealizedOpening },
+    });
+
+    it('agrees when the opening carries its staked unrealized too', () => {
+        // gain = 250000 - 150000 = 100000; expected = -30000 + (151805 - 21805)
+        const r = withStaked(21805);
+        expect(r.reconciliation.expected).to.be.closeTo(100000, 1);
+        expect(r.reconciliation.agrees).to.equal(true);
+    });
+
+    // The same numbers with the staked part missing from the opening: the
+    // ledger then looks to have gained what was already unrealized before.
+    it('disagrees when it is left out of the opening', () => {
+        const r = withStaked(-9996);
+        expect(r.reconciliation.agrees).to.equal(false);
+        expect(Math.abs(r.reconciliation.difference)).to.be.greaterThan(30000);
+    });
+});

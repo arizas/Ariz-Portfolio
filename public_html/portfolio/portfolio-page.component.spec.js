@@ -168,9 +168,10 @@ describe('when it will not answer', () => {
         expect(el.flowsEl.textContent).to.include('and 3 more');
     });
 
-    // A disagreement is shown rather than hidden, and says what it might be —
-    // the opening cost basis for staked NEAR is not tracked separately, so it
-    // can carry a difference that is not a flow error at all.
+    // A disagreement is shown rather than hidden, and says where to look. The
+    // ledger is the more likely of the two to be wrong: it prices every swap at
+    // the day's close and books a realization at nothing when a price is
+    // missing.
     it('surfaces a disagreement with the FIFO ledger', async () => {
         const el = makePage({
             ...base,
@@ -179,7 +180,7 @@ describe('when it will not answer', () => {
         await el.renderFlows();
         const text = el.flowsEl.textContent.replace(/\s+/g, ' ');
         expect(text).to.include('disagree by');
-        expect(text).to.include('staked NEAR');
+        expect(text).to.include('the ledger is the more likely');
     });
 
     it('says nothing about reconciliation when the two agree', async () => {

@@ -246,11 +246,18 @@ async function computeIbSnapshot(base, currency, fromDate, onProgress) {
 
         // Same liquid/staked split as the UB pass, but at the IB date - so the
         // opening liquid NEAR row is consistent with the current liquid row.
+        let ibStakedCostBasis = 0;
         if (h.token === NEAR_TOKEN) {
             const { liquidRaw, totalRaw } = nearLiquidStakedRaw(h.dailyBalances, fromDate);
             if (totalRaw > 0) {
                 ibAmount = liquidRaw * h.decimalConversionValue;
                 ibCostBasis = costBasis * (liquidRaw / totalRaw);
+                // The staked share was being worked out and thrown away. Kept,
+                // the opening staked position can be compared against its own
+                // cost — see the reconciliation in calculateFlowDecomposition,
+                // where the now-side counted staked unrealized and the opening
+                // side silently did not.
+                ibStakedCostBasis = costBasis - ibCostBasis;
             }
         }
 
@@ -262,7 +269,7 @@ async function computeIbSnapshot(base, currency, fromDate, onProgress) {
             ibValue = 0;
         }
 
-        snapshot.set(h.token, { ibAmount, ibCostBasis, ibValue });
+        snapshot.set(h.token, { ibAmount, ibCostBasis, ibValue, ibStakedCostBasis });
     }
 
     ibCache.set(cacheKey, snapshot);
@@ -342,6 +349,12 @@ export async function calculatePortfolio(currency, fromDate, onProgress = () => 
     const stakedCostBasis = base.stakedCostBasis || 0;
     const stakedUnrealized = stakedValue != null && stakedCostBasis > 0 ? stakedValue - stakedCostBasis : null;
 
+    // The same figure at the opening date, so a period's change in unrealized
+    // value can be measured on the same basis at both ends.
+    const ibStakedCostBasis = ibSnapshot.get(NEAR_TOKEN)?.ibStakedCostBasis || 0;
+    const ibStakedUnrealized = ibStakedAmount > DUST_THRESHOLD && ibStakedCostBasis > 0
+        ? ibStakedValue - ibStakedCostBasis : null;
+
     return {
         currency,
         fromDate,
@@ -366,6 +379,8 @@ export async function calculatePortfolio(currency, fromDate, onProgress = () => 
         stakedUnrealized,
         ibStakedAmount,
         ibStakedValue,
+        ibStakedCostBasis,
+        ibStakedUnrealized,
         // Complete asset picture
         totalWithStaked: base.totalValue + (stakedValue || 0),
         ibWithStaked: ibValue + (ibStakedValue || 0)
@@ -624,7 +639,11 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
         fifo: {
             realized: portfolio.totalRealized ?? 0,
             unrealizedNow: (portfolio.totalUnrealized ?? 0) + stakedUnrealizedNow,
+            // Staked on both ends or neither. Counting it now and not at the
+            // opening made the period look 57 082 better than it was on one
+            // real store, and the reconciliation blamed the flows for it.
             unrealizedOpening: (portfolio.ibValue ?? 0) - (portfolio.ibCost ?? 0)
+                + (portfolio.ibStakedUnrealized ?? 0)
         }
     });
 
