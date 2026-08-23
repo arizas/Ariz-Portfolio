@@ -8,6 +8,52 @@ const fungibleTokenData = {
 
 };
 
+/**
+ * A balance observation rather than a movement: the accounting export writes
+ * these with a synthetic `block-<height>` hash, which links nowhere on an
+ * explorer, and pairs them with the real transaction for the same change.
+ */
+/**
+ * How much each transaction moved, from the balances beside it.
+ *
+ * The rows arrive newest first, each carrying the balance that followed it, so
+ * a movement is one row's balance minus the next one's. The catch is that the
+ * accounting export writes the same movement twice — once as the real
+ * transaction and once as a `block-<height>` balance observation — and both
+ * rows carry the same balance. Subtracting between consecutive rows then puts
+ * the whole change on whichever comes first, which is the observation, and
+ * leaves the real transaction at zero, where it vanishes.
+ *
+ * On one real store that misdated a withdrawal by two days, split another into
+ * two legs, and turned observations that reversed themselves a second later
+ * into about 3 145 USDC of movements that never happened.
+ *
+ * So the chain runs from one real transaction to the next and an observation
+ * contributes nothing. The rows are left in place: `balance` is what the daily
+ * balance columns read, and an observation is exactly the right thing to read a
+ * balance off.
+ */
+export function deriveChangedBalances(transactions = []) {
+    const nextRealBelow = new Array(transactions.length).fill(null);
+    let candidate = null;
+    for (let n = transactions.length - 1; n >= 0; n--) {
+        nextRealBelow[n] = candidate;
+        if (!isBalanceObservation(transactions[n])) candidate = n;
+    }
+    for (let n = 0; n < transactions.length; n++) {
+        const tx = transactions[n];
+        const older = nextRealBelow[n];
+        tx.changedBalance = isBalanceObservation(tx) ? 0n : BigInt(tx.balance) - (
+            older !== null ? BigInt(transactions[older].balance) : 0n
+        );
+    }
+    return transactions;
+}
+
+export function isBalanceObservation(tx) {
+    return typeof tx?.transaction_hash === 'string' && tx.transaction_hash.startsWith('block-');
+}
+
 export function getDecimalConversionValue(fungibleTokenSymbol) {
     return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol]?.decimalConversionValue ?? Math.pow(10, -24) : Math.pow(10, -24);
 }
@@ -49,13 +95,11 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 decimalConversionValue = fungibleTokenData[tx.ft.contract_id].decimalConversionValue;
             }
         }
+        deriveChangedBalances(transactions);
+
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
             tx.account = account;
-            tx.changedBalance = BigInt(tx.balance) - (
-                n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : 0n
-            );
-
             tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
             // Classify incoming transfers from external accounts:
             // - Default: treat as deposit

@@ -1,4 +1,4 @@
-import { separatePortfolioTransfers, bucketOf, baseAsset } from './portfolio-transfers.js';
+import { separatePortfolioTransfers, bucketOf, baseAsset, CUSTODY_VENUES, GATEWAY_VENUES } from './portfolio-transfers.js';
 
 const move = (over) => ({ date: '2026-08-19', kind: 'deposit', units: 1, counterparties: [], ...over });
 
@@ -156,10 +156,16 @@ describe('contracts that hold your value in another form', () => {
         expect(separatePortfolioTransfers([out({ kind: 'deposit', counterparties: ['meta-pool.near'] })]).external).to.have.lengthOf(0);
     });
 
-    // The NEAR going the other way is matched by the wNEAR that arrives, below,
-    // rather than trusted on the counterparty alone.
-    it('needs the wrapped side to be visible before calling the wrap internal', () => {
-        expect(separatePortfolioTransfers([out({ counterparties: ['wrap.near'] })]).external).to.have.lengthOf(1);
+    // Nothing reaches the outside world through the wNEAR contract, so unlike a
+    // gateway this one carries no doubt in either direction.
+    it('does not call wrapping NEAR a withdrawal', () => {
+        const { internal, external } = separatePortfolioTransfers([out({ counterparties: ['wrap.near'] })]);
+        expect(external).to.have.lengthOf(0);
+        expect(internal[0].reason).to.equal('own-venue');
+    });
+
+    it('does not call staking a withdrawal either', () => {
+        expect(separatePortfolioTransfers([out({ counterparties: ['meta-pool.near'] })]).external).to.have.lengthOf(0);
     });
 
     // wNEAR is NEAR under another name, so the two legs of a wrap pair up even
@@ -242,5 +248,22 @@ describe('a trade settled as two transactions', () => {
         const { internal, external } = separatePortfolioTransfers([gave, far, near], { price });
         expect(internal[0].secondsApart).to.be.closeTo(5, 0.01);
         expect(external).to.have.lengthOf(1);
+    });
+});
+
+// The distinction that lets a wrap go both ways while a bridge does not.
+describe('custody against gateway', () => {
+    it('keeps the bridge out of the custody set', () => {
+        expect(CUSTODY_VENUES.has('wrap.near')).to.equal(true);
+        expect(CUSTODY_VENUES.has('meta-pool.near')).to.equal(true);
+        expect(CUSTODY_VENUES.has('intents.near')).to.equal(false);
+        expect(GATEWAY_VENUES.has('intents.near')).to.equal(true);
+    });
+
+    // A transaction touching both is not a pure custody move.
+    it('needs every counterparty to be custody before letting a leg out', () => {
+        const m = { date: '2026-02-10', kind: 'withdrawal', units: 10, token: '', symbol: 'NEAR',
+            counterparties: ['wrap.near', 'intents.near'] };
+        expect(separatePortfolioTransfers([m]).external).to.have.lengthOf(1);
     });
 });

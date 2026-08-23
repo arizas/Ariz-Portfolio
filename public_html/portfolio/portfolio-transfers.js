@@ -16,22 +16,30 @@
 // sides of the same move differ anyway.
 
 /**
- * Contracts that hold this portfolio's own value in another form. Sending to one
- * of these is not spending: you get the same value back under a different name,
- * and you can send it back whenever you like.
- *
- *  - intents.near   your balance inside NEAR Intents
- *  - wrap.near      native NEAR as the wNEAR fungible token, one for one
- *  - meta-pool.near NEAR staked for stNEAR, and unstaked again
- *
- * Not the same thing as an exchange you sold on. The test is whether the
- * position is still yours afterwards.
+ * Contracts that can only ever give the value back to you. Sending NEAR to
+ * wrap.near returns wNEAR one for one; sending it to a staking pool returns
+ * stNEAR, and later NEAR again. There is no way to reach the outside world
+ * through one of these, so a movement in either direction stayed inside.
  */
-export const PORTFOLIO_VENUES = new Set([
-    'intents.near',
+export const CUSTODY_VENUES = new Set([
     'wrap.near',
     'meta-pool.near',
 ]);
+
+/**
+ * Contracts that hold your balance *and* can send it out of the portfolio.
+ * intents.near is both: moving USDC from intents into the confidential bucket
+ * and withdrawing it to an exchange are the same shape with the same
+ * counterparty, and only the second left. So value arriving from one of these
+ * came from inside, and value going to one is not decidable from the
+ * counterparty alone — it has to be corroborated.
+ */
+export const GATEWAY_VENUES = new Set([
+    'intents.near',
+]);
+
+/** Every account that holds this portfolio's own balance. */
+export const PORTFOLIO_VENUES = new Set([...CUSTODY_VENUES, ...GATEWAY_VENUES]);
 
 /**
  * Tokens that are one asset wearing two names. wNEAR is NEAR — wrapping is a
@@ -76,7 +84,7 @@ export function baseAsset(token) {
  *   per recognised transfer, carrying the legs it was decided from
  */
 export function separatePortfolioTransfers(movements = [], {
-    venues = PORTFOLIO_VENUES, unitTolerance = 1e-6,
+    venues = PORTFOLIO_VENUES, custody = CUSTODY_VENUES, unitTolerance = 1e-6,
     price = null, tradeWindowSeconds = 120, tradeTolerance = 0.25,
 } = {}) {
     const internal = [];
@@ -173,23 +181,26 @@ export function separatePortfolioTransfers(movements = [], {
     //    came from inside it. An arrival cannot be money leaving, so calling it
     //    internal can overstate nothing.
     //
-    //    Going the other way it is not decidable. Withdrawing USDC from intents
-    //    to Ethereum and moving USDC from intents into the confidential bucket
-    //    are the same transaction shape with the same counterparty —
-    //    intents.near — and only the first left the portfolio. This rule used to
-    //    apply both ways, and on one real store it hid three genuine
-    //    withdrawals to an exchange, 3 352 USDC, because the counterparty looked
-    //    like a venue. Overstating what left is a number someone can argue with;
-    //    hiding it is money that quietly stops existing.
+    //    Going the other way it depends which venue. Withdrawing USDC from
+    //    intents to an exchange and moving USDC from intents into the
+    //    confidential bucket are the same transaction shape with the same
+    //    counterparty, and only the first left the portfolio; judging that on
+    //    the counterparty alone hid three genuine withdrawals, 3 352 USDC, on a
+    //    real store. Overstating what left is a number someone can argue with;
+    //    hiding it is money that quietly stops existing. So a leg going out
+    //    through a gateway has to be corroborated instead — the pairing above
+    //    has to see the value arrive, or the trade rule has to recognise it.
     //
-    //    So an outgoing leg must be corroborated instead: the pairing above has
-    //    to see the value arrive somewhere, or the trade rule has to recognise
-    //    it. Neither, and it is treated as having left.
+    //    A custody venue carries no such doubt. Nothing reaches the outside
+    //    world through the wNEAR contract or a staking pool; they can only give
+    //    the value back. Those go both ways.
     const external = [];
     for (const m of movements) {
         if (taken.has(m)) continue;
         const parties = m.counterparties ?? [];
-        if (m.kind === 'deposit' && parties.length && parties.every(p => venues.has(p))) {
+        const allVenues = parties.length && parties.every(p => venues.has(p));
+        const allCustody = parties.length && parties.every(p => custody.has(p));
+        if (allVenues && (m.kind === 'deposit' || allCustody)) {
             internal.push({
                 reason: 'own-venue',
                 date: m.date,
