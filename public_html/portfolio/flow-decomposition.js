@@ -65,6 +65,7 @@ export function decomposeFlows({
     reconcileTolerance = 0.01,
     estimateValue = null,
     materialityFloor = 0.001,
+    stakingRewards = 0,
 }) {
     // A token with no market anywhere has no value to move across the boundary,
     // so it contributes nothing. This is not a guess, and it is what stops a
@@ -143,6 +144,15 @@ export function decomposeFlows({
     const netFlow = deposits + income - withdrawals;
     const gain = closing - opening - netFlow;
 
+    // "Earned" covers two things that are not alike. Rewards are received —
+    // staking pays them, and they raise the balance without any transfer. The
+    // rest is the price moving, which you have not received and can lose again
+    // tomorrow. One word for both invites the reader to treat a paper gain as
+    // income; on one real year the split was 11 512 received against 80 951 of
+    // price.
+    const rewards = earned + stakingRewards;
+    const valueChange = gain - rewards;
+
     return {
         ok: true,
         opening,
@@ -151,6 +161,9 @@ export function decomposeFlows({
         withdrawals,
         income,
         yieldReceived: earned,
+        stakingRewards,
+        rewards,
+        valueChange,
         netFlow,
         gain,
         internal,

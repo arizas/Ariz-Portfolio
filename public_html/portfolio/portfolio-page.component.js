@@ -337,21 +337,28 @@ customElements.define('portfolio-page',
                     ${r.income ? row('Income received', signed(r.income)) : ''}
                     ${r.withdrawals ? row('Withdrawals out', signed(-r.withdrawals)) : ''}
                     ${row('Added, net', signed(added), 'sum')}
-                    ${row('Earned', signed(r.gain), '')}
+                    ${r.rewards ? row('Rewards received', signed(r.rewards)) : ''}
+                    ${row(r.rewards ? 'Value change' : 'Value change', signed(r.valueChange ?? r.gain), '')}
                     ${row('Now', money(r.closing), 'sum')}
                     <div class="flow-lead">
-                        ${change >= 0 ? 'Of the' : 'Of the'} <strong>${money(Math.abs(change))}</strong>
+                        Of the <strong>${money(Math.abs(change))}</strong>
                         ${change >= 0 ? 'increase' : 'decrease'},
-                        <strong>${money(Math.abs(added))}</strong> was ${added >= 0 ? 'money you added' : 'money you took out'}
-                        and <strong>${money(Math.abs(r.gain))}</strong> was ${r.gain >= 0 ? 'earned' : 'lost'}.
+                        <strong>${money(Math.abs(added))}</strong> was ${added >= 0 ? 'money you added' : 'money you took out'}${r.rewards
+                            ? `, <strong>${money(Math.abs(r.rewards))}</strong> was paid to you as rewards, and
+                               <strong>${money(Math.abs(r.valueChange))}</strong> is what your holdings
+                               ${r.valueChange >= 0 ? 'gained' : 'lost'} in value`
+                            : ` and <strong>${money(Math.abs(r.gain))}</strong> ${r.gain >= 0 ? 'was earned' : 'was lost'}`}.
                     </div>
+                    ${r.rewards ? `<div class="footnote">Rewards are received and are yours; a change in value is
+                        neither received nor certain, and can go the other way tomorrow.</div>` : ''}
                     <div class="footnote">
                         Swaps are not flows — ${r.internal.length} recognised and excluded.
                         ${r.transfers?.length ? `Neither is carrying an asset between your own buckets — `
                             + `${r.transfers.length} move${r.transfers.length === 1 ? '' : 's'} between native, intents and confidential excluded too.` : ''}
                         ${r.transactionCosts?.length ? `Gas on ${r.transactionCosts.length} transaction${r.transactionCosts.length === 1 ? '' : 's'} `
                             + `counts as a cost, not money leaving.` : ''}
-                        ${r.yieldReceived ? `Yield of ${money(r.yieldReceived)} counts as earned, not added.` : ''}
+                        ${r.yieldReceived ? `Yield of ${money(r.yieldReceived)} counts as a reward, not money added.` : ''}
+                        ${r.stakingRewards ? `Staking paid ${money(r.stakingRewards)}, which raises the balance without any transfer.` : ''}
                         ${r.ignoredNoMarket.length ? `Tokens with no market anywhere are ignored: ${escapeHtml(r.ignoredNoMarket.join(', '))}.` : ''}
                         ${r.immaterial?.length ? `${r.immaterial.length} movement${r.immaterial.length === 1 ? '' : 's'} in `
                             + `${escapeHtml([...new Set(r.immaterial.map(u => u.symbol || u.token))].join(', '))} had no price on the day; `

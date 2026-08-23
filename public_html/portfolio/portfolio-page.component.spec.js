@@ -16,6 +16,7 @@ const base = {
     opening: 155541, closing: 303974,
     deposits: 120000, income: 2400, withdrawals: 10000,
     netFlow: 112400, gain: 36033, yieldReceived: 0,
+    stakingRewards: 0, rewards: 0, valueChange: 36033,
     internal: [], ignoredNoMarket: [],
     reconciliation: { available: true, agrees: true, difference: 0 },
 };
@@ -30,6 +31,40 @@ describe('where the money came from', () => {
         expect(text).to.include('was earned');
     });
 
+    // "Earned" covered two things that are not alike: rewards you were paid,
+    // and the price moving. On one real year that was 11 512 received against
+    // 80 951 of price, under one word that reads as income.
+    it('separates what was paid to you from what merely changed in value', async () => {
+        const el = makePage({ ...base, rewards: 11511.62, valueChange: 80951.29, gain: 92462.91 });
+        await el.renderFlows();
+        const text = el.flowsEl.textContent.replace(/\s+/g, ' ');
+        expect(text).to.include('Rewards received');
+        expect(text).to.include('Value change');
+        expect(text).to.include('was paid to you as rewards');
+        expect(text).to.include('gained');
+    });
+
+    it('says rewards are yours and a change in value is not certain', async () => {
+        const el = makePage({ ...base, rewards: 500, valueChange: 35533 });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent.replace(/\s+/g, ' '))
+            .to.include('neither received nor certain');
+    });
+
+    it('keeps the plain wording when nothing was paid out', async () => {
+        const el = makePage(base);
+        await el.renderFlows();
+        const text = el.flowsEl.textContent.replace(/\s+/g, ' ');
+        expect(text).to.not.include('Rewards received');
+        expect(text).to.include('was earned');
+    });
+
+    it('names a fall in value as a loss', async () => {
+        const el = makePage({ ...base, rewards: 300, valueChange: -4000, gain: -3700 });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent.replace(/\s+/g, ' ')).to.include('lost in value');
+    });
+
     it('shows the pieces that make up the change', async () => {
         const el = makePage(base);
         await el.renderFlows();
@@ -39,7 +74,7 @@ describe('where the money came from', () => {
         expect(text).to.include('Income received');
         expect(text).to.include('Withdrawals out');
         expect(text).to.include('Added, net');
-        expect(text).to.include('Earned');
+        expect(text).to.include('Value change');
     });
 
     it('leaves out rows that are zero', async () => {
@@ -58,7 +93,16 @@ describe('where the money came from', () => {
     it('separates yield from money added', async () => {
         const el = makePage({ ...base, yieldReceived: 250 });
         await el.renderFlows();
-        expect(el.flowsEl.textContent).to.include('counts as earned, not added');
+        expect(el.flowsEl.textContent).to.include('counts as a reward, not money added');
+    });
+
+    // Staking raises the balance with no transfer at all, so it is invisible in
+    // the movements and has to be named or it looks like the price moved.
+    it('names what staking paid', async () => {
+        const el = makePage({ ...base, stakingRewards: 3693.87, rewards: 3693.87, valueChange: 32339 });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent.replace(/\s+/g, ' '))
+            .to.include('raises the balance without any transfer');
     });
 
     it('names tokens it ignored for having no market', async () => {

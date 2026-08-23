@@ -597,12 +597,28 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
         return p == null ? null : units * p;
     };
 
+    // Staking rewards raise the staked balance without any transfer, so they are
+    // inside `closing` and inside `gain`. Named here, they can be told apart
+    // from the price moving.
+    let stakingRewards = 0;
+    for (const holding of base.holdings) {
+        for (const [date, day] of Object.entries(holding.dailyBalances ?? {})) {
+            if (fromDate && date < fromDate) continue;
+            const raw = Number(day?.stakingRewards ?? 0);
+            if (!raw) continue;
+            const p = price(holding.token, date);
+            if (p == null || !Number.isFinite(p)) continue;
+            stakingRewards += raw * holding.decimalConversionValue * p;
+        }
+    }
+
     const stakedUnrealizedNow = portfolio.stakedUnrealized ?? 0;
     const result = decomposeFlows({
         movements,
         price,
         neverPriced,
         estimateValue,
+        stakingRewards,
         opening: portfolio.ibWithStaked ?? 0,
         closing: portfolio.totalWithStaked ?? 0,
         fifo: {

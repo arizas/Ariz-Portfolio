@@ -417,3 +417,54 @@ describe('gas is a cost, not a side of a trade', () => {
         expect(r.transactionCosts).to.have.lengthOf(0);
     });
 });
+
+// "Earned" covered two things that are not alike: rewards you were paid, and
+// the price moving. One word for both invites a paper gain to be read as
+// income — on one real year, 11 512 received against 80 951 of price.
+describe('what "earned" was hiding', () => {
+    const base = {
+        movements: [], price: () => 10, opening: 100000, closing: 200000,
+    };
+
+    it('separates rewards from the price moving', () => {
+        const r = decomposeFlows({ ...base, stakingRewards: 3693.87 });
+        expect(r.rewards).to.be.closeTo(3693.87, 1e-9);
+        expect(r.valueChange).to.be.closeTo(r.gain - 3693.87, 1e-9);
+    });
+
+    // Staking raises the balance with no transfer, so it never appears as a
+    // movement and has to be handed in.
+    it('counts staking rewards and received yield as one thing', () => {
+        const r = decomposeFlows({
+            ...base,
+            stakingRewards: 1000,
+            movements: [{ date: '2026-01-02', token: 'npro', units: 50, kind: 'yield' }],
+        });
+        expect(r.yieldReceived).to.be.closeTo(500, 1e-9);
+        expect(r.stakingRewards).to.equal(1000);
+        expect(r.rewards).to.be.closeTo(1500, 1e-9);
+    });
+
+    it('still adds up to the whole gain', () => {
+        const r = decomposeFlows({
+            ...base,
+            stakingRewards: 2000,
+            movements: [{ date: '2026-01-02', token: 'npro', units: 10, kind: 'yield' }],
+        });
+        expect(r.rewards + r.valueChange).to.be.closeTo(r.gain, 1e-9);
+    });
+
+    it('leaves the split empty when nothing was paid out', () => {
+        const r = decomposeFlows(base);
+        expect(r.rewards).to.equal(0);
+        expect(r.valueChange).to.be.closeTo(r.gain, 1e-9);
+    });
+
+    // Rewards received while the holdings fell: the two must not be netted into
+    // one number that hides both.
+    it('keeps rewards positive when the value went the other way', () => {
+        const r = decomposeFlows({ ...base, closing: 90000, stakingRewards: 5000 });
+        expect(r.rewards).to.equal(5000);
+        expect(r.valueChange).to.be.lessThan(0);
+    });
+});
