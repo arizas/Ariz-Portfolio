@@ -1,4 +1,4 @@
-import { fetchHistoricalPricesFromArizGateway, priceServiceStatus, resetPriceService } from './pricedata.js';
+import { fetchHistoricalPricesFromArizGateway, getEODPriceMap, priceServiceStatus, resetPriceService } from './pricedata.js';
 import { ACCESS_TOKEN_SESSION_STORAGE_KEY } from '../arizgateway/arizgatewayaccess.js';
 import { mockWalletAuthenticationData } from '../arizgateway/arizgatewayaccess.spec.js';
 
@@ -115,5 +115,108 @@ describe('when the token has expired', () => {
                 .catch(e => names.push(e.name));
         }
         expect(names).to.deep.equal(['SignatureRequiredError', 'SignatureRequiredError', 'SignatureRequiredError']);
+    });
+});
+
+// getEODPriceMap used to catch these itself, log, and return an empty map. Every
+// caller that wanted to tell the user their session had expired was therefore
+// dead code — and a real token whose history is not synced yet came back
+// indistinguishable from one with no market, so its movements were dropped in
+// silence.
+describe('what getEODPriceMap does with an unreachable service', () => {
+    let realFetch;
+    beforeEach(() => {
+        realFetch = globalThis.fetch;
+        mockWalletAuthenticationData();
+        localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+        resetPriceService();
+    });
+    afterEach(() => {
+        globalThis.fetch = realFetch;
+        localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+        resetPriceService();
+    });
+
+    it('lets a signature error reach the caller', async () => {
+        globalThis.fetch = async () => ({ ok: true, json: async () => ({}) });
+        let name = '';
+        await getEODPriceMap('nok', 'NEVERSYNCED').catch(e => { name = e.name; });
+        expect(name).to.equal('SignatureRequiredError');
+    });
+
+    it('lets an unreachable gateway reach the caller', async () => {
+        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
+            JSON.stringify({ token: 'fresh', accountId: 'test.near', issuedAt: Date.now() }));
+        globalThis.fetch = async () => {
+            const e = new Error('The operation was aborted due to timeout');
+            e.name = 'TimeoutError';
+            throw e;
+        };
+        let name = '';
+        await getEODPriceMap('nok', 'NEVERSYNCED2').catch(e => { name = e.name; });
+        expect(name).to.equal('PriceServiceNotAnsweringError');
+    });
+
+    // A token that genuinely has no market must still come back empty rather
+    // than throwing, or every scam airdrop would take the report down.
+    it('still answers empty when the token simply has no price', async () => {
+        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
+            JSON.stringify({ token: 'fresh', accountId: 'test.near', issuedAt: Date.now() }));
+        globalThis.fetch = async () => ({ ok: false, status: 404, statusText: 'Not Found', text: async () => 'no such token' });
+        expect(await getEODPriceMap('nok', 'SCAMTOKEN2')).to.deep.equal({});
+    });
+});
+
+// The latch had no way to open again inside a session: the user signed in, ran
+// the report, and met the same refusal until they reloaded the page.
+describe('reopening after the reason has gone', () => {
+    let realFetch;
+    beforeEach(() => {
+        realFetch = globalThis.fetch;
+        mockWalletAuthenticationData();
+        localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+        resetPriceService();
+    });
+    afterEach(() => {
+        globalThis.fetch = realFetch;
+        localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+        resetPriceService();
+    });
+
+    it('tries again once a signature has been given', async () => {
+        let calls = 0;
+        globalThis.fetch = async () => { calls++; return { ok: true, json: async () => ({}) }; };
+
+        await fetchHistoricalPricesFromArizGateway({ baseToken: 'NEAR', currency: 'NOK' }).catch(() => { });
+        expect(priceServiceStatus().kind).to.equal('needs-signature');
+        expect(calls).to.equal(0);
+
+        // Signing in anywhere caches a token; the latch should notice.
+        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
+            JSON.stringify({ token: 'fresh', accountId: 'test.near', issuedAt: Date.now() }));
+        await fetchHistoricalPricesFromArizGateway({ baseToken: 'NEAR', currency: 'NOK' }).catch(() => { });
+        expect(calls).to.equal(1);
+        expect(priceServiceStatus()).to.equal(null);
+    });
+
+    // A gateway that did not answer is not fixed by signing in, so that one
+    // stays shut until something asks for a retry.
+    it('stays shut when the service was the problem', async () => {
+        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
+            JSON.stringify({ token: 'fresh', accountId: 'test.near', issuedAt: Date.now() }));
+        let calls = 0;
+        globalThis.fetch = async () => {
+            calls++;
+            const e = new Error('The operation was aborted due to timeout');
+            e.name = 'TimeoutError';
+            throw e;
+        };
+        await fetchHistoricalPricesFromArizGateway({ baseToken: 'NEAR', currency: 'NOK' }).catch(() => { });
+        await fetchHistoricalPricesFromArizGateway({ baseToken: 'BTC', currency: 'NOK' }).catch(() => { });
+        expect(calls).to.equal(1);
+
+        resetPriceService();
+        await fetchHistoricalPricesFromArizGateway({ baseToken: 'BTC', currency: 'NOK' }).catch(() => { });
+        expect(calls).to.equal(2);
     });
 });

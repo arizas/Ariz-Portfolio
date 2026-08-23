@@ -1,4 +1,4 @@
-import { fetchFromArizGateway, SignatureRequiredError } from "../arizgateway/arizgatewayaccess.js";
+import { fetchFromArizGateway, SignatureRequiredError, hasFreshToken } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData as readHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
 import { retry } from "../near/retry.js";
@@ -147,6 +147,13 @@ export class PriceServiceNotAnsweringError extends Error {
 }
 
 export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR", currency, todate = new Date().toJSON() }) {
+    // A door closed because nobody had signed should open again the moment
+    // somebody has. Without this the user signs in, re-runs the report, and gets
+    // the same refusal until they reload the page — the latch outliving the
+    // reason for it.
+    if (priceServiceDown?.kind === 'needs-signature' && hasFreshToken()) {
+        priceServiceDown = null;
+    }
     if (priceServiceDown) {
         throw priceServiceDown.kind === 'needs-signature'
             ? new SignatureRequiredError(baseToken)
@@ -359,6 +366,20 @@ export async function getEODPriceMap(currency, token = defaultToken) {
                 await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency });
                 pricedata = await getHistoricalPriceData(token, currency);
             } catch (e) {
+                // "The service could not be reached" and "this token has no
+                // market" are different answers, and collapsing them into an
+                // empty map turns the first into the second. A real token whose
+                // history is not synced yet then reads as a scam airdrop and its
+                // movements are dropped without a word — the outcome every
+                // refusal in this codebase exists to avoid.
+                //
+                // The callers that want to say what the page is waiting for need
+                // these to arrive as errors. One of them was written against a
+                // mock that threw, and passed while this swallowed the throw.
+                if (e?.name === 'SignatureRequiredError'
+                    || e?.name === 'PriceServiceNotAnsweringError') {
+                    throw e;
+                }
                 console.error(`Failed to fetch price history for ${token}/${currency} from Ariz Gateway`, e);
             }
         }
