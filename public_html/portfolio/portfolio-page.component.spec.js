@@ -84,25 +84,43 @@ describe('where the money came from', () => {
         expect(el.flowsEl.textContent).to.not.include('Withdrawals out');
     });
 
-    it('says how many swaps were excluded', async () => {
-        const el = makePage({ ...base, internal: [{}, {}, {}, {}] });
+    // How many swaps were recognised does not change how far to trust the rows
+    // above — swaps never appear in them, so saying they were excluded can only
+    // suggest something is missing that is not. It belongs in the year report's
+    // combined view, where the reader can see both.
+    it('does not report its own bookkeeping', async () => {
+        const el = makePage({ ...base, internal: [{}, {}, {}, {}], transfers: [{}, {}] });
         await el.renderFlows();
-        expect(el.flowsEl.textContent).to.include('4 recognised and excluded');
+        const text = el.flowsEl.textContent;
+        expect(text).to.not.include('recognised and excluded');
+        expect(text).to.not.include('between your own buckets');
     });
 
-    it('separates yield from money added', async () => {
-        const el = makePage({ ...base, yieldReceived: 250 });
+    it('still says what was left out of the figures', async () => {
+        const el = makePage({ ...base, ignoredNoMarket: ['SCAM'] });
         await el.renderFlows();
-        expect(el.flowsEl.textContent).to.include('counts as a reward, not money added');
+        expect(el.flowsEl.textContent).to.include('left out');
+        expect(el.flowsEl.textContent).to.include('SCAM');
     });
 
-    // Staking raises the balance with no transfer at all, so it is invisible in
-    // the movements and has to be named or it looks like the price moved.
-    it('names what staking paid', async () => {
-        const el = makePage({ ...base, stakingRewards: 3693.87, rewards: 3693.87, valueChange: 32339 });
+    // Gas is deductible, and today it is buried in the value change rather than
+    // shown as a cost. Saying so is the difference between a figure a reader can
+    // use and one they cannot.
+    it('says where gas ended up', async () => {
+        const el = makePage({ ...base, transactionCosts: [{ symbol: 'NEAR', value: 0.4 }] });
         await el.renderFlows();
         expect(el.flowsEl.textContent.replace(/\s+/g, ' '))
-            .to.include('raises the balance without any transfer');
+            .to.include('inside the value change rather than shown as a cost');
+    });
+
+    // The row itself says rewards were received; repeating the mechanics under
+    // it told the reader nothing about whether to trust the number.
+    it('says rewards are yours and a value change is not certain', async () => {
+        const el = makePage({ ...base, yieldReceived: 250, rewards: 250, valueChange: 35783 });
+        await el.renderFlows();
+        const text = el.flowsEl.textContent.replace(/\s+/g, ' ');
+        expect(text).to.include('Rewards received');
+        expect(text).to.include('neither received nor certain');
     });
 
     it('names tokens it ignored for having no market', async () => {
@@ -178,14 +196,14 @@ describe('when it will not answer', () => {
         });
         await el.renderFlows();
         const text = el.flowsEl.textContent.replace(/\s+/g, ' ');
-        expect(text).to.include('disagree by');
-        expect(text).to.include('one of them is wrong');
+        expect(text).to.include('may be wrong by as much as');
+        expect(text).to.include('do not rely on the split');
     });
 
     it('says nothing about reconciliation when the two agree', async () => {
         const el = makePage(base);
         await el.renderFlows();
-        expect(el.flowsEl.textContent).to.not.include('disagree by');
+        expect(el.flowsEl.textContent).to.not.include('may be wrong by as much as');
     });
 
     it('hides itself when the calculation throws', async () => {
@@ -221,10 +239,9 @@ describe('movements it could not price but could bound', () => {
 });
 
 describe('gas', () => {
-    it('says gas was treated as a cost rather than money leaving', async () => {
+    it('counts the transactions gas was paid on', async () => {
         const el = makePage({ ...base, transactionCosts: [{ symbol: 'NEAR', value: 0.4 }, { symbol: 'NEAR', value: 0.2 }] });
         await el.renderFlows();
-        expect(el.flowsEl.textContent.replace(/\s+/g, ' '))
-            .to.include('Gas on 2 transactions counts as a cost');
+        expect(el.flowsEl.textContent.replace(/\s+/g, ' ')).to.include('Gas on 2 transactions');
     });
 });

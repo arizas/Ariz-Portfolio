@@ -321,12 +321,34 @@ customElements.define('portfolio-page',
                     <span class="flow-label">${label}</span>
                     <span class="amount">${value}</span>
                 </div>`;
+            // A note under these figures earns its place only if it changes how far
+            // the reader should trust them. How many swaps were recognised does
+            // not: swaps never appear in the rows above, so saying they were
+            // excluded can only suggest something is missing that is not. That
+            // belongs where the reader can see both — the year report's combined
+            // view, which shows every token's own deposits beside the total.
+            //
+            // What is left is what was left out, or could not be valued.
+            const caveats = [
+                r.ignoredNoMarket.length
+                    ? `Tokens with no market anywhere are left out: ${escapeHtml(r.ignoredNoMarket.join(', '))}.` : '',
+                r.immaterial?.length
+                    ? `${r.immaterial.length} movement${r.immaterial.length === 1 ? '' : 's'} in `
+                    + `${escapeHtml([...new Set(r.immaterial.map(u => u.symbol || u.token))].join(', '))} had no price on the day, `
+                    + `worth at most ${money(r.immaterial.reduce((a, u) => a + Math.abs(u.estimatedValue ?? 0), 0))} together — `
+                    + `too little to change the split.` : '',
+                r.transactionCosts?.length
+                    ? `Gas on ${r.transactionCosts.length} transaction${r.transactionCosts.length === 1 ? '' : 's'} is inside `
+                    + `the value change rather than shown as a cost of its own.` : '',
+            ].filter(Boolean);
+
             const rec = r.reconciliation;
             const recNote = rec?.available && !rec.agrees ? `
                 <div class="flow-warn">
-                    These flows and the FIFO ledger disagree by ${money(Math.abs(rec.difference))}.
-                    They reach the same figure by routes that share almost nothing, so a gap means one
-                    of them is wrong. Treat the split as indicative until it reconciles.
+                    The figures above may be wrong by as much as ${money(Math.abs(rec.difference))}.
+                    They are worked out twice, by routes that share almost nothing, and this time the
+                    two do not agree — so do not rely on the split between what you added and what you
+                    earned until they do.
                 </div>` : '';
 
             this.flowsEl.innerHTML = `
@@ -350,20 +372,7 @@ customElements.define('portfolio-page',
                     </div>
                     ${r.rewards ? `<div class="footnote">Rewards are received and are yours; a change in value is
                         neither received nor certain, and can go the other way tomorrow.</div>` : ''}
-                    <div class="footnote">
-                        Swaps are not flows — ${r.internal.length} recognised and excluded.
-                        ${r.transfers?.length ? `Neither is carrying an asset between your own buckets — `
-                            + `${r.transfers.length} move${r.transfers.length === 1 ? '' : 's'} between native, intents and confidential excluded too.` : ''}
-                        ${r.transactionCosts?.length ? `Gas on ${r.transactionCosts.length} transaction${r.transactionCosts.length === 1 ? '' : 's'} `
-                            + `counts as a cost, not money leaving.` : ''}
-                        ${r.yieldReceived ? `Yield of ${money(r.yieldReceived)} counts as a reward, not money added.` : ''}
-                        ${r.stakingRewards ? `Staking paid ${money(r.stakingRewards)}, which raises the balance without any transfer.` : ''}
-                        ${r.ignoredNoMarket.length ? `Tokens with no market anywhere are ignored: ${escapeHtml(r.ignoredNoMarket.join(', '))}.` : ''}
-                        ${r.immaterial?.length ? `${r.immaterial.length} movement${r.immaterial.length === 1 ? '' : 's'} in `
-                            + `${escapeHtml([...new Set(r.immaterial.map(u => u.symbol || u.token))].join(', '))} had no price on the day; `
-                            + `together they are worth at most ${money(r.immaterial.reduce((a, u) => a + Math.abs(u.estimatedValue ?? 0), 0))}, `
-                            + `too little to change the split, so they are left out.` : ''}
-                    </div>
+                    ${caveats.length ? `<div class="footnote">${caveats.join(' ')}</div>` : ''}
                     ${recNote}
                 </div>`;
         }
