@@ -1,4 +1,4 @@
-import { fetchFromArizGateway } from "../arizgateway/arizgatewayaccess.js";
+import { fetchFromArizGateway, SignatureRequiredError } from "../arizgateway/arizgatewayaccess.js";
 import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData as readHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
 import { retry } from "../near/retry.js";
@@ -66,7 +66,7 @@ let noPriceTokensPromise;
 
 async function getNoPriceTokens() {
     if (!noPriceTokensPromise) {
-        noPriceTokensPromise = fetchFromArizGateway('/api/prices/nopricetokens')
+        noPriceTokensPromise = fetchFromArizGateway('/api/prices/nopricetokens', { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false })
             .then(list => new Set((Array.isArray(list) ? list : []).map(t => t.toLowerCase())))
             .catch(() => new Set());
     }
@@ -106,10 +106,73 @@ export async function getCurrencyList() {
     return currencyList;
 }
 
+/**
+ * Why price lookups stopped, if they did.
+ *
+ * A report asks for one token's history at a time, and the combined view has
+ * forty-six of them. Whatever stops the first will stop the other forty-five,
+ * so the first one closes the door for the session rather than repeating the
+ * wait. Everything downstream already copes with a token having no price — it
+ * reports what it could not value instead of guessing.
+ *
+ * Two things stop it, and they are not the same. The gateway can fail to
+ * answer. Or the bearer token can have expired, in which case asking again
+ * would put a wallet dialog on screen for work the user did not request. The
+ * second is what actually happened on a real store, while the page showed
+ * "Reading NEAR (1 of 46)" and looked merely slow.
+ */
+let priceServiceDown = null;
+
+/**
+ * Shorter than the general gateway timeout: price lookups happen once per token
+ * and every caller can carry on without one, so waiting long buys nothing.
+ */
+const PRICE_TIMEOUT_MILLIS = 12000;
+
+export function priceServiceStatus() {
+    return priceServiceDown;
+}
+
+/** Try the gateway again — after a sync, or when the user asks for a refresh. */
+export function resetPriceService() {
+    priceServiceDown = null;
+}
+
+export class PriceServiceNotAnsweringError extends Error {
+    constructor(cause) {
+        super(`Price service is not answering: ${cause?.message ?? cause}`);
+        this.name = 'PriceServiceNotAnsweringError';
+        this.cause = cause;
+    }
+}
+
 export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR", currency, todate = new Date().toJSON() }) {
+    if (priceServiceDown) {
+        throw priceServiceDown.kind === 'needs-signature'
+            ? new SignatureRequiredError(baseToken)
+            : new PriceServiceNotAnsweringError(priceServiceDown.reason);
+    }
     // Convert symbol to CoinGecko ID (e.g., "BTC" -> "bitcoin")
     const coinGeckoId = symbolToCoinGeckoId[baseToken.toUpperCase()] || baseToken.toLowerCase();
-    const pricesMap = await fetchFromArizGateway(`/api/prices/history?basetoken=${coinGeckoId}&currency=${currency}&todate=${todate}`);
+    let pricesMap;
+    try {
+        pricesMap = await fetchFromArizGateway(
+            `/api/prices/history?basetoken=${coinGeckoId}&currency=${currency}&todate=${todate}`,
+            { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false });
+    } catch (e) {
+        // Neither of these is "this token has no price", and saying so is the
+        // difference between a report that explains itself and one that quietly
+        // leaves a token out.
+        if (e?.name === 'SignatureRequiredError') {
+            priceServiceDown = { kind: 'needs-signature', reason: e.message, token: baseToken };
+            throw e;
+        }
+        if (/did not answer/.test(e?.message ?? '')) {
+            priceServiceDown = { kind: 'no-answer', reason: e.message, token: baseToken };
+            throw new PriceServiceNotAnsweringError(e);
+        }
+        throw e;
+    }
 
     // Merge, never replace. This is triggered whenever a single date is missing
     // — a newly acquired token, a gap — and the gateway answers with whatever

@@ -33,6 +33,7 @@ async function render(collectResult, { convertToCurrency = 'nok', perRowFunction
         perRowFunction,
         collect: async () => ({
             contributions: [], transactionsByDate: {}, failed: [], neverPriced: [], flowsByDate: {},
+            pricesUnavailable: {},
             ...collectResult,
         }),
     });
@@ -206,5 +207,33 @@ describe('what it will not add up quietly', () => {
         });
         expect(body.innerText).to.include('BRK');
         expect(body.innerText).to.include('short those tokens');
+    });
+});
+
+// A page that shows "Reading NEAR (1 of 46)" while a wallet dialog waits
+// offscreen looks merely slow. Six minutes went by on a real machine before
+// anyone knew what it was waiting for.
+describe('when prices cannot be loaded at all', () => {
+    it('says the session expired rather than blaming the tokens', async () => {
+        const { body } = await render({
+            contributions: [contribution({ deposit: 100 })],
+            pricesUnavailable: { signature: true },
+        });
+        expect(body.innerText).to.include('session has expired');
+        expect(body.innerText).to.include('Sign in again');
+    });
+
+    it('says the gateway did not answer, when that is what happened', async () => {
+        const { body } = await render({
+            contributions: [contribution({ deposit: 100 })],
+            pricesUnavailable: { gateway: 'Ariz gateway did not answer /api/prices/history within 12 s' },
+        });
+        expect(body.innerText).to.include('did not answer');
+    });
+
+    it('says nothing when prices loaded', async () => {
+        const { body } = await render({ contributions: [contribution({ deposit: 100 })] });
+        expect(body.innerText).to.not.include('session has expired');
+        expect(body.innerText).to.not.include('did not answer');
     });
 });

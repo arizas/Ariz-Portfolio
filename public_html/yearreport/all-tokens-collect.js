@@ -60,6 +60,7 @@ export async function collectAllTokenDays({
     const neverPriced = [];
     const tokenMovements = [];
     const priceByToken = new Map();
+    const pricesUnavailable = {};
 
     // Shipped defaults sit under the user's own choices, the same way the flow
     // panel does it, so a known payer arrives pre-classified.
@@ -101,7 +102,7 @@ export async function collectAllTokenDays({
             classifyReceived: classify,
             from: dates[0], to: dates[dates.length - 1],
         }));
-        priceByToken.set(token, await priceMap(d, convertToCurrency, token));
+        priceByToken.set(token, await priceMap(d, convertToCurrency, token, pricesUnavailable));
 
         for (const date of dates) {
             const rowdata = dailyBalances[date];
@@ -178,14 +179,23 @@ export async function collectAllTokenDays({
         separate: d.separateSwaps,
     });
 
-    return { contributions, transactionsByDate, failed, neverPriced, flowsByDate };
+    return { contributions, transactionsByDate, failed, neverPriced, flowsByDate, pricesUnavailable };
 }
 
-/** The whole EOD history for one token, in the shape the price lookup wants. */
-async function priceMap(d, currency, token) {
+/**
+ * The whole EOD history for one token, in the shape the price lookup wants.
+ *
+ * A failure here is not the token's fault and must not be read as one. It is
+ * recorded so the view can say what it is waiting for — a page that shows
+ * "Reading NEAR (1 of 46)" while a wallet dialog waits offscreen looks merely
+ * slow, and that is how six minutes went by before anyone knew.
+ */
+async function priceMap(d, currency, token, unavailable) {
     try {
         return await d.getEODPriceMap(currency, token) ?? {};
-    } catch {
+    } catch (e) {
+        if (e?.name === 'SignatureRequiredError') unavailable.signature = true;
+        else if (e?.name === 'PriceServiceNotAnsweringError') unavailable.gateway = e.message;
         return {};
     }
 }

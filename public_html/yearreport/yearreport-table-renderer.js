@@ -255,7 +255,8 @@ export async function renderAllTokensPeriodTable({
         return empty;
     }
 
-    const { contributions, transactionsByDate, failed, neverPriced = [], flowsByDate = {} } = await collect({
+    const { contributions, transactionsByDate, failed, neverPriced = [], flowsByDate = {},
+        pricesUnavailable = {} } = await collect({
         tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress,
     });
     const { rows, totals } = combineDailyRows(contributions);
@@ -271,6 +272,16 @@ export async function renderAllTokensPeriodTable({
     const periodEndDateString = periodEndDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
     const rowTemplate = shadowRoot.querySelector('#dailybalancerowtemplate');
 
+    // Neither of these means a token has no price, and a view that showed the
+    // difference as silence is how a wallet dialog waited unnoticed offscreen.
+    if (pricesUnavailable.signature) {
+        yearReportTable.appendChild(messageRow(
+            'Prices could not be loaded: your Ariz gateway session has expired. Sign in again and refresh — the figures below use whatever price history is already stored.'));
+    }
+    if (pricesUnavailable.gateway) {
+        yearReportTable.appendChild(messageRow(
+            `Prices could not be loaded: ${pricesUnavailable.gateway}. The figures below use whatever price history is already stored.`));
+    }
     if (failed.length) {
         yearReportTable.appendChild(messageRow(
             `Left out: ${failed.map(f => `${f.symbol} (${f.message})`).join(', ')}. The totals below are short those tokens.`));
