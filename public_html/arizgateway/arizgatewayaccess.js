@@ -157,6 +157,17 @@ function cachedTokenIsFresh(cached) {
     return !!(cached && cached.token && cached.issuedAt && (Date.now() - cached.issuedAt) < TOKEN_TTL_MS);
 }
 
+/**
+ * Is there a token that can be used right now, without asking the wallet?
+ *
+ * Distinct from isSignedIn, which will happily report a connected wallet whose
+ * token has lapsed. Callers that refuse to prompt need to know whether a signing
+ * step would be required, not whether one is possible.
+ */
+export function hasFreshToken() {
+    return cachedTokenIsFresh(readCachedToken());
+}
+
 export async function isSignedIn() {
     // A fresh cached token implies an active session without touching the wallet.
     if (cachedTokenIsFresh(readCachedToken())) return true;

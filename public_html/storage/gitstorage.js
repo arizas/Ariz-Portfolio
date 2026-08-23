@@ -176,6 +176,12 @@ export async function get_remote() {
 export async function sync() {
     if (useMemFs) return;
     await workerCommand('sync', []);
+    // A sync writes price history straight into storage, behind the session
+    // cache that was built to stop a report reading the same file once per day.
+    // Left alone, prices that just arrived stay invisible until a reload.
+    const { clearPriceHistoryCache, resetPriceService } = await import('../pricedata/pricedata.js');
+    clearPriceHistoryCache();
+    resetPriceService();
 }
 
 export async function push() {

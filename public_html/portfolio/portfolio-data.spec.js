@@ -1,4 +1,4 @@
-import { buildSampleDates, nearLiquidStakedRaw } from "./portfolio-data.js";
+import { buildSampleDates, nearLiquidStakedRaw, takesPartInFlows } from "./portfolio-data.js";
 
 describe('portfolio value-over-time sampling (buildSampleDates)', () => {
     it('monthly: one point per month, first is the from date, last is today', () => {
@@ -93,5 +93,46 @@ describe('nearLiquidStakedRaw', () => {
         expect(liquidRaw).to.equal(0);
         expect(stakedRaw).to.equal(0);
         expect(totalRaw).to.equal(0);
+    });
+});
+
+// The decomposition is an identity — opening + flows + gain = closing — so a
+// holding that contributes to one side and not the other does not announce
+// itself. It comes out as gain.
+describe('which holdings the flow decomposition reads', () => {
+    const day = (stakingRewards) => ({ accountBalance: 1, stakingRewards });
+
+    it('reads a holding that moved', () => {
+        expect(takesPartInFlows({ dailyBalances: {} }, { movementCount: 3 })).to.equal(true);
+    });
+
+    it('leaves out a holding that neither moved nor earned', () => {
+        expect(takesPartInFlows({ dailyBalances: { '2026-03-01': day(0) } }, { movementCount: 0 })).to.equal(false);
+    });
+
+    // Staking raises the staked balance with no transfer, so there is nothing
+    // to move and still something to value. Left out, the reward is priced at
+    // nothing and reported as the market having moved.
+    it('reads a holding that only staked', () => {
+        const holding = { dailyBalances: { '2026-03-01': day(1e24) } };
+        expect(takesPartInFlows(holding, { movementCount: 0, fromDate: '2026-01-01' })).to.equal(true);
+    });
+
+    it('ignores rewards from before the period', () => {
+        const holding = { dailyBalances: { '2025-11-02': day(1e24) } };
+        expect(takesPartInFlows(holding, { movementCount: 0, fromDate: '2026-01-01' })).to.equal(false);
+    });
+
+    // A liquid-staking token is excluded from the portfolio total, so its value
+    // is in neither the opening figure nor the closing one. Counting what moved
+    // in and out of it as a flow would read as money leaving for nowhere.
+    it('leaves out an excluded holding even when it moved', () => {
+        const holding = { excluded: true, dailyBalances: { '2026-03-01': day(1e24) } };
+        expect(takesPartInFlows(holding, { movementCount: 5, fromDate: '2026-01-01' })).to.equal(false);
+    });
+
+    it('survives a holding with no daily balances at all', () => {
+        expect(takesPartInFlows({}, { movementCount: 0 })).to.equal(false);
+        expect(takesPartInFlows({}, {})).to.equal(false);
     });
 });

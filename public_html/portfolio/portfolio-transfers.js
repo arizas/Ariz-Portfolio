@@ -109,6 +109,26 @@ export function baseAsset(token) {
  * @returns {{internal: object[], external: object[]}} `internal` is one entry
  *   per recognised transfer, carrying the legs it was decided from
  */
+/**
+ * Does this leg's other side sit inside a venue?
+ *
+ * A trade is settled by someone who trades: the intents contract, a named
+ * solver, or another participant's intents account, which is a 64-character
+ * implicit address. A transfer from a person is a named account that is none of
+ * those.
+ *
+ * The distinction is what stops two unrelated real flows from being paired.
+ * Without it, withdrawing to an exchange and receiving something else from
+ * somebody else minutes later is indistinguishable from one trade, and both
+ * disappear.
+ */
+function tradedInsideAVenue(movement, venues, traders) {
+    const parties = movement.counterparties ?? [];
+    if (!parties.length) return false;
+    return parties.every(p =>
+        venues.has(p) || traders.has(p) || (p.length === 64 && /^[a-f0-9]+$/.test(p)));
+}
+
 export function separatePortfolioTransfers(movements = [], {
     venues = PORTFOLIO_VENUES, custody = CUSTODY_VENUES,
     traders = TRADING_COUNTERPARTIES, unitTolerance = 1e-6,
@@ -187,6 +207,12 @@ export function separatePortfolioTransfers(movements = [], {
                 if (b === a || taken.has(b)) continue;
                 if (a.kind === b.kind) continue;
                 if (baseAsset(a.token) === baseAsset(b.token)) continue;
+                // Both sides settled by someone who trades. Time and value alone
+                // would also match a real withdrawal against an unrelated real
+                // deposit that happened to land in the window at about the right
+                // size, and remove both from the figures without a word.
+                if (!tradedInsideAVenue(a, venues, traders)) continue;
+                if (!tradedInsideAVenue(b, venues, traders)) continue;
                 const apart = secondsApart(a.at, b.at);
                 if (apart == null || apart > tradeWindowSeconds) continue;
                 const av = valueOf(a, price), bv = valueOf(b, price);

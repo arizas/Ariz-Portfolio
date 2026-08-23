@@ -154,6 +154,74 @@ describe('when it will not answer', () => {
         expect(el.flowsEl.textContent).to.include('BTC');
     });
 
+    // A hole in a token's price history and a gateway that would not answer
+    // produce the same refusal, and only one of them is the token's doing.
+    // Blaming BTC when nobody is signed in sends the reader looking for a gap
+    // that is not there.
+    it('says the session expired rather than blaming the token', async () => {
+        const el = makePage({
+            ok: false, reason: 'unpriced-flows',
+            unpriced: [{ token: 'nbtc.bridge.near', symbol: 'BTC', date: '2026-07-08', units: 1 }],
+            historyUnavailable: { signature: true },
+        });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent).to.include('session has expired');
+        expect(el.flowsEl.textContent).to.include('Sign in again');
+    });
+
+    it('says what the gateway did when it was the gateway', async () => {
+        const el = makePage({
+            ok: false, reason: 'unpriced-flows',
+            unpriced: [{ token: 'nbtc.bridge.near', symbol: 'BTC', date: '2026-07-08', units: 1 }],
+            historyUnavailable: { gateway: 'Ariz gateway did not answer /api/prices/history within 12 s' },
+        });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent).to.include('did not answer');
+    });
+
+    // Nothing to explain when the prices were there all along: the token really
+    // does have a gap, and an extra line would only muddy that.
+    it('says nothing about the gateway when the gateway was fine', async () => {
+        const el = makePage({
+            ok: false, reason: 'unpriced-flows',
+            unpriced: [{ token: 'nbtc.bridge.near', symbol: 'BTC', date: '2026-07-08', units: 1 }],
+        });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent).to.include('BTC');
+        expect(el.flowsEl.textContent).to.not.include('session has expired');
+    });
+
+    // The chart used to draw here. getEODPriceMap swallowed everything and
+    // handed back an empty map, which reads as a price of zero on every day —
+    // a picture of the portfolio being worth nothing, with nothing on it to say
+    // otherwise. Refusing is right; the two causes have different remedies, so
+    // the refusal names which one it is.
+    it('names the signature it is waiting for instead of drawing zeros', async () => {
+        const el = document.createElement('portfolio-page');
+        el.currentCurrency = 'nok';
+        el.currentFromDate = '2026-01-01';
+        el.__calculatePortfolioSeries = async () => {
+            const e = new Error('Sign in to the Ariz gateway to load /api/prices/history');
+            e.name = 'SignatureRequiredError';
+            throw e;
+        };
+        await el.renderChart();
+        expect(el.valueChart.textContent).to.include('Sign in to the Ariz gateway');
+    });
+
+    it('repeats what the gateway said when the gateway went quiet', async () => {
+        const el = document.createElement('portfolio-page');
+        el.currentCurrency = 'nok';
+        el.currentFromDate = '2026-01-01';
+        el.__calculatePortfolioSeries = async () => {
+            const e = new Error('Ariz gateway did not answer /api/prices/history within 12 s');
+            e.name = 'PriceServiceNotAnsweringError';
+            throw e;
+        };
+        await el.renderChart();
+        expect(el.valueChart.textContent).to.include('did not answer');
+    });
+
     // A bare "does not match" is not actionable. The usual cause is one side
     // priced from the wrong asset, so the refusal has to name the sides.
     it('names the transactions it could not tell apart from a swap', async () => {
