@@ -219,8 +219,32 @@ describe('a trade settled as two transactions', () => {
     // The same SOL moved on to the confidential bucket thirteen minutes later.
     // That is a different event and must not be swallowed into the trade.
     it('leaves legs that landed far apart alone', () => {
-        const later = { ...got, at: at(778) };
+        const later = { ...got, at: at(3600) };
         expect(separatePortfolioTransfers([gave, later], { price }).external).to.have.lengthOf(2);
+    });
+
+    // Paying with native NEAR means wrapping it first, so the payment leaves one
+    // bucket and the purchase arrives in another, minutes later. A real trade
+    // put 254 seconds between them.
+    it('pairs a payment in one bucket with a purchase in another', () => {
+        const wrapped = { date: '2026-02-10', kind: 'withdrawal', units: 6000.000974, token: '', symbol: 'NEAR', counterparties: ['wrap.near'], at: at(0) };
+        const bought = { date: '2026-02-10', kind: 'deposit', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['6247d9c6'], at: at(254) };
+        const withPrice = (token) => ({ '': 9.43, 'nep141:usdc.near': 9.51 }[token] ?? null);
+        const { internal, external } = separatePortfolioTransfers([wrapped, bought], { price: withPrice });
+        expect(external).to.have.lengthOf(0);
+        expect(internal[0].reason).to.equal('venue-trade');
+    });
+
+    // The purchased USDC left for an exchange nine minutes later, identical to
+    // the last decimal. Cancelling that pair would erase a real withdrawal —
+    // it is the same asset, so it is never considered.
+    it('never cancels a purchase against a withdrawal of the same asset', () => {
+        const bought = { date: '2026-02-10', kind: 'deposit', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['6247d9c6'], at: at(0) };
+        const sentOut = { date: '2026-02-10', kind: 'withdrawal', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['c172b566'], at: at(544) };
+        const withPrice = () => 9.51;
+        const { internal, external } = separatePortfolioTransfers([bought, sentOut], { price: withPrice });
+        expect(internal.filter(i => i.reason === 'venue-trade')).to.have.lengthOf(0);
+        expect(external).to.have.lengthOf(2);
     });
 
     // Value gets a veto, not a vote: an mt_transfer to someone else's intents

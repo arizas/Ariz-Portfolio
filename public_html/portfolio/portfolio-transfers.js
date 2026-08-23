@@ -112,7 +112,7 @@ export function baseAsset(token) {
 export function separatePortfolioTransfers(movements = [], {
     venues = PORTFOLIO_VENUES, custody = CUSTODY_VENUES,
     traders = TRADING_COUNTERPARTIES, unitTolerance = 1e-6,
-    price = null, tradeWindowSeconds = 120, tradeTolerance = 0.25,
+    price = null, tradeWindowSeconds = 600, tradeTolerance = 0.25,
 } = {}) {
     const internal = [];
     const taken = new Set();
@@ -152,19 +152,32 @@ export function separatePortfolioTransfers(movements = [], {
         }
     }
 
-    // 2. A trade inside one venue, settled as two transactions. NEAR Intents
-    //    books the asset going out and the asset coming in separately, so the
-    //    hash cannot tie them together — but they land seconds apart, because
-    //    one intent execution produced both. Nine and a half seconds, sixteen
-    //    blocks, in the case this was written for.
+    // 2. A trade settled as two transactions. NEAR Intents books the asset going
+    //    out and the asset coming in separately, so the hash cannot tie them
+    //    together — but they belong to one intent execution and land close in
+    //    time. Nine and a half seconds, sixteen blocks, in the first case this
+    //    was written for.
     //
     //    Time is the signal, not value. Value alone would also match an
-    //    mt_transfer to someone else's intents account that happened to be
-    //    about the right size, and those are real transfers out; the owner of
-    //    this code does make them. Value only gets a veto: two legs far apart in
-    //    size are not one trade however close together they landed.
+    //    mt_transfer to someone else's intents account that happened to be about
+    //    the right size, and those are real transfers out; the owner of this code
+    //    does make them. Value only gets a veto: two legs far apart in size are
+    //    not one trade however close together they landed.
+    //
+    //    The two legs need not share a bucket. Paying with native NEAR means
+    //    wrapping it first, so the payment leaves the native bucket and the
+    //    purchase arrives inside intents — and the wrap adds minutes. One real
+    //    trade put 254 seconds between them, which is why the window is not
+    //    tight: a narrow one left the purchase looking like 56 234 kroner
+    //    somebody gave away.
+    //
+    //    What keeps a window that wide safe is the requirement that the two
+    //    assets differ. On that same day the purchased USDC left for an exchange
+    //    nine minutes later, identical to the last decimal — a pair that would
+    //    cancel beautifully and erase a real withdrawal. Same asset, so it is
+    //    never considered.
     if (price) {
-        const inVenue = movable.filter(m => !taken.has(m) && bucketOf(m.token) !== 'native' && m.at != null);
+        const inVenue = movable.filter(m => !taken.has(m) && m.at != null);
         for (let i = 0; i < inVenue.length; i++) {
             const a = inVenue[i];
             if (taken.has(a)) continue;
@@ -173,7 +186,6 @@ export function separatePortfolioTransfers(movements = [], {
                 const b = inVenue[j];
                 if (b === a || taken.has(b)) continue;
                 if (a.kind === b.kind) continue;
-                if (bucketOf(a.token) !== bucketOf(b.token)) continue;
                 if (baseAsset(a.token) === baseAsset(b.token)) continue;
                 const apart = secondsApart(a.at, b.at);
                 if (apart == null || apart > tradeWindowSeconds) continue;
