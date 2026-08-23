@@ -205,10 +205,14 @@ describe('a trade settled as two transactions', () => {
         'confidential:nep141:sol.omft.near': 723.031,
     }[token] ?? null);
 
+    // Implicit accounts are 64 hex characters, and the rule reads all of them,
+    // so the fixtures carry a full id rather than the readable prefix.
+    const implicit = (prefix) => prefix.padEnd(64, 'a');
+
     // Implicit accounts on both sides: a named solver is settled by the
     // market-maker rule before this one, so it would not exercise the pairing.
-    const gave = { date: '2026-08-19', kind: 'withdrawal', units: 96.877202, token: 'nep141:npro.nearmobile.near', symbol: 'NPRO', counterparties: ['540927c5'], at: at(0) };
-    const got = { date: '2026-08-19', kind: 'deposit', units: 0.26225103, token: 'nep141:sol.omft.near', symbol: 'SOL', counterparties: ['51e8f94d'], at: at(9.5) };
+    const gave = { date: '2026-08-19', kind: 'withdrawal', units: 96.877202, token: 'nep141:npro.nearmobile.near', symbol: 'NPRO', counterparties: [implicit('540927c5')], at: at(0) };
+    const got = { date: '2026-08-19', kind: 'deposit', units: 0.26225103, token: 'nep141:sol.omft.near', symbol: 'SOL', counterparties: [implicit('51e8f94d')], at: at(9.5) };
 
     it('pairs two legs that landed seconds apart', () => {
         const { internal, external } = separatePortfolioTransfers([gave, got], { price });
@@ -229,7 +233,7 @@ describe('a trade settled as two transactions', () => {
     // put 254 seconds between them.
     it('pairs a payment in one bucket with a purchase in another', () => {
         const wrapped = { date: '2026-02-10', kind: 'withdrawal', units: 6000.000974, token: '', symbol: 'NEAR', counterparties: ['wrap.near'], at: at(0) };
-        const bought = { date: '2026-02-10', kind: 'deposit', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['6247d9c6'], at: at(254) };
+        const bought = { date: '2026-02-10', kind: 'deposit', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: [implicit('6247d9c6')], at: at(254) };
         const withPrice = (token) => ({ '': 9.43, 'nep141:usdc.near': 9.51 }[token] ?? null);
         const { internal, external } = separatePortfolioTransfers([wrapped, bought], { price: withPrice });
         expect(external).to.have.lengthOf(0);
@@ -240,8 +244,8 @@ describe('a trade settled as two transactions', () => {
     // the last decimal. Cancelling that pair would erase a real withdrawal —
     // it is the same asset, so it is never considered.
     it('never cancels a purchase against a withdrawal of the same asset', () => {
-        const bought = { date: '2026-02-10', kind: 'deposit', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['6247d9c6'], at: at(0) };
-        const sentOut = { date: '2026-02-10', kind: 'withdrawal', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['c172b566'], at: at(544) };
+        const bought = { date: '2026-02-10', kind: 'deposit', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: [implicit('6247d9c6')], at: at(0) };
+        const sentOut = { date: '2026-02-10', kind: 'withdrawal', units: 5913.439411, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: [implicit('c172b566')], at: at(544) };
         const withPrice = () => 9.51;
         const { internal, external } = separatePortfolioTransfers([bought, sentOut], { price: withPrice });
         expect(internal.filter(i => i.reason === 'venue-trade')).to.have.lengthOf(0);
@@ -263,6 +267,35 @@ describe('a trade settled as two transactions', () => {
         const sameAsset = { ...got, token: 'nep141:npro.nearmobile.near', symbol: 'NPRO', units: 96.877202, kind: 'deposit' };
         const { internal } = separatePortfolioTransfers([gave, sameAsset], { price });
         expect(internal.every(i => i.reason !== 'venue-trade')).to.equal(true);
+    });
+
+    // Time and value alone are weak evidence. Withdrawing to an exchange and
+    // being paid by somebody else four minutes later fits every other test the
+    // rule applies — and cancelling the two would remove a real withdrawal and a
+    // real deposit from the figures at once, silently, in the same stroke.
+    it('will not pair two flows that neither side settled inside a venue', () => {
+        const toExchange = { date: '2026-08-19', kind: 'withdrawal', units: 96.877202, token: 'nep141:npro.nearmobile.near', symbol: 'NPRO', counterparties: ['some-exchange.near'], at: at(0) };
+        const fromAFriend = { date: '2026-08-19', kind: 'deposit', units: 0.26225103, token: 'nep141:sol.omft.near', symbol: 'SOL', counterparties: ['a-friend.near'], at: at(240) };
+        const { internal, external } = separatePortfolioTransfers([toExchange, fromAFriend], { price });
+        expect(internal.filter(i => i.reason === 'venue-trade')).to.have.lengthOf(0);
+        expect(external).to.have.lengthOf(2);
+    });
+
+    // One side inside a venue is not enough either. A named venue leg never
+    // reaches this rule — the counterparty rules above claim it first — so what
+    // arrives here is an implicit address, and an implicit address on its own
+    // proves nothing: a 1Click deposit address and a bridge payout look alike.
+    it('will not pair a venue leg with a leg that went somewhere else', () => {
+        const toExchange = { ...gave, counterparties: ['some-exchange.near'] };
+        const { internal, external } = separatePortfolioTransfers([toExchange, got], { price });
+        expect(internal.filter(i => i.reason === 'venue-trade')).to.have.lengthOf(0);
+        expect(external).to.have.lengthOf(2);
+    });
+
+    // Nothing recorded on the other side says nothing about where it went.
+    it('will not pair a leg with no counterparty at all', () => {
+        const anonymous = { ...gave, counterparties: [] };
+        expect(separatePortfolioTransfers([anonymous, got], { price }).external).to.have.lengthOf(2);
     });
 
     it('does nothing without prices, rather than pairing on time alone', () => {
