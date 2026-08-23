@@ -9,29 +9,30 @@ const fungibleTokenData = {
 };
 
 /**
- * A balance observation rather than a movement: the accounting export writes
- * these with a synthetic `block-<height>` hash, which links nowhere on an
- * explorer, and pairs them with the real transaction for the same change.
- */
-/**
  * How much each transaction moved, from the balances beside it.
  *
  * The rows arrive newest first, each carrying the balance that followed it, so
- * a movement is one row's balance minus the next one's. The catch is that the
- * accounting export writes the same movement twice — once as the real
- * transaction and once as a `block-<height>` balance observation — and both
- * rows carry the same balance. Subtracting between consecutive rows then puts
- * the whole change on whichever comes first, which is the observation, and
- * leaves the real transaction at zero, where it vanishes.
- *
- * On one real store that misdated a withdrawal by two days, split another into
- * two legs, and turned observations that reversed themselves a second later
- * into a run of movements that never happened.
+ * a movement is one row's balance minus the previous one's. The catch is that
+ * the accounting export also writes `block-<height>` rows recording the balance
+ * at a block, and subtracting between consecutive rows gives one of those the
+ * whole change and dates it at its own block. On one real store that misdated a
+ * withdrawal by two days, split another into two legs, and turned observations
+ * that reversed themselves a second later into a run of movements that never
+ * happened.
  *
  * So the chain runs from one real transaction to the next and an observation
  * contributes nothing. The rows are left in place: `balance` is what the daily
  * balance columns read, and an observation is exactly the right thing to read a
  * balance off.
+ *
+ * That an observation contributes nothing even when its balance disagrees with
+ * the transactions around it is deliberate, and was checked against the chain
+ * rather than assumed. Every disagreement in this store is the observation
+ * being wrong: balances that drop to zero and return with no transaction either
+ * way while the chain confirms the transactions throughout, dust of a few
+ * thousand yocto, and — the largest — an observation reporting a balance three
+ * days before the transaction that creates it, which taken at face value books
+ * that arrival twice.
  */
 export function deriveChangedBalances(transactions = []) {
     const nextRealBelow = new Array(transactions.length).fill(null);
@@ -50,6 +51,11 @@ export function deriveChangedBalances(transactions = []) {
     return transactions;
 }
 
+/**
+ * A balance observation rather than a movement of its own: the accounting
+ * export writes these with a synthetic `block-<height>` hash, which links
+ * nowhere on an explorer.
+ */
 export function isBalanceObservation(tx) {
     return typeof tx?.transaction_hash === 'string' && tx.transaction_hash.startsWith('block-');
 }

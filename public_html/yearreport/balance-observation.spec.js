@@ -72,6 +72,24 @@ describe('what each transaction moved', () => {
         expect(changes(rows)).to.deep.equal([-2865165322, 0, 2865165322]);
     });
 
+    // The shape that decides whether an observation may ever move something on
+    // its own. This one reports 1272.441118 three days BEFORE the transaction
+    // that brings it in — the export writing one arrival twice, at two dates.
+    // Letting the observation keep its own change books the arrival twice; the
+    // chain confirms it happened once.
+    it('does not let an observation move something the transactions already do', () => {
+        const rows = [
+            row('block-197164', 0),
+            row('HZYpHeY6pX7n', 0),
+            row('block-194745', 1272441118),
+            row('8H5SCqpBY7PU', 1272441118),
+            row('block-194211', 1272441118),
+            row('7ZsAA3hfAwdY', 0),
+            row('2zUupYDzK5Rz', 700),
+        ];
+        expect(changes(rows)).to.deep.equal([0, -1272441118, 0, 1272441118, 0, -700, 700]);
+    });
+
     it('handles a list that is only observations', () => {
         expect(changes([row('block-1', 5), row('block-2', 5)])).to.deep.equal([0, 0]);
     });
