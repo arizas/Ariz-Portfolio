@@ -1,10 +1,26 @@
 import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue, getTokenSymbol } from './yearreportdata.js';
+import { browserLocale } from '../util/locale.js';
+import { ALL_TOKENS, combineDailyRows } from './all-tokens-daily.js';
+import { collectAllTokenDays } from './all-tokens-collect.js';
 
 const numDecimals = 2;
 
+/**
+ * Amounts with no currency on each one. When every column is the same currency,
+ * repeating it on every cell is noise — it earns its place only beside a token
+ * amount, where there are two units on the row to tell apart. Two decimals
+ * always, so the columns line up.
+ */
+export function getAmountFormatter() {
+    const format = Intl.NumberFormat(browserLocale(), {
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+    }).format;
+    return (number) => number !== null && number !== undefined && !isNaN(number) ? format(number) : '';
+}
+
 export function getNumberFormatter(currency) {
-    const format = currency ? Intl.NumberFormat(navigator.language, { style: 'currency', currency: currency }).format :
-        Intl.NumberFormat(navigator.language).format;
+    const format = currency ? Intl.NumberFormat(browserLocale(), { style: 'currency', currency: currency }).format :
+        Intl.NumberFormat(browserLocale()).format;
     return (number) => number !== null && number !== undefined && !isNaN(number) ? format(number) : '';;
 }
 
@@ -35,19 +51,31 @@ export function calculatePeriodStartAndEndDate(year, month, periodLengthMonths) 
     return { periodStartDate, periodEndDate };
 }
 
-export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction }) {
+export async function renderYearReportTable({ shadowRoot, token, year, convertToCurrency, perRowFunction, tokens, onProgress }) {
     const periodEndDate = new Date().getFullYear() === year ? new Date(new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toJSON().substring(0, 'yyyy-MM-dd'.length)) : new Date(`${year}-12-31`);
     const periodStartDate = new Date(`${year}-01-01`);
-    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction, tokens, onProgress });
 }
 
-export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction }) {
+export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction, tokens, onProgress }) {
     const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(year, month, periodLengthMonths);
     console.log(year, month, periodLengthMonths, periodStartDate, periodEndDate);
-    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction });
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction, tokens, onProgress });
 }
 
-export async function renderPeriodReportTable({ shadowRoot, token, periodStartDate, periodEndDate, convertToCurrency, perRowFunction }) {
+export async function renderPeriodReportTable({ shadowRoot, token, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, onProgress, collect }) {
+    if (token === ALL_TOKENS) {
+        return await renderAllTokensPeriodTable({
+            shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, onProgress, collect,
+        });
+    }
+    // Switching back from the combined view: those columns mean what they say
+    // again, and there is no single currency to caption.
+    setHeader(shadowRoot, '#header_deposit', 'deposit');
+    setHeader(shadowRoot, '#header_withdrawal', 'withdrawals');
+    setHiddenColumns(shadowRoot, []);
+    setCaption(shadowRoot, '');
+
     let currentDate = periodEndDate;
 
     let { dailyBalances, transactionsByDate } = await calculateYearReportData(token);
@@ -191,4 +219,262 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
         outboundBalance: dailyBalances[outboundBalanceDate],
         inboundBalance: dailyBalances[inboundBalanceDate]
     }
+}
+
+/**
+ * Every token on one row per day, in the chosen currency.
+ *
+ * The per-token table is the right shape for cost basis and the wrong shape for
+ * "what did I actually put in on the 14th?" — that answer is spread over as many
+ * tables as there are tokens. Here it is one row, with the tokens that made it
+ * up behind it.
+ *
+ * Token amounts are gone from this view. Units of different tokens cannot be
+ * added, and a column that sometimes means NEAR and sometimes means BTC is worse
+ * than no column.
+ */
+export async function renderAllTokensPeriodTable({
+    shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens,
+    onProgress = () => { }, collect = collectAllTokenDays,
+}) {
+    const yearReportTable = shadowRoot.querySelector('#dailybalancestable');
+    while (yearReportTable.lastElementChild) {
+        yearReportTable.removeChild(yearReportTable.lastElementChild);
+    }
+
+    const empty = {
+        totalStakingReward: 0, totalReceived: 0, totalDeposit: 0, totalWithdrawal: 0,
+        totalExpense: 0, totalProfit: 0, totalLoss: 0,
+        outboundBalance: undefined, inboundBalance: undefined,
+    };
+
+    // Say why rather than render something meaningless: without a currency there
+    // is nothing the tokens can be added in.
+    if (!convertToCurrency) {
+        yearReportTable.appendChild(messageRow(
+            'Pick a currency to see every token together — token amounts cannot be added across tokens.'));
+        return empty;
+    }
+
+    const { contributions, transactionsByDate, failed, neverPriced = [], flowsByDate = {},
+        pricesUnavailable = {} } = await collect({
+        tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress,
+    });
+    const { rows, totals } = combineDailyRows(contributions);
+
+    const formatNumber = getAmountFormatter();
+    // The flow columns answer a different question here than they do per token,
+    // so they say so. Per token, "deposit" is every unit that arrived. Combined,
+    // it is only what came from outside the portfolio.
+    setHeader(shadowRoot, '#header_deposit', 'added in');
+    setHeader(shadowRoot, '#header_withdrawal', 'taken out');
+    // A column that is zero for the whole period is noise; one with something in
+    // it is information. Only the first kind gets hidden on the strength of what
+    // is in it — the ones above are hidden for what they would mean.
+    setHiddenColumns(shadowRoot, [
+        ...COMBINED_HIDES,
+        ...(totals.expense === 0 ? ['expenses'] : []),
+    ]);
+    setCaption(shadowRoot, `All amounts in ${convertToCurrency.toUpperCase()}. \
+"Added in" and "taken out" are what crossed the portfolio's edge — a swap moves value \
+between your own tokens and is counted as neither. Profit and loss are something else: \
+every disposal is realized, swaps included, which is what a tax return asks for. \
+Open a day to see every token's own deposits and withdrawals.`);
+    const periodStartDateString = periodStartDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+    const periodEndDateString = periodEndDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
+    const rowTemplate = shadowRoot.querySelector('#dailybalancerowtemplate');
+
+    // Neither of these means a token has no price, and a view that showed the
+    // difference as silence is how a wallet dialog waited unnoticed offscreen.
+    if (pricesUnavailable.signature) {
+        yearReportTable.appendChild(messageRow(
+            'Prices could not be loaded: your Ariz gateway session has expired. Sign in again and refresh — the figures below use whatever price history is already stored.'));
+    }
+    if (pricesUnavailable.gateway) {
+        yearReportTable.appendChild(messageRow(
+            `Prices could not be loaded: ${pricesUnavailable.gateway}. The figures below use whatever price history is already stored.`));
+    }
+    if (failed.length) {
+        yearReportTable.appendChild(messageRow(
+            `Left out: ${failed.map(f => `${f.symbol} (${f.message})`).join(', ')}. The totals below are short those tokens.`));
+    }
+    if (neverPriced.length) {
+        yearReportTable.appendChild(messageRow(
+            `No market in this period, so not counted: ${nameList(neverPriced.map(t => t.symbol))}.`));
+    }
+    if (totals.unvalued.length) {
+        yearReportTable.appendChild(messageRow(
+            `Held on some days with no price that day, so the balance columns are short them: ${nameList(totals.unvalued)}. Days where one of them actually moved are marked on the row.`));
+    }
+
+    const flowTotals = { deposit: 0, withdrawal: 0 };
+    for (const rowdata of rows) {
+        const datestring = rowdata.date;
+        const flows = flowsByDate[datestring] ?? EMPTY_FLOWS;
+        flowTotals.deposit += flows.deposit;
+        flowTotals.withdrawal += flows.withdrawal;
+        const row = rowTemplate.cloneNode(true).content;
+
+        row.querySelector('.dailybalancerow_datetime').innerText = datestring;
+        row.querySelector('.dailybalancerow_totalbalance').innerText = formatNumber(rowdata.totalBalance);
+        row.querySelector('.dailybalancerow_change').innerText = formatNumber(rowdata.totalChange);
+        row.querySelector('.dailybalancerow_accountbalance').innerText = formatNumber(rowdata.accountBalance);
+        row.querySelector('.dailybalancerow_accountchange').innerText = formatNumber(rowdata.accountChange);
+        row.querySelector('.dailybalancerow_stakingbalance').innerText = formatNumber(rowdata.stakingBalance);
+        row.querySelector('.dailybalancerow_stakingchange').innerText = formatNumber(rowdata.stakingChange);
+        row.querySelector('.dailybalancerow_stakingreward').innerText = formatNumber(rowdata.stakingReward);
+        row.querySelector('.dailybalancerow_received').innerText = formatNumber(rowdata.received);
+        row.querySelector('.dailybalancerow_deposit').innerText = formatNumber(flows.deposit);
+        row.querySelector('.dailybalancerow_withdrawal').innerText = formatNumber(flows.withdrawal);
+        row.querySelector('.dailybalancerow_expense').innerText = formatNumber(rowdata.expense);
+        row.querySelector('.dailybalancerow_profit').innerText = formatNumber(rowdata.profit);
+        row.querySelector('.dailybalancerow_loss').innerText = formatNumber(rowdata.loss);
+
+        // Built as nodes rather than markup: a token symbol here can be an
+        // attacker-chosen string, and some of them are literally URLs.
+        const dateCell = row.querySelector('.dailybalancerow_datetime');
+        const noteOnDate = (text, title) => {
+            const note = document.createElement('span');
+            note.className = 'text-warning small';
+            note.title = title;
+            note.innerText = text;
+            dateCell.appendChild(document.createElement('br'));
+            dateCell.appendChild(note);
+        };
+        if (rowdata.unpriced.length) {
+            noteOnDate(`no price: ${nameList(rowdata.unpriced)}`,
+                "No price that day, so this token is missing from the day's totals");
+        }
+        if (flows.unpriced.length) {
+            noteOnDate(`flow not priced: ${nameList(flows.unpriced)}`,
+                'A movement on this day had no price, so what crossed the edge is understated');
+        }
+        // Counted as crossing the edge rather than dropped — but a transaction
+        // whose two sides do not match may be a swap and a real transfer sharing
+        // one hash, and then this day's figures are too high.
+        if (flows.ambiguous.length) {
+            noteOnDate(`${flows.ambiguous.length} transaction${flows.ambiguous.length === 1 ? '' : 's'} not clearly a swap`,
+                'Both sides moved but the values do not match; counted as added and taken out, worth checking');
+        }
+
+        await perRowFunction({
+            transactionsByDate, datestring, row, decimalConversionValue: 1, numDecimals,
+            allTokens: true, tokenBreakdown: rowdata.tokens, flows,
+        });
+
+        // The detail row belongs to per-token realizations, which do not survive
+        // being added together. The breakdown lives behind the transactions button.
+        row.querySelector('.inforow')?.remove();
+
+        if (rowdata.tokens.length || rowdata.unpriced.length || rowdata.unvalued.length ||
+            datestring === periodStartDateString || datestring === periodEndDateString ||
+            datestring.endsWith('12-31') || datestring.endsWith('01-01')) {
+            yearReportTable.appendChild(row);
+        }
+    }
+
+    shadowRoot.querySelector('#totalreward').innerText = formatNumber(totals.stakingReward);
+    shadowRoot.querySelector('#totalreceived').innerText = formatNumber(totals.received);
+    shadowRoot.querySelector('#totaldeposit').innerText = formatNumber(flowTotals.deposit);
+    shadowRoot.querySelector('#totalwithdrawal').innerText = formatNumber(flowTotals.withdrawal);
+    shadowRoot.querySelector('#totalexpense').innerText = formatNumber(totals.expense);
+    shadowRoot.querySelector('#totalprofit').innerText = formatNumber(totals.profit);
+    shadowRoot.querySelector('#totalloss').innerText = formatNumber(totals.loss);
+
+    return {
+        totalStakingReward: totals.stakingReward,
+        totalReceived: totals.received,
+        totalDeposit: flowTotals.deposit,
+        totalWithdrawal: flowTotals.withdrawal,
+        grossDeposit: totals.deposit,
+        grossWithdrawal: totals.withdrawal,
+        totalExpense: totals.expense,
+        totalProfit: totals.profit,
+        totalLoss: totals.loss,
+        outboundBalance: rows.find(r => r.date === periodEndDateString),
+        inboundBalance: rows.find(r => r.date === periodStartDateString),
+        unpriced: totals.unpriced,
+        unvalued: totals.unvalued,
+        failed,
+        neverPriced,
+    };
+}
+
+// An airdropped token can carry a whole sentence, or a URL, as its symbol. The
+// line is about which tokens were left out, not about reproducing their bait.
+function nameList(symbols, limit = 6) {
+    const shown = symbols.slice(0, limit).map(s => s.length > 14 ? `${s.substring(0, 14)}\u2026` : s);
+    const rest = symbols.length - shown.length;
+    return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(', ');
+}
+
+const EMPTY_FLOWS = Object.freeze({
+    deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0, ambiguous: [], unpriced: [],
+});
+
+/**
+ * Columns the combined view always leaves out, because combined they mean
+ * something false: the liquid/staked split belongs to a single token, and across
+ * every token it is NEAR's split with the rest heaped on one side.
+ *
+ * Realized gain and loss are not in this list. They answer a different question
+ * from the flows — a swap moves value between your own tokens and crosses no
+ * edge, and is still a disposal the tax return wants — and the total across
+ * every token is exactly what a tax return asks for.
+ */
+const COMBINED_HIDES = [
+    'accountbalance', 'accountchange', 'stakingbalance', 'stakingchange',
+];
+
+/**
+ * Hide whole columns by the name of their header, header and body and footer
+ * together.
+ *
+ * The position is looked up rather than written down. Counting columns works
+ * until someone inserts one, and then it hides a different column with no sign
+ * that anything is wrong — which is the failure this codebase keeps meeting.
+ */
+function setHiddenColumns(shadowRoot, headerIds) {
+    const style = shadowRoot.querySelector('#hiddencolumns')
+        ?? Object.assign(document.createElement('style'), { id: 'hiddencolumns' });
+    if (!style.isConnected) shadowRoot.appendChild(style);
+
+    // Anchored on the table itself, because the page and the print view wrap it
+    // differently and a selector that matched only one of them would hide
+    // nothing in the other without saying so.
+    const table = shadowRoot.querySelector('#dailybalancestable')?.closest('table');
+    if (table) table.classList.add('dailybalances');
+
+    const positions = [];
+    for (const id of headerIds) {
+        const th = shadowRoot.querySelector(`#header_${id}`);
+        if (!th?.parentElement) continue;
+        const n = [...th.parentElement.children].indexOf(th) + 1;
+        if (n > 0) positions.push(n);
+    }
+    style.textContent = positions.length
+        ? positions.map(n =>
+            `table.dailybalances th:nth-child(${n}), table.dailybalances td:nth-child(${n}) { display: none; }`
+        ).join('\n')
+        : '';
+}
+
+function setHeader(shadowRoot, selector, text) {
+    const cell = shadowRoot.querySelector(selector);
+    if (cell) cell.innerText = text;
+}
+
+function setCaption(shadowRoot, text) {
+    const el = shadowRoot.querySelector('#reportcaption');
+    if (el) el.innerText = text ?? '';
+}
+
+function messageRow(text) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 15;
+    td.className = 'text-muted';
+    td.innerText = text;
+    tr.appendChild(td);
+    return tr;
 }

@@ -1,7 +1,8 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
-import { calculatePortfolio, calculatePortfolioSeries } from './portfolio-data.js';
+import { calculatePortfolio, calculatePortfolioSeries, calculateFlowDecomposition } from './portfolio-data.js';
 import { renderPortfolioChart } from './portfolio-chart.js';
 import html from './portfolio-page.component.html.js';
+import { browserLocale } from '../util/locale.js';
 
 const PREFERRED_DEFAULT_CURRENCY = 'nok';
 
@@ -25,6 +26,10 @@ customElements.define('portfolio-page',
             this.valueChart = this.shadowRoot.querySelector('#value-chart');
             this.holdingsEl = this.shadowRoot.querySelector('#holdings');
             this.holdingsSection = this.shadowRoot.querySelector('#holdings-section');
+            this.flowsSection = this.shadowRoot.querySelector('#flows-section');
+            this.flowsEl = this.shadowRoot.querySelector('#flows');
+            // Seam so the panel can be tested without OPFS or the network.
+            this.__calculateFlowDecomposition = calculateFlowDecomposition;
             this.excludedNoteEl = this.shadowRoot.querySelector('#excluded-note');
             this.currencySelect = this.shadowRoot.querySelector('#currencyselect');
             this.fromMonthSelect = this.shadowRoot.querySelector('#frommonthselect');
@@ -111,6 +116,7 @@ customElements.define('portfolio-page',
                 this.setBusy(false, '');
                 // Value-over-time chart reuses the (now cached) heavy computation.
                 await this.renderChart(force);
+                await this.renderFlows(force);
             } catch (e) {
                 console.error('Failed to calculate portfolio', e);
                 this.setBusy(false, '');
@@ -253,6 +259,124 @@ customElements.define('portfolio-page',
             }
         }
 
+        // Where the money came from. The page shows opening and now but cannot
+        // say how much of the difference was deposited and how much was earned —
+        // the difference between doubling your money and adding to it.
+        async renderFlows(force = false) {
+            if (!this.currentCurrency) return;
+            const cur = this.currentCurrency.toUpperCase();
+            const money = makeMoneyFormatter(cur);
+            const signed = v => formatSigned(v, money);
+            let r;
+            try {
+                r = await this.__calculateFlowDecomposition(
+                    this.currentCurrency, this.currentFromDate, () => {}, { force });
+            } catch (e) {
+                console.error('Failed to decompose flows', e);
+                this.flowsSection.hidden = true;
+                return;
+            }
+            this.flowsSection.hidden = false;
+
+            if (!r.ok) {
+                // Refuse rather than guess. An unpriced flow does not make the
+                // answer approximate, it makes it wrong in a way that looks fine.
+                if (r.reason === 'unpriced-flows') {
+                    const names = escapeHtml([...new Set(r.unpriced.map(u => u.symbol || u.token))].join(', '));
+                    this.flowsEl.innerHTML = `
+                        <div class="flows-body">
+                            <div class="flow-warn">Not calculated — no price on the day for ${names}.
+                            Splitting the change needs every movement priced on the day it happened;
+                            guessing at one would shift everything that follows.</div>
+                        </div>`;
+                    return;
+                }
+                // Name the transactions and the sides. The usual cause is one leg
+                // priced from the wrong asset, and the symbols are how anyone
+                // would see that — a bare "does not match" is not actionable.
+                const rows = (r.suspect ?? []).slice(0, 8).map(x => `
+                    <div class="flow-row">
+                        <span class="flow-label">${escapeHtml(x.date ?? '')} ·
+                            ${escapeHtml(x.outTokens.join(', '))} &rarr; ${escapeHtml(x.inTokens.join(', '))}</span>
+                        <span class="amount">${money(x.outValue)} &rarr; ${money(x.inValue)}
+                            <span class="muted">(${(x.gap * 100).toFixed(0)} % apart)</span></span>
+                    </div>`).join('');
+                this.flowsEl.innerHTML = `
+                    <div class="flows-body">
+                        <div class="flow-warn">
+                            Not calculated — ${r.suspect.length} transaction${r.suspect.length === 1 ? '' : 's'}
+                            moved value both in and out, but the two sides are too far apart to be a swap.
+                            Either it carried a transfer as well, or one side is priced from the wrong asset.
+                        </div>
+                        ${rows}
+                        ${r.suspect.length > 8 ? `<div class="footnote">and ${r.suspect.length - 8} more.</div>` : ''}
+                    </div>`;
+                return;
+            }
+
+            const added = r.netFlow;
+            const change = r.closing - r.opening;
+            const row = (label, value, cls = '') => `
+                <div class="flow-row ${cls}">
+                    <span class="flow-label">${label}</span>
+                    <span class="amount">${value}</span>
+                </div>`;
+            // A note under these figures earns its place only if it changes how far
+            // the reader should trust them. How many swaps were recognised does
+            // not: swaps never appear in the rows above, so saying they were
+            // excluded can only suggest something is missing that is not. That
+            // belongs where the reader can see both — the year report's combined
+            // view, which shows every token's own deposits beside the total.
+            //
+            // What is left is what was left out, or could not be valued.
+            const caveats = [
+                r.ignoredNoMarket.length
+                    ? `Tokens with no market anywhere are left out: ${escapeHtml(r.ignoredNoMarket.join(', '))}.` : '',
+                r.immaterial?.length
+                    ? `${r.immaterial.length} movement${r.immaterial.length === 1 ? '' : 's'} in `
+                    + `${escapeHtml([...new Set(r.immaterial.map(u => u.symbol || u.token))].join(', '))} had no price on the day, `
+                    + `worth at most ${money(r.immaterial.reduce((a, u) => a + Math.abs(u.estimatedValue ?? 0), 0))} together — `
+                    + `too little to change the split.` : '',
+                r.transactionCosts?.length
+                    ? `Gas on ${r.transactionCosts.length} transaction${r.transactionCosts.length === 1 ? '' : 's'} is inside `
+                    + `the value change rather than shown as a cost of its own.` : '',
+            ].filter(Boolean);
+
+            const rec = r.reconciliation;
+            const recNote = rec?.available && !rec.agrees ? `
+                <div class="flow-warn">
+                    The figures above may be wrong by as much as ${money(Math.abs(rec.difference))}.
+                    They are worked out twice, by routes that share almost nothing, and this time the
+                    two do not agree — so do not rely on the split between what you added and what you
+                    earned until they do.
+                </div>` : '';
+
+            this.flowsEl.innerHTML = `
+                <div class="flows-body">
+                    ${row(`Opening · ${escapeHtml(formatDate(r.fromDate))}`, money(r.opening))}
+                    ${r.deposits ? row('Added in', signed(r.deposits)) : ''}
+                    ${r.income ? row('Income received', signed(r.income)) : ''}
+                    ${r.withdrawals ? row('Taken out', signed(-r.withdrawals)) : ''}
+                    ${row('Added, net', signed(added), 'sum')}
+                    ${r.rewards ? row('Rewards received', signed(r.rewards)) : ''}
+                    ${row(r.rewards ? 'Value change' : 'Value change', signed(r.valueChange ?? r.gain), '')}
+                    ${row('Now', money(r.closing), 'sum')}
+                    <div class="flow-lead">
+                        Of the <strong>${money(Math.abs(change))}</strong>
+                        ${change >= 0 ? 'increase' : 'decrease'},
+                        <strong>${money(Math.abs(added))}</strong> was ${added >= 0 ? 'money you added' : 'money you took out'}${r.rewards
+                            ? `, <strong>${money(Math.abs(r.rewards))}</strong> was paid to you as rewards, and
+                               <strong>${money(Math.abs(r.valueChange))}</strong> is what your holdings
+                               ${r.valueChange >= 0 ? 'gained' : 'lost'} in value`
+                            : ` and <strong>${money(Math.abs(r.gain))}</strong> ${r.gain >= 0 ? 'was earned' : 'was lost'}`}.
+                    </div>
+                    ${r.rewards ? `<div class="footnote">Rewards are received and are yours; a change in value is
+                        neither received nor certain, and can go the other way tomorrow.</div>` : ''}
+                    ${caveats.length ? `<div class="footnote">${caveats.join(' ')}</div>` : ''}
+                    ${recNote}
+                </div>`;
+        }
+
         renderHolding(h, money, maxValue) {
             const amountText = `${formatTokenAmount(h.amount)} ${escapeHtml(h.symbol)}`;
             const priceText = h.price != null ? `@ ${money(h.price)}` : '';
@@ -315,7 +439,7 @@ function makeMoneyFormatter(currencyUpper) {
     // Some "currencies" from the provider are crypto (BTC, ETH) and not valid ISO
     // currency codes, so format as a plain number with the code appended.
     // Follow the app-wide convention of using the browser locale for numbers.
-    const numberFormatter = new Intl.NumberFormat(navigator.language, {
+    const numberFormatter = new Intl.NumberFormat(browserLocale(), {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
@@ -325,7 +449,7 @@ function makeMoneyFormatter(currencyUpper) {
 function formatTokenAmount(amount) {
     const abs = Math.abs(amount);
     const maxDecimals = abs >= 1000 ? 2 : abs >= 1 ? 4 : 6;
-    return new Intl.NumberFormat(navigator.language, {
+    return new Intl.NumberFormat(browserLocale(), {
         minimumFractionDigits: 0,
         maximumFractionDigits: maxDecimals
     }).format(amount);

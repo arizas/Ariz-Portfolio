@@ -8,6 +8,52 @@ const fungibleTokenData = {
 
 };
 
+/**
+ * A balance observation rather than a movement: the accounting export writes
+ * these with a synthetic `block-<height>` hash, which links nowhere on an
+ * explorer, and pairs them with the real transaction for the same change.
+ */
+/**
+ * How much each transaction moved, from the balances beside it.
+ *
+ * The rows arrive newest first, each carrying the balance that followed it, so
+ * a movement is one row's balance minus the next one's. The catch is that the
+ * accounting export writes the same movement twice — once as the real
+ * transaction and once as a `block-<height>` balance observation — and both
+ * rows carry the same balance. Subtracting between consecutive rows then puts
+ * the whole change on whichever comes first, which is the observation, and
+ * leaves the real transaction at zero, where it vanishes.
+ *
+ * On one real store that misdated a withdrawal by two days, split another into
+ * two legs, and turned observations that reversed themselves a second later
+ * into a run of movements that never happened.
+ *
+ * So the chain runs from one real transaction to the next and an observation
+ * contributes nothing. The rows are left in place: `balance` is what the daily
+ * balance columns read, and an observation is exactly the right thing to read a
+ * balance off.
+ */
+export function deriveChangedBalances(transactions = []) {
+    const nextRealBelow = new Array(transactions.length).fill(null);
+    let candidate = null;
+    for (let n = transactions.length - 1; n >= 0; n--) {
+        nextRealBelow[n] = candidate;
+        if (!isBalanceObservation(transactions[n])) candidate = n;
+    }
+    for (let n = 0; n < transactions.length; n++) {
+        const tx = transactions[n];
+        const older = nextRealBelow[n];
+        tx.changedBalance = isBalanceObservation(tx) ? 0n : BigInt(tx.balance) - (
+            older !== null ? BigInt(transactions[older].balance) : 0n
+        );
+    }
+    return transactions;
+}
+
+export function isBalanceObservation(tx) {
+    return typeof tx?.transaction_hash === 'string' && tx.transaction_hash.startsWith('block-');
+}
+
 export function getDecimalConversionValue(fungibleTokenSymbol) {
     return fungibleTokenSymbol ? fungibleTokenData[fungibleTokenSymbol]?.decimalConversionValue ?? Math.pow(10, -24) : Math.pow(10, -24);
 }
@@ -49,13 +95,11 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 decimalConversionValue = fungibleTokenData[tx.ft.contract_id].decimalConversionValue;
             }
         }
+        deriveChangedBalances(transactions);
+
         for (let n = 0; n < transactions.length; n++) {
             const tx = transactions[n];
             tx.account = account;
-            tx.changedBalance = BigInt(tx.balance) - (
-                n < transactions.length - 1 ? BigInt(transactions[n + 1].balance) : 0n
-            );
-
             tx.visibleChangedBalance = Number(tx.changedBalance) * decimalConversionValue;
             // Classify incoming transfers from external accounts:
             // - Default: treat as deposit
@@ -70,6 +114,11 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 && (fungibleTokenSymbol || !fungbleTokenTxMap[tx.hash])
             ) {
                 tx.receivedBalance = tx.changedBalance;
+                // Remember which counterparty matched. The daily aggregate loses
+                // it, and it is what decides whether this is income from outside
+                // or yield on holdings already here — a distinction the FIFO
+                // engine cannot make, since both arrive as lots at market value.
+                tx.receivedFrom = receivedaccounts[tx.signer_id] ? tx.signer_id : tx.involved_account_id;
                 tx.changedBalance = 0n;
             }
 
@@ -158,6 +207,9 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
     const dailyBalances = {};
     let prevDateString;
+    // Last staking balance seen per account, so a gap in the source data does
+    // not read as an unstaking.
+    const lastStakingBalance = {};
     let currentDate = new Date(2020, 0, 1);
     const endDate = new Date();
     const accountDailyBalances = {};
@@ -171,27 +223,56 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
             deposit: 0,
             withdrawal: 0,
             received: 0n,
-            expense: 0n
+            receivedFrom: [],
+            expense: 0n,
+            // Per-transaction detail behind `deposit` and `withdrawal`. The
+            // aggregate cannot tell a swap from money crossing the portfolio
+            // boundary: a swap shows up as a withdrawal in one token's pass and
+            // a deposit in another's, and the only thing tying those two legs
+            // together is the hash. See portfolio/flow-decomposition.js.
+            flows: []
         };
         currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
         accounts.forEach(account => {
             const transactionsObj = accountTransactions[account];
-            if (transactionsObj.stakingBalances[datestring]) {
-                dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[datestring].totalStakingBalance;
-                dailyBalances[datestring].stakingEarnings += transactionsObj.stakingBalances[datestring].totalEarnings;
-            } else if (prevDateString && transactionsObj.stakingBalances[prevDateString]) {
-                dailyBalances[datestring].stakingBalance += transactionsObj.stakingBalances[prevDateString].totalStakingBalance;
+            const todaysStaking = transactionsObj.stakingBalances[datestring];
+            if (todaysStaking) {
+                lastStakingBalance[account] = todaysStaking.totalStakingBalance;
+                dailyBalances[datestring].stakingBalance += todaysStaking.totalStakingBalance;
+                dailyBalances[datestring].stakingEarnings += todaysStaking.totalEarnings;
+            } else if (lastStakingBalance[account] != null) {
+                // Carry the last known balance forward for as long as the series
+                // is missing, not for a single day. A one-day carry-forward looks
+                // right until the source data lags by two: the staked balance
+                // then reads as zero, which is not a fact about the account but
+                // about what has been fetched. It reached the portfolio as a
+                // staked position with no cost basis, and an unrealized loss of
+                // the whole position's basis reported against what was left
+                // liquid. A balance does not disappear because nobody asked.
+                dailyBalances[datestring].stakingBalance += lastStakingBalance[account];
             }
         });
         if (transactionsByDate[datestring]) {
             transactionsByDate[datestring].forEach(tx => {
                 let changedBalanceForHashAllAccounts = BigInt(0);
+                // Who was on the other side. A movement to one of the portfolio's
+                // own venues — the intents contract, a confidential address — is
+                // not money leaving, and the hash alone cannot say so: the two
+                // sides of a bucket transfer are two different transactions.
+                const counterparties = new Set();
                 const allTxEntriesForHash = transactionsByHash[tx.hash];
                 allTxEntriesForHash.forEach(tx => {
+                    for (const candidate of [tx.involved_account_id, tx.signer_id, tx.receiver_id]) {
+                        if (candidate && !accountsMap[candidate]) counterparties.add(candidate);
+                    }
                     changedBalanceForHashAllAccounts += tx.changedBalance;
                     tx.changedBalance = 0n;
                     if (tx.receivedBalance) {
                         dailyBalances[datestring].received += tx.receivedBalance;
+                        dailyBalances[datestring].receivedFrom.push({
+                            account: tx.receivedFrom,
+                            amount: Number(tx.receivedBalance)
+                        });
                         tx.receivedBalance = 0n;
                     }
                     if (tx.expenseBalance) {
@@ -201,6 +282,16 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                 });
 
                 if (!allStakingAccounts[tx.signer_id] && !allStakingAccounts[tx.receiver_id]) {
+                    if (changedBalanceForHashAllAccounts !== BigInt(0)) {
+                        dailyBalances[datestring].flows.push({
+                            hash: tx.hash,
+                            changed: Number(changedBalanceForHashAllAccounts),
+                            counterparties: [...counterparties],
+                            // When it happened. Two sides of one swap settle
+                            // seconds apart even when they are two transactions.
+                            at: tx.block_timestamp
+                        });
+                    }
                     if (changedBalanceForHashAllAccounts >= BigInt(0)) {
                         dailyBalances[datestring].deposit += Number(changedBalanceForHashAllAccounts);
                     } else {

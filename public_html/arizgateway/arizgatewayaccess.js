@@ -16,9 +16,16 @@ const RECIPIENT = CONTRACT_ID;
 // a local gateway/store without editing this file.
 export const arizgatewayhost = globalThis.localStorage?.getItem('ariz_gateway_host_override') ?? 'https://arizgateway.fly.dev';
 export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
-// Re-sign before the gateway's NEP-413 validity window (1h) elapses, so a cached
-// token is always accepted.
-const TOKEN_TTL_MS = 50 * 60 * 1000;
+// Re-sign before the gateway's NEP-413 window elapses, so a cached token is
+// always accepted.
+//
+// This has to track the gateway that is actually deployed, not the one in a
+// branch — raising it ahead of the deploy meant the browser kept sending a token
+// it believed in while the gateway had already retired it, and every price
+// lookup came back 401. The window is 24h as of arizas/ariz-gateway#53; a 401
+// now re-signs rather than failing, so a future mismatch costs a round trip
+// instead of a broken page.
+const TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
 
 let _connectorPromise = null;
 let _testWallet = null; // injected by specs so they don't need a real wallet
@@ -204,16 +211,82 @@ export async function getAccessToken() {
     }
 }
 
-export async function fetchFromArizGateway(path) {
+/**
+ * How long to wait for the gateway before giving up.
+ *
+ * A `fetch` with no timeout does not fail, it waits — and a request that never
+ * answers takes the page with it. One stalled price lookup froze the portfolio
+ * on "Calculating NPRO (3 of 46)" for six minutes with nothing on screen to say
+ * why: no error, no pending request the profiler could see, ninety-eight per
+ * cent idle. Every caller here already knows how to carry on without an answer,
+ * so failing is strictly better than hanging.
+ */
+export const GATEWAY_TIMEOUT_MILLIS = 30000;
+
+/**
+ * Thrown instead of opening a wallet dialog, for callers that must not.
+ *
+ * A cached bearer token lasts under an hour. When it expires, getAccessToken
+ * asks the wallet to sign a new one — which puts a QR code on screen and waits
+ * for a phone. That is right for something the user just clicked, and wrong for
+ * a price lookup running in the background: the page sat on "Reading NEAR (1 of
+ * 46)" while a modal it never mentioned waited to be scanned. Idle, no pending
+ * request, no error. I spent a while blaming the gateway for that.
+ */
+function sendToGateway(path, token, timeoutMillis) {
+    setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
+    return fetch(`${arizgatewayhost}${path}`, {
+        headers: { 'authorization': `Bearer ${token}` },
+        signal: timeoutMillis > 0 ? AbortSignal.timeout(timeoutMillis) : undefined
+    });
+}
+
+export class SignatureRequiredError extends Error {
+    constructor(path) {
+        super(`Sign in to the Ariz gateway to load ${path}`);
+        this.name = 'SignatureRequiredError';
+        this.path = path;
+    }
+}
+
+/**
+ * @param {string} path
+ * @param {object} [options]
+ * @param {number} [options.timeoutMillis]
+ * @param {boolean} [options.interactive] false for work the user did not ask
+ *   for just now: use a token that is already valid, or give up saying so,
+ *   rather than putting a wallet dialog in front of them
+ */
+export async function fetchFromArizGateway(path, {
+    timeoutMillis = GATEWAY_TIMEOUT_MILLIS, interactive = true,
+} = {}) {
+    if (!interactive && !cachedTokenIsFresh(readCachedToken())) {
+        throw new SignatureRequiredError(path);
+    }
     if (!(await isSignedIn())) {
         return {};
     }
     try {
-        const arizGatewayAccessToken = await getAccessToken();
-        setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
-        const response = await fetch(`${arizgatewayhost}${path}`, {
-            headers: { 'authorization': `Bearer ${arizGatewayAccessToken}` }
-        });
+        let response = await sendToGateway(path, await getAccessToken(), timeoutMillis);
+
+        // A 401 says this token is not accepted, and sending it again cannot
+        // change that — the caller above wraps some of these in a retry loop,
+        // which turned an expired token into four identical failures two
+        // seconds apart. Only a new signature helps.
+        //
+        // The two ends can also simply disagree about how long a token lives:
+        // the browser thinks its cached one is still good while the gateway has
+        // already retired it. Re-signing settles that without anyone having to
+        // notice which end moved.
+        if (response.status === 401) {
+            localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+            if (!interactive) {
+                setProgressbarValue(null);
+                throw new SignatureRequiredError(path);
+            }
+            response = await sendToGateway(path, await getAccessToken(), timeoutMillis);
+        }
+
         setProgressbarValue(null);
         if (!response.ok) {
             const errorText = await response.text();
@@ -222,6 +295,11 @@ export async function fetchFromArizGateway(path) {
         return await response.json();
     } catch (e) {
         setProgressbarValue(null);
+        // Name the wait, so a timeout does not arrive looking like the token
+        // having no price.
+        if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+            throw new Error(`Ariz gateway did not answer ${path} within ${timeoutMillis / 1000} s`, { cause: e });
+        }
         throw e;
     }
 }

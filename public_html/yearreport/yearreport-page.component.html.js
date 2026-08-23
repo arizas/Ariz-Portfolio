@@ -75,6 +75,7 @@ export default /*html*/ `<style>
         <label for="tokenselect" class="form-label">Fungible token</label>
         <select class="form-select" aria-label="Select fungible token" id="tokenselect">
             <option value="">NEAR</option>
+            <option value="__all__">All tokens (combined value)</option>
         </select>        
     </div>
     <div class="col-md-2">
@@ -88,6 +89,9 @@ export default /*html*/ `<style>
         <button class="btn btn-light" id="print_current_token_button">Print (selected token)</button>
     </div>
 </div>
+
+<div id="reportprogress" class="text-muted small mt-2"></div>
+<div id="reportcaption" class="text-muted small"></div>
 
 <template id="dailybalancerowtemplate">
     <tr>
@@ -127,46 +131,46 @@ export default /*html*/ `<style>
 <div class="table-responsive" id="dailybalancescontainer">
     <table class="table table-sm table-hover">
         <thead class="table-dark">
-            <th scope="col">
+            <th scope="col" id="header_date">
                 date
             </th>
-            <th scope="col">
+            <th scope="col" id="header_totalbalance">
                 total balance
             </th>
-            <th scope="col">
+            <th scope="col" id="header_totalchange">
                 change
             </th>
-            <th scope="col">
+            <th scope="col" id="header_accountbalance">
                 account balance
             </th>
-            <th scope="col">
+            <th scope="col" id="header_accountchange">
                 change
             </th>
-            <th scope="col">
+            <th scope="col" id="header_stakingbalance">
                 staking balance
             </th>
-            <th scope="col">
+            <th scope="col" id="header_stakingchange">
                 change
             </th>
-            <th scope="col">
+            <th scope="col" id="header_reward">
                 reward
             </th>
-            <th scope="col">
+            <th scope="col" id="header_received">
                 ext received
             </th>
-            <th scope="col">
+            <th scope="col" id="header_deposit">
                 deposit
             </th>
-            <th scope="col">
+            <th scope="col" id="header_withdrawal">
                 withdrawals
             </th>
-            <th scope="col">
+            <th scope="col" id="header_expenses">
                 expenses
             </th>
-            <th scope="col">
+            <th scope="col" id="header_profit">
                 profit
             </th>
-            <th scope="col">
+            <th scope="col" id="header_loss">
                 loss
             </th>
             <th>

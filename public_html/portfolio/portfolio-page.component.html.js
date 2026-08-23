@@ -103,6 +103,17 @@ export default /*html*/ `
         border: 1px solid #ffe69c;
     }
 
+    /* Where the money came from — see portfolio/flow-decomposition.js */
+    .flows-body { padding: 0.9rem 1.1rem; }
+    .flow-row { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem 1rem;
+        align-items: baseline; padding: 0.22rem 0; font-variant-numeric: tabular-nums; }
+    .flow-row.sum { border-top: 1px solid rgba(0,0,0,0.08); margin-top: 0.3rem; padding-top: 0.45rem; font-weight: 600; }
+    .flow-row .amount { text-align: right; }
+    .flow-label { color: #495057; }
+    .flow-lead { font-size: 0.95rem; line-height: 1.6; margin-top: 0.8rem; }
+    .flow-warn { background: #fff8e1; border: 1px solid #ffe082; color: #6d4c00;
+        padding: 0.6rem 0.8rem; border-radius: 0.5rem; font-size: 0.85rem; line-height: 1.5; margin-top: 0.7rem; }
+
     .portfolio-note { font-size: 0.85rem; color: #6c757d; margin-top: 1.5rem; }
     #portfolio-progress { color: #6c757d; }
     /* Top section: info boxes (left) + value chart (right), 50/50. */
@@ -185,6 +196,9 @@ export default /*html*/ `
 
     @media (prefers-color-scheme: dark) {
         .card-surface, .holding-card { background: #1e1e1e; border-color: #343a40; }
+        .flow-row.sum { border-top-color: rgba(255,255,255,0.12); }
+        .flow-label { color: #adb5bd; }
+        .flow-warn { background: #2b2410; border-color: #5c4a12; color: #ffd970; }
         .holding-card.excluded { background: #161616; }
         .metric-card.result { background: #15321f; border-color: #1f5132; }
         .hero-sub { color: #ced4da; }
@@ -231,6 +245,11 @@ export default /*html*/ `
             </div>
             <div id="value-chart" class="chart-canvas"></div>
         </div>
+    </div>
+
+    <div id="flows-section" hidden>
+        <div class="section-label">Where the money came from</div>
+        <div id="flows" class="card-surface"></div>
     </div>
 
     <div id="holdings-section" hidden>

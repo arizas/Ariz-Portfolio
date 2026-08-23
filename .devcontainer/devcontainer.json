@@ -4,7 +4,38 @@
     "features": {
         "ghcr.io/devcontainers/features/node:1": {
             "version": "latest"
+        },
+        // A minimal desktop reachable in the browser at localhost:6080. The app
+        // needs a real browser to be exercised — service worker, OPFS, wasm-git —
+        // and Chrome refuses remote debugging on a default profile since ~136, so
+        // driving the developer's own browser is no longer an option. A browser
+        // in here has its own profile by construction, and never touches theirs.
+        "ghcr.io/devcontainers/features/desktop-lite:1": {
+            "password": "vscode",
+            "webPort": "6080",
+            "vncPort": "5901"
         }
+    },
+
+    // forwardPorts is an editor feature; the devcontainer CLI does not publish
+    // anything. appPort publishes at container-create time so `devcontainer up`
+    // works too.
+    //
+    // Only the desktop is published. The app and the debugging port stay inside:
+    // Chromium runs in here and reaches the dev server on the container's own
+    // localhost, so publishing 8081 would only risk colliding with a server on
+    // the host, and publishing 9222 would let anything on the host drive the
+    // browser — which is the exposure this container exists to avoid.
+    "appPort": [6080],
+    "forwardPorts": [6080, 5901, 8081, 9222],
+    "portsAttributes": {
+        "6080": { "label": "Desktop (noVNC)", "onAutoForward": "notify" },
+        "8081": { "label": "Ariz Portfolio dev server" },
+        "9222": { "label": "Chromium remote debugging" }
+    },
+
+    "containerEnv": {
+        "DISPLAY": ":1"
     },
 
     "customizations": {

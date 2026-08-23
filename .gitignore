@@ -6,3 +6,4 @@ test-results
 ariz-gateway/
 .env
 .near-credentials
+.scratch/

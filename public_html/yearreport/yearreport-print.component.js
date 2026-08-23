@@ -1,5 +1,7 @@
 import html from './yearreport-print.component.html.js';
 import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency, renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
+import { ALL_TOKENS } from './all-tokens-daily.js';
+import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
 
 customElements.define('year-report-print',
     class extends HTMLElement {
@@ -33,7 +35,9 @@ customElements.define('year-report-print',
 
         async createReport() {
             this.shadowRoot.getElementById('yearspan').innerText = this.year;
-            this.shadowRoot.getElementById('tokenspan').innerText = this.token ? this.token : 'NEAR';
+            const allTokens = this.token === ALL_TOKENS;
+            this.shadowRoot.getElementById('tokenspan').innerText =
+                allTokens ? 'All tokens' : (this.token ? this.token : 'NEAR');
             this.shadowRoot.getElementById('currencyspan').innerText = this.convertToCurrency;
             document.querySelectorAll('link').forEach(lnk => this.shadowRoot.appendChild(lnk.cloneNode()));
             const transactionstablebody = this.shadowRoot.querySelector('#transactionstablebody');
@@ -48,6 +52,10 @@ customElements.define('year-report-print',
                 periodLengthMonths: this.periodLengthMonths,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,
+                // Without this the combined report would print native NEAR alone
+                // and look complete. Wrong with no sound is the one outcome worth
+                // spending three lines to rule out.
+                tokens: allTokens ? await getAllFungibleTokenEntries() : undefined,
                 perRowFunction: async ({
                     datestring,
                     transactionsByDate,
@@ -61,12 +69,12 @@ customElements.define('year-report-print',
                             transactionRow.innerHTML = `<td>
                 ${datestring}
                 </td>
-                ${this.token ? `
+                ${(allTokens ? !!tx.token : !!this.token) ? `
                 <td>${tx.involved_account_id}</td>
                 <td>${tx.affected_account_id}</td>
                 <td>${tx.cause}</td>
             
-                <td class="numeric">${(tx.delta_amount * decimalConversionValue).toFixed(numDecimals)}</td>`
+                <td class="numeric">${(tx.delta_amount * (allTokens ? (tx.decimalConversionValue ?? 1) : decimalConversionValue)).toFixed(numDecimals)}</td>`
                                     :
                                     `<td>${tx.signer_id}</td>
                 <td>${tx.receiver_id}</td>
