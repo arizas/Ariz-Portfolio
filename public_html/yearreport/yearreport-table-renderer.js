@@ -268,8 +268,18 @@ export async function renderAllTokensPeriodTable({
     // it is only what came from outside the portfolio.
     setHeader(shadowRoot, '#header_deposit', 'added in');
     setHeader(shadowRoot, '#header_withdrawal', 'taken out');
-    setHiddenColumns(shadowRoot, COMBINED_HIDES);
-    setCaption(shadowRoot, `All amounts in ${convertToCurrency.toUpperCase()}. "Added in" and "taken out" are what crossed the portfolio's edge — a swap moves value between your own tokens and is not counted as either. Open a day to see every token's own deposits and withdrawals.`);
+    // A column that is zero for the whole period is noise; one with something in
+    // it is information. Only the first kind gets hidden on the strength of what
+    // is in it — the ones above are hidden for what they would mean.
+    setHiddenColumns(shadowRoot, [
+        ...COMBINED_HIDES,
+        ...(totals.expense === 0 ? ['expenses'] : []),
+    ]);
+    setCaption(shadowRoot, `All amounts in ${convertToCurrency.toUpperCase()}. \
+"Added in" and "taken out" are what crossed the portfolio's edge — a swap moves value \
+between your own tokens and is counted as neither. Profit and loss are something else: \
+every disposal is realized, swaps included, which is what a tax return asks for. \
+Open a day to see every token's own deposits and withdrawals.`);
     const periodStartDateString = periodStartDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
     const periodEndDateString = periodEndDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
     const rowTemplate = shadowRoot.querySelector('#dailybalancerowtemplate');
@@ -403,17 +413,17 @@ const EMPTY_FLOWS = Object.freeze({
 });
 
 /**
- * Columns the combined view leaves out.
+ * Columns the combined view always leaves out, because combined they mean
+ * something false: the liquid/staked split belongs to a single token, and across
+ * every token it is NEAR's split with the rest heaped on one side.
  *
- * Fourteen columns do not fit, and the ones that scroll off are the ones the
- * view exists for. The liquid/staked split belongs to a single token — combined
- * it is NEAR's split with everything else piled into one side. The FIFO
- * realizations answer a different question, per token, and beside the flows they
- * compete with the numbers someone opened this for.
+ * Realized gain and loss are not in this list. They answer a different question
+ * from the flows — a swap moves value between your own tokens and crosses no
+ * edge, and is still a disposal the tax return wants — and the total across
+ * every token is exactly what a tax return asks for.
  */
 const COMBINED_HIDES = [
     'accountbalance', 'accountchange', 'stakingbalance', 'stakingchange',
-    'expenses', 'profit', 'loss',
 ];
 
 /**

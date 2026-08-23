@@ -248,10 +248,12 @@ describe('which columns the combined view shows', () => {
             .map(th => th.id.replace('header_', ''));
     };
 
-    it('leaves out the balance split and the realizations', async () => {
+    // Combined, the liquid/staked split is NEAR's split with every other token
+    // heaped on one side, which is not a fact about anything.
+    it('leaves out the balance split', async () => {
         const { shadowRoot } = await render({ contributions: [contribution({ deposit: 5 })] });
-        expect(hiddenNow(shadowRoot).sort()).to.deep.equal(
-            ['accountbalance', 'accountchange', 'expenses', 'loss', 'profit', 'stakingbalance', 'stakingchange']);
+        expect(hiddenNow(shadowRoot)).to.include.members(
+            ['accountbalance', 'accountchange', 'stakingbalance', 'stakingchange']);
     });
 
     it('keeps the flows and the value', async () => {
@@ -260,6 +262,43 @@ describe('which columns the combined view shows', () => {
         for (const kept of ['date', 'totalbalance', 'totalchange', 'reward', 'received', 'deposit', 'withdrawal']) {
             expect(hidden, kept).to.not.include(kept);
         }
+    });
+
+    // A swap crosses no edge and is still a disposal. The tax return wants the
+    // total across every token, which is what this view is.
+    it('keeps realized gain and loss', async () => {
+        const { shadowRoot, result } = await render({
+            contributions: [
+                contribution({ symbol: 'NEAR', profit: 40 }),
+                contribution({ symbol: 'BTC', token: 'btc.omft.near', loss: 15 }),
+            ],
+        });
+        expect(hiddenNow(shadowRoot)).to.not.include('profit');
+        expect(hiddenNow(shadowRoot)).to.not.include('loss');
+        expect(result.totalProfit).to.equal(40);
+        expect(result.totalLoss).to.equal(15);
+    });
+
+    it('adds realizations up across every token', async () => {
+        const { shadowRoot } = await render({
+            contributions: [
+                contribution({ symbol: 'NEAR', profit: 40 }),
+                contribution({ symbol: 'BTC', token: 'btc.omft.near', profit: 60 }),
+            ],
+        });
+        expect(shadowRoot.querySelector('#totalprofit').innerText).to.equal(amount(100));
+    });
+
+    // A column that is zero for the whole period is noise; one with something in
+    // it is information.
+    it('drops an expenses column that stayed at zero', async () => {
+        const { shadowRoot } = await render({ contributions: [contribution({ deposit: 5 })] });
+        expect(hiddenNow(shadowRoot)).to.include('expenses');
+    });
+
+    it('keeps an expenses column that has something in it', async () => {
+        const { shadowRoot } = await render({ contributions: [contribution({ expense: 12.5 })] });
+        expect(hiddenNow(shadowRoot)).to.not.include('expenses');
     });
 
     // Counting columns works until someone inserts one, and then it hides a
