@@ -3,6 +3,7 @@ import { calculatePortfolio, calculatePortfolioSeries, calculateFlowDecompositio
 import { renderPortfolioChart } from './portfolio-chart.js';
 import html from './portfolio-page.component.html.js';
 import { browserLocale } from '../util/locale.js';
+import { escapeHtml } from '../util/escape-html.js';
 
 const PREFERRED_DEFAULT_CURRENCY = 'nok';
 
@@ -43,7 +44,14 @@ customElements.define('portfolio-page',
             this.currencySelect.addEventListener('change', () => this.refresh());
             this.fromMonthSelect.addEventListener('change', () => this.refresh());
             this.fromYearSelect.addEventListener('change', () => this.refresh());
-            this.refreshButton.addEventListener('click', () => this.refresh(true));
+            // Refresh means try everything again, including whatever gave up
+            // earlier in the session: a price lookup that timed out once should
+            // not keep the rest of the report from ever fetching again.
+            this.refreshButton.addEventListener('click', async () => {
+                const { resetPriceService } = await import('../pricedata/pricedata.js');
+                resetPriceService();
+                this.refresh(true);
+            });
             this.granularityButtons.forEach(btn => btn.addEventListener('click', () => {
                 if (this.granularity === btn.dataset.granularity) return;
                 this.granularity = btn.dataset.granularity;
@@ -359,7 +367,7 @@ customElements.define('portfolio-page',
                     ${r.withdrawals ? row('Taken out', signed(-r.withdrawals)) : ''}
                     ${row('Added, net', signed(added), 'sum')}
                     ${r.rewards ? row('Rewards received', signed(r.rewards)) : ''}
-                    ${row(r.rewards ? 'Value change' : 'Value change', signed(r.valueChange ?? r.gain), '')}
+                    ${row('Value change', signed(r.valueChange ?? r.gain))}
                     ${row('Now', money(r.closing), 'sum')}
                     <div class="flow-lead">
                         Of the <strong>${money(Math.abs(change))}</strong>
@@ -469,12 +477,4 @@ function formatDate(isoDate) {
     // 'yyyy-MM-dd' -> 'dd.MM.yyyy'
     const [y, m, d] = String(isoDate).split('-');
     return `${d}.${m}.${y}`;
-}
-
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }

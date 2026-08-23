@@ -3,6 +3,7 @@ import html from './yearreport-page.component.html.js';
 import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
 import { resolveDisplaySymbol } from '../near/intents-tokens.js';
 import { renderMonthPeriodReportTable, getNumberFormatter, getAmountFormatter } from './yearreport-table-renderer.js';
+import { escapeHtml, escapeUrlComponent } from '../util/escape-html.js';
 import { sizeToViewportBottom, onViewportLayoutChange } from '../ui/viewport-table-sizer.js';
 
 // The attached deposit is yoctoNEAR, as a decimal string too long for a Number
@@ -162,7 +163,12 @@ customElements.define('year-report-page',
          */
         transactionsModalBody({ transactions, decimalConversionValue, allTokens, tokenBreakdown, flows }) {
             const formatNumber = allTokens ? getAmountFormatter() : getNumberFormatter(this.convertToCurrency);
-            const label = (t) => this.displaySymbols?.get(t.token) ?? t.symbol ?? '';
+            // A token's symbol is whoever minted it writing whatever they like,
+            // and it reaches this modal even for tokens with no price at all —
+            // the transactions are collected before the never-priced check. The
+            // table beside this one builds the same strings as text nodes for
+            // exactly that reason; here they become markup, so they are escaped.
+            const label = (t) => escapeHtml(this.displaySymbols?.get(t.token) ?? t.symbol ?? '');
 
             const all = [...(transactions ?? [])]
                 .sort((a, b) => Number(BigInt(a.block_timestamp) - BigInt(b.block_timestamp)));
@@ -235,10 +241,10 @@ customElements.define('year-report-page',
                     ${sorted.map(tx => `<tr>
                         <td>${new Date(Number(BigInt(tx.block_timestamp) / 1_000_000n)).toJSON().substring('yyyy-MM-dd '.length)}</td>
                         ${allTokens ? `<td>${label(tx)}</td>` : ''}
-${isFungible(tx) ? `<td>${tx.involved_account_id ?? ''}</td><td>${tx.account_id ?? ''}</td><td>${tx.delta_amount * decimalsFor(tx)}</td>` :
-                    `<td>${tx.signer_id}</td><td>${tx.receiver_id}</td><td>${tx.visibleChangedBalance}</td>`}
+${isFungible(tx) ? `<td>${escapeHtml(tx.involved_account_id ?? '')}</td><td>${escapeHtml(tx.account_id ?? tx.affected_account_id ?? '')}</td><td>${tx.delta_amount * decimalsFor(tx)}</td>` :
+                    `<td>${escapeHtml(tx.signer_id)}</td><td>${escapeHtml(tx.receiver_id)}</td><td>${tx.visibleChangedBalance}</td>`}
 <td>${formatAttachedDeposit(tx.args?.deposit)}</td>
-<td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</a></td>
+<td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${escapeUrlComponent(tx.hash)}">&#128194;</a></td>
 </tr>`).join('')}
                     </tbody>
                     </table>
