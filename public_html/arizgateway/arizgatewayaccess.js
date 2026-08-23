@@ -20,11 +20,12 @@ export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
 // always accepted.
 //
 // This has to track the gateway that is actually deployed, not the one in a
-// branch. Raising it first was my mistake: the browser kept sending a token it
-// believed in for hours while the gateway retired it after one, and every price
-// lookup came back 401. Raise this to 23h once arizas/ariz-gateway#53 is
-// deployed, and not before.
-const TOKEN_TTL_MS = 50 * 60 * 1000;
+// branch — raising it ahead of the deploy meant the browser kept sending a token
+// it believed in while the gateway had already retired it, and every price
+// lookup came back 401. The window is 24h as of arizas/ariz-gateway#53; a 401
+// now re-signs rather than failing, so a future mismatch costs a round trip
+// instead of a broken page.
+const TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
 
 let _connectorPromise = null;
 let _testWallet = null; // injected by specs so they don't need a real wallet

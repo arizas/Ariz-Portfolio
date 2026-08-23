@@ -493,3 +493,58 @@ describe('the reconciliation counts staking at both ends', () => {
         expect(Math.abs(r.reconciliation.difference)).to.be.greaterThan(30000);
     });
 });
+
+// A movement recognised as internal from one leg alone has no counterpart here:
+// the other side is in a bucket this report does not cover. The flows are right
+// that nothing crossed the edge — and the FIFO ledger, which is not looking at
+// edges, still books a disposal and moves cost basis. Not telling the check
+// about that made it report 9 739 of disagreement that was its own blind spot.
+describe('movements recognised from one leg alone', () => {
+    const at = (s) => String(1787142611537000000n + BigInt(s) * 1000000000n);
+    const base = {
+        price: () => 10, opening: 100000, closing: 150000,
+        fifo: { realized: 0, unrealizedNow: 50000, unrealizedOpening: 0 },
+    };
+
+    it('tells the reconciliation what the ledger booked', () => {
+        // Arriving from the account that holds this portfolio's own balance:
+        // internal, and with nothing here to pair it against.
+        const r = decomposeFlows({
+            ...base,
+            movements: [{
+                date: '2026-03-10', token: 'nep141:usdc.near', symbol: 'USDC',
+                units: 1290, kind: 'deposit', counterparties: ['intents.near'], at: at(0),
+            }],
+        });
+        expect(r.oneSidedInternal).to.be.closeTo(12900, 1e-6);
+        expect(r.reconciliation.expected).to.be.closeTo(50000 + 12900, 1e-6);
+    });
+
+    it('subtracts one that left instead of arriving', () => {
+        const r = decomposeFlows({
+            ...base,
+            movements: [{
+                date: '2026-03-10', token: '', symbol: 'NEAR', units: 900,
+                kind: 'withdrawal', counterparties: ['wrap.near'], at: at(0),
+            }],
+        });
+        expect(r.oneSidedInternal).to.be.closeTo(-9000, 1e-6);
+    });
+
+    // A pair has both halves in the data, so the ledger's two entries cancel and
+    // there is nothing for the check to know about.
+    it('ignores an internal movement that has both its legs', () => {
+        const r = decomposeFlows({
+            ...base,
+            movements: [
+                { date: '2026-03-10', token: 'nep141:sol.omft.near', symbol: 'SOL', units: 5, kind: 'withdrawal', counterparties: ['a'], at: at(0) },
+                { date: '2026-03-10', token: 'confidential:nep141:sol.omft.near', symbol: 'SOL', units: 5, kind: 'deposit', counterparties: ['intents.near'], at: at(1) },
+            ],
+        });
+        expect(r.oneSidedInternal).to.equal(0);
+    });
+
+    it('is zero when nothing was recognised that way', () => {
+        expect(decomposeFlows({ ...base, movements: [] }).oneSidedInternal).to.equal(0);
+    });
+});

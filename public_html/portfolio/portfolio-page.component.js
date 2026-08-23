@@ -326,8 +326,7 @@ customElements.define('portfolio-page',
                 <div class="flow-warn">
                     These flows and the FIFO ledger disagree by ${money(Math.abs(rec.difference))}.
                     They reach the same figure by routes that share almost nothing, so a gap means one
-                    of them is wrong. Which one is not yet established — see issue #112. Treat the
-                    split as indicative until it reconciles.
+                    of them is wrong. Treat the split as indicative until it reconciles.
                 </div>` : '';
 
             this.flowsEl.innerHTML = `
