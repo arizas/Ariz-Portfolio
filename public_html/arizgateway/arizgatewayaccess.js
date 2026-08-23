@@ -16,9 +16,11 @@ const RECIPIENT = CONTRACT_ID;
 // a local gateway/store without editing this file.
 export const arizgatewayhost = globalThis.localStorage?.getItem('ariz_gateway_host_override') ?? 'https://arizgateway.fly.dev';
 export const ACCESS_TOKEN_SESSION_STORAGE_KEY = 'ariz_gateway_access_token';
-// Re-sign before the gateway's NEP-413 validity window (1h) elapses, so a cached
-// token is always accepted.
-const TOKEN_TTL_MS = 50 * 60 * 1000;
+// Re-sign before the gateway's NEP-413 validity window (24h) elapses, so a
+// cached token is always accepted. Signing means a QR code and a phone, so the
+// gap between this and the gateway's window is the margin that keeps a token
+// from expiring mid-report; it does not need to be large, only certain.
+const TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
 
 let _connectorPromise = null;
 let _testWallet = null; // injected by specs so they don't need a real wallet
