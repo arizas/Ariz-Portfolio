@@ -279,6 +279,9 @@ ${isFungible(tx) ? `<td>${tx.involved_account_id ?? ''}</td><td>${tx.account_id 
                     });
                 }
             });
+            // The last token read is not news once the table is there, and left
+            // standing it makes a finished report look like it is still working.
+            if (progress) progress.innerText = '';
             // Once, after the table is built — not once per rendered row.
             this._sizeTableViewport();
         }
