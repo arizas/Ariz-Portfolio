@@ -31,6 +31,7 @@ customElements.define('portfolio-page',
             this.flowsEl = this.shadowRoot.querySelector('#flows');
             // Seam so the panel can be tested without OPFS or the network.
             this.__calculateFlowDecomposition = calculateFlowDecomposition;
+            this.__calculatePortfolioSeries = calculatePortfolioSeries;
             this.excludedNoteEl = this.shadowRoot.querySelector('#excluded-note');
             this.currencySelect = this.shadowRoot.querySelector('#currencyselect');
             this.fromMonthSelect = this.shadowRoot.querySelector('#frommonthselect');
@@ -145,13 +146,24 @@ customElements.define('portfolio-page',
             this.chartPanel.hidden = false;
             this.valueChart.innerHTML = '<div class="chart-empty">Building value history …</div>';
             try {
-                const data = await calculatePortfolioSeries(
+                const data = await this.__calculatePortfolioSeries(
                     this.currentCurrency, this.currentFromDate, this.granularity, () => {}, { force });
                 const money = makeMoneyFormatter(this.currentCurrency.toUpperCase());
                 renderPortfolioChart(this.valueChart, data, { formatMoney: money, formatDate: formatDate });
             } catch (e) {
+                // This used to draw. getEODPriceMap swallowed everything and
+                // handed back an empty map, which reads as a price of zero on
+                // every day — a chart of the portfolio being worth nothing,
+                // with nothing on it to say otherwise. Refusing is the right
+                // answer; refusing while naming the cause is a better one, and
+                // the two causes have different remedies.
                 console.error('Failed to build value history', e);
-                this.valueChart.innerHTML = '<div class="chart-empty">Could not load value history.</div>';
+                const why = e?.name === 'SignatureRequiredError'
+                    ? 'Sign in to the Ariz gateway to load price history.'
+                    : e?.name === 'PriceServiceNotAnsweringError'
+                        ? e.message
+                        : 'Could not load value history.';
+                this.valueChart.innerHTML = `<div class="chart-empty">${escapeHtml(why)}</div>`;
             }
         }
 
@@ -287,12 +299,26 @@ customElements.define('portfolio-page',
             this.flowsSection.hidden = false;
 
             if (!r.ok) {
+                // A token with a hole in its price history and a token whose
+                // history could not be fetched produce the same refusal, and
+                // only one of them is the token's doing. "No price on the day
+                // for USDC" sends the reader looking for a gap that is not
+                // there, when the answer is that nobody is signed in.
+                const unreachable = r.historyUnavailable ?? {};
+                const why = unreachable.signature
+                    ? 'Your Ariz gateway session has expired, so price history could not be loaded. Sign in again and refresh.'
+                    : unreachable.gateway
+                        ? `Price history could not be loaded: ${unreachable.gateway}`
+                        : '';
+                const whyRow = why ? `<div class="flow-warn">${escapeHtml(why)}</div>` : '';
+
                 // Refuse rather than guess. An unpriced flow does not make the
                 // answer approximate, it makes it wrong in a way that looks fine.
                 if (r.reason === 'unpriced-flows') {
                     const names = escapeHtml([...new Set(r.unpriced.map(u => u.symbol || u.token))].join(', '));
                     this.flowsEl.innerHTML = `
                         <div class="flows-body">
+                            ${whyRow}
                             <div class="flow-warn">Not calculated — no price on the day for ${names}.
                             Splitting the change needs every movement priced on the day it happened;
                             guessing at one would shift everything that follows.</div>

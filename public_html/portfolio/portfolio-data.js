@@ -602,6 +602,9 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
     const movements = [];
     const priceByToken = new Map();
     const neverPriced = new Set();
+    // Why the history could not be loaded, when it could not. Kept apart from
+    // the token's own price situation on purpose — see below.
+    const historyUnavailable = {};
 
     for (const holding of base.holdings) {
         const own = movementsForToken({
@@ -617,15 +620,30 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
 
         onProgress(`Pricing movements for ${holding.displaySymbol}`);
         let map = {};
+        // Did the question get an answer at all? getEODPriceMap now lets a
+        // signature request and a silent gateway through rather than returning
+        // an empty map, and catching them here would put them straight back:
+        // the token would land in neverPriced — "no market anywhere" — and its
+        // movements would be dropped from a decomposition that then reported
+        // itself as fine. The one collapse the rethrow exists to prevent,
+        // rebuilt one caller further in.
+        let answered = true;
         try {
             map = await getEODPriceMap(currency, holding.token) ?? {};
-        } catch {
-            map = {};
+        } catch (e) {
+            answered = false;
+            if (e?.name === 'SignatureRequiredError') historyUnavailable.signature = true;
+            else if (e?.name === 'PriceServiceNotAnsweringError') historyUnavailable.gateway = e.message;
+            else console.error(`Failed to load price history for ${holding.token}`, e);
         }
         // No dated entries at all means no market anywhere — a scam airdrop
         // rather than a real asset with a hole in its history. Those two have to
-        // be told apart or a worthless token vetoes the whole calculation.
-        if (!Object.keys(map).some(k => /^\d{4}-\d{2}-\d{2}$/.test(k)) && map.__constant == null) {
+        // be told apart or a worthless token vetoes the whole calculation. Not
+        // having been able to ask is a third thing again, and evidence of
+        // neither.
+        if (answered
+            && !Object.keys(map).some(k => /^\d{4}-\d{2}-\d{2}$/.test(k))
+            && map.__constant == null) {
             neverPriced.add(holding.token);
         }
         priceByToken.set(holding.token, map);
@@ -695,5 +713,5 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
         }
     });
 
-    return { ...result, currency, fromDate };
+    return { ...result, currency, fromDate, historyUnavailable };
 }
