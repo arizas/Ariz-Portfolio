@@ -354,9 +354,9 @@ customElements.define('portfolio-page',
             this.flowsEl.innerHTML = `
                 <div class="flows-body">
                     ${row(`Opening · ${escapeHtml(formatDate(r.fromDate))}`, money(r.opening))}
-                    ${r.deposits ? row('Deposits in', signed(r.deposits)) : ''}
+                    ${r.deposits ? row('Added in', signed(r.deposits)) : ''}
                     ${r.income ? row('Income received', signed(r.income)) : ''}
-                    ${r.withdrawals ? row('Withdrawals out', signed(-r.withdrawals)) : ''}
+                    ${r.withdrawals ? row('Taken out', signed(-r.withdrawals)) : ''}
                     ${row('Added, net', signed(added), 'sum')}
                     ${r.rewards ? row('Rewards received', signed(r.rewards)) : ''}
                     ${row(r.rewards ? 'Value change' : 'Value change', signed(r.valueChange ?? r.gain), '')}

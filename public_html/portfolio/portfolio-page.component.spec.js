@@ -70,9 +70,9 @@ describe('where the money came from', () => {
         await el.renderFlows();
         const text = el.flowsEl.textContent;
         expect(text).to.include('Opening');
-        expect(text).to.include('Deposits in');
+        expect(text).to.include('Added in');
         expect(text).to.include('Income received');
-        expect(text).to.include('Withdrawals out');
+        expect(text).to.include('Taken out');
         expect(text).to.include('Added, net');
         expect(text).to.include('Value change');
     });
@@ -81,7 +81,7 @@ describe('where the money came from', () => {
         const el = makePage({ ...base, income: 0, withdrawals: 0 });
         await el.renderFlows();
         expect(el.flowsEl.textContent).to.not.include('Income received');
-        expect(el.flowsEl.textContent).to.not.include('Withdrawals out');
+        expect(el.flowsEl.textContent).to.not.include('Taken out');
     });
 
     // How many swaps were recognised does not change how far to trust the rows
@@ -243,5 +243,20 @@ describe('gas', () => {
         const el = makePage({ ...base, transactionCosts: [{ symbol: 'NEAR', value: 0.4 }, { symbol: 'NEAR', value: 0.2 }] });
         await el.renderFlows();
         expect(el.flowsEl.textContent.replace(/\s+/g, ' ')).to.include('Gas on 2 transactions');
+    });
+});
+
+// The year report's combined view shows the same two figures, computed by the
+// same code. Putting the two pages side by side, the numbers matched and the
+// words did not, which makes one look like a different measurement.
+describe('the same figure is called the same thing', () => {
+    it('uses the words the combined year report uses', async () => {
+        const el = makePage(base);
+        await el.renderFlows();
+        const text = el.flowsEl.textContent;
+        expect(text).to.include('Added in');
+        expect(text).to.include('Taken out');
+        expect(text).to.not.include('Deposits in');
+        expect(text).to.not.include('Withdrawals out');
     });
 });
