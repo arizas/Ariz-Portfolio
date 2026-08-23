@@ -42,6 +42,32 @@ export const GATEWAY_VENUES = new Set([
 export const PORTFOLIO_VENUES = new Set([...CUSTODY_VENUES, ...GATEWAY_VENUES]);
 
 /**
+ * Market makers inside NEAR Intents. Value moving between you and one of these
+ * is the two halves of a trade: you never receive a gift from a solver, and you
+ * cannot reach an exchange through one either.
+ *
+ * The trade rule below already catches a swap whose two legs land seconds
+ * apart. It cannot catch one whose payment was something this report has
+ * already, correctly, called internal — NEAR wrapped into wNEAR on its way into
+ * intents, for instance. Then only the purchase is left, looking like money
+ * someone gave you. On one real store that was 103 889 of "added in" with no
+ * counterpart anywhere within a day.
+ *
+ * Named accounts only, deliberately. Another person's intents account is a
+ * 64-character implicit address, and a rule broad enough to cover those would
+ * hide a genuine transfer from someone. A solver this list does not know stays
+ * counted, which is the visible failure rather than the quiet one.
+ */
+export const TRADING_COUNTERPARTIES = new Set([
+    'solver-multichain-asset.near',
+    'solver-multichain-asset-escrow.near',
+    'solver-priv-liq.near',
+    'solver-priv-liq-2.near',
+    'solver-ref.near',
+    'crux-solver.near',
+]);
+
+/**
  * Tokens that are one asset wearing two names. wNEAR is NEAR — wrapping is a
  * change of form, not of ownership — so a movement of one pairs with a movement
  * of the other.
@@ -84,7 +110,8 @@ export function baseAsset(token) {
  *   per recognised transfer, carrying the legs it was decided from
  */
 export function separatePortfolioTransfers(movements = [], {
-    venues = PORTFOLIO_VENUES, custody = CUSTODY_VENUES, unitTolerance = 1e-6,
+    venues = PORTFOLIO_VENUES, custody = CUSTODY_VENUES,
+    traders = TRADING_COUNTERPARTIES, unitTolerance = 1e-6,
     price = null, tradeWindowSeconds = 120, tradeTolerance = 0.25,
 } = {}) {
     const internal = [];
@@ -198,6 +225,19 @@ export function separatePortfolioTransfers(movements = [], {
     for (const m of movements) {
         if (taken.has(m)) continue;
         const parties = m.counterparties ?? [];
+        // Trading with a market maker moves value between assets, never across
+        // the portfolio's edge — in either direction.
+        if (parties.length && parties.every(p => traders.has(p))
+            && (m.kind === 'deposit' || m.kind === 'withdrawal')) {
+            internal.push({
+                reason: 'market-maker',
+                date: m.date, asset: baseAsset(m.token), symbol: m.symbol, units: m.units,
+                from: m.kind === 'withdrawal' ? bucketOf(m.token) : parties.join(', '),
+                to: m.kind === 'withdrawal' ? parties.join(', ') : bucketOf(m.token),
+                movements: [m],
+            });
+            continue;
+        }
         const allVenues = parties.length && parties.every(p => venues.has(p));
         const allCustody = parties.length && parties.every(p => custody.has(p));
         if (allVenues && (m.kind === 'deposit' || allCustody)) {

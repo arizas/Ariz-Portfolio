@@ -204,8 +204,10 @@ describe('a trade settled as two transactions', () => {
         'confidential:nep141:sol.omft.near': 723.031,
     }[token] ?? null);
 
+    // Implicit accounts on both sides: a named solver is settled by the
+    // market-maker rule before this one, so it would not exercise the pairing.
     const gave = { date: '2026-08-19', kind: 'withdrawal', units: 96.877202, token: 'nep141:npro.nearmobile.near', symbol: 'NPRO', counterparties: ['540927c5'], at: at(0) };
-    const got = { date: '2026-08-19', kind: 'deposit', units: 0.26225103, token: 'nep141:sol.omft.near', symbol: 'SOL', counterparties: ['solver-priv-liq.near'], at: at(9.5) };
+    const got = { date: '2026-08-19', kind: 'deposit', units: 0.26225103, token: 'nep141:sol.omft.near', symbol: 'SOL', counterparties: ['51e8f94d'], at: at(9.5) };
 
     it('pairs two legs that landed seconds apart', () => {
         const { internal, external } = separatePortfolioTransfers([gave, got], { price });
@@ -265,5 +267,49 @@ describe('custody against gateway', () => {
         const m = { date: '2026-02-10', kind: 'withdrawal', units: 10, token: '', symbol: 'NEAR',
             counterparties: ['wrap.near', 'intents.near'] };
         expect(separatePortfolioTransfers([m]).external).to.have.lengthOf(1);
+    });
+});
+
+// The trade rule catches a swap whose legs land seconds apart. It cannot catch
+// one whose payment was already, correctly, called internal — NEAR wrapped on
+// its way into intents — leaving only the purchase, looking like a gift. On a
+// real store that was 103 889 of "added in" with no counterpart within a day.
+describe('trading with a market maker', () => {
+    const leg = (over) => ({ date: '2026-03-17', kind: 'deposit', units: 1888.4, token: 'nep141:usdc.near', symbol: 'USDC', counterparties: ['solver-multichain-asset.near'], ...over });
+
+    it('is not money arriving from outside', () => {
+        const { internal, external } = separatePortfolioTransfers([leg()]);
+        expect(external).to.have.lengthOf(0);
+        expect(internal[0].reason).to.equal('market-maker');
+    });
+
+    it('is not money leaving either — a solver is not an exchange', () => {
+        expect(separatePortfolioTransfers([leg({ kind: 'withdrawal' })]).external).to.have.lengthOf(0);
+    });
+
+    it('knows the solvers by name', () => {
+        for (const s of ['solver-priv-liq.near', 'solver-ref.near', 'crux-solver.near']) {
+            expect(separatePortfolioTransfers([leg({ counterparties: [s] })]).external).to.have.lengthOf(0);
+        }
+    });
+
+    // A person's intents account is a 64-character implicit address. A rule wide
+    // enough to cover those would hide a genuine transfer from someone.
+    it('leaves an implicit account counted', () => {
+        const implicit = '540927c5958c199e9a9c40f51bfc1ecb3e228429c17c17faef74a921b1eb3adb';
+        expect(separatePortfolioTransfers([leg({ counterparties: [implicit] })]).external).to.have.lengthOf(1);
+    });
+
+    it('leaves a solver it has never heard of counted, rather than guessing', () => {
+        expect(separatePortfolioTransfers([leg({ counterparties: ['some-new-solver.near'] })]).external).to.have.lengthOf(1);
+    });
+
+    it('needs every counterparty to be a market maker', () => {
+        expect(separatePortfolioTransfers([leg({ counterparties: ['solver-ref.near', 'someone.near'] })]).external).to.have.lengthOf(1);
+    });
+
+    // Income and yield are classified before this and must not be swallowed.
+    it('leaves income alone even from a solver', () => {
+        expect(separatePortfolioTransfers([leg({ kind: 'income' })]).external).to.have.lengthOf(1);
     });
 });
