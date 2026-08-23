@@ -552,6 +552,44 @@ export async function calculatePortfolioSeries(currency, fromDate, granularity =
  * @returns {Promise<object>} the decomposeFlows result, plus `currency` and
  *   `fromDate`. `ok: false` when it refuses to guess at an unpriced flow.
  */
+/**
+ * Does this holding earn while standing still?
+ *
+ * Staking raises the staked balance without any transfer, so a holding can need
+ * a price for a day it never moved on.
+ */
+function earnsWithoutMoving(holding, fromDate) {
+    for (const [date, day] of Object.entries(holding.dailyBalances ?? {})) {
+        if (fromDate && date < fromDate) continue;
+        if (Number(day?.stakingRewards ?? 0)) return true;
+    }
+    return false;
+}
+
+/**
+ * Does this holding take part in the flow decomposition?
+ *
+ * Two ways to answer wrongly, and the decomposition is an identity — opening
+ * plus flows plus gain equals closing — so either one leaves `gain` quietly
+ * absorbing the mistake.
+ *
+ * A liquid-staking token is excluded from the portfolio total, which means its
+ * value is in neither the opening figure nor the closing one. Counting what
+ * moved in and out of it as flows puts one side of the identity out and the
+ * other in: buying it would read as money leaving the portfolio for nowhere. It
+ * is in the total or it is out of it, for value and flows alike.
+ *
+ * And not having moved is not the same as having nothing to price. A holding
+ * that only staked has rewards to value and no movement to trigger the lookup,
+ * so leaving it out valued those rewards at nothing — which reports income as
+ * the market having moved, the one distinction the split between rewards and
+ * value change exists to draw.
+ */
+export function takesPartInFlows(holding, { movementCount = 0, fromDate } = {}) {
+    if (holding?.excluded) return false;
+    return movementCount > 0 || earnsWithoutMoving(holding, fromDate);
+}
+
 export async function calculateFlowDecomposition(currency, fromDate, onProgress = () => {}, { force = false } = {}) {
     const base = await computeBase(currency, onProgress, force);
     const portfolio = await calculatePortfolio(currency, fromDate, onProgress, { force });
@@ -574,7 +612,7 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
             classifyReceived: classify,
             from: fromDate,
         });
-        if (own.length === 0) continue;
+        if (!takesPartInFlows(holding, { movementCount: own.length, fromDate })) continue;
         movements.push(...own);
 
         onProgress(`Pricing movements for ${holding.displaySymbol}`);
@@ -597,7 +635,13 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
         const map = priceByToken.get(token);
         if (!map) return null;
         if (map.__constant != null) return map.__constant;
-        return map[date] ?? null;
+        // A stored zero is not a price. The gateway has answered 0 for a lookup
+        // it did not understand before, and the merge keeps such an entry for
+        // good — so treating it as real values a movement at nothing and says
+        // nothing about it. The combined year report already reads it this way;
+        // these two must not disagree about the same stored number.
+        const p = map[date];
+        return p == null || p === 0 ? null : p;
     };
 
     // An upper bound for movements that cannot be priced on their day — price
@@ -617,6 +661,9 @@ export async function calculateFlowDecomposition(currency, fromDate, onProgress 
     // from the price moving.
     let stakingRewards = 0;
     for (const holding of base.holdings) {
+        // Rewards on a holding outside the total belong outside `gain` too, and
+        // saying so beats relying on the missing price map to drop them.
+        if (holding.excluded) continue;
         for (const [date, day] of Object.entries(holding.dailyBalances ?? {})) {
             if (fromDate && date < fromDate) continue;
             const raw = Number(day?.stakingRewards ?? 0);
