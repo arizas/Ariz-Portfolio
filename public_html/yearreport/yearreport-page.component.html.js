@@ -131,31 +131,31 @@ export default /*html*/ `<style>
 <div class="table-responsive" id="dailybalancescontainer">
     <table class="table table-sm table-hover">
         <thead class="table-dark">
-            <th scope="col">
+            <th scope="col" id="header_date">
                 date
             </th>
-            <th scope="col">
+            <th scope="col" id="header_totalbalance">
                 total balance
             </th>
-            <th scope="col">
+            <th scope="col" id="header_totalchange">
                 change
             </th>
-            <th scope="col">
+            <th scope="col" id="header_accountbalance">
                 account balance
             </th>
-            <th scope="col">
+            <th scope="col" id="header_accountchange">
                 change
             </th>
-            <th scope="col">
+            <th scope="col" id="header_stakingbalance">
                 staking balance
             </th>
-            <th scope="col">
+            <th scope="col" id="header_stakingchange">
                 change
             </th>
-            <th scope="col">
+            <th scope="col" id="header_reward">
                 reward
             </th>
-            <th scope="col">
+            <th scope="col" id="header_received">
                 ext received
             </th>
             <th scope="col" id="header_deposit">
@@ -164,13 +164,13 @@ export default /*html*/ `<style>
             <th scope="col" id="header_withdrawal">
                 withdrawals
             </th>
-            <th scope="col">
+            <th scope="col" id="header_expenses">
                 expenses
             </th>
-            <th scope="col">
+            <th scope="col" id="header_profit">
                 profit
             </th>
-            <th scope="col">
+            <th scope="col" id="header_loss">
                 loss
             </th>
             <th>

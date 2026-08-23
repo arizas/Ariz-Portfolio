@@ -237,3 +237,49 @@ describe('when prices cannot be loaded at all', () => {
         expect(body.innerText).to.not.include('did not answer');
     });
 });
+
+// Fourteen columns do not fit, and the ones that scrolled off were the ones the
+// view exists for.
+describe('which columns the combined view shows', () => {
+    const hiddenNow = (shadowRoot) => {
+        const css = shadowRoot.querySelector('#hiddencolumns')?.textContent ?? '';
+        return [...shadowRoot.querySelectorAll('table.dailybalances thead th')]
+            .filter((th, i) => css.includes(`nth-child(${i + 1})`))
+            .map(th => th.id.replace('header_', ''));
+    };
+
+    it('leaves out the balance split and the realizations', async () => {
+        const { shadowRoot } = await render({ contributions: [contribution({ deposit: 5 })] });
+        expect(hiddenNow(shadowRoot).sort()).to.deep.equal(
+            ['accountbalance', 'accountchange', 'expenses', 'loss', 'profit', 'stakingbalance', 'stakingchange']);
+    });
+
+    it('keeps the flows and the value', async () => {
+        const { shadowRoot } = await render({ contributions: [contribution({ deposit: 5 })] });
+        const hidden = hiddenNow(shadowRoot);
+        for (const kept of ['date', 'totalbalance', 'totalchange', 'reward', 'received', 'deposit', 'withdrawal']) {
+            expect(hidden, kept).to.not.include(kept);
+        }
+    });
+
+    // Counting columns works until someone inserts one, and then it hides a
+    // different column with no sign that anything is wrong.
+    it('finds a column by its name, not its position', async () => {
+        const shadowRoot = table();
+        const before = shadowRoot.querySelector('#header_accountbalance');
+        const extra = document.createElement('th');
+        extra.id = 'header_injected';
+        before.parentElement.insertBefore(extra, before);
+        await renderPeriodReportTable({
+            shadowRoot, token: ALL_TOKENS,
+            periodStartDate: new Date('2026-03-01'), periodEndDate: new Date('2026-03-05'),
+            convertToCurrency: 'nok', perRowFunction: async () => { },
+            collect: async () => ({ contributions: [contribution({ deposit: 5 })], transactionsByDate: {}, failed: [], neverPriced: [], flowsByDate: {}, pricesUnavailable: {} }),
+        });
+        const css = shadowRoot.querySelector('#hiddencolumns').textContent;
+        const idx = [...shadowRoot.querySelectorAll('table.dailybalances thead th')]
+            .findIndex(th => th.id === 'header_accountbalance') + 1;
+        expect(css).to.include(`nth-child(${idx})`);
+        expect(css).to.not.include(`nth-child(${idx - 1})`);
+    });
+});

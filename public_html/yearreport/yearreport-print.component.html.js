@@ -120,31 +120,31 @@ is obtained by calling the staking contract for the balance for that specific da
 </p>
 <table class="table table-sm table-hover">
     <thead class="table-dark">
-        <th scope="col">
+        <th id="header_date" scope="col">
             date
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_totalbalance" scope="col" class="numeric">
             total balance
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_totalchange" scope="col" class="numeric">
             change
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_accountbalance" scope="col" class="numeric">
             account balance
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_accountchange" scope="col" class="numeric">
             change
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_stakingbalance" scope="col" class="numeric">
             staking balance
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_stakingchange" scope="col" class="numeric">
             change
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_reward" scope="col" class="numeric">
             reward
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_received" scope="col" class="numeric">
             ext received
         </th>
         <th id="header_deposit" scope="col" class="numeric">
@@ -153,13 +153,13 @@ is obtained by calling the staking contract for the balance for that specific da
         <th id="header_withdrawal" scope="col" class="numeric">
             withdrawals
         </th>
-        <th scope="col" class="numeric">
+        <th id="header_expenses" scope="col" class="numeric">
             expenses
         </th>
-        <th scope="col" class="numeric profit">
+        <th id="header_profit" scope="col" class="numeric profit">
             profit
         </th>
-        <th scope="col" class="numeric loss">
+        <th id="header_loss" scope="col" class="numeric loss">
             loss
         </th>
     </thead>

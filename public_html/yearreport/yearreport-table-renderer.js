@@ -73,6 +73,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
     // again, and there is no single currency to caption.
     setHeader(shadowRoot, '#header_deposit', 'deposit');
     setHeader(shadowRoot, '#header_withdrawal', 'withdrawals');
+    setHiddenColumns(shadowRoot, []);
     setCaption(shadowRoot, '');
 
     let currentDate = periodEndDate;
@@ -267,6 +268,7 @@ export async function renderAllTokensPeriodTable({
     // it is only what came from outside the portfolio.
     setHeader(shadowRoot, '#header_deposit', 'added in');
     setHeader(shadowRoot, '#header_withdrawal', 'taken out');
+    setHiddenColumns(shadowRoot, COMBINED_HIDES);
     setCaption(shadowRoot, `All amounts in ${convertToCurrency.toUpperCase()}. "Added in" and "taken out" are what crossed the portfolio's edge — a swap moves value between your own tokens and is not counted as either. Open a day to see every token's own deposits and withdrawals.`);
     const periodStartDateString = periodStartDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
     const periodEndDateString = periodEndDate.toJSON().substring(0, 'yyyy-MM-dd'.length);
@@ -399,6 +401,53 @@ function nameList(symbols, limit = 6) {
 const EMPTY_FLOWS = Object.freeze({
     deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0, ambiguous: [], unpriced: [],
 });
+
+/**
+ * Columns the combined view leaves out.
+ *
+ * Fourteen columns do not fit, and the ones that scroll off are the ones the
+ * view exists for. The liquid/staked split belongs to a single token — combined
+ * it is NEAR's split with everything else piled into one side. The FIFO
+ * realizations answer a different question, per token, and beside the flows they
+ * compete with the numbers someone opened this for.
+ */
+const COMBINED_HIDES = [
+    'accountbalance', 'accountchange', 'stakingbalance', 'stakingchange',
+    'expenses', 'profit', 'loss',
+];
+
+/**
+ * Hide whole columns by the name of their header, header and body and footer
+ * together.
+ *
+ * The position is looked up rather than written down. Counting columns works
+ * until someone inserts one, and then it hides a different column with no sign
+ * that anything is wrong — which is the failure this codebase keeps meeting.
+ */
+function setHiddenColumns(shadowRoot, headerIds) {
+    const style = shadowRoot.querySelector('#hiddencolumns')
+        ?? Object.assign(document.createElement('style'), { id: 'hiddencolumns' });
+    if (!style.isConnected) shadowRoot.appendChild(style);
+
+    // Anchored on the table itself, because the page and the print view wrap it
+    // differently and a selector that matched only one of them would hide
+    // nothing in the other without saying so.
+    const table = shadowRoot.querySelector('#dailybalancestable')?.closest('table');
+    if (table) table.classList.add('dailybalances');
+
+    const positions = [];
+    for (const id of headerIds) {
+        const th = shadowRoot.querySelector(`#header_${id}`);
+        if (!th?.parentElement) continue;
+        const n = [...th.parentElement.children].indexOf(th) + 1;
+        if (n > 0) positions.push(n);
+    }
+    style.textContent = positions.length
+        ? positions.map(n =>
+            `table.dailybalances th:nth-child(${n}), table.dailybalances td:nth-child(${n}) { display: none; }`
+        ).join('\n')
+        : '';
+}
 
 function setHeader(shadowRoot, selector, text) {
     const cell = shadowRoot.querySelector(selector);
