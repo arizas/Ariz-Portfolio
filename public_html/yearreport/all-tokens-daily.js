@@ -37,9 +37,26 @@ export const ALL_TOKENS = '__all__';
  * @property {boolean} [priced]  false when no rate was available that day
  */
 
-const SUMMED = ['stakingReward', 'received', 'deposit', 'withdrawal', 'expense',
-    'profit', 'loss', 'totalBalance', 'totalChange',
+/**
+ * Fields that are a price times an amount, and so cannot be added on a day the
+ * price is missing.
+ */
+const PRICED = ['stakingReward', 'received', 'deposit', 'withdrawal', 'expense',
+    'totalBalance', 'totalChange',
     'accountBalance', 'accountChange', 'stakingBalance', 'stakingChange'];
+
+/**
+ * Fields already denominated in the target currency, whatever happened to that
+ * day's price. A realization is worked out when the disposal happens; it does
+ * not become unknown because the end-of-day quote is missing.
+ *
+ * Lumping these in with the priced fields dropped 103 547,98 of realized loss
+ * from one real year — the combined total disagreed with the per-token report
+ * it is supposed to be a sum of, which is the whole point of having one.
+ */
+const ALWAYS_SUMMED = ['profit', 'loss'];
+
+const SUMMED = [...PRICED, ...ALWAYS_SUMMED];
 
 /**
  * One row per date, summing every token that contributed to it.
@@ -65,6 +82,10 @@ export function combineDailyRows(contributions) {
         const row = byDate.get(c.date);
         // An unpriced token is recorded, not silently added as zero: a day whose
         // total is missing a leg should say so rather than look complete.
+        // Realizations are added whatever the day's price did: they are already
+        // in the target currency.
+        for (const k of ALWAYS_SUMMED) row[k] += Number(c[k] ?? 0);
+
         if (c.priced === false) {
             // Split by what the missing price actually costs you: a movement that
             // cannot be priced makes the day's flows wrong, a balance that cannot
@@ -74,7 +95,7 @@ export function combineDailyRows(contributions) {
             const list = c.movedUnits ? row.unpriced : row.unvalued;
             if (!list.includes(c.symbol)) list.push(c.symbol);
         } else {
-            for (const k of SUMMED) row[k] += Number(c[k] ?? 0);
+            for (const k of PRICED) row[k] += Number(c[k] ?? 0);
         }
         if (hasMovement(c)) row.tokens.push(c);
     }

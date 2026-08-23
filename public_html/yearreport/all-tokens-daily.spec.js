@@ -132,3 +132,38 @@ describe('ALL_TOKENS', () => {
         expect(ALL_TOKENS.endsWith('.near')).to.equal(false);
     });
 });
+
+// A realization is worked out when the disposal happens, in the target
+// currency. It does not become unknown because that day's end-of-day quote is
+// missing — and treating it as if it did dropped 103 547,98 of realized loss
+// from one real year, leaving the combined total disagreeing with the per-token
+// report it is a sum of.
+describe('realizations on a day with no price', () => {
+    it('still counts them', () => {
+        const { rows, totals } = combineDailyRows([
+            day('a', 'A', '2026-03-01', { deposit: 100 }),
+            day('x', 'USDC', '2026-03-01', { loss: 1000, priced: false, movedUnits: true }),
+        ]);
+        expect(rows[0].loss).to.equal(1000);
+        expect(totals.loss).to.equal(1000);
+    });
+
+    it('counts a gain the same way', () => {
+        const { totals } = combineDailyRows([
+            day('x', 'USDC', '2026-03-01', { profit: 250, priced: false }),
+        ]);
+        expect(totals.profit).to.equal(250);
+    });
+
+    // The amounts that are a price times a quantity are still left out, because
+    // without the price there is no such number.
+    it('still leaves the priced amounts out', () => {
+        const { rows } = combineDailyRows([
+            day('x', 'USDC', '2026-03-01', { deposit: 999, totalBalance: 500, loss: 7, priced: false, movedUnits: true }),
+        ]);
+        expect(rows[0].deposit).to.equal(0);
+        expect(rows[0].totalBalance).to.equal(0);
+        expect(rows[0].loss).to.equal(7);
+        expect(rows[0].unpriced).to.deep.equal(['USDC']);
+    });
+});
