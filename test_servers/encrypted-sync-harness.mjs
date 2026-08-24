@@ -19,8 +19,11 @@
 // against a broken SW key, like production's stale-SW incident), zero-knowledge
 // at rest (ciphertext only), authenticated store requests, a fresh "device"
 // (new browser context) unlocking via its stored wrap, cloning, editing and
-// pushing back — and device 1 then syncing the other device's commit in via an
-// INCREMENTAL fetch + merge (multi-pack store). Exits non-zero on failure.
+// pushing back — device 1 then syncing the other device's commit in via an
+// INCREMENTAL fetch + merge (multi-pack store) — and two devices DIVERGING:
+// the JSON auto-merge, the merge push, the store it can leave unreadable, the
+// rebuild the next sync performs, and a fresh device cloning afterwards.
+// Exits non-zero on failure.
 //
 //   node test_servers/encrypted-sync-harness.mjs
 import http from 'http';
@@ -383,6 +386,161 @@ results.push({ name: 'store at rest', atRest });
     results.push({ name: 'device 1 again: incremental fetch + merge of device 2 push', out, errors });
 }
 
+// ---- Two devices that DIVERGE, and what their merge does to the store -------
+// The 2026-08-24 production failure, end to end. Devices 3 and 4 clone the same
+// tip and both add days to the same price file. Device 4 pushes; device 3 then
+// syncs — fetch, JSON auto-merge, and a MERGE commit pushed back.
+//
+// The store appends one encrypted pack per push and upload-pack concatenates
+// ALL of them ("correct, if not minimal" — core/packcat.js). That holds only
+// while no object is in two packs. A merge push re-sends objects the store
+// already has, so from then on every fetch receives one pack carrying the same
+// object twice, and libgit2 refuses to index it:
+//     duplicate object <oid> found in pack
+// which surfaces on the next device as "revspec 'origin/master' not found"
+// (set_remote drops the remote-tracking ref before every sync, and the failed
+// fetch never recreates it) and then a rejected push. Device 5 is the device
+// that has to live with it.
+const priceFile = 'pricehistory/NEAR/nok.json';
+const prices = (days) => JSON.stringify(Object.fromEntries(days.map((d) => [`2026-08-${d}`, d])), null, 1);
+
+const openDevice = async (label) => {
+    const d = await newAppPage();
+    d.label = label;
+    d.run = (fn, arg) => d.page.evaluate(fn, arg);
+    return d;
+};
+const cloneStore = async (d, account) => d.run(async ({ account }) => {
+    const gs = await import('/storage/gitstorage.js');
+    const { installRealTestWallet } = await import('/realwallet.js');
+    await installRealTestWallet(window.__realWalletParams);
+    const sp = await import('/storage/storage-page.component.js');
+    const url = await sp.prepareSyncRemote();
+    await gs.configure_user({ accessToken: 'irrelevant-for-egit', username: account, useremail: account });
+    await gs.git_clone(url);
+    await gs.set_remote(url);
+    return { url };
+}, { account });
+
+{
+    const d3 = await openDevice('device 3');
+    const d4 = await openDevice('device 4');
+    const out = { log: [] };
+    try {
+        await cloneStore(d3, ACCOUNT);
+        // A shared starting point. Several directories, because the merged tree
+        // then points at SUBTREES that only one side touched — exactly the shape
+        // of the real store, where one device's sync rewrites accountdata/ and
+        // the other's adds a day under pricehistory/.
+        await d3.run(async ({ priceFile, content }) => {
+            const gs = await import('/storage/gitstorage.js');
+            await gs.writeFile(priceFile, content);
+            for (const dir of ['alpha', 'beta', 'gamma']) {
+                for (let f = 0; f < 8; f++) {
+                    await gs.writeFile(`${dir}/records-${f}.json`, JSON.stringify({ dir, f, rows: Array.from({ length: 40 }, (_, i) => ({ i, v: `${dir}-${f}-${i}` })) }, null, 1));
+                }
+            }
+            await gs.commit_all();
+            await gs.push();
+        }, { priceFile, content: prices([19, 20]) });
+        out.log.push('ok:device 3 seeded prices and three data directories');
+
+        await cloneStore(d4, ACCOUNT);
+        out.log.push('ok:device 4 cloned the same tip');
+
+        // Each device changes a DIFFERENT directory, and both extend the price
+        // file. Device 4 pushes first.
+        await d3.run(async ({ priceFile, content }) => {
+            const gs = await import('/storage/gitstorage.js');
+            await gs.writeFile(priceFile, content);
+            for (let f = 0; f < 8; f++) await gs.writeFile(`beta/records-${f}.json`, JSON.stringify({ dir: 'beta', f, changedBy: 'device3', rows: Array.from({ length: 40 }, (_, i) => ({ i, v: `beta-${f}-${i}-d3` })) }, null, 1));
+            await gs.commit_all();
+        }, { priceFile, content: prices([19, 20, 21, 23]) });
+        await d4.run(async ({ priceFile, content }) => {
+            const gs = await import('/storage/gitstorage.js');
+            await gs.writeFile(priceFile, content);
+            for (let f = 0; f < 8; f++) await gs.writeFile(`alpha/records-${f}.json`, JSON.stringify({ dir: 'alpha', f, changedBy: 'device4', rows: Array.from({ length: 40 }, (_, i) => ({ i, v: `alpha-${f}-${i}-d4` })) }, null, 1));
+            await gs.commit_all();
+            await gs.push();
+        }, { priceFile, content: prices([19, 20, 21, 22]) });
+        out.log.push('ok:device 4 pushed alpha/ while device 3 held its beta/ commit');
+
+        // Device 3 syncs: this is the merge push.
+        out.merge = await d3.run(async ({ priceFile }) => {
+            const gs = await import('/storage/gitstorage.js');
+            const read = async (p) => { try { return (await gs.readTextFile(p)).trim().slice(0, 200); } catch (e) { return '(none)'; } };
+            try {
+                const synced = await gs.sync();
+                return { ok: true, autoResolved: synced.autoResolved, repackedStore: synced.repackedStore, merged: await gs.readTextFile(priceFile) };
+            } catch (e) {
+                return {
+                    ok: false,
+                    error: String(e).slice(0, 400),
+                    state: {
+                        HEAD: await read('.git/HEAD'),
+                        master: await read('.git/refs/heads/master'),
+                        MERGE_HEAD: await read('.git/MERGE_HEAD'),
+                        MERGE_MODE: await read('.git/MERGE_MODE'),
+                        originMaster: await read('.git/refs/remotes/origin/master'),
+                        priceFile: await read(priceFile),
+                        repoConfig: await read('.git/config'),
+                    },
+                };
+            }
+        }, { priceFile });
+        out.log.push(`ok:device 3 synced (auto-resolved ${out.merge.autoResolved?.length ?? '?'}, rebuilt the store: ${out.merge.repackedStore})`);
+        out.packsAfterMerge = store.packs.size;
+
+        // Can a device arriving right after the merge push still read the store?
+        // Today it cannot: the merge push re-sent objects the store already had,
+        // and upload-pack serves every pack concatenated.
+        const cloneAttempt = (label) => openDevice(label).then(async (d) => {
+            const r = await d.run(async ({ account }) => {
+                const gs = await import('/storage/gitstorage.js');
+                const { installRealTestWallet } = await import('/realwallet.js');
+                await installRealTestWallet(window.__realWalletParams);
+                const sp = await import('/storage/storage-page.component.js');
+                const describe = (e) => (typeof e === 'string' ? e : e?.message ?? JSON.stringify(e)).slice(0, 400);
+                try {
+                    const url = await sp.prepareSyncRemote();
+                    await gs.configure_user({ accessToken: 'irrelevant-for-egit', username: account, useremail: account });
+                    const clone = await gs.git_clone(url);
+                    const cloneError = clone?.code ? (clone.stderr || '').trim().split('\n').slice(-3).join(' | ') : null;
+                    if (cloneError) return { ok: false, error: cloneError };
+                    return { ok: true, prices: await gs.readTextFile('pricehistory/NEAR/nok.json') };
+                } catch (e) { return { ok: false, error: describe(e) }; }
+            }, { account: ACCOUNT });
+            await d.ctx.close();
+            return r;
+        });
+
+        out.cloneAfterMerge = await cloneAttempt('device 5');
+        out.log.push(`ok:clone straight after the merge push: ${out.cloneAfterMerge.ok ? 'worked' : out.cloneAfterMerge.error}`);
+
+        // Device 3 syncs again. Its fetch is the one that meets the duplicate,
+        // and it is the device holding the store's tip — so it rebuilds the
+        // store's packs and carries on.
+        out.secondSync = await d3.run(async () => {
+            const gs = await import('/storage/gitstorage.js');
+            try {
+                const synced = await gs.sync();
+                return { ok: true, repackedStore: synced.repackedStore };
+            } catch (e) { return { ok: false, error: String(e).slice(0, 500) }; }
+        });
+        out.log.push(`ok:device 3 synced again (rebuilt the store: ${out.secondSync.repackedStore})`);
+
+        out.freshClone = await cloneAttempt('device 6');
+        out.ok = true;
+    } catch (e) {
+        out.ok = false;
+        out.error = String(e?.stack ?? e).slice(0, 600);
+    }
+    const errors = [...d3.errors, ...d4.errors];
+    await d3.ctx.close();
+    await d4.ctx.close();
+    results.push({ name: 'devices 3+4: divergent edits, merge push, then a fresh clone', out, errors });
+}
+
 await browser.close();
 storeServer.close();
 appServer.close();
@@ -390,8 +548,27 @@ appServer.close();
 console.log('\n===== ENCRYPTED SYNC RESULTS =====');
 console.log(JSON.stringify(results, null, 2));
 
-const [d1, rest, d2, d1again] = results;
-const pass =
+const [d1, rest, d2, d1again, diverge] = results;
+
+// The divergence scenario is reported separately: the JSON auto-merge and the
+// store's ability to serve what it was given are two different claims, and only
+// the first one is this repository's code.
+const mergedDays = (() => { try { return Object.keys(JSON.parse(diverge.out.merge?.merged ?? '')).length; } catch { return 0; } })();
+const autoMergeWorks = diverge.out.merge?.ok === true && mergedDays === 5;
+// Whether a merge push actually leaves a duplicate in the store is libgit2's
+// business, so it is not asserted — but IF it did, the next sync must have
+// rebuilt the store, and either way a fresh device must end up able to clone.
+const brokeAfterMerge = diverge.out.cloneAfterMerge?.ok === false;
+const rebuiltWhenNeeded = !brokeAfterMerge
+    || diverge.out.merge?.repackedStore === true || diverge.out.secondSync?.repackedStore === true;
+const storeStillReadable = diverge.out.freshClone?.ok === true;
+console.log(`\ndivergent devices: JSON auto-merge ${autoMergeWorks ? 'PASS' : 'FAIL'} (${mergedDays} days kept)`);
+console.log(`divergent devices: the divergent push left the store unreadable: ${brokeAfterMerge ? 'yes — ' + diverge.out.cloneAfterMerge.error : 'no'}`);
+console.log(`divergent devices: rebuilt the store when it had to ${rebuiltWhenNeeded ? 'PASS' : 'FAIL'}`);
+console.log(`divergent devices: a fresh device can clone ${storeStillReadable ? 'PASS' : 'FAIL'}`
+    + (storeStillReadable ? '' : ` — ${diverge.out.freshClone?.error}`));
+
+const pass = autoMergeWorks && rebuiltWhenNeeded && storeStillReadable &&
     d1.out.ok && d1.out.log.includes('ok:push') &&
     d1.out.controlledBefore === false && d1.out.controlledAfter === true &&
     d1.out.url === `${APP_ORIGIN}/egit/${ACCOUNT}` &&

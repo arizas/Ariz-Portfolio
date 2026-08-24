@@ -222,6 +222,110 @@ const browser = await chromium.launch();
     results.push({ name: 'C: fetch into migrated repo without .git/objects/pack', out, errors });
 }
 
+// ---- Test D: two devices append to the same files ----------------------------
+// The 2026-08-24 failure: both devices had added prices, so git text-merged the
+// tail of every price file into a conflict, `add .` staged the <<<<<<< markers,
+// and the next Synchronize pushed broken JSON to every device. The worker must
+// merge these as JSON instead - no prompt, nothing invalid reaching the remote.
+const gitEnv = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
+const runGit = (cwd, args) => execSync(`git ${args}`, { cwd, env: gitEnv, stdio: 'pipe' });
+const PRICES = 'pricehistory/NEAR/nok.json';
+const TXS = 'accountdata/x.near/transactions.json';
+
+/** A bare repo, served by the same backend, holding one commit of `files`. */
+function seedRemote(name, files) {
+    const bare = path.join(path.dirname(bareRepo), `${name}.git`);
+    execSync(`git init --bare --initial-branch=master ${bare}`);
+    execSync(`git -C ${bare} config http.receivepack true`);
+    const work = path.join(path.dirname(bareRepo), `${name}-seed`);
+    fs.mkdirSync(work, { recursive: true });
+    runGit(work, 'init -q -b master');
+    for (const [rel, content] of Object.entries(files)) {
+        fs.mkdirSync(path.join(work, path.dirname(rel)), { recursive: true });
+        fs.writeFileSync(path.join(work, rel), content);
+    }
+    runGit(work, 'add -A');
+    runGit(work, 'commit -qm seed');
+    runGit(work, `push -q ${bare} master`);
+    return { bare, work };
+}
+
+{
+    const { bare, work } = seedRemote('conflict', {
+        [PRICES]: JSON.stringify({ '2026-08-19': 1, '2026-08-20': 2 }, null, 1),
+        [TXS]: JSON.stringify([{ hash: 'a', block_height: 1 }], null, 1),
+    });
+
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(`${ORIGIN}/test.html`);
+
+    // This device clones, and only then does the OTHER device push - so the two
+    // have a common ancestor and genuinely diverge, as two real devices do.
+    const cloned = await page.evaluate(async (url) => {
+        const gs = await import('/storage/gitstorage.js');
+        try {
+            await gs.configure_user({ accessToken: 'ANON', username: 't', useremail: 't@t' });
+            await gs.git_clone(url);
+            return { ok: true };
+        } catch (e) { return { ok: false, error: String(e).slice(0, 400) }; }
+    }, `${ORIGIN}/conflict.git`);
+
+    fs.writeFileSync(path.join(work, PRICES), JSON.stringify({ '2026-08-19': 1, '2026-08-20': 2, '2026-08-21': 3, '2026-08-22': 4 }, null, 1));
+    fs.writeFileSync(path.join(work, TXS), JSON.stringify([{ hash: 'b', block_height: 2 }, { hash: 'a', block_height: 1 }], null, 1));
+    runGit(work, 'commit -qam "other device"');
+    runGit(work, `push -q ${bare} master`);
+
+    const out = await page.evaluate(async ({ prices, txs }) => {
+        const gs = await import('/storage/gitstorage.js');
+        try {
+            // The same day priced on both devices, plus a day only this one has.
+            await gs.writeFile(prices, JSON.stringify({ '2026-08-19': 1, '2026-08-20': 2, '2026-08-21': 3, '2026-08-23': 5 }, null, 1));
+            await gs.writeFile(txs, JSON.stringify([{ hash: 'c', block_height: 3 }, { hash: 'a', block_height: 1 }], null, 1));
+            await gs.commit_all();
+            const synced = await gs.sync();
+            return { ok: true, synced, prices: await gs.readTextFile(prices), txs: await gs.readTextFile(txs) };
+        } catch (e) { return { ok: false, error: String(e).slice(0, 400) }; }
+    }, { prices: PRICES, txs: TXS });
+
+    await ctx.close();
+    const remote = (rel) => { try { return execSync(`git --git-dir=${bare} show master:${rel}`).toString(); } catch (e) { return 'ERR ' + e.message; } };
+    results.push({ name: 'D: concurrent edits on two devices merge as JSON', cloned, out, remote: { prices: remote(PRICES), txs: remote(TXS) }, errors });
+}
+
+// ---- Test E: a store that ALREADY holds a commit with conflict markers -------
+// The damage from 2026-08-24 is in the shared history, so every device pulls it.
+// The markers carry both versions, so the first device to sync can rebuild the
+// file from itself and push the repair - no export/re-import, no lost days.
+{
+    const damaged = ['{', ' "2026-08-20": 2,', '<'.repeat(7) + ' HEAD', ' "2026-08-21": 3,', ' "2026-08-22": 4', '='.repeat(7), ' "2026-08-21": 3', '>'.repeat(7) + ' master', '}'].join('\n');
+    const { bare } = seedRemote('damaged', { [PRICES]: damaged });
+
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(`${ORIGIN}/test.html`);
+
+    const out = await page.evaluate(async ({ url, prices }) => {
+        const gs = await import('/storage/gitstorage.js');
+        try {
+            await gs.configure_user({ accessToken: 'ANON', username: 't', useremail: 't@t' });
+            await gs.git_clone(url);
+            await gs.set_remote(url);
+            const synced = await gs.sync();
+            return { ok: true, synced, prices: await gs.readTextFile(prices) };
+        } catch (e) { return { ok: false, error: String(e).slice(0, 400) }; }
+    }, { url: `${ORIGIN}/damaged.git`, prices: PRICES });
+
+    await ctx.close();
+    let remotePrices;
+    try { remotePrices = execSync(`git --git-dir=${bare} show master:${PRICES}`).toString(); } catch (e) { remotePrices = 'ERR ' + e.message; }
+    results.push({ name: 'E: a committed conflict-marker file is repaired and pushed', out, remotePrices, errors });
+}
+
 await browser.close();
 git.close();
 app.close();
@@ -234,7 +338,24 @@ console.log('\n===== OPFS WORKER RESULTS =====');
 console.log(JSON.stringify(results, null, 2));
 console.log('remote refs:', JSON.stringify(remoteRefs), '\nremote report.txt =', JSON.stringify(remoteFile));
 
-const A = results[0], B = results[1], C = results[2];
+const A = results[0], B = results[1], C = results[2], D = results[3], E = results[4];
+
+// Nothing anywhere may contain a conflict marker, and everything must parse.
+const clean = (text) => typeof text === 'string' && !text.includes('<'.repeat(7));
+const parsed = (text) => { try { return clean(text) ? JSON.parse(text) : null; } catch (e) { return null; } };
+const days = (text) => Object.keys(parsed(text) ?? {});
+const hashes = (text) => (parsed(text) ?? []).map((tx) => tx.hash).sort();
+
+const mergedEverywhere = (text) => days(text).join() === '2026-08-19,2026-08-20,2026-08-21,2026-08-22,2026-08-23';
+const D_pass = D.cloned.ok && D.out.ok &&
+    mergedEverywhere(D.out.prices) && mergedEverywhere(D.remote.prices) &&
+    hashes(D.out.txs).join() === 'a,b,c' && hashes(D.remote.txs).join() === 'a,b,c' &&
+    D.out.synced.autoResolved.length === 2 && D.errors.length === 0;
+const E_pass = E.out.ok &&
+    days(E.out.prices).join() === '2026-08-20,2026-08-21,2026-08-22' &&
+    days(E.remotePrices).join() === '2026-08-20,2026-08-21,2026-08-22' &&
+    E.errors.length === 0;
+
 const pass =
     A.out.ok && A.out.readback === 'hello from opfs worker' && A.out.log.includes('ok:push') &&
     remoteRefs.includes('refs/heads/master') &&
@@ -244,6 +365,8 @@ const pass =
     remoteFile === 'hello from opfs worker' &&
     B.migrated.readback === '{"legacy":true}' &&
     C.out.ok && C.out.readback === 'second, from another device\n' &&
+    D_pass && E_pass &&
     A.errors.length === 0 && B.errors.length === 0 && C.errors.length === 0;
+console.log('D:', D_pass ? 'pass' : 'FAIL', ' E:', E_pass ? 'pass' : 'FAIL');
 console.log('\n===== ' + (pass ? 'PASS' : 'FAIL') + ' =====');
 process.exit(pass ? 0 : 1);

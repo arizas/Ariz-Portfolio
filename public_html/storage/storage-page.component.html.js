@@ -11,6 +11,7 @@ export default /*html*/ `<div class="card">
             <button class="btn btn-secondary" id="downloadzipbutton">Download as zip file</button>
             <button class="btn btn-outline-danger" id="deletelocaldatabutton">Delete local data</button>
         </p>
+        <p id="syncstatus" style="display:none;"><small class="text-muted"></small></p>
         <p><small class="text-muted">On the first synchronize of a session, your wallet will ask you to sign the same
             message <b>twice</b>: the second signature verifies that your wallet signs deterministically, so it can
             unlock the same key again later. A wallet that signs differently each time cannot be used to unlock by

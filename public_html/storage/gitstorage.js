@@ -16,20 +16,27 @@ let worker = useMemFs ? null : createGitWorker();
 
 // A worker is only service-worker controlled if it was CREATED while the page
 // was controlled — a later claim() covers the page but not already-running
-// workers, whose requests keep bypassing the SW (verified in Chromium). Track
-// control at creation time so the encrypted-sync flow knows when a restart is
-// needed, independent of when the page itself got claimed.
-let workerControlled = useMemFs || !!navigator.serviceWorker?.controller;
+// workers, whose requests keep bypassing the SW (verified in Chromium). So the
+// CONTROLLER ITSELF is remembered at creation, not merely whether there was
+// one: when a newer /sw.js is deployed the page gets a different controller,
+// and a worker created under the old one is left talking to a service worker
+// that is gone. Its /egit requests then fall through to the network, where the
+// SPA fallback answers with index.html and git reports "bad packet length" —
+// seen for real after a service-worker update.
+let controllerAtCreation = useMemFs ? null : (navigator.serviceWorker?.controller ?? null);
 
 export function gitWorkerControlled() {
-    return workerControlled;
+    if (useMemFs) return true;
+    const controller = navigator.serviceWorker?.controller ?? null;
+    return controller !== null && controller === controllerAtCreation;
 }
 
 /**
  * Terminate and recreate the git worker (state is in OPFS, so nothing is lost;
- * configure_user must be re-sent afterwards). Needed after the encrypted-sync
- * service worker's first registration: this worker predates the SW's claim, so
- * its /egit requests would bypass the SW.
+ * configure_user must be re-sent afterwards). Needed whenever this worker
+ * predates the service worker now controlling the page — its first
+ * registration, and equally every later deploy of a new /sw.js — because the
+ * worker's /egit requests would otherwise bypass it.
  */
 export async function restartGitWorker() {
     if (useMemFs) return;
@@ -38,7 +45,7 @@ export async function restartGitWorker() {
     }
     worker.terminate();
     worker = createGitWorker();
-    workerControlled = !!navigator.serviceWorker?.controller;
+    controllerAtCreation = navigator.serviceWorker?.controller ?? null;
 }
 
 let currentCommandInProgress;
@@ -65,8 +72,15 @@ const workerCommand = async (command, params) => {
                 }
                 currentCommandInProgress = null;
                 reject(msg.data.error);
-            } else if (msg.data.progress) {
-                setProgressbarValue('indeterminate', msg.data.progress);
+            } else if ('progress' in msg.data) {
+                // A progress line, not an answer — even an empty one. git's
+                // progress printer ends with a bare newline, which arrives here
+                // as `{ progress: '' }`; testing the VALUE for truthiness let
+                // that empty line fall through and resolve the command, so the
+                // caller got `undefined` and the command's real result was
+                // handed to whichever command ran next (seen on a clone big
+                // enough to report progress).
+                if (msg.data.progress) setProgressbarValue('indeterminate', msg.data.progress);
             } else {
                 if (!progressBarWasAlreadyVisible) {
                     setProgressbarValue(null);
@@ -173,15 +187,23 @@ export async function get_remote() {
     }
 }
 
+/**
+ * Fetch, merge and push. Conflicts are resolved in the worker by merging the
+ * two versions as JSON (see jsonmerge.js), so this returns without asking
+ * anything even when another device changed the same files.
+ *
+ * @returns {Promise<{autoResolved: string[]}>} the paths that needed merging.
+ */
 export async function sync() {
-    if (useMemFs) return;
-    await workerCommand('sync', []);
+    if (useMemFs) return { autoResolved: [] };
+    const { result } = await workerCommand('sync', []);
     // A sync writes price history straight into storage, behind the session
     // cache that was built to stop a report reading the same file once per day.
     // Left alone, prices that just arrived stay invisible until a reload.
     const { clearPriceHistoryCache, resetPriceService } = await import('../pricedata/pricedata.js');
     clearPriceHistoryCache();
     resetPriceService();
+    return result ?? { autoResolved: [] };
 }
 
 export async function push() {

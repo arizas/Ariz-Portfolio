@@ -87,6 +87,29 @@ const server = createServer(async (req, res) => {
         return createReadStream(resolved).pipe(res);
     }
 
+    // /egit/* belongs to the service worker and to nothing else. Falling through
+    // to the SPA answer below hands git a page of HTML, whose first four bytes
+    // are not a hex length — so a request that merely MISSED the service worker
+    // is reported as "bad packet length", which sounds like a corrupt store and
+    // sent a whole day's debugging in the wrong direction. Say what happened.
+    // It is logged as well as answered: git's transport does not report the
+    // status, it just fails to parse whatever body it gets, so the only place
+    // the truth is visible is here.
+    // The answer is framed as a pkt-line ERR, because git does not report the
+    // HTTP status here — it parses whatever body it gets. Plain prose (or the
+    // SPA's HTML) is read as a packet length and reported as "bad packet
+    // length", which says nothing and sounds like a corrupt store. An ERR frame
+    // is valid framing, so git prints the message instead.
+    if (path.startsWith('/egit/')) {
+        console.log(`[egit MISSED the service worker] ${req.method} ${req.url}`);
+        const message = 'ERR this request never reached the egit service worker: it is not registered/activated, or the wasm-git worker predates it\n';
+        // The length prefix counts BYTES, so it is measured on the buffer.
+        const payload = Buffer.from(message, 'utf8');
+        const header = Buffer.from((payload.length + 4).toString(16).padStart(4, '0'), 'ascii');
+        res.writeHead(200, { 'content-type': 'application/x-git-upload-pack-result', 'cache-control': 'no-cache' });
+        return res.end(Buffer.concat([header, payload]));
+    }
+
     // SPA fallback: client-routed paths, and directories that happen to share a
     // name with a route (public_html/storage/ is both).
     if (req.method === 'GET' || req.method === 'HEAD') {
