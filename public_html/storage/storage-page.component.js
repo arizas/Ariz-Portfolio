@@ -222,6 +222,24 @@ customElements.define('storage-page',
             this.dispatchEvent(new Event('sync'));
         }
 
+        /**
+         * Say what the sync had to merge. Changing the same files on two devices
+         * is normal here and needs no decision from the user - but silently
+         * rewriting their files would not be honest either, so the count is
+         * shown and the paths go to the console.
+         */
+        reportAutoResolved(autoResolved = []) {
+            const status = this.shadowRoot.getElementById('syncstatus');
+            if (autoResolved.length === 0) {
+                status.style.display = 'none';
+                return;
+            }
+            console.log('sync merged changes from another device in:', autoResolved);
+            status.querySelector('small').innerText =
+                `Merged changes made on another device in ${autoResolved.length} file(s).`;
+            status.style.display = '';
+        }
+
         async synchronize() {
             setProgressbarValue('indeterminate', 'syncing with the Ariz gateway');
             this.syncbutton.disabled = true;
@@ -270,7 +288,7 @@ customElements.define('storage-page',
                     await setUser();
                     await set_remote(url);
                     await commit_all();
-                    await sync();
+                    this.reportAutoResolved((await sync()).autoResolved);
                 }
                 this.dispatchSyncEvent();
             } catch (e) {

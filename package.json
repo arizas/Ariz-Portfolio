@@ -38,7 +38,7 @@
     "@web/test-runner": "^1.0.0",
     "@web/test-runner-playwright": "^1.0.0",
     "cgi": "^0.3.1",
-    "encrypted-git-storage": "^0.1.4",
+    "encrypted-git-storage": "^0.1.7",
     "http-server": "^14.1.1",
     "ipfs-car": "^1.2.0",
     "jspm": "^3.2.0",
