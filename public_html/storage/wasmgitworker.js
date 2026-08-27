@@ -284,9 +284,15 @@ async function headSha() {
  * store's exact current tip — so check before uploading anything, rather than
  * spending a full upload on a push the store would refuse.
  *
- * This is a way out of damage some OTHER client left behind (an older version of
- * this app, or a merge pushed from the CLI). This app no longer creates it:
- * flattenOntoRemote keeps every push linear.
+ * Be clear about how rarely this can actually fire, so nobody relies on it: the
+ * device that MEETS the duplicate is by definition behind (it is fetching), and
+ * a device at the tip never meets it, because its fetch has nothing to download.
+ * It helps only the narrow case of a device at the tip whose object store is
+ * incomplete. A store broken by someone else's merge push is in practice
+ * rebuilt with `git-remote-egit --gc`, which is what the error text says.
+ *
+ * This app no longer creates the damage: flattenOntoRemote keeps every push
+ * linear. `git pull` from a terminal still does.
  */
 async function repairDuplicateObjectStore() {
     const [tip, head] = [await remoteTip(), await headSha()];
@@ -416,9 +422,12 @@ async function syncWithRemote() {
             'The store is serving a packfile that carries the same object twice, so nothing',
             'can be fetched from it until it is rebuilt, and no device can sync until then.',
             repackFailure ? `This device could not rebuild it: ${repackFailure}.` : '',
-            'Synchronize on the device that synced last - only a device holding everything',
-            'the store holds can rebuild it. Failing that, from a machine with the remote',
-            'helper: git-remote-egit --gc <remote url>',
+            'Rebuild it from a machine with the remote helper:',
+            '    git-remote-egit --gc <the store URL>',
+            '',
+            'Pushing a MERGE commit is what leaves the store like this. This app flattens',
+            'its merges before pushing, but `git pull` from a terminal does not - use',
+            '`git pull --rebase` (or `git config pull.rebase true`) on that clone.',
         );
     }
     throw phases.filter((line, i) => line !== '' || i === 0 || phases[i - 1] !== '').join('\n');
