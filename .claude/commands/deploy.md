@@ -23,13 +23,30 @@ deployed once and only needs touching if the gateway URL or web4 behavior change
    cp dist/index.html ../ariz-gateway/server/public/index.html
    ```
 
-3. **Commit + push** in ariz-gateway (a PR, or directly to `main`) — pushing to `main`
+3. **If `encrypted-git-storage` changed, ship its service worker too.** Browsers fetch
+   it from `<origin>/sw.js`, which the gateway serves from a **committed copy** —
+   nothing generates it, so bumping the dependency alone ships a new frontend against
+   an OLD service worker. This is invisible locally: the dev server serves `/sw.js`
+   straight from `node_modules`. In ariz-gateway:
+   ```
+   # match the version this repo depends on, then refresh the committed copy
+   npm install
+   cp node_modules/encrypted-git-storage/dist/sw.js server/public/sw.js
+   npm test
+   ```
+
+4. **Commit + push** in ariz-gateway (a PR, or directly to `main`) — pushing to `main`
    triggers the Fly deploy that serves the new bundle:
    ```
    cd ../ariz-gateway && git add server/public/index.html && git commit -m "frontend: update bundle" && git push
    ```
 
-4. **Verify** at https://arizportfolio.near.page (hard-refresh). web4 may cache the
+5. **Verify the live files, not the package version** — a stale service worker looks
+   exactly like a healthy one until a sync fails:
+   ```
+   curl -s https://arizgateway.fly.dev/sw.js | grep -c <a-string-from-the-new-code>
+   ```
+   Then check https://arizportfolio.near.page (hard-refresh). web4 may cache the
    fetched body briefly, so allow a short propagation delay.
 
 IMPORTANT: pushing to `ariz-gateway` `main` auto-deploys to production via Fly — confirm before pushing.
