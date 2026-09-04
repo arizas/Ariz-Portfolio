@@ -96,22 +96,47 @@ describe('accounts-page.component', () => {
             expect(await getConfidentialIntentsHistory('bob.near')).to.deep.equal([]);
         });
 
+        const shielding = historyItem({
+            depositAddress: 'acctpage1', recipient: 'alice.near',
+            depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+            originAsset: 'nep141:btc.omft.near', destinationAsset: 'nep141:btc.omft.near',
+            amountInFormatted: '0.00544253', amountOutFormatted: '0.00544253',
+        });
+
         it('fetches and stores the history when the wallet matches the row account', async () => {
             const wallet = signingWallet('alice.near');
             configComponent.setAccounts(['alice.near']);
-            backend.pages['recipientType=CONFIDENTIAL_INTENTS'] = [[historyItem({
-                depositAddress: 'acctpage1', recipient: 'alice.near',
-            })]];
+            backend.feed = [shielding];
+            backend.balances = new Map([['nep141:btc.omft.near', '544253']]);
 
             shadowRoot.querySelector('.fetchConfidentialButton').click();
             const text = await dismissModal();
             expect(text).to.contain('Confidential history fetched');
-            expect(text).to.contain('1 confidential intents item(s)');
+            expect(text).to.contain('1 item(s) fetched, 1 new and 0 updated');
+            expect(text).to.contain('match the intents API exactly');
             expect(wallet.signatureCount).to.equal(1);
 
             const stored = await getConfidentialIntentsHistory('alice.near');
             expect(stored.length).to.equal(1);
             expect(stored[0].depositAddress).to.equal('acctpage1');
+        });
+
+        it('says so, in readable amounts, when the stored history does not add up', async () => {
+            // The failure mode that went unnoticed for days in 2026-09: a
+            // truncated fetch still sums to *a* balance, just the wrong one.
+            signingWallet('alice.near');
+            configComponent.setAccounts(['alice.near']);
+            backend.feed = [shielding];
+            backend.balances = new Map([['nep141:btc.omft.near', '705233']]);
+
+            shadowRoot.querySelector('.fetchConfidentialButton').click();
+            const text = await dismissModal();
+
+            expect(text).to.contain('does not add up');
+            expect(text).to.contain('BTC: derived 0.00544253, actual 0.00705233');
+            expect(text).to.contain('Nothing was deleted');
+            // Stored anyway — a merge can only ever add.
+            expect((await getConfidentialIntentsHistory('alice.near')).length).to.equal(1);
         });
     });
 });

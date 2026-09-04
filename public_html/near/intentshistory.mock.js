@@ -56,6 +56,20 @@ export function historyItem(overrides = {}) {
     };
 }
 
+/** The live host's cursor: base64url of {createdAt, depositAddress, depositMemo}. */
+function encodeCursor(item) {
+    return btoa(JSON.stringify({
+        createdAt: item.createdAt,
+        depositAddress: item.depositAddress,
+        depositMemo: item.depositMemo ?? null,
+    })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodeCursor(cursor) {
+    if (!cursor) return null;
+    return JSON.parse(atob(cursor.replace(/-/g, '+').replace(/_/g, '/')));
+}
+
 /**
  * In-memory mock of the whole backend surface the module touches: the gateway
  * config endpoint, the NEAR RPC current_salt view, and the 1Click auth +
@@ -70,17 +84,20 @@ export function mockIntentsBackend() {
             apiKey: 'test-oneclick-key',
         },
         salt: 'aabbccdd',
-        // pages per filter: filter string -> array of pages (arrays of items)
-        pages: {
-            'recipientType=CONFIDENTIAL_INTENTS': [[]],
-            'depositType=CONFIDENTIAL_INTENTS': [[]],
-        },
+        // The account's whole history feed, in any order — the mock serves it
+        // the way the real host does (newest-first, cursor-paged). Filters are
+        // NOT applied, because the live host ignores them.
+        feed: [],
+        pageLimit: 50,
+        // Confidential ledger balances: intents asset id -> raw-unit string.
+        balances: new Map(),
         failBeforeSuccess: 0, // next N history requests answer 500
         authResponse: null,   // override the /v0/auth/authenticate body
         authenticateCalls: 0,
         refreshCalls: 0,
         refreshStatus: 200,
         historyRequests: [],
+        balanceRequests: 0,
         lastAuthBody: null,
         tokenCounter: 0,
     };
@@ -122,16 +139,36 @@ export function mockIntentsBackend() {
                     state.failBeforeSuccess--;
                     return json(500, { message: 'AMQP Request failed' });
                 }
-                const filter = ['recipientType', 'depositType']
-                    .filter((k) => params.has(k))
-                    .map((k) => `${k}=${params.get(k)}`)
-                    .join('&');
-                const pages = state.pages[filter] ?? [[]];
-                const page = Number(params.get('nextCursor') ?? 0);
-                const items = pages[page] ?? [];
+                // Newest-first, exactly like the live host. `depositType` and
+                // `recipientType` are deliberately IGNORED here: since 2026-09
+                // the real host returns the identical page for every value of
+                // them (and for no filter at all).
+                const feed = [...state.feed].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+                // A cursor is an EXCLUSIVE bound anchored on one end of the
+                // page just served: `prevCursor` asks for OLDER items,
+                // `nextCursor` for NEWER ones. Both travel in the query
+                // parameter of the same name.
+                const older = decodeCursor(params.get('prevCursor'));
+                const newer = decodeCursor(params.get('nextCursor'));
+                const page = feed
+                    .filter((i) => !older || i.createdAt < older.createdAt)
+                    .filter((i) => !newer || i.createdAt > newer.createdAt)
+                    .slice(0, Math.min(Number(params.get('limit') ?? state.pageLimit), state.pageLimit));
                 return json(200, {
-                    items,
-                    nextCursor: page + 1 < pages.length ? String(page + 1) : null,
+                    items: page,
+                    // Anchored at the NEWEST item on the page, so following it
+                    // asks for items newer than the newest — an empty page.
+                    nextCursor: page.length ? encodeCursor(page[0]) : (params.get('prevCursor') ?? null),
+                    // Anchored at the OLDEST item on the page: the way back.
+                    prevCursor: page.length ? encodeCursor(page[page.length - 1]) : null,
+                });
+            }
+            if (path.startsWith('/v0/account/balances')) {
+                state.balanceRequests++;
+                return json(200, {
+                    balances: [...state.balances].map(([tokenId, available]) => ({
+                        tokenId, available, source: 'private',
+                    })),
                 });
             }
             return json(404, { message: `unexpected history path ${path}` });
