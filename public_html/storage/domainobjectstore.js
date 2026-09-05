@@ -5,7 +5,8 @@ import { fetchAllStakingEarnings } from '../near/stakingpool.js';
 import { getFungibleTokenTransactionsToDate } from '../near/fungibletoken.js';
 import { setProgressbarValue } from '../ui/progress-bar.js';
 import { fetchRawAccountingExport, convertAccountingExportToTransactions, isV2Format, convertV2ToInternalFormat, mergeTransactions, mergeFungibleTokenTransactions, mergeStakingEntries } from '../near/accounting-export.js';
-import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedConfidentialFtTransaction } from '../near/confidentialledger.js';
+import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedConfidentialFtTransaction,
+    confidentialBalancesFromItems, reconcileConfidentialBalances, historyItemKey } from '../near/confidentialledger.js';
 import { resolveDecimals, resolveSymbol, normalizeIntentsAssetId } from '../near/intents-tokens.js';
 
 export const accountdatadir = 'accountdata';
@@ -246,11 +247,35 @@ function getConfidentialHistoryPath(account) {
  * end-to-end encrypted /store sync — the gateway's accounting files never
  * contain it. The Transactions page and year report derive the confidential
  * bucket from it at read time (confidentialledger.js).
+ *
+ * MERGES, never replaces. A fetch is the only source of this file, and the
+ * history host has already once returned a silently truncated feed (its
+ * pagination changed under us in 2026-09) — a wholesale overwrite turned that
+ * into the deletion of 13 items of real, unrecoverable-from-the-gateway
+ * history and a wrong confidential balance. Merging by `historyItemKey` means
+ * a short or partial fetch degrades into "no new data" instead of data loss.
+ * Fresher copies win, so PENDING_DEPOSIT -> SUCCESS transitions still land.
+ *
+ * @returns {{total: number, added: number, updated: number}}
  */
 export async function writeConfidentialIntentsHistory(account, items) {
     await makeAccountDataDirs(account);
-    const sorted = [...items].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+    const byKey = new Map();
+    for (const item of await getConfidentialIntentsHistory(account)) {
+        byKey.set(historyItemKey(item), item);
+    }
+    let added = 0;
+    let updated = 0;
+    for (const item of items) {
+        const key = historyItemKey(item);
+        const previous = byKey.get(key);
+        if (!previous) added++;
+        else if (JSON.stringify(previous) !== JSON.stringify(item)) updated++;
+        byKey.set(key, item);
+    }
+    const sorted = [...byKey.values()].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
     await writeFile(getConfidentialHistoryPath(account), JSON.stringify(sorted, null, 1));
+    return { total: sorted.length, added, updated };
 }
 
 export async function getConfidentialIntentsHistory(account) {
@@ -287,6 +312,21 @@ export async function getConfidentialRecordsForAccount(account) {
     const items = await getConfidentialIntentsHistory(account);
     if (items.length === 0) return [];
     return deriveConfidentialRecords(items, await confidentialMetadataByAsset(items));
+}
+
+/**
+ * Which stored-history-derived confidential balances disagree with the ones
+ * the API reports. Empty means the stored history is complete (see
+ * reconcileConfidentialBalances for why that needs checking at all).
+ * @param {string} account
+ * @param {Map<string, bigint>} actualBalances - from fetchConfidentialBalances
+ */
+export async function reconcileStoredConfidentialBalances(account, actualBalances) {
+    const items = await getConfidentialIntentsHistory(account);
+    const metadata = await confidentialMetadataByAsset(items);
+    return reconcileConfidentialBalances(
+        confidentialBalancesFromItems(items, metadata), actualBalances)
+        .map((mismatch) => ({ ...mismatch, ...metadata.get(mismatch.assetId) }));
 }
 
 export async function getConfidentialFtTransactions(account) {

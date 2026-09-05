@@ -1,13 +1,26 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsFromAccountingExport, writeConfidentialIntentsHistory } from '../storage/domainobjectstore.js';
+import { fetchTransactionsFromAccountingExport, writeConfidentialIntentsHistory,
+    reconcileStoredConfidentialBalances } from '../storage/domainobjectstore.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
+import { escapeHtml } from '../util/escape-html.js';
 import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domainobjectstore.js';
 import { exists } from '../storage/gitstorage.js';
 // Static imports on purpose — a dynamic import() breaks the single-file dist
 // (see the dist guard in playwright_tests/tests/wasmgit.spec.js).
-import { fetchConfidentialHistory, ConfidentialHistoryUnavailableError } from '../near/intentshistory.js';
+import { fetchConfidentialHistory, fetchConfidentialBalances,
+    ConfidentialHistoryUnavailableError } from '../near/intentshistory.js';
 import { requireWalletAccount } from '../arizgateway/arizgatewayaccess.js';
+
+/** Raw integer units as a decimal string, for a human-readable mismatch report. */
+function formatRawAmount(raw, decimals) {
+    if (decimals === undefined) return String(raw);
+    const negative = raw < 0n;
+    const digits = (negative ? -raw : raw).toString().padStart(decimals + 1, '0');
+    const whole = digits.slice(0, digits.length - decimals);
+    const fraction = decimals > 0 ? `.${digits.slice(digits.length - decimals)}` : '';
+    return `${negative ? '-' : ''}${whole}${fraction}`;
+}
 
 customElements.define('accounts-page',
     class extends HTMLElement {
@@ -97,10 +110,33 @@ customElements.define('accounts-page',
                 }
                 setProgressbarValue('indeterminate', `Fetching confidential intents history for ${account}…`);
                 const items = await fetchConfidentialHistory();
-                await writeConfidentialIntentsHistory(account, items);
+                const { total, added, updated } = await writeConfidentialIntentsHistory(account, items);
+
+                // Prove the stored history is complete before trusting the
+                // numbers it produces — a truncated fetch still adds up.
+                setProgressbarValue('indeterminate', 'Reconciling against the confidential ledger…');
+                const mismatches = await reconcileStoredConfidentialBalances(
+                    account, await fetchConfidentialBalances());
                 setProgressbarValue(null);
-                await modalAlert('Confidential history fetched',
-                    `${items.length} confidential intents item(s) stored for ${account} — in your repository only, never on the gateway.`);
+
+                // modalAlert renders its content as HTML, and symbols come
+                // from the intents token API — escape every interpolated value.
+                const summary = `${items.length} item(s) fetched, ${added} new and ${updated} updated — `
+                    + `${total} stored for ${escapeHtml(account)}, in your repository only, `
+                    + `never on the gateway.`;
+                if (mismatches.length > 0) {
+                    await modalAlert('Confidential history stored, but it does not add up',
+                        `${summary}<br><br>The balances derived from that history disagree with the ones `
+                        + `the intents API reports, which means the stored history is incomplete:<br><br>`
+                        + mismatches.map((m) => `${escapeHtml(m.symbol ?? m.assetId)}: `
+                            + `derived ${formatRawAmount(m.derived, m.decimals)}, `
+                            + `actual ${formatRawAmount(m.actual, m.decimals)}`).join('<br>')
+                        + `<br><br>Nothing was deleted — the store only ever merges. Fetch again, and `
+                        + `report this if it persists.`);
+                } else {
+                    await modalAlert('Confidential history fetched',
+                        `${summary}<br><br>Derived balances match the intents API exactly.`);
+                }
                 this.dispatchChangeEvent();
             } catch (e) {
                 setProgressbarValue(null);

@@ -236,7 +236,15 @@ async function setOrigin(url) {
 // commit breaks that: libgit2 re-sends the subtrees its merged tree shares with
 // the side the store already holds, and from then on every fetch, on every
 // device, dies with this.
-const DUPLICATE_IN_PACK = /duplicate object [0-9a-f]{40} found in pack/;
+// libgit2 has TWO ways of refusing a pack that carries the same object twice.
+// It names the duplicate outright — or, when the duplicate strands an OFS_DELTA
+// whose base it can no longer place, it gets to the end with unresolved deltas,
+// none of them a REF_DELTA it could inject a base for, and fails in
+// fix_thin_pack instead. Only the first was matched here, so a real store
+// (5 packs, one 2026-08-24 merge push) produced the second message and none of
+// the guidance below: the user saw three errors that all point elsewhere.
+// Reproduce either with test_servers/store-pack-probe.mjs.
+const UNINDEXABLE_PACK = /duplicate object [0-9a-f]{40} found in pack|no REF_DELTA found, cannot inject object/;
 
 /**
  * Rebuild the store's packs into one, using this client's git.
@@ -366,7 +374,7 @@ async function syncWithRemote() {
         // Nothing can be fetched from a store serving the same object twice, so
         // rebuild it here rather than reporting three misleading errors — when
         // this device is the one that can (see repairDuplicateObjectStore).
-        if (DUPLICATE_IN_PACK.test(fetchErrors)) {
+        if (UNINDEXABLE_PACK.test(fetchErrors)) {
             const repairError = await repairDuplicateObjectStore();
             if (repairError) {
                 repackFailure = repairError;
@@ -416,11 +424,12 @@ async function syncWithRemote() {
     // A fetch that cannot be indexed is not something the user did, and none of
     // the three phase errors say so. Name it, because the follow-on errors
     // ("origin/master not found", then a rejected push) all point elsewhere.
-    if (DUPLICATE_IN_PACK.test(failure.fetchErrors)) {
+    if (UNINDEXABLE_PACK.test(failure.fetchErrors)) {
         phases.push(
             '',
-            'The store is serving a packfile that carries the same object twice, so nothing',
-            'can be fetched from it until it is rebuilt, and no device can sync until then.',
+            'The store is serving a packfile git cannot index - usually one carrying the',
+            'same object twice. Nothing can be fetched from it until it is rebuilt, and no',
+            'device can sync until then.',
             repackFailure ? `This device could not rebuild it: ${repackFailure}.` : '',
             'Rebuild it from a machine with the remote helper:',
             '    git-remote-egit --gc <the store URL>',

@@ -9,6 +9,8 @@ import {
     base58Encode,
     historyItemKey,
     ConfidentialHistoryUnavailableError,
+    ConfidentialHistoryTruncatedError,
+    fetchConfidentialBalances,
     __resetForTests,
     __setSessionForTests,
 } from './intentshistory.js';
@@ -63,15 +65,18 @@ describe('intentshistory (1Click confidential history)', () => {
     });
 
     function seedTypicalPages() {
-        // Two pages on the recipient query; the deposit query overlaps on the
-        // confidential swap (returned by both filters).
-        backend.pages = {
-            'recipientType=CONFIDENTIAL_INTENTS': [[confidentialSwap, shielding], [laterShielding]],
-            'depositType=CONFIDENTIAL_INTENTS': [[unshielding, confidentialSwap]],
-        };
+        backend.feed = [confidentialSwap, shielding, laterShielding, unshielding];
     }
 
-    it('fetches the union of the two filtered queries with one wallet signature, deduped and oldest-first', async () => {
+    /** A feed longer than one page, oldest `dep000` .. newest `dep<n-1>`. */
+    function seedLongFeed(n) {
+        backend.feed = Array.from({ length: n }, (_, i) => historyItem({
+            createdAt: new Date(Date.UTC(2026, 2, 19) + i * 86400000).toISOString(),
+            depositAddress: `dep${String(i).padStart(3, '0')}`,
+        }));
+    }
+
+    it('fetches the whole feed with one wallet signature, oldest-first', async () => {
         seedTypicalPages();
 
         const items = await fetchConfidentialHistory();
@@ -79,8 +84,69 @@ describe('intentshistory (1Click confidential history)', () => {
         expect(items.map((i) => i.depositAddress)).to.deep.equal(['aaa1', 'bbb2', 'ccc3', 'ddd4']);
         expect(backend.authenticateCalls).to.equal(1);
         expect(wallet.signatureCount).to.equal(1);
-        // 2 pages + 1 page — pagination followed per filter.
-        expect(backend.historyRequests.length).to.equal(3);
+        // One query, one short page: the host ignores the type filters, so the
+        // two-query union it used to do was two identical requests.
+        expect(backend.historyRequests.length).to.equal(1);
+    });
+
+    it('pages backwards through the whole feed, not just the newest page', async () => {
+        // REGRESSION (2026-09). The host pages newest-first and its cursors are
+        // anchored on opposite ends of the page: `nextCursor` on the newest
+        // item, `prevCursor` on the oldest. Following `nextCursor` — which this
+        // code did — asks for items newer than the newest, gets an empty page,
+        // and stops after one page. With 63 items of real history that returned
+        // the newest 50 and the store overwrote away the other 13, leaving a
+        // confidential balance that was wrong but still added up.
+        seedLongFeed(63);
+
+        const items = await fetchConfidentialHistory();
+
+        expect(items.length, 'the whole feed, not one page').to.equal(63);
+        expect(items[0].depositAddress).to.equal('dep000');
+        expect(items[62].depositAddress).to.equal('dep062');
+        // 50 + 13: the short second page ends the walk.
+        expect(backend.historyRequests.length).to.equal(2);
+        expect(backend.historyRequests[0].query).to.not.contain('Cursor=');
+        expect(backend.historyRequests[1].query).to.contain('prevCursor=');
+    });
+
+    it('refuses to return a page walk that ended on a full page', async () => {
+        // If the host stops handing back a `prevCursor` while the last page was
+        // still full, the client cannot have seen the end of the feed. Storing
+        // that would delete history, so fail instead.
+        seedLongFeed(63);
+        const realFetch = window.fetch;
+        window.fetch = async (url, init) => {
+            const response = await realFetch(url, init);
+            if (!String(url).includes('/v0/account/history')) return response;
+            const body = await response.json();
+            return new Response(JSON.stringify({ ...body, prevCursor: null }),
+                { status: 200, headers: { 'content-type': 'application/json' } });
+        };
+
+        let caught = null;
+        await fetchConfidentialHistory({ maxPages: 5 }).catch((e) => { caught = e; });
+        window.fetch = realFetch;
+
+        expect(caught).to.be.instanceOf(ConfidentialHistoryTruncatedError);
+        expect(caught.message).to.contain('stopped on a full page');
+    });
+
+    it('refuses to return a page walk whose cursor stopped advancing', async () => {
+        seedLongFeed(63);
+        const realFetch = window.fetch;
+        window.fetch = async (url, init) => {
+            // Always answer with the newest page, whatever cursor was sent.
+            const stripped = String(url).replace(/&prevCursor=[^&]*/, '');
+            return realFetch(stripped, init);
+        };
+
+        let caught = null;
+        await fetchConfidentialHistory({ maxPages: 5 }).catch((e) => { caught = e; });
+        window.fetch = realFetch;
+
+        expect(caught).to.be.instanceOf(ConfidentialHistoryTruncatedError);
+        expect(caught.message).to.contain('stopped advancing');
     });
 
     it('reads history from the dedicated history host, not the (invite-gated) auth host', async () => {
@@ -93,7 +159,7 @@ describe('intentshistory (1Click confidential history)', () => {
 
         expect(items.length).to.equal(4);
         // Every history request the module made hit the history host.
-        expect(backend.historyRequests.length).to.equal(3);
+        expect(backend.historyRequests.length).to.equal(1);
         expect(backend.historyRequests.every((r) => r.query.startsWith('/v0/account/history')))
             .to.equal(true);
         // The mock only serves /v0/account/history under ONECLICK_HISTORY_TEST_URL;
@@ -171,7 +237,7 @@ describe('intentshistory (1Click confidential history)', () => {
         const items = await fetchConfidentialHistory({ retryDelayMs: 1 });
 
         expect(items.length).to.equal(4);
-        expect(backend.historyRequests.length).to.equal(5); // 2 failed + 3 successful
+        expect(backend.historyRequests.length).to.equal(3); // 2 failed + 1 successful
     });
 
     it('gives up after persistent server 500s', async () => {
@@ -224,6 +290,39 @@ describe('intentshistory (1Click confidential history)', () => {
 
         expect(backend.refreshCalls).to.equal(0);
         expect(backend.authenticateCalls).to.equal(1);
+    });
+
+    it('reads the confidential ledger balances from the history host', async () => {
+        // The only independent check that a derived balance series is complete:
+        // history is *summed* into balances, so a history with a hole in it
+        // still adds up, just to the wrong number.
+        backend.balances = new Map([
+            ['nep141:btc.omft.near', '705233'],
+            ['1cs_v1:near:nep141:zec.omft.near', '4200'],
+        ]);
+
+        const balances = await fetchConfidentialBalances();
+
+        expect(backend.balanceRequests).to.equal(1);
+        expect(balances.get('nep141:btc.omft.near')).to.equal(705233n);
+        // The wrapped and bare spellings of one asset must land in one bucket.
+        expect(balances.get('nep141:zec.omft.near')).to.equal(4200n);
+    });
+
+    it('ignores non-confidential balances', async () => {
+        const realFetch = window.fetch;
+        window.fetch = async (url, init) => {
+            if (!String(url).includes('/v0/account/balances')) return realFetch(url, init);
+            return new Response(JSON.stringify({ balances: [
+                { tokenId: 'nep141:btc.omft.near', available: '705233', source: 'private' },
+                { tokenId: 'nep141:wrap.near', available: '999', source: 'public' },
+            ] }), { status: 200, headers: { 'content-type': 'application/json' } });
+        };
+
+        const balances = await fetchConfidentialBalances();
+        window.fetch = realFetch;
+
+        expect([...balances.keys()]).to.deep.equal(['nep141:btc.omft.near']);
     });
 
     it('throws ConfidentialHistoryUnavailableError when the gateway has no API key configured', async () => {

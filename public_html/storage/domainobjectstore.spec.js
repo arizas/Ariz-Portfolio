@@ -1,4 +1,5 @@
-import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData, getAllFungibleTokenTransactions, fetchFungibleTokenTransactionsForAccount, getTransactionsForAccount, getAllFungibleTokenSymbols, setAccounts, writeConfidentialIntentsHistory, getConfidentialIntentsHistory, getRecordsForAccount, writeFungibleTokenTransactions } from './domainobjectstore.js';
+import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData, getAllFungibleTokenTransactions, fetchFungibleTokenTransactionsForAccount, getTransactionsForAccount, getAllFungibleTokenSymbols, setAccounts, writeConfidentialIntentsHistory, getConfidentialIntentsHistory, getRecordsForAccount, writeFungibleTokenTransactions,
+    reconcileStoredConfidentialBalances } from './domainobjectstore.js';
 import { historyItem } from '../near/intentshistory.mock.js';
 
 // Serve the intents token-metadata API from a fixture so the confidential
@@ -131,5 +132,94 @@ describe('domainobjectstore confidential intents history', () => {
         // Still 3 — the derived rows were stripped on write, so the read-time
         // merge doesn't duplicate them.
         expect((await getAllFungibleTokenTransactions(account)).length).to.equal(3);
+    });
+});
+
+describe('domainobjectstore confidential history merging', () => {
+    // A fresh account per test: the write merges by design, so there is no
+    // "clear" to reset with.
+    let account;
+    let accountCounter = 0;
+
+    // Two shieldings and the swap that spends the first of them.
+    const older = historyItem({
+        createdAt: '2026-03-19T20:30:12.420749Z',
+        depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+        originAsset: 'nep141:btc.omft.near', destinationAsset: 'nep141:btc.omft.near',
+        amountInFormatted: '0.00544253', amountOutFormatted: '0.00544253',
+        depositAddress: 'older1',
+    });
+    const newer = historyItem({
+        createdAt: '2026-09-03T18:04:13.939856Z',
+        depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+        originAsset: 'nep141:btc.omft.near', destinationAsset: 'nep141:btc.omft.near',
+        amountInFormatted: '0.00161000', amountOutFormatted: '0.00161000',
+        depositAddress: 'newer1',
+    });
+
+    beforeEach(() => {
+        account = `confidential-merge-${accountCounter++}.near`;
+    });
+
+    it('keeps history the fetch no longer returns', async () => {
+        // REGRESSION (2026-09). The host silently started returning only its
+        // newest page; the wholesale overwrite this replaced turned that into
+        // the deletion of 13 items of real history, and a confidential balance
+        // that was wrong while still adding up.
+        await writeConfidentialIntentsHistory(account, [older, newer]);
+
+        const result = await writeConfidentialIntentsHistory(account, [newer]);
+
+        expect(result).to.deep.equal({ total: 2, added: 0, updated: 0 });
+        const stored = await getConfidentialIntentsHistory(account);
+        expect(stored.map((i) => i.depositAddress)).to.deep.equal(['older1', 'newer1']);
+    });
+
+    it('reports what a fetch actually contributed', async () => {
+        expect(await writeConfidentialIntentsHistory(account, [older]))
+            .to.deep.equal({ total: 1, added: 1, updated: 0 });
+        expect(await writeConfidentialIntentsHistory(account, [older, newer]))
+            .to.deep.equal({ total: 2, added: 1, updated: 0 });
+    });
+
+    it('lets a fresher copy of an item win, so PENDING settles into SUCCESS', async () => {
+        const pending = { ...newer, status: 'PENDING_DEPOSIT' };
+        await writeConfidentialIntentsHistory(account, [older, pending]);
+        // Only the shielded 0.00544253 counts while the second is pending.
+        expect((await getRecordsForAccount(account)).length).to.equal(1);
+
+        const result = await writeConfidentialIntentsHistory(account, [newer]);
+
+        expect(result).to.deep.equal({ total: 2, added: 0, updated: 1 });
+        const stored = await getConfidentialIntentsHistory(account);
+        expect(stored.find((i) => i.depositAddress === 'newer1').status).to.equal('SUCCESS');
+        expect((await getRecordsForAccount(account)).length).to.equal(2);
+    });
+
+    it('reconciles the stored history against the ledger the API reports', async () => {
+        await writeConfidentialIntentsHistory(account, [older, newer]);
+        const btc = 'nep141:btc.omft.near';
+
+        // 0.00544253 + 0.00161 BTC = 705253 raw units.
+        expect(await reconcileStoredConfidentialBalances(account, new Map([[btc, 705253n]])))
+            .to.deep.equal([]);
+
+        // What a store missing its oldest item looks like from the outside.
+        const [mismatch] = await reconcileStoredConfidentialBalances(account, new Map([[btc, 999999n]]));
+        expect(mismatch.assetId).to.equal(btc);
+        expect(mismatch.derived).to.equal(705253n);
+        expect(mismatch.actual).to.equal(999999n);
+        expect(mismatch.symbol).to.equal('BTC');
+        expect(mismatch.decimals).to.equal(8);
+    });
+
+    it('flags an asset the API holds that the stored history never saw', async () => {
+        await writeConfidentialIntentsHistory(account, [older, newer]);
+
+        const mismatches = await reconcileStoredConfidentialBalances(
+            account, new Map([['nep141:btc.omft.near', 705253n], ['nep141:wrap.near', 5n]]));
+
+        expect(mismatches.map((m) => m.assetId)).to.deep.equal(['nep141:wrap.near']);
+        expect(mismatches[0].derived).to.equal(0n);
     });
 });

@@ -1,5 +1,10 @@
 import { arizgatewayhost, getAccessToken, requireWalletAccount, signMessageWithWallet } from '../arizgateway/arizgatewayaccess.js';
 import { callViewFunction } from './rpc.js';
+import { normalizeIntentsAssetId } from './intents-tokens.js';
+import { historyItemKey } from './confidentialledger.js';
+
+// Re-exported: callers of the fetch also key on it, and the specs import it here.
+export { historyItemKey };
 
 // NEAR Intents confidential transaction history via the 1Click API (issue #75).
 //
@@ -256,51 +261,130 @@ async function requireBearer(config) {
     return bearer;
 }
 
-// Unique key of a history item — the tuple that identified duplicates when
-// unioning the two filtered queries against real data.
-export function historyItemKey(item) {
-    return `${item.createdAt}|${item.depositAddress}|${item.amountInFormatted}`;
+const HISTORY_PAGE_LIMIT = 50;
+
+/** Raised when the host answers but the page walk cannot be trusted to be complete. */
+export class ConfidentialHistoryTruncatedError extends Error { }
+
+async function getHistoryPage(config, base, query, { retryDelayMs }) {
+    // The 1Click backend occasionally 500s ("AMQP Request failed") — retry
+    // with backoff before giving up.
+    let last;
+    for (let attempt = 0; attempt < 5; attempt++) {
+        last = await api(config, query, { bearer: await requireBearer(config), base });
+        if (last.status < 500) break;
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (attempt + 1)));
+    }
+    if (last.status !== 200) {
+        throw new Error(`1Click history -> ${last.status}: ${JSON.stringify(last.json).slice(0, 300)}`);
+    }
+    return last.json;
 }
 
-async function fetchHistoryPages(config, filter, byKey, { retryDelayMs, maxPages }) {
+/**
+ * Walk /v0/account/history from the newest item backwards, oldest page last.
+ *
+ * PAGING DIRECTION (changed server-side 2026-09; see the truncation incident
+ * below). The feed is newest-first and a cursor is an EXCLUSIVE bound anchored
+ * on one end of the page just returned:
+ *
+ *   nextCursor -> items[0],  the NEWEST item  -> asks for anything NEWER
+ *   prevCursor -> items[-1], the OLDEST item  -> asks for anything OLDER
+ *
+ * Both are sent back in the same `prevCursor`/`nextCursor` query parameter.
+ * Walking history therefore means following `prevCursor`; following
+ * `nextCursor` (as this code did until 2026-09) asks for items newer than the
+ * newest, gets an empty page, and stops after page one — silently returning
+ * only the most recent `limit` items. That truncation reached the store and
+ * deleted 13 items of real history.
+ *
+ * The two guards below reject a walk that provably did not reach the end of
+ * the feed. Neither can catch every case — a feed of exactly `limit` items and
+ * a walk down the wrong cursor produce byte-identical responses — which is why
+ * the caller also reconciles the result against the balances the API reports.
+ */
+async function fetchHistoryPages(config, byKey, { retryDelayMs, maxPages }) {
     // History lives on the dedicated (ungated) host, not the auth host — see the
     // HOST SPLIT note at the top of the file. The auth JWT works on both.
     const base = config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
     let cursor = null;
+    let lastPageSize = 0;
     for (let page = 0; page < maxPages; page++) {
-        const query = `/v0/account/history?limit=50&${filter}` +
-            (cursor ? `&nextCursor=${encodeURIComponent(cursor)}` : '');
-        // The 1Click backend occasionally 500s ("AMQP Request failed") — retry
-        // with backoff before giving up.
-        let last;
-        for (let attempt = 0; attempt < 5; attempt++) {
-            last = await api(config, query, { bearer: await requireBearer(config), base });
-            if (last.status < 500) break;
-            await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (attempt + 1)));
-        }
-        if (last.status !== 200) {
-            throw new Error(`1Click history -> ${last.status}: ${JSON.stringify(last.json).slice(0, 300)}`);
-        }
-        const items = last.json.items ?? [];
+        const query = `/v0/account/history?limit=${HISTORY_PAGE_LIMIT}` +
+            (cursor ? `&prevCursor=${encodeURIComponent(cursor)}` : '');
+        const json = await getHistoryPage(config, base, query, { retryDelayMs });
+        const items = json.items ?? [];
+        const before = byKey.size;
         for (const item of items) byKey.set(historyItemKey(item), item);
-        cursor = last.json.nextCursor;
-        if (!cursor || items.length === 0) break;
+        // A page that is entirely items we already hold means the cursor is
+        // not advancing — keep going and we would spin to maxPages, stop and
+        // we would silently drop whatever lies beyond it.
+        if (items.length > 0 && byKey.size === before) {
+            throw new ConfidentialHistoryTruncatedError(
+                'confidential history cursor stopped advancing — refusing to store a possibly truncated history'
+            );
+        }
+        lastPageSize = items.length;
+        cursor = json.prevCursor;
+        // A short page is the end of the feed; a full one never is.
+        if (!cursor || items.length < HISTORY_PAGE_LIMIT) break;
+        if (page === maxPages - 1) {
+            throw new ConfidentialHistoryTruncatedError(
+                `confidential history exceeded ${maxPages} pages — refusing to store a partial history`
+            );
+        }
+    }
+    // A walk that ended on a completely full page never saw the end of the
+    // feed: either the cursor stopped advancing or the host changed its
+    // pagination again. Storing that would silently drop older history.
+    if (lastPageSize === HISTORY_PAGE_LIMIT) {
+        throw new ConfidentialHistoryTruncatedError(
+            'confidential history paging stopped on a full page — the host\'s pagination has changed; '
+            + 'refusing to store a possibly truncated history'
+        );
     }
 }
 
 /**
  * All confidential-related history for the connected wallet account: shieldings
  * (recipientType CONFIDENTIAL_INTENTS), unshieldings (depositType
- * CONFIDENTIAL_INTENTS) and confidential swaps (both). Fetched as the UNION of
- * the two filtered queries — the unfiltered endpoint 500s server-side (bug
- * reported to Defuse), and the union provably covers every movement touching
- * the confidential ledger. Returns items oldest-first.
+ * CONFIDENTIAL_INTENTS) and confidential swaps (both). Returns items
+ * oldest-first.
+ *
+ * ONE UNFILTERED QUERY. This used to union two queries filtered on
+ * `recipientType=CONFIDENTIAL_INTENTS` and `depositType=CONFIDENTIAL_INTENTS`,
+ * because the unfiltered endpoint 500'd. As of 2026-09 the host ignores both
+ * filters outright — every value, and no filter at all, returns the identical
+ * page — and the unfiltered query no longer 500s, so the union was two
+ * identical requests. Items that touch no confidential leg produce no
+ * movements downstream (confidentialledger.js), so an unfiltered feed is safe.
  */
 export async function fetchConfidentialHistory({ retryDelayMs = 1500, maxPages = 100 } = {}) {
     const config = await getIntentsApiConfig();
     const byKey = new Map();
-    for (const filter of ['recipientType=CONFIDENTIAL_INTENTS', 'depositType=CONFIDENTIAL_INTENTS']) {
-        await fetchHistoryPages(config, filter, byKey, { retryDelayMs, maxPages });
-    }
+    await fetchHistoryPages(config, byKey, { retryDelayMs, maxPages });
     return [...byKey.values()].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+}
+
+/**
+ * The account's current CONFIDENTIAL ledger balances as raw-unit strings keyed
+ * by (normalized) intents asset id. `/v0/account/balances` is served by the
+ * history host with the same session token and marks the shielded entries
+ * `source: "private"`.
+ *
+ * This is the only independent check that the derived balance series is
+ * complete: the series is reconstructed by summing history, so a history that
+ * silently loses its oldest items still adds up — just to the wrong number.
+ * See reconcileConfidentialBalances in confidentialledger.js.
+ */
+export async function fetchConfidentialBalances({ retryDelayMs = 1500 } = {}) {
+    const config = await getIntentsApiConfig();
+    const base = config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
+    const json = await getHistoryPage(config, base, '/v0/account/balances', { retryDelayMs });
+    const byAsset = new Map();
+    for (const balance of json.balances ?? []) {
+        if (balance.source !== 'private') continue;
+        byAsset.set(normalizeIntentsAssetId(balance.tokenId), BigInt(balance.available));
+    }
+    return byAsset;
 }

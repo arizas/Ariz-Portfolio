@@ -12,6 +12,13 @@ import { CONFIDENTIAL_TOKEN_PREFIX, normalizeIntentsAssetId } from './intents-to
 // existing per-bucket FIFO engine realizes profit/loss on it — see
 // docs/tax-classification-intents.md.
 
+// Unique key of a history item — the tuple that identified duplicates when
+// unioning the two filtered queries against real data. Also what the store
+// merges on, so it has to stay stable across a re-fetch of the same item.
+export function historyItemKey(item) {
+    return `${item.createdAt}|${item.depositAddress}|${item.amountInFormatted}`;
+}
+
 /**
  * Convert a decimal amount string (e.g. "0.00544253") to raw integer units.
  * Exact BigInt arithmetic — no floats. Fractions beyond `decimals` digits are
@@ -160,4 +167,45 @@ export function deriveConfidentialFtTransactions(items, accountId, metadataByAss
 export function isDerivedConfidentialFtTransaction(transaction) {
     return transaction?._source === 'confidential-intents'
         || !!transaction?.ft?.contract_id?.startsWith(CONFIDENTIAL_TOKEN_PREFIX);
+}
+
+/**
+ * Final confidential balance per asset (raw units) implied by a history list.
+ * @param {object[]} items - 1Click history items
+ * @param {Map<string, {decimals: number, symbol: string}>} metadataByAsset
+ * @returns {Map<string, bigint>} keyed by normalized intents asset id
+ */
+export function confidentialBalancesFromItems(items, metadataByAsset) {
+    const balances = new Map();
+    for (const movement of movementsWithBalances(items, metadataByAsset)) {
+        balances.set(movement.assetId, movement.balanceAfter);
+    }
+    return balances;
+}
+
+/**
+ * Compare the balances implied by the stored history against the authoritative
+ * ones the API reports, and return only the assets that disagree.
+ *
+ * WHY THIS EXISTS. The confidential bucket is a *reconstruction* — it is summed
+ * from history because no public API can see the TEE ledger. That means a
+ * history with a hole in it does not look broken: it still adds up, just to the
+ * wrong number. In 2026-09 the history host changed its pagination, the fetch
+ * silently returned only the newest page, and the derived nBTC balance came out
+ * at 0.00008214 against an actual 0.00705233 with wNEAR going negative — with
+ * nothing anywhere reporting a problem. A negative balance is the loudest
+ * symptom and it still needed a human to notice it.
+ *
+ * @param {Map<string, bigint>} derived - from confidentialBalancesFromItems
+ * @param {Map<string, bigint>} actual - from fetchConfidentialBalances
+ * @returns {Array<{assetId: string, derived: bigint, actual: bigint}>}
+ */
+export function reconcileConfidentialBalances(derived, actual) {
+    const mismatches = [];
+    for (const assetId of new Set([...derived.keys(), ...actual.keys()])) {
+        const d = derived.get(assetId) ?? 0n;
+        const a = actual.get(assetId) ?? 0n;
+        if (d !== a) mismatches.push({ assetId, derived: d, actual: a });
+    }
+    return mismatches;
 }

@@ -4,6 +4,8 @@ import {
     deriveConfidentialRecords,
     deriveConfidentialFtTransactions,
     isDerivedConfidentialFtTransaction,
+    confidentialBalancesFromItems,
+    reconcileConfidentialBalances,
 } from './confidentialledger.js';
 import { historyItem } from './intentshistory.mock.js';
 
@@ -157,5 +159,64 @@ describe('confidentialledger (derivation of the confidential bucket)', () => {
             _source: 'accounting-export',
             ft: { contract_id: 'nep141:btc.omft.near' },
         })).to.equal(false);
+    });
+});
+
+
+describe('confidentialledger balance reconciliation', () => {
+    const metadataByAsset = new Map([
+        ['nep141:btc.omft.near', { decimals: 8, symbol: 'BTC' }],
+        ['nep141:wrap.near', { decimals: 24, symbol: 'wNEAR' }],
+    ]);
+
+    const shielding = historyItem({
+        createdAt: '2026-03-19T20:30:12.420749Z',
+        depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+        originAsset: 'nep141:btc.omft.near', destinationAsset: 'nep141:btc.omft.near',
+        amountInFormatted: '0.00544253', amountOutFormatted: '0.00544253',
+        depositAddress: 'shield1',
+    });
+    const swap = historyItem({
+        createdAt: '2026-07-08T18:06:38.646840Z',
+        depositType: 'CONFIDENTIAL_INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+        originAsset: 'nep141:btc.omft.near', destinationAsset: 'nep141:wrap.near',
+        amountInFormatted: '0.00100000', amountOutFormatted: '178.7',
+        depositAddress: 'swap1',
+    });
+
+    it('sums the closing balance of every asset the history touches', () => {
+        const balances = confidentialBalancesFromItems([shielding, swap], metadataByAsset);
+        expect(balances.get('nep141:btc.omft.near')).to.equal(444253n);
+        expect(balances.get('nep141:wrap.near')).to.equal(178700000000000000000000000n);
+    });
+
+    it('is silent when the derived series matches the ledger', () => {
+        const derived = confidentialBalancesFromItems([shielding, swap], metadataByAsset);
+        expect(reconcileConfidentialBalances(derived, new Map([
+            ['nep141:btc.omft.near', 444253n],
+            ['nep141:wrap.near', 178700000000000000000000000n],
+        ]))).to.deep.equal([]);
+    });
+
+    it('catches a history that lost its oldest items', () => {
+        // Dropping the shielding leaves the swap spending BTC that was never
+        // received — the balance goes negative, which is what a truncated feed
+        // actually produced against real data in 2026-09.
+        const truncated = confidentialBalancesFromItems([swap], metadataByAsset);
+        expect(truncated.get('nep141:btc.omft.near')).to.equal(-100000n);
+
+        expect(reconcileConfidentialBalances(truncated, new Map([
+            ['nep141:btc.omft.near', 444253n],
+            ['nep141:wrap.near', 178700000000000000000000000n],
+        ]))).to.deep.equal([
+            { assetId: 'nep141:btc.omft.near', derived: -100000n, actual: 444253n },
+        ]);
+    });
+
+    it('treats an asset absent from either side as a zero balance', () => {
+        expect(reconcileConfidentialBalances(new Map(), new Map([['nep141:btc.omft.near', 7n]])))
+            .to.deep.equal([{ assetId: 'nep141:btc.omft.near', derived: 0n, actual: 7n }]);
+        expect(reconcileConfidentialBalances(new Map([['nep141:btc.omft.near', 0n]]), new Map()))
+            .to.deep.equal([]);
     });
 });
