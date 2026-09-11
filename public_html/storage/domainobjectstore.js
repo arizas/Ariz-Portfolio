@@ -383,21 +383,45 @@ function normalizePriceToken(token) {
     return token;
 }
 
-function getPriceDataPath(token, targetCurrency) {
-    return `${pricedatadir}/${normalizePriceToken(token)}/${targetCurrency.toLowerCase()}.json`;
+// Every directory under pricehistory/ whose name is this token, ignoring case.
+// The exact spelling comes first so it is the one a write lands in.
+async function findPriceTokenDirs(token) {
+    const wanted = normalizePriceToken(token);
+    if (!(await exists(pricedatadir))) return [];
+    const upper = wanted.toUpperCase();
+    const names = (await readdir(pricedatadir)).filter(name => name.toUpperCase() === upper);
+    return names.sort((a, b) => (a === wanted ? -1 : b === wanted ? 1 : a < b ? -1 : 1));
 }
 
+// One token, one directory. Symbols arrive with whatever casing their source
+// used - a token contract's metadata says STNEAR, the intents token list says
+// stNEAR - and one real store ended up with both pricehistory/STNEAR/ and
+// pricehistory/stNEAR/. On a case-insensitive filesystem (macOS) those are one
+// file, so checking out either spelling leaves the other showing as modified and
+// `git pull` refuses to run. So a write goes to the directory that already
+// exists, whatever its case, and only creates a new one when none does.
+async function getPriceDataPath(token, targetCurrency) {
+    const dirs = await findPriceTokenDirs(token);
+    const dir = dirs[0] ?? normalizePriceToken(token);
+    return `${pricedatadir}/${dir}/${targetCurrency.toLowerCase()}.json`;
+}
+
+// A store that already holds two spellings must not lose the days in either:
+// read them all, first spelling winning where a date is in both.
 export async function getHistoricalPriceData(token, targetCurrency) {
-    const pricedatapath = getPriceDataPath(token, targetCurrency);
-    if (await exists(pricedatapath)) {
-        return JSON.parse(await readTextFile(pricedatapath));
-    } else {
-        return {};
+    const dirs = await findPriceTokenDirs(token);
+    let pricedata = {};
+    for (const dir of dirs.reverse()) {
+        const path = `${pricedatadir}/${dir}/${targetCurrency.toLowerCase()}.json`;
+        if (await exists(path)) {
+            pricedata = { ...pricedata, ...JSON.parse(await readTextFile(path)) };
+        }
     }
+    return pricedata;
 }
 
 export async function setHistoricalPriceData(token, targetCurrency, pricedata) {
-    const pricedatapath = getPriceDataPath(token, targetCurrency);
+    const pricedatapath = await getPriceDataPath(token, targetCurrency);
     await makeDirs(pricedatapath);
     await writeFile(pricedatapath, JSON.stringify(pricedata, null, 1));
 }

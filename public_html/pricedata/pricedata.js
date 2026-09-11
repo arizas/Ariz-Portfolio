@@ -18,8 +18,13 @@ const skipFetchingPrices = {};
 // read rather than staying at its pre-fetch state.
 const priceHistoryCache = new Map();
 
+// Case-insensitive on the token: the store keeps one file for STNEAR and stNEAR,
+// so the cache must keep one entry, or a write under one spelling would leave
+// the other spelling's entry stale for the rest of the session.
+const priceHistoryCacheKey = (token, currency) => `${token.toUpperCase()}\u0000${currency}`;
+
 async function getHistoricalPriceData(token, currency) {
-    const key = `${token}\u0000${currency}`;
+    const key = priceHistoryCacheKey(token, currency);
     if (!priceHistoryCache.has(key)) {
         // Frozen because the same object is now handed to every caller. A caller
         // that writes into it would poison the session silently; frozen, it
@@ -196,7 +201,7 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     const existing = await readHistoricalPriceData(baseToken, currency);
     const merged = { ...pricesMap, ...existing };
     await setHistoricalPriceData(baseToken, currency, merged);
-    priceHistoryCache.delete(`${baseToken}\u0000${currency}`);
+    priceHistoryCache.delete(priceHistoryCacheKey(baseToken, currency));
 }
 
 // Real market symbols are short and contain no whitespace, slashes or URL

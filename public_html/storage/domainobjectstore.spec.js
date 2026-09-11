@@ -1,6 +1,7 @@
 import { getCustomExchangeRatesAsTable, setCustomExchangeRatesFromTable, getHistoricalPriceData, setHistoricalPriceData, getAllFungibleTokenTransactions, fetchFungibleTokenTransactionsForAccount, getTransactionsForAccount, getAllFungibleTokenSymbols, setAccounts, writeConfidentialIntentsHistory, getConfidentialIntentsHistory, getRecordsForAccount, writeFungibleTokenTransactions,
     reconcileStoredConfidentialBalances } from './domainobjectstore.js';
 import { historyItem } from '../near/intentshistory.mock.js';
+import { readdir, writeFile } from './gitstorage.js';
 
 // Serve the intents token-metadata API from a fixture so the confidential
 // derivation (which resolves decimals/symbols through it) is hermetic.
@@ -50,6 +51,27 @@ describe('domainobjectstore', () => {
         await setHistoricalPriceData('wNEAR', 'NOK', { '2026-05-27': 23.64 });
         expect(await getHistoricalPriceData('wNEAR', 'NOK')).to.deep.equal({ '2026-05-27': 23.64 });
         expect(await getHistoricalPriceData('NEAR', 'NOK')).to.deep.equal({ '2026-05-27': 23.64 });
+    });
+    it('should keep one price directory per token whatever the case of the symbol', async () => {
+        // A token contract's metadata says STNEAR, the intents token list says
+        // stNEAR. One store ended up with both pricehistory/STNEAR/ and
+        // pricehistory/stNEAR/, which on a case-insensitive filesystem is one
+        // file that git can never check out cleanly.
+        await setHistoricalPriceData('stNEAR', 'NOK', { '2026-08-22': 27.69 });
+        await setHistoricalPriceData('STNEAR', 'NOK', { '2026-08-22': 27.69, '2026-08-23': 26.61 });
+        expect(await readdir('pricehistory')).to.include('stNEAR');
+        expect(await readdir('pricehistory')).to.not.include('STNEAR');
+        expect(await getHistoricalPriceData('STNEAR', 'NOK')).to.deep.equal({ '2026-08-22': 27.69, '2026-08-23': 26.61 });
+        expect(await getHistoricalPriceData('stnear', 'NOK')).to.deep.equal({ '2026-08-22': 27.69, '2026-08-23': 26.61 });
+    });
+    it('should read every spelling a store already holds, exact spelling winning', async () => {
+        await writeFile('pricehistory/USDT/nok.json', JSON.stringify({ '2026-09-01': 9.30, '2026-09-02': 9.31 }));
+        await writeFile('pricehistory/USDt/nok.json', JSON.stringify({ '2026-09-02': 9.33, '2026-09-03': 9.30 }));
+        expect(await getHistoricalPriceData('USDt', 'NOK')).to.deep.equal({ '2026-09-01': 9.30, '2026-09-02': 9.33, '2026-09-03': 9.30 });
+        expect(await getHistoricalPriceData('USDT', 'NOK')).to.deep.equal({ '2026-09-01': 9.30, '2026-09-02': 9.31, '2026-09-03': 9.30 });
+        // A write under an existing spelling stays in that directory; no third one appears.
+        await setHistoricalPriceData('usdt', 'NOK', { '2026-09-04': 9.29 });
+        expect((await readdir('pricehistory')).filter(n => n.toUpperCase() === 'USDT').sort()).to.deep.equal(['USDT', 'USDt']);
     });
     it('should get all fungible token transactions', async () => {
         const accountId = 'petersalomonsen.near';
