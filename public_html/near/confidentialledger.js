@@ -38,6 +38,17 @@ export function formattedAmountToRaw(formatted, decimals) {
  * item. A shielding deposits into the ledger, an unshielding withdraws from
  * it, a confidential swap does both (different assets). Non-SUCCESS items
  * produce no movements.
+ *
+ * A leg exists only when the host names its asset. Since 2026-09-20 the
+ * history also carries CREDITS: items typed CONFIDENTIAL_INTENTS on both sides
+ * with a destinationAsset and amountOut but no originAsset, amountIn or quote
+ * transaction. First seen as two 0.000019448868 wNEAR credits that the
+ * balances endpoint confirmed: exactly one millionth of the owner's 19.448868
+ * NEAR@3.33 one-time reward allocation, so a rehearsal of that payout (the
+ * real one arrives the same way). Nothing left the ledger for those, so they
+ * have an inbound leg and no outbound one.
+ * Treating the missing origin as an outbound leg made every page that reads
+ * the account crash on "missing token metadata for undefined".
  * @param {object} item - 1Click /v0/account/history item
  * @returns {Array<{assetId: string, direction: 'in'|'out', amountFormatted: string, createdAt: string, txHash: string|null, depositAddress: string}>}
  */
@@ -45,7 +56,7 @@ export function confidentialMovementsForItem(item) {
     if (item.status !== 'SUCCESS') return [];
     const txHash = item.quoteTransactions?.[0]?.txHash ?? null;
     const movements = [];
-    if (item.depositType === 'CONFIDENTIAL_INTENTS') {
+    if (item.depositType === 'CONFIDENTIAL_INTENTS' && item.originAsset && item.amountInFormatted != null) {
         movements.push({
             // Normalized so the two spellings of one asset share a bucket —
             // see normalizeIntentsAssetId.
@@ -57,7 +68,7 @@ export function confidentialMovementsForItem(item) {
             depositAddress: item.depositAddress,
         });
     }
-    if (item.recipientType === 'CONFIDENTIAL_INTENTS') {
+    if (item.recipientType === 'CONFIDENTIAL_INTENTS' && item.destinationAsset && item.amountOutFormatted != null) {
         movements.push({
             assetId: normalizeIntentsAssetId(item.destinationAsset),
             direction: 'in',

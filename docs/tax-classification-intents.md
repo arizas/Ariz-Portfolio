@@ -30,6 +30,19 @@ Confidential bucket the books cannot balance against observable chain data.
 | Bridge in/out of intents | `BTC` → `BTC ( NEAR Intents / Bitcoin )` | **Realization** | Reset to value at bridge time |
 | Shield / unshield | `USDC ( NEAR Intents / Ethereum )` ⇄ `USDC ( Confidential / Ethereum )` | **Realization** (same as every bucket move) | Reset to value at shield time |
 | Swap (any bucket, incl. confidential) | confidential BTC → NEAR | **Realization** | New basis for proceeds |
+| Credit into the confidential ledger (no origin) | `+0.000019448868 wNEAR ( Confidential )`, nothing leaving | **Inflow** from `intents.near` — not a bucket move | Value at credit time |
+
+A credit is a history item typed `CONFIDENTIAL_INTENTS` on both sides that
+names a destination asset and amount but no origin asset, amount in, or quote
+transaction: the host has added balance to the ledger without taking anything
+out of another bucket. First seen 2026-09-20 as two wNEAR credits of
+0.000019448868, confirmed by `/v0/account/balances`: exactly one millionth of
+the account's 19.448868 NEAR allocation in NEAR@3.33, a one-time reward
+distribution paid into the confidential balance, so a rehearsal of that
+payout. The handling is generic, not specific to that program: any credit is
+booked as a single inbound movement and reaches the year report the way any
+other value arriving from `intents.near` does — a reward is income at its
+value when received, which is what basis at credit time expresses.
 
 The year-report engine treats *every* move between buckets as a realization
 with profit/loss against the leaving bucket's basis. The Confidential bucket

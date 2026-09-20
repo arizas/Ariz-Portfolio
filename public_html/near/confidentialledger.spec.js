@@ -62,6 +62,42 @@ describe('confidentialledger (derivation of the confidential bucket)', () => {
         expect(confidentialMovementsForItem(failed)).to.deep.equal([]);
     });
 
+    it('books a credit with no origin as an inbound leg only, instead of crashing', () => {
+        // Real capture, 2026-09-20: two items typed CONFIDENTIAL_INTENTS on both
+        // sides with no originAsset, amountInFormatted, amountInUsd or
+        // quoteTransactions — the host had credited wNEAR to the ledger without
+        // anything leaving it. /v0/account/balances confirmed 38897736000000000000
+        // yocto, exactly the two credits. Reading the absent origin as an
+        // outbound leg threw "missing token metadata for undefined" and took
+        // down every page that reads the account.
+        const credit = {
+            status: 'SUCCESS',
+            depositType: 'CONFIDENTIAL_INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+            createdAt: '2026-09-20T02:53:48.194164Z',
+            depositAddress: '3248a1cf8b4b623e904445ccdc9bb0674169efac35d60ec19e2266252033f5c4',
+            depositMemo: null,
+            destinationAsset: 'nep141:wrap.near',
+            amountOutFormatted: '0.000019448868',
+            amountOutUsd: '0.000068071038',
+            recipient: 'petersalomonsen.near',
+            refundType: 'CONFIDENTIAL_INTENTS',
+        };
+        const secondCredit = { ...credit, createdAt: '2026-09-20T03:38:41.570616Z', depositAddress: '2026c8c9aae6' };
+
+        expect(confidentialMovementsForItem(credit).map((m) => `${m.direction}:${m.assetId}`))
+            .to.deep.equal(['in:nep141:wrap.near']);
+
+        const records = deriveConfidentialRecords([credit, secondCredit], metadataByAsset);
+        expect(records.map((r) => [r.token_id, r.amount, r.balance_after])).to.deep.equal([
+            ['confidential:nep141:wrap.near', '19448868000000000000', '19448868000000000000'],
+            ['confidential:nep141:wrap.near', '19448868000000000000', '38897736000000000000'],
+        ]);
+        expect(records[0].tx_hash).to.equal(null);
+
+        const balances = confidentialBalancesFromItems([credit, secondCredit], metadataByAsset);
+        expect(balances.get('nep141:wrap.near')).to.equal(38897736000000000000n);
+    });
+
     it('treats the 1cs_v1 spelling of an asset as the same bucket as the bare one', () => {
         // Real capture: a ZEC shielding arrives as "nep141:zec.omft.near", and a
         // later confidential swap returns the same asset as
