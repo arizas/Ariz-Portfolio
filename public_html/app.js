@@ -3,7 +3,6 @@ import './near/stakingpool.js';
 import './accounts/accounts-page.component.js';
 import './transactions/transactions-page.component.js';
 import './stakingview/staking-page.component.js';
-import './customexchangerates/customexchangerates-page.component.js';
 import './storage/storage-page.component.js';
 import './counterparties/counterparties-page.component.js';
 import './portfolio/portfolio-page.component.js';

@@ -29,7 +29,7 @@ Confidential bucket the books cannot balance against observable chain data.
 |---|---|---|---|
 | Bridge in/out of intents | `BTC` → `BTC ( NEAR Intents / Bitcoin )` | **Realization** | Reset to value at bridge time |
 | Shield / unshield | `USDC ( NEAR Intents / Ethereum )` ⇄ `USDC ( Confidential / Ethereum )` | **Realization** (same as every bucket move) | Reset to value at shield time |
-| Swap (any bucket, incl. confidential) | confidential BTC → NEAR | **Realization** | New basis for proceeds |
+| Swap (any bucket, incl. confidential) | confidential BTC → NEAR | **Realization**, both legs on one figure (see below) | Same figure as the source's proceeds |
 | Credit into the confidential ledger (no origin) | `+0.000019448868 wNEAR ( Confidential )`, nothing leaving | **Inflow** from `intents.near` — not a bucket move | Value at credit time |
 
 A credit is a history item typed `CONFIDENTIAL_INTENTS` on both sides that
@@ -103,6 +103,47 @@ realization example in Skatteetaten's guidance. It appears on no public
 explorer, which is precisely why the report fetches confidential history via
 the authenticated 1Click API (issue #75): omitting it would silently
 understate taxable gains.
+
+### Both sides of a swap are valued on one figure
+
+A swap's proceeds and the cost basis of what it bought are the same number.
+Valuing the leg that left at its own token's close and the leg that arrived at
+its token's close gives two numbers, and the difference — the intraday move of
+both tokens plus the spread — is realized on one side and never enters the
+other, so it leaves the books for good (`docs/performance-comparison.md`
+measured it on real swaps). This also matches the guidance: the consideration
+for a disposal is the value of what was received.
+
+Which figure, in order (`public_html/yearreport/swap-legs.js`):
+
+1. **A stablecoin leg**, its amount at that day's price — the nearest thing to
+   a fiat receipt the chain offers. The destination side wins if both sides
+   are stable. A stablecoin disposal therefore shows no gain of its own, and
+   what it bought opens at exactly what was paid.
+2. **The destination legs at their end-of-day price.** The source is sold for
+   what came back, and the spread lands as a small realized loss on it.
+3. **The source legs at their close**, only when nothing on the destination
+   side has a price that day.
+
+A price the owner entered for a specific transaction (a custom realization
+rate, keyed by hash) outranks all three. Exact fiat marks from the venue
+(1Click reports `amountInUsd` / `amountOutUsd` per leg) would sit above the
+stablecoin rule; they are not read yet.
+
+Gas is not a leg: the speck of NEAR every token transaction moves is set
+aside when it is under 1 % of the largest leg beside it, so a USDC → BTC trade
+does not sell 0.0005 NEAR for 28 dollars.
+
+Legs are paired on the transaction hash, or on the deposit address for the
+two synthetic halves of a confidential swap. A swap whose legs straddle
+midnight UTC, or whose other half happened outside the tracked accounts, is
+not paired and stays what it looks like: a plain withdrawal or deposit at the
+day's rate.
+
+**Earlier tax years.** This changes the realized figures of any year with
+swaps. Years already filed need a decision — pin the previous rule for swaps
+dated before a cutoff, or file a correction if the difference is material.
+Not handled yet.
 
 ## References
 

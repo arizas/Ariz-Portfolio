@@ -1,8 +1,10 @@
-import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getReceivedAccounts, getExpenseAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
+import { getAccounts, getTransactionsForAccount, getStakingRewardsForAccountAndPool, getAllFungibleTokenTransactionsByTxHash, getAllFungibleTokenTransactions, getReceivedAccounts, getExpenseAccounts, getCustomRealizationRates } from "../storage/domainobjectstore.js";
 import { getStakingAccounts } from "../near/stakingpool.js";
 import { recomputeStakingEarnings } from "../near/accounting-export.js";
 import { getEODPrice, getCustomSellPrice, getCustomBuyPrice } from '../pricedata/pricedata.js';
 import { resolveDecimals } from '../near/intents-tokens.js';
+import { indexSwapLegs, resolveSwapValue, NATIVE_NEAR } from './swap-legs.js';
+import { swapKeyForHash } from '../portfolio/flow-extract.js';
 
 const fungibleTokenData = {
 
@@ -85,15 +87,26 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
 
     let decimalConversionValue = Math.pow(10, -24);
 
+    // Which token this pass is reading, by contract id — '' for native NEAR.
+    // The parameter may be a symbol; the swap index is keyed by contract id.
+    let thisToken = fungibleTokenSymbol ? null : NATIVE_NEAR;
+    // The other side of every swap, whichever token's pass this is. Read once
+    // per pass: a swap is only half visible from inside one token's series.
+    const nativeByAccount = {};
+    const fungibleByAccount = {};
+
     for (let account of accounts) {
         const transactions = (await getTransactionsForAccount(account, fungibleTokenSymbol)).filter(tx => tx.balance !== undefined);
         const fungbleTokenTxMap = await getAllFungibleTokenTransactionsByTxHash(account);
+        nativeByAccount[account] = fungibleTokenSymbol ? await getTransactionsForAccount(account) : transactions;
+        fungibleByAccount[account] = await getAllFungibleTokenTransactions(account);
 
         if (fungibleTokenSymbol && transactions.length > 0) {
             const tx = transactions[0];
             // Always resolve correct decimals from cache/RPC (don't trust stored transaction data)
             // Guard against missing ft data (older transaction format)
             if (tx.ft?.contract_id) {
+                thisToken = tx.ft.contract_id;
                 const decimals = await resolveDecimals(tx.ft.contract_id, tx.ft.decimals);
                 fungibleTokenData[tx.ft.contract_id] = { ...tx.ft, decimals };
                 fungibleTokenData[tx.ft.contract_id].decimalConversionValue = Math.pow(10, -decimals);
@@ -211,6 +224,8 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
         }
     }
 
+    const swapLegs = indexSwapLegs({ nativeByAccount, fungibleByAccount });
+
     const dailyBalances = {};
     let prevDateString;
     // Last staking balance seen per account, so a gap in the source data does
@@ -295,7 +310,12 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                             counterparties: [...counterparties],
                             // When it happened. Two sides of one swap settle
                             // seconds apart even when they are two transactions.
-                            at: tx.block_timestamp
+                            at: tx.block_timestamp,
+                            // Every token this key moved, this one included,
+                            // when it moved more than one. What the profit
+                            // step needs to value both sides of a swap alike.
+                            legs: swapLegs.get(swapKeyForHash(tx.hash)) ?? null,
+                            token: thisToken
                         });
                     }
                     if (changedBalanceForHashAllAccounts >= BigInt(0)) {
@@ -308,6 +328,7 @@ export async function calculateYearReportData(fungibleTokenSymbol) {
                                 dailyBalances[datestring].customRealizationRates = [];
                             }
                             dailyBalances[datestring].customRealizationRates.push({
+                                hash: tx.hash,
                                 currency: customRealization.realizationCurrency,
                                 dateTime: customRealization.realizationTime,
                                 amount: -changedBalanceForHashAllAccounts,
@@ -357,8 +378,34 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
 
         let dayProfit = 0;
         let dayLoss = 0;
-        if (dailyEntry.received > 0n || dailyEntry.deposit > 0 || dailyEntry.reward > 0) {
-            const amount = Number(dailyEntry.received ?? 0n) + dailyEntry.deposit ?? 0 + dailyEntry.reward ?? 0;
+
+        // A swap's two sides share one figure: what this token was sold for is
+        // what the other token cost. Valued here rather than in the pass,
+        // because only here is the currency known.
+        const swaps = await valueSwapsOfDay(dailyEntry, datestring, targetCurrency);
+
+        let swapDeposits = 0;
+        for (const swap of swaps) {
+            if (swap.side !== 'in') continue;
+            swapDeposits += swap.amount;
+            openPositions.push({
+                date: datestring,
+                initialAmount: swap.amount,
+                remainingAmount: swap.amount,
+                convertedValue: swap.value,
+                conversionRate: swap.value / (swap.amount * decimalConversionValue),
+                swap: swap.detail,
+                realizations: []
+            });
+        }
+
+        // What arrived without a swap behind it opens at the day's close, as
+        // it always has.
+        const plainDeposit = Math.max(0, (dailyEntry.deposit ?? 0) - swapDeposits);
+        const received = Number(dailyEntry.received ?? 0n);
+        const reward = dailyEntry.reward ?? 0;
+        if (received > 0 || plainDeposit > 0 || reward > 0) {
+            const amount = received + plainDeposit + reward;
             const conversionRate = await getEODPrice(targetCurrency, datestring, token);
             openPositions.push({
                 date: datestring,
@@ -452,6 +499,10 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
             const conversionRate = await getCustomSellPrice(targetCurrency, datestring, token);
 
             let remainingWithdrawal = dailyEntry.withdrawal;
+            // A price the owner entered for a specific transaction outranks
+            // everything derived. Remember which, so the same hash is not
+            // realized twice.
+            const pricedByOwner = new Set();
             if (dailyEntry.customRealizationRates) {
                 for (const customRealizationRate of dailyEntry.customRealizationRates) {
                     if (remainingWithdrawal < Number(customRealizationRate.amount)) {
@@ -460,9 +511,24 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
                     if (targetCurrency === customRealizationRate.currency) {
                         remainingWithdrawal -= Number(customRealizationRate.amount);
                         createRealizationsForWithdrawal(Number(customRealizationRate.amount), customRealizationRate.price);
+                        pricedByOwner.add(customRealizationRate.hash);
                     }
                 }
             }
+            // Then the swaps, each at the figure its other side shares.
+            for (const swap of swaps) {
+                if (swap.side !== 'out' || pricedByOwner.has(swap.hash)) continue;
+                const amount = Math.min(swap.amount, remainingWithdrawal);
+                if (amount <= 0) continue;
+                remainingWithdrawal -= amount;
+                const before = dailyEntry.realizations.length;
+                createRealizationsForWithdrawal(amount, swap.value / (swap.amount * decimalConversionValue));
+                for (const entry of dailyEntry.realizations.slice(before)) {
+                    entry.swap = swap.detail;
+                }
+            }
+            // Whatever left without a swap behind it: at the day's rate, or the
+            // one the owner set for the day.
             if (remainingWithdrawal > 0) {
                 createRealizationsForWithdrawal(remainingWithdrawal, conversionRate);
             }
@@ -472,6 +538,47 @@ export async function calculateProfitLoss(dailyBalances, targetCurrency, token) 
         }
     }
     return { openPositions, closedPositions, dailyBalances };
+}
+
+/**
+ * Every swap this token took part in on one day, each valued on the one
+ * figure both of its sides share. Which figure that is — a stablecoin leg,
+ * the destination at its close, the source at its close — is decided in
+ * swap-legs.js; here the legs are priced and this token's own part found.
+ *
+ * @returns {Promise<Array<{hash: string, side: 'in'|'out', amount: number, value: number, detail: object}>>}
+ *   `amount` in this token's raw units, `value` in the report currency
+ */
+async function valueSwapsOfDay(dailyEntry, datestring, targetCurrency) {
+    const swaps = [];
+    for (const flow of dailyEntry.flows ?? []) {
+        if (!flow.legs || flow.legs.length < 2) continue;
+        const values = new Map();
+        for (const leg of flow.legs) {
+            const decimals = leg.token === NATIVE_NEAR ? 24 : await resolveDecimals(leg.token, leg.decimals);
+            const price = leg.token === NATIVE_NEAR
+                ? await getEODPrice(targetCurrency, datestring)
+                : await getEODPrice(targetCurrency, datestring, leg.token);
+            values.set(leg, price > 0 ? Number(leg.changed) * Math.pow(10, -decimals) * price : null);
+        }
+        const resolved = resolveSwapValue(flow.legs, leg => values.get(leg));
+        if (!resolved) continue;
+        // This token's part may have been the gas, not a side of the trade.
+        if (!resolved.legs.some(leg => leg.token === flow.token)) continue;
+        swaps.push({
+            hash: flow.hash,
+            side: flow.changed > 0 ? 'in' : 'out',
+            amount: Math.abs(flow.changed),
+            value: resolved.value,
+            detail: {
+                key: swapKeyForHash(flow.hash),
+                valuedBy: resolved.valuedBy,
+                authority: resolved.authority.map(leg => leg.symbol),
+                legs: resolved.legs.map(leg => ({ token: leg.token, symbol: leg.symbol, changed: leg.changed.toString() })),
+            },
+        });
+    }
+    return swaps;
 }
 
 export async function getConvertedValuesForDay(rowdata, convertToCurrency, datestring) {
