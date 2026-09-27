@@ -50,7 +50,11 @@ export function formattedAmountToRaw(formatted, decimals) {
  * Treating the missing origin as an outbound leg made every page that reads
  * the account crash on "missing token metadata for undefined".
  * @param {object} item - 1Click /v0/account/history item
- * @returns {Array<{assetId: string, direction: 'in'|'out', amountFormatted: string, createdAt: string, txHash: string|null, depositAddress: string}>}
+ * Each leg also carries the venue's own USD mark for it (`amountInUsd` for
+ * the leg that left, `amountOutUsd` for the one that arrived), or null when
+ * the item has none. It is the nearest thing to a fiat receipt a swap has,
+ * and the year report values both sides of a confidential swap on it.
+ * @returns {Array<{assetId: string, direction: 'in'|'out', amountFormatted: string, amountUsd: string|null, createdAt: string, txHash: string|null, depositAddress: string}>}
  */
 export function confidentialMovementsForItem(item) {
     if (item.status !== 'SUCCESS') return [];
@@ -63,6 +67,7 @@ export function confidentialMovementsForItem(item) {
             assetId: normalizeIntentsAssetId(item.originAsset),
             direction: 'out',
             amountFormatted: item.amountInFormatted,
+            amountUsd: item.amountInUsd ?? null,
             createdAt: item.createdAt,
             txHash,
             depositAddress: item.depositAddress,
@@ -73,6 +78,7 @@ export function confidentialMovementsForItem(item) {
             assetId: normalizeIntentsAssetId(item.destinationAsset),
             direction: 'in',
             amountFormatted: item.amountOutFormatted,
+            amountUsd: item.amountOutUsd ?? null,
             createdAt: item.createdAt,
             txHash,
             depositAddress: item.depositAddress,
@@ -166,6 +172,9 @@ export function deriveConfidentialFtTransactions(items, accountId, metadataByAss
             decimals: m.decimals,
         },
         args: {},
+        // What the venue said this leg was worth, in USD, at the time. Read
+        // by the year report's swap index; absent when the host gave none.
+        ...(m.amountUsd != null ? { fiat_usd: m.amountUsd } : {}),
         _source: 'confidential-intents',
     })).reverse();
 }

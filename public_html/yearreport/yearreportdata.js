@@ -561,7 +561,22 @@ async function valueSwapsOfDay(dailyEntry, datestring, targetCurrency) {
                 : await getEODPrice(targetCurrency, datestring, leg.token);
             values.set(leg, price > 0 ? Number(leg.changed) * Math.pow(10, -decimals) * price : null);
         }
-        const resolved = resolveSwapValue(flow.legs, leg => values.get(leg));
+        // The venue marks a leg in USD. The gateway prices every token in
+        // another currency as its USD price times that day's forex rate, so
+        // NEAR in the report currency over NEAR in USD is exactly that rate.
+        let usdRate = null;
+        if (flow.legs.some(leg => leg.usd != null)) {
+            if (targetCurrency.toUpperCase() === 'USD') {
+                usdRate = 1;
+            } else {
+                const inCurrency = await getEODPrice(targetCurrency, datestring);
+                const inUsd = await getEODPrice('USD', datestring);
+                usdRate = inCurrency > 0 && inUsd > 0 ? inCurrency / inUsd : null;
+            }
+        }
+        const resolved = resolveSwapValue(flow.legs, leg => values.get(leg), {
+            fiatValue: leg => leg.usd != null && usdRate != null ? leg.usd * usdRate : null,
+        });
         if (!resolved) continue;
         // This token's part may have been the gas, not a side of the trade.
         if (!resolved.legs.some(leg => leg.token === flow.token)) continue;
