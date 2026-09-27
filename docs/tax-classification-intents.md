@@ -117,19 +117,24 @@ received.
 
 Which figure, in order (`public_html/yearreport/swap-legs.js`):
 
-1. **A stablecoin leg**, its amount at that day's price — the nearest thing to
-   a fiat receipt the chain offers. The destination side wins if both sides
-   are stable. A stablecoin disposal therefore shows no gain of its own, and
-   what it bought opens at exactly what was paid.
-2. **The destination legs at their end-of-day price.** The source is sold for
+1. **The venue's own fiat mark for the destination**: what 1Click said the
+   leg was worth when the trade settled (`amountOutUsd`; `amountInUsd` for
+   the source if the destination has none). Confidential swaps carry these on
+   every history item. The mark is in USD; it is turned into the report
+   currency at that day's rate, which is NEAR's close in the report currency
+   over NEAR's close in USD — exactly the forex rate the gateway priced every
+   token with.
+2. **A stablecoin leg**, its amount at that day's price — the nearest thing to
+   a fiat receipt the chain itself offers. The destination side wins if both
+   sides are stable. A stablecoin disposal therefore shows no gain of its own,
+   and what it bought opens at exactly what was paid.
+3. **The destination legs at their end-of-day price.** The source is sold for
    what came back, and the spread lands as a small realized loss on it.
-3. **The source legs at their close**, only when nothing on the destination
+4. **The source legs at their close**, only when nothing on the destination
    side has a price that day.
 
 A price the owner entered for a specific transaction (a custom realization
-rate, keyed by hash) outranks all three. Exact fiat marks from the venue
-(1Click reports `amountInUsd` / `amountOutUsd` per leg) would sit above the
-stablecoin rule; they are not read yet.
+rate, keyed by hash) outranks all four.
 
 Gas is not a leg: the speck of NEAR every token transaction moves is set
 aside when it is under 1 % of the largest leg beside it, so a USDC → BTC trade
