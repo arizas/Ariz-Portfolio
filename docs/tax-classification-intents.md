@@ -110,9 +110,10 @@ A swap's proceeds and the cost basis of what it bought are the same number.
 Valuing the leg that left at its own token's close and the leg that arrived at
 its token's close gives two numbers, and the difference — the intraday move of
 both tokens plus the spread — is realized on one side and never enters the
-other, so it leaves the books for good (`docs/performance-comparison.md`
-measured it on real swaps). This also matches the guidance: the consideration
-for a disposal is the value of what was received.
+other, so it leaves the books for good. Measured on four real swaps in
+2026-07/08, the leak ran from 0.2 % to 6.3 % of the trade. This also matches
+the guidance: the consideration for a disposal is the value of what was
+received.
 
 Which figure, in order (`public_html/yearreport/swap-legs.js`):
 
