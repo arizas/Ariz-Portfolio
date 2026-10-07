@@ -38,7 +38,12 @@ async function seedPrices() {
         '2024-03-02': 2.8, '2024-03-03': 3.0, '2024-03-04': 3.5,
         '2024-03-05': 3.0, '2024-03-06': 3.2, '2024-03-07': 3.3,
     });
-    for (const token of ['BTC', 'NEAR', 'wNEAR', 'USDC']) setSkipFetchingPrices(token, 'USD');
+    await setHistoricalPriceData('BTC', 'NOK', { '2024-03-01': 500000, '2024-03-02': 600000 });
+    await setHistoricalPriceData('NEAR', 'NOK', { '2024-03-02': 28 });
+    for (const token of ['BTC', 'NEAR', 'wNEAR', 'USDC']) {
+        setSkipFetchingPrices(token, 'USD');
+        setSkipFetchingPrices(token, 'NOK');
+    }
     clearPriceHistoryCache();
 }
 
@@ -90,6 +95,37 @@ describe('swap-legs', () => {
         expect(resolveSwapValue([near, btc], () => null)).to.equal(null);
     });
 
+    it('carries the venue mark on a leg only when every row behind it has one', () => {
+        const swaps = indexSwapLegs({
+            fungibleByAccount: {
+                'a.near': [
+                    { transaction_hash: 'confidential:addr:in', balance: '25', fiat_usd: '70.5', ft: { contract_id: 'confidential:b', symbol: 'B', decimals: 0 } },
+                    { transaction_hash: 'confidential:addr:out', balance: '0', fiat_usd: '72', ft: { contract_id: 'confidential:a', symbol: 'A', decimals: 0 } },
+                    { transaction_hash: 'confidential:addr:out', balance: '1', ft: { contract_id: 'confidential:c', symbol: 'C', decimals: 0 } },
+                    { transaction_hash: 'confidential:addr:out', balance: '3', fiat_usd: '1', ft: { contract_id: 'confidential:c', symbol: 'C', decimals: 0 } },
+                    { transaction_hash: 'confidential:earlier:in', balance: '2', ft: { contract_id: 'confidential:a', symbol: 'A', decimals: 0 } },
+                    { transaction_hash: 'confidential:earlier:in', balance: '4', ft: { contract_id: 'confidential:c', symbol: 'C', decimals: 0 } },
+                ],
+            },
+        });
+        const legs = swaps.get('confidential:addr').map(l => [l.symbol, l.usd]);
+        expect(legs).to.deep.equal([['B', 70.5], ['A', 72], ['C', null]]);
+    });
+
+    it('puts the venue mark of the destination above every price of the day', () => {
+        const near = { token: '', symbol: 'NEAR', decimals: 24, changed: -10n, usd: 31 };
+        const usdc = { token: 'u', symbol: 'USDC', decimals: 6, changed: 28n, usd: 27.9 };
+        const btc = { token: 'b', symbol: 'BTC', decimals: 8, changed: 1n, usd: null };
+        const value = ({ symbol }) => ({ NEAR: -32, USDC: 28, BTC: 30 })[symbol];
+        const fiatValue = leg => leg.usd == null ? null : leg.usd * 10;
+
+        expect(resolveSwapValue([near, usdc], value, { fiatValue })).to.include({ value: 279, valuedBy: 'fiat' });
+        // Destination unmarked: the source's mark, still above the stablecoin.
+        expect(resolveSwapValue([near, btc], value, { fiatValue })).to.include({ value: 310, valuedBy: 'fiat' });
+        // No marks at all: the rules below.
+        expect(resolveSwapValue([near, usdc], value)).to.include({ value: 28, valuedBy: 'stablecoin' });
+    });
+
     it('sets gas aside: a speck of NEAR beside a trade is not a side of it', () => {
         const gas = { token: '', symbol: 'NEAR', decimals: 24, changed: -1n };
         const usdc = { token: 'u', symbol: 'USDC', decimals: 6, changed: -28n };
@@ -117,6 +153,7 @@ describe('year report: both sides of a swap on one figure', () => {
                     originAsset: BTC, destinationAsset: BTC,
                     amountInFormatted: '0.01', amountOutFormatted: '0.01',
                     depositAddress: 'shield',
+                    amountInUsd: null, amountOutUsd: null,
                 }),
                 // 0.005 BTC -> 100 wNEAR. BTC closes at 60000 (300 out), NEAR at 2.8 (280 in).
                 historyItem({
@@ -125,6 +162,7 @@ describe('year report: both sides of a swap on one figure', () => {
                     originAsset: BTC, destinationAsset: WNEAR,
                     amountInFormatted: '0.005', amountOutFormatted: '100',
                     depositAddress: 'swap1',
+                    amountInUsd: null, amountOutUsd: null,
                 }),
                 // 50 wNEAR -> 140 USDC. NEAR closes at 3.0 (150 out); the stablecoin says 140.
                 historyItem({
@@ -133,6 +171,7 @@ describe('year report: both sides of a swap on one figure', () => {
                     originAsset: WNEAR, destinationAsset: USDC,
                     amountInFormatted: '50', amountOutFormatted: '140',
                     depositAddress: 'swap2',
+                    amountInUsd: null, amountOutUsd: null,
                 }),
                 // 100 USDC -> 30 wNEAR. NEAR closes at 3.5 (105 in); the stablecoin says 100.
                 historyItem({
@@ -141,6 +180,7 @@ describe('year report: both sides of a swap on one figure', () => {
                     originAsset: USDC, destinationAsset: WNEAR,
                     amountInFormatted: '100', amountOutFormatted: '30',
                     depositAddress: 'swap3',
+                    amountInUsd: null, amountOutUsd: null,
                 }),
             ]);
         });
@@ -193,6 +233,62 @@ describe('year report: both sides of a swap on one figure', () => {
             // 100, not the 105 the NEAR close would have said.
             expect(lot.convertedValue).to.be.closeTo(100, 1e-6);
             expect(lot.swap).to.include({ valuedBy: 'stablecoin' });
+        });
+    });
+
+    describe('confidential ledger, with the venue mark', () => {
+        const account = 'swap-marked.near';
+
+        before(async function () {
+            this.timeout(60000);
+            await seedPrices();
+            await setAccounts([account]);
+            await writeConfidentialIntentsHistory(account, [
+                historyItem({
+                    createdAt: '2024-03-01T10:00:00.000000Z',
+                    depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+                    originAsset: BTC, destinationAsset: BTC,
+                    amountInFormatted: '0.01', amountOutFormatted: '0.01',
+                    amountInUsd: '500', amountOutUsd: '500',
+                    depositAddress: 'shield',
+                }),
+                // 0.005 BTC -> 100 wNEAR. The venue says 300 went in and 290
+                // came out; the closes would say 300 and 280.
+                historyItem({
+                    createdAt: '2024-03-02T10:00:00.000000Z',
+                    depositType: 'CONFIDENTIAL_INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
+                    originAsset: BTC, destinationAsset: WNEAR,
+                    amountInFormatted: '0.005', amountOutFormatted: '100',
+                    amountInUsd: '300', amountOutUsd: '290',
+                    depositAddress: 'swap1',
+                }),
+            ]);
+        });
+
+        const report = async (token, currency) => calculateProfitLoss((await calculateYearReportData(token)).dailyBalances, currency, token);
+
+        it('sells the source for what the venue said the destination was worth', async function () {
+            this.timeout(60000);
+            const btc = await report(`confidential:${BTC}`, 'USD');
+            const day = btc.dailyBalances['2024-03-02'];
+            // Proceeds 290 against a basis of 250.
+            expect(day.profit).to.be.closeTo(40, 1e-6);
+            expect(day.realizations[0].swap).to.include({ valuedBy: 'fiat' });
+            expect(day.realizations[0].swap.authority).to.deep.equal(['wNEAR']);
+
+            const wnear = await report(`confidential:${WNEAR}`, 'USD');
+            expect(wnear.openPositions.find(p => p.date === '2024-03-02').convertedValue).to.be.closeTo(290, 1e-6);
+        });
+
+        it('turns the USD mark into the report currency at that day\'s rate', async function () {
+            this.timeout(60000);
+            // NEAR closed at 2.8 USD and 28 NOK: 10 NOK to the dollar.
+            const btc = await report(`confidential:${BTC}`, 'NOK');
+            const day = btc.dailyBalances['2024-03-02'];
+            // 2900 against a basis of 0.005 x 500000 = 2500.
+            expect(day.profit).to.be.closeTo(400, 1e-6);
+            expect(day.realizations[0].conversionRate).to.be.closeTo(2900 / 0.005, 1e-6);
+            expect(day.realizations[0].swap).to.include({ valuedBy: 'fiat' });
         });
     });
 

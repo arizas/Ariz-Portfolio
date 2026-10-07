@@ -23,6 +23,8 @@ export const NATIVE_NEAR = '';
  * @property {string} symbol
  * @property {number} decimals
  * @property {bigint} changed  raw units, negative for the side that left
+ * @property {number|null} usd  what the venue said the leg was worth, in USD,
+ *   when every row behind it carried a mark; null otherwise
  */
 
 /**
@@ -37,13 +39,18 @@ export const NATIVE_NEAR = '';
 export function indexSwapLegs({ nativeByAccount = {}, fungibleByAccount = {} }) {
     // key -> token -> leg
     const byKey = new Map();
-    const add = (hash, token, symbol, decimals, changed) => {
+    const add = (hash, token, symbol, decimals, changed, usd = null) => {
         if (changed === 0n) return;
         const key = swapKeyForHash(hash);
         if (!byKey.has(key)) byKey.set(key, new Map());
         const legs = byKey.get(key);
-        const leg = legs.get(token) ?? { token, symbol, decimals, changed: 0n };
+        const leg = legs.get(token) ?? { token, symbol, decimals, changed: 0n, usd: 0, marked: 0, rows: 0 };
         leg.changed += changed;
+        leg.rows += 1;
+        if (usd != null && Number.isFinite(Number(usd))) {
+            leg.usd += Number(usd);
+            leg.marked += 1;
+        }
         legs.set(token, leg);
     };
 
@@ -65,14 +72,16 @@ export function indexSwapLegs({ nativeByAccount = {}, fungibleByAccount = {} }) 
         }
         for (const [id, series] of perToken) {
             deriveChangedBalances(series);
-            for (const tx of series) add(tx.hash, id, tx.ft.symbol, tx.ft.decimals, tx.changedBalance);
+            for (const tx of series) add(tx.hash, id, tx.ft.symbol, tx.ft.decimals, tx.changedBalance, tx.fiat_usd);
         }
     }
 
     const swaps = new Map();
     for (const [key, legs] of byKey) {
         if (legs.size < 2) continue;
-        swaps.set(key, [...legs.values()]);
+        // A mark on some rows of a leg and not others is no mark at all.
+        swaps.set(key, [...legs.values()].map(({ token, symbol, decimals, changed, usd, marked, rows }) =>
+            ({ token, symbol, decimals, changed, usd: marked === rows ? usd : null })));
     }
     return swaps;
 }
@@ -93,15 +102,15 @@ export function isStablecoinSymbol(symbol) {
  * A swap's source realization and destination cost basis must be the same
  * number, or the difference leaks out of the books for good. Which number:
  *
- *   1. a stablecoin leg, its amount at that day's price — the nearest thing
- *      to a fiat receipt the chain offers; the destination side wins if both
- *      sides are stable
- *   2. the destination legs at their end-of-day price
- *   3. the source legs at theirs, only when nothing on the destination side
+ *   1. the venue's own fiat mark for the destination legs — what it said
+ *      they were worth when the trade settled; the source legs' mark if the
+ *      destination has none
+ *   2. a stablecoin leg, its amount at that day's price — the nearest thing
+ *      to a fiat receipt the chain itself offers; the destination side wins
+ *      if both sides are stable
+ *   3. the destination legs at their end-of-day price
+ *   4. the source legs at theirs, only when nothing on the destination side
  *      has a price that day
- *
- * Exact fiat marks from the venue would sit above all three; they are not
- * read yet.
  *
  * Gas is not a leg. Every transaction that moves a token also moves a speck of
  * NEAR, and a speck worth under `dustFraction` of the biggest leg beside it is
@@ -111,11 +120,12 @@ export function isStablecoinSymbol(symbol) {
  * @param {(leg: SwapLeg) => number|null} eodValue  value of the leg's full amount in the report currency, or null if unpriced
  * @param {object} [options]
  * @param {number} [options.dustFraction]
- * @returns {{ value: number, valuedBy: 'stablecoin'|'destination'|'source', authority: SwapLeg[], legs: SwapLeg[] }|null}
+ * @param {(leg: SwapLeg) => number|null} [options.fiatValue]  the leg's venue mark in the report currency, or null
+ * @returns {{ value: number, valuedBy: 'fiat'|'stablecoin'|'destination'|'source', authority: SwapLeg[], legs: SwapLeg[] }|null}
  *   null when no leg on either side can be priced, or when the key does not
  *   have both an in and an out side once dust is set aside
  */
-export function resolveSwapValue(legs, eodValue, { dustFraction = 0.01 } = {}) {
+export function resolveSwapValue(legs, eodValue, { dustFraction = 0.01, fiatValue = () => null } = {}) {
     const priced = legs.map(leg => ({ leg, value: eodValue(leg) }));
     const largest = Math.max(0, ...priced.map(p => Math.abs(p.value ?? 0)));
     const substance = priced.filter(p => p.value == null || Math.abs(p.value) >= largest * dustFraction);
@@ -127,6 +137,18 @@ export function resolveSwapValue(legs, eodValue, { dustFraction = 0.01 } = {}) {
     const sumOf = side => side.every(p => p.value != null)
         ? side.reduce((sum, p) => sum + Math.abs(p.value), 0)
         : null;
+
+    for (const side of [ins, outs]) {
+        const marks = side.map(p => fiatValue(p.leg));
+        if (marks.length && marks.every(m => m != null && m > 0)) {
+            return {
+                value: marks.reduce((sum, m) => sum + m, 0),
+                valuedBy: 'fiat',
+                authority: side.map(p => p.leg),
+                legs: substance.map(p => p.leg),
+            };
+        }
+    }
 
     for (const side of [ins, outs]) {
         const stable = side.filter(p => isStablecoinSymbol(p.leg.symbol) && p.value != null);
