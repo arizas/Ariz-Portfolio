@@ -372,3 +372,52 @@ describe('trading with a market maker', () => {
         expect(separatePortfolioTransfers([leg({ kind: 'income' })]).external).to.have.lengthOf(1);
     });
 });
+
+// petersalomonsen.near, 2026-09-28. The confidential ledger's staking: 300
+// wNEAR unshielded to intents at 15:01, 700 more at 16:30, and 687.8 stNEAR
+// credited from intents at 16:31. The intents-side wNEAR never appears in the
+// data. Read one-to-one, the 700 alone is 32 % short of the stNEAR and the 300
+// is ninety minutes away; the row showed 50 774 kroner taken out and the
+// stNEAR as a lone arrival.
+describe('one trade paid in instalments', () => {
+    const ns = iso => (BigInt(new Date(iso).getTime()) * 1000000n).toString();
+    const price = (token) => ({ 'confidential:nep141:wrap.near': 50.77, 'nep141:lst-pool.near': 75.84, 'nep141:usdc.near': 10.15 })[token] ?? null;
+    const lot = (units, iso) => move({ date: '2026-09-28', kind: 'withdrawal', token: 'confidential:nep141:wrap.near', symbol: 'wNEAR', units, counterparties: ['intents.near'], at: ns(iso) });
+    const bought = move({ date: '2026-09-28', kind: 'deposit', token: 'nep141:lst-pool.near', symbol: 'stNEAR', units: 687.8144, counterparties: ['intents.near'], at: ns('2026-09-28T16:31:38Z') });
+
+    it('adds the lots up to the arrival', () => {
+        const { internal, external } = separatePortfolioTransfers([lot(300, '2026-09-28T15:01:38Z'), lot(700, '2026-09-28T16:30:47Z'), bought], { price });
+        expect(external).to.have.lengthOf(0);
+        const trade = internal.find(t => t.reason === 'venue-trade');
+        expect(trade.instalments).to.equal(2);
+        expect(trade.units).to.equal(1000);
+        expect(trade.movements).to.have.lengthOf(3);
+    });
+
+    it('takes the smallest set that adds up, not every departure of the day', () => {
+        const unrelated = lot(10, '2026-09-28T09:00:00Z');
+        const { internal, external } = separatePortfolioTransfers([unrelated, lot(300, '2026-09-28T15:01:38Z'), lot(700, '2026-09-28T16:30:47Z'), bought], { price });
+        expect(internal.find(t => t.reason === 'venue-trade').instalments).to.equal(2);
+        // The unrelated lot is judged on its own: a departure through a gateway
+        // needs corroboration, so it stays a withdrawal.
+        expect(external).to.deep.equal([unrelated]);
+    });
+
+    it('will not make a trade of lots that do not add up', () => {
+        const { internal, external } = separatePortfolioTransfers([lot(300, '2026-09-28T15:01:38Z'), bought], { price });
+        expect(internal.find(t => t.reason === 'venue-trade')).to.equal(undefined);
+        expect(external).to.have.lengthOf(1);
+    });
+
+    it('does not look past the day, or at lots that came after', () => {
+        const yesterday = move({ ...lot(1000, '2026-09-27T23:50:00Z'), date: '2026-09-27' });
+        const later = lot(1000, '2026-09-28T17:00:00Z');
+        expect(separatePortfolioTransfers([yesterday, bought], { price }).internal.find(t => t.reason === 'venue-trade')).to.equal(undefined);
+        expect(separatePortfolioTransfers([later, bought], { price }).internal.find(t => t.reason === 'venue-trade')).to.equal(undefined);
+    });
+
+    it('needs every leg to have been settled by someone who trades', () => {
+        const toSomeone = { ...lot(1000, '2026-09-28T16:00:00Z'), counterparties: ['friend.near'] };
+        expect(separatePortfolioTransfers([toSomeone, bought], { price }).internal.find(t => t.reason === 'venue-trade')).to.equal(undefined);
+    });
+});

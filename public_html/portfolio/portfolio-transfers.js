@@ -237,6 +237,59 @@ export function separatePortfolioTransfers(movements = [], {
                 movements: [gave, got],
             });
         }
+
+        // 2b. One trade paid for in instalments. The confidential ledger's
+        //     staking unshields wNEAR to intents in lots — 300 at 15:01, 700 at
+        //     16:30 on one real day — and buys stNEAR once the last has landed.
+        //     The intents-side wNEAR in between never appears in the data, so
+        //     the credit from the venue has nothing to pair with but the lots
+        //     themselves, and no window short enough to be safe reaches the
+        //     first of them. Only the sum can tie them: an arrival from a venue
+        //     is matched against the venue-bound departures of the same day
+        //     before it, most recent first, taking the smallest set whose value
+        //     adds up to it within the tolerance. Everything that keeps the
+        //     one-to-one rule safe still applies: every leg settled by someone
+        //     who trades, a different asset on each side, a day and no further.
+        const arrivals = inVenue
+            .filter(m => !taken.has(m) && m.kind === 'deposit' && tradedInsideAVenue(m, venues, traders))
+            .sort(byTime);
+        for (const got of arrivals) {
+            if (taken.has(got)) continue;
+            const gv = valueOf(got, price);
+            if (gv == null || !(gv > 0)) continue;
+            const lots = inVenue
+                .filter(m => !taken.has(m) && m.kind === 'withdrawal' && m.date === got.date
+                    && baseAsset(m.token) !== baseAsset(got.token)
+                    && tradedInsideAVenue(m, venues, traders)
+                    && notAfter(m.at, got.at))
+                .sort(byTime);
+            // Two lots at least: a single leg far from its partner is not a
+            // trade however well the value fits, as the one-to-one rule already
+            // says, and that rule has had its chance.
+            let paid = null;
+            for (let k = 2; k <= lots.length && !paid; k++) {
+                const set = lots.slice(lots.length - k);
+                const values = set.map(m => valueOf(m, price));
+                if (values.some(v => v == null)) break;
+                const sum = values.reduce((s, v) => s + v, 0);
+                if (sum > 0 && Math.abs(sum - gv) / Math.max(sum, gv) <= tradeTolerance) paid = set;
+            }
+            if (!paid) continue;
+            for (const m of paid) taken.add(m);
+            taken.add(got);
+            internal.push({
+                reason: 'venue-trade',
+                date: got.date,
+                asset: baseAsset(paid[0].token),
+                symbol: `${paid.map(m => m.symbol ?? m.token).join(' + ')} -> ${got.symbol ?? got.token}`,
+                units: paid.reduce((s, m) => s + m.units, 0),
+                from: bucketOf(paid[0].token),
+                to: bucketOf(got.token),
+                secondsApart: secondsApart(paid[paid.length - 1].at, got.at),
+                instalments: paid.length,
+                movements: [...paid, got],
+            });
+        }
     }
 
     // 3. Whatever is left, judged by who was on the other side — but only in one
@@ -300,6 +353,14 @@ export function separatePortfolioTransfers(movements = [], {
 function valueOf(m, price) {
     const p = price(m.token, m.date);
     return p == null || !Number.isFinite(p) ? null : Math.abs(m.units * p);
+}
+
+function byTime(a, b) {
+    try { const d = BigInt(a.at) - BigInt(b.at); return d < 0n ? -1 : d > 0n ? 1 : 0; } catch { return 0; }
+}
+
+function notAfter(a, b) {
+    try { return BigInt(a) <= BigInt(b); } catch { return false; }
 }
 
 /** Block timestamps are nanoseconds, as strings too long for a Number. */

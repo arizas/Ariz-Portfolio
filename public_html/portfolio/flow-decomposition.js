@@ -86,7 +86,12 @@ export function decomposeFlows({
     // confidential — arrives as a withdrawal in one token's pass and a deposit
     // in another's, under two different transactions, so the hash cannot tie
     // them together. See portfolio-transfers.js.
-    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved, { price });
+    // A transaction whose own sides do not match may still be one side of a
+    // trade settled under another hash; its legs get the same chance to pair.
+    const suspectLegs = suspect.flatMap(d => d.movements ?? []);
+    const { internal: transfers, external } = separatePortfolioTransfers([...crossedOrMoved, ...suspectLegs], { price });
+    const pairedAway = new Set(transfers.flatMap(t => t.movements ?? []));
+    const unresolved = suspect.filter(d => !(d.movements ?? []).every(m => pairedAway.has(m)));
 
     // A movement recognised as internal from one leg alone has no counterpart in
     // this data — the other side is in a bucket the report does not cover. The
@@ -153,10 +158,10 @@ export function decomposeFlows({
     }
 
     if (unpriced.length) {
-        return { ok: false, reason: 'unpriced-flows', unpriced, ignoredNoMarket, suspect };
+        return { ok: false, reason: 'unpriced-flows', unpriced, ignoredNoMarket, suspect: unresolved };
     }
-    if (suspect.length) {
-        return { ok: false, reason: 'ambiguous-swap', suspect, ignoredNoMarket };
+    if (unresolved.length) {
+        return { ok: false, reason: 'ambiguous-swap', suspect: unresolved, ignoredNoMarket };
     }
 
     // Yield is deliberately absent: it is return on capital already inside, so
