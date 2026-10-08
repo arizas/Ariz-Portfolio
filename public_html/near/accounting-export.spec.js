@@ -325,6 +325,39 @@ describe('accounting-export (JSON)', () => {
             expect(merged[1].balance).to.equal(1050);
         });
 
+        it('drops an entry the server no longer has inside the blocks it covers, keeps older ones', () => {
+            // petersalomonsen.near on npro.poolv1.near, 2026-09-28: the server once
+            // held a withdrawal sample at 217641382 and, one block later, a sample
+            // saying the balance went back up — a move the pool never made, read
+            // here as 1200 NEAR of reward. A server-side repair removed both. The
+            // export now steps from the epoch snapshot before to the one after.
+            const N = n => n * 1e24;
+            const existing = [
+                { block_height: 217684800, balance: N(10800), deposit: 0, withdrawal: 0, earnings: 0 },
+                { block_height: 217641600, balance: N(10800), deposit: 0, withdrawal: 0, earnings: 0 },
+                { block_height: 217641383, balance: N(12000), deposit: 0, withdrawal: 0, earnings: N(1200) },
+                { block_height: 217641382, balance: N(10800), deposit: 0, withdrawal: N(1200), earnings: 0, hash: 'JDaZ' },
+                { block_height: 217598400, balance: N(12000), deposit: 0, withdrawal: 0, earnings: 0 },
+                { block_height: 100000000, balance: N(12000), deposit: 0, withdrawal: 0, earnings: 0 }, // older than anything the server sent
+            ];
+            const fromServer = [
+                { block_height: 217684800, balance: N(10800), deposit: 0, withdrawal: 0, earnings: 0 },
+                { block_height: 217641600, balance: N(10800), deposit: 0, withdrawal: 0, earnings: 0 },
+                { block_height: 217598400, balance: N(12000), deposit: 0, withdrawal: 0, earnings: 0 },
+            ];
+
+            const merged = mergeStakingEntries(existing, fromServer);
+
+            expect(merged.map(e => e.block_height)).to.deep.equal([217684800, 217641600, 217598400, 100000000]);
+            // Nothing is booked as reward: the drop is a plain snapshot decrease.
+            expect(merged.reduce((sum, e) => sum + e.earnings, 0)).to.equal(0);
+        });
+
+        it('keeps everything when the server sent nothing', () => {
+            const existing = [{ block_height: 5, balance: 1, deposit: 0, withdrawal: 0, earnings: 0 }];
+            expect(mergeStakingEntries(existing, []).length).to.equal(1);
+        });
+
         it('should preserve correct earnings from new entries after merge with deposit', () => {
             // Simulates merging OLD data (incorrect earnings) with NEW data (correct earnings from API)
             // New entries have correct earnings from staking_reward transfer amounts

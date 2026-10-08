@@ -818,7 +818,17 @@ export function mergeStakingEntries(existingEntries, newEntries) {
     // Create map using block_height as key (unique per staking snapshot)
     const entriesByBlock = new Map();
 
+    // The server is the authority for the blocks it covers. An entry it no
+    // longer has in that range was deleted there — a pool-balance sample that
+    // reported a move the pool never made, dropped by a server-side repair —
+    // and keeping it here would keep booking that move as reward for as long
+    // as this store lives. Entries outside the covered range are kept: the
+    // server may simply not have reached them.
+    const covered = newEntries.length
+        ? [Math.min(...newEntries.map(e => e.block_height)), Math.max(...newEntries.map(e => e.block_height))]
+        : null;
     for (const entry of existingEntries) {
+        if (covered && entry.block_height >= covered[0] && entry.block_height <= covered[1]) continue;
         entriesByBlock.set(entry.block_height, entry);
     }
 
