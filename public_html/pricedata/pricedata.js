@@ -82,6 +82,46 @@ export function __resetNoPriceTokens() {
     noPriceTokensPromise = undefined;
 }
 
+// Tokens the gateway prices by their own contract rather than by ticker — a
+// liquid-staking token is worth what its contract says it redeems for. A
+// ticker is not a key: lst-pool.near calls itself stNEAR, exactly like Meta
+// Pool's token, and priced by that name 982 tokens bought at 1.02 NEAR each
+// read as worth 1.49. For these the price store and the gateway are addressed
+// by contract id, whatever bucket the token sits in.
+let rateTokensPromise;
+
+async function getRateTokens() {
+    if (!rateTokensPromise) {
+        rateTokensPromise = fetchFromArizGateway('/api/prices/ratetokens', { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false })
+            .then(list => new Set((Array.isArray(list) ? list : []).map(t => String(t).toLowerCase())))
+            .catch(() => new Set());
+    }
+    return rateTokensPromise;
+}
+
+export function __setRateTokensForTests(list) {
+    rateTokensPromise = list ? Promise.resolve(new Set(list.map(t => String(t).toLowerCase()))) : undefined;
+}
+
+/** The contract behind a token id in any bucket: native, intents or confidential. */
+export function bareContract(token) {
+    return String(token)
+        .replace(/^confidential:/, '')
+        .replace(/^nep245:intents\.near:/, '')
+        .replace(/^nep141:/, '')
+        .toLowerCase();
+}
+
+/**
+ * The key a token's price is stored and fetched under when it is priced by
+ * its contract; null when it is priced by ticker like everything else.
+ */
+export async function priceKeyFor(token) {
+    if (!token) return null;
+    const bare = bareContract(token);
+    return (await getRateTokens()).has(bare) ? bare : null;
+}
+
 // Map token symbols to CoinGecko IDs (Ariz Gateway uses CoinGecko API)
 const symbolToCoinGeckoId = {
     'NEAR': 'near',
@@ -225,7 +265,8 @@ function isLikelyValidSymbol(symbol) {
 export async function getCurrentPrices(tokens, currency) {
     const result = {};
     const vs = currency.toLowerCase();
-    const uniqueTokens = [...new Set(tokens.filter(t => t && isLikelyValidSymbol(t)))];
+    const rateTokens = await getRateTokens();
+    const uniqueTokens = [...new Set(tokens.filter(t => t && (isLikelyValidSymbol(t) || rateTokens.has(String(t).toLowerCase()))))];
     if (uniqueTokens.length === 0) {
         return result;
     }
@@ -285,7 +326,10 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     const hasNearSuffix = /\.(near|testnet)$/.test(token);
     const isImplicitAccount = token.length === 64 && /^[a-f0-9]+$/.test(token);
     const isLikelyContractId = hasIntentsPrefix || hasNearSuffix || isImplicitAccount;
-    if (isLikelyContractId) {
+    const rateKey = await priceKeyFor(token);
+    if (rateKey) {
+        token = rateKey;
+    } else if (isLikelyContractId) {
         token = await resolveSymbol(token);
     }
 
@@ -354,7 +398,10 @@ export async function getEODPriceMap(currency, token = defaultToken) {
     const hasIntentsPrefix = /^nep(141|245):/.test(token);
     const hasNearSuffix = /\.(near|testnet)$/.test(token);
     const isImplicitAccount = token.length === 64 && /^[a-f0-9]+$/.test(token);
-    if (hasIntentsPrefix || hasNearSuffix || isImplicitAccount) {
+    const rateKey = await priceKeyFor(token);
+    if (rateKey) {
+        token = rateKey;
+    } else if (hasIntentsPrefix || hasNearSuffix || isImplicitAccount) {
         token = await resolveSymbol(token);
     }
 

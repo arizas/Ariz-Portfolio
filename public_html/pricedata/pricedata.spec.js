@@ -1,4 +1,5 @@
-import { getEODPrice, getEODPriceMap, fetchHistoricalPricesFromArizGateway, clearPriceHistoryCache, __resetNoPriceTokens } from "./pricedata.js";
+import { setHistoricalPriceData } from "../storage/domainobjectstore.js";
+import { getEODPrice, getEODPriceMap, fetchHistoricalPricesFromArizGateway, clearPriceHistoryCache, __resetNoPriceTokens, __setRateTokensForTests, priceKeyFor, setSkipFetchingPrices } from "./pricedata.js";
 import { mockWalletAuthenticationData, mockArizGatewayAccess } from "../arizgateway/arizgatewayaccess.spec.js";
 
 describe('pricedata from Ariz gateway', () => {
@@ -118,5 +119,35 @@ describe('a price history is read once per session', () => {
 
         const map = await getEODPriceMap('NOK', 'FROZEN');
         expect(() => { map['2024-01-01'] = 0; }).to.throw();
+    });
+});
+
+describe('a token priced by its contract, not its ticker', () => {
+    // lst-pool.near calls itself stNEAR, exactly like Meta Pool's token. By
+    // ticker the two are one price; by contract they are not.
+    const DATE = '2026-09-28';
+    before(async () => {
+        __setRateTokensForTests(['lst-pool.near']);
+        await setHistoricalPriceData('stNEAR', 'NOK', { [DATE]: 75.84 });
+        await setHistoricalPriceData('lst-pool.near', 'NOK', { [DATE]: 51.67 });
+        setSkipFetchingPrices('stNEAR', 'NOK');
+        setSkipFetchingPrices('lst-pool.near', 'NOK');
+        clearPriceHistoryCache();
+    });
+    after(() => __setRateTokensForTests(null));
+
+    it('is keyed by its contract in every bucket', async () => {
+        expect(await priceKeyFor('lst-pool.near')).to.equal('lst-pool.near');
+        expect(await priceKeyFor('nep141:lst-pool.near')).to.equal('lst-pool.near');
+        expect(await priceKeyFor('confidential:nep141:lst-pool.near')).to.equal('lst-pool.near');
+        expect(await priceKeyFor('nep141:wrap.near')).to.equal(null);
+    });
+
+    it('takes the contract price, not the ticker price', async () => {
+        expect(await getEODPrice('NOK', DATE, 'nep141:lst-pool.near')).to.equal(51.67);
+        expect(await getEODPrice('NOK', DATE, 'confidential:nep141:lst-pool.near')).to.equal(51.67);
+        expect(await getEODPrice('NOK', DATE, 'stNEAR')).to.equal(75.84);
+        const map = await getEODPriceMap('NOK', 'nep141:lst-pool.near');
+        expect(map[DATE]).to.equal(51.67);
     });
 });

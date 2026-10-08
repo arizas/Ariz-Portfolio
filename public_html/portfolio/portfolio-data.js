@@ -27,7 +27,7 @@ import {
     getDecimalConversionValue
 } from '../yearreport/yearreportdata.js';
 import { resolveSymbol, resolveDisplaySymbol } from '../near/intents-tokens.js';
-import { getCurrentPrices, getEODPrice, getEODPriceMap, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
+import { getCurrentPrices, priceKeyFor, getEODPrice, getEODPriceMap, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
 import { getReceivedAccounts } from '../storage/domainobjectstore.js';
 import { movementsForToken, receivedClassifier, mergedReceivedTypes } from './flow-extract.js';
 import { decomposeFlows } from './flow-decomposition.js';
@@ -151,6 +151,9 @@ async function computeBase(currency, onProgress, force) {
         holdings.push({
             token: t.token,
             symbol: t.symbol,
+            // What its spot price is asked for under: the contract when the
+            // gateway prices it by its own rate, the ticker otherwise.
+            priceKey: (await priceKeyFor(t.token)) ?? t.symbol,
             displaySymbol: t.displaySymbol,
             excluded,
             amount,
@@ -163,7 +166,7 @@ async function computeBase(currency, onProgress, force) {
     }
 
     onProgress('Fetching current prices');
-    const pricedSymbols = holdings.filter(h => h.amount > DUST_THRESHOLD).map(h => h.symbol);
+    const pricedSymbols = holdings.filter(h => h.amount > DUST_THRESHOLD).map(h => h.priceKey);
     let currentPrices = {};
     let pricesUnavailable = false;
     try {
@@ -184,7 +187,7 @@ async function computeBase(currency, onProgress, force) {
     let totalCost = 0;
     let excludedValue = 0;
     for (const h of holdings) {
-        const price = currentPrices[h.symbol] ?? null;
+        const price = currentPrices[h.priceKey] ?? null;
         h.price = price;
         h.value = price != null ? h.amount * price : null;
         h.priceMissing = price == null && h.amount > DUST_THRESHOLD;
