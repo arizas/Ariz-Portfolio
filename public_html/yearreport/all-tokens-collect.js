@@ -232,8 +232,13 @@ export function portfolioFlows({ movements, priceByToken, skip = new Set(), sepa
 
     const { internal, external: crossedOrMoved, suspect } = separate(live, price);
     // Swaps share a transaction; a move between the portfolio's own buckets does
-    // not, and is just as much not a flow.
-    const { internal: transfers, external } = separatePortfolioTransfers(crossedOrMoved, { price });
+    // not, and is just as much not a flow. A transaction whose own sides do not
+    // match may still be one side of a trade settled under another hash — a
+    // token sold to a solver whose payment landed seconds later — so its legs
+    // get the same chance to pair as everything else.
+    const suspectLegs = suspect.flatMap(d => d.movements ?? []);
+    const { internal: transfers, external } = separatePortfolioTransfers([...crossedOrMoved, ...suspectLegs], { price });
+    const pairedAway = new Set(transfers.flatMap(t => t.movements ?? []));
     const byDate = {};
     const dayOf = (date) => (byDate[date] ??= {
         deposit: 0, withdrawal: 0, internalCount: 0, internalValue: 0,
@@ -254,8 +259,9 @@ export function portfolioFlows({ movements, priceByToken, skip = new Set(), sepa
 
     for (const m of external) add(m);
     for (const detail of suspect) {
+        // Resolved by the pairing above: nothing of it is left to count.
+        if ((detail.movements ?? []).every(m => pairedAway.has(m))) continue;
         dayOf(detail.date).ambiguous.push(detail);
-        for (const m of detail.movements ?? []) add(m);
     }
     for (const detail of internal) {
         const day = dayOf(detail.date);
