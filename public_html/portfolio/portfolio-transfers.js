@@ -124,7 +124,13 @@ export function baseAsset(token) {
  */
 function tradedInsideAVenue(movement, venues, traders) {
     const parties = movement.counterparties ?? [];
-    if (!parties.length) return false;
+    // An intents balance that changed with nobody named on the other side was
+    // changed by the intents contract itself — a fill minted into the account,
+    // a burn out of it. The transfers API reports those with no counterparty,
+    // and the stNEAR bought ten seconds after an unshield arrived exactly so:
+    // settled inside the venue, with nothing to say who by. The native and
+    // confidential buckets carry no such implication, and stay unjudged.
+    if (!parties.length) return bucketOf(movement.token) === 'intents';
     return parties.every(p =>
         venues.has(p) || traders.has(p) || (p.length === 64 && /^[a-f0-9]+$/.test(p)));
 }
