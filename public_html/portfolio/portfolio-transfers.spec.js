@@ -292,10 +292,13 @@ describe('a trade settled as two transactions', () => {
         expect(external).to.have.lengthOf(2);
     });
 
-    // Nothing recorded on the other side says nothing about where it went.
-    it('will not pair a leg with no counterparty at all', () => {
+    // Nothing recorded on the other side of an INTENTS leg means the intents
+    // contract itself settled it — the transfers API names nobody for a fill
+    // minted into the account or burned out of it — so it still pairs. (A
+    // native or confidential leg with nobody named stays unjudged; see below.)
+    it('pairs an intents leg with no counterparty, which the venue itself settled', () => {
         const anonymous = { ...gave, counterparties: [] };
-        expect(separatePortfolioTransfers([anonymous, got], { price }).external).to.have.lengthOf(2);
+        expect(separatePortfolioTransfers([anonymous, got], { price }).external).to.have.lengthOf(0);
     });
 
     it('does nothing without prices, rather than pairing on time alone', () => {
@@ -419,5 +422,37 @@ describe('one trade paid in instalments', () => {
     it('needs every leg to have been settled by someone who trades', () => {
         const toSomeone = { ...lot(1000, '2026-09-28T16:00:00Z'), counterparties: ['friend.near'] };
         expect(separatePortfolioTransfers([toSomeone, bought], { price }).internal.find(t => t.reason === 'venue-trade')).to.equal(undefined);
+    });
+});
+
+// The transfers API reports a credit minted into the account by the intents
+// contract with no counterparty at all. On 2026-09-28 the two stNEAR purchases
+// arrived so, and the first — recovered later than the second — could not pair
+// with the 300 wNEAR unshielded ten seconds before it, however exactly the
+// values matched.
+describe('an intents leg with nobody named on the other side', () => {
+    const ns = iso => (BigInt(new Date(iso).getTime()) * 1000000n).toString();
+    const price = (token) => ({ 'confidential:nep141:wrap.near': 50.77, 'nep141:lst-pool.near': 51.68 })[token] ?? null;
+    const unshield = move({ date: '2026-09-28', kind: 'withdrawal', token: 'confidential:nep141:wrap.near', symbol: 'wNEAR', units: 300, counterparties: ['intents.near'], at: ns('2026-09-28T15:01:38Z') });
+    const bought = move({ date: '2026-09-28', kind: 'deposit', token: 'nep141:lst-pool.near', symbol: 'stNEAR', units: 294.79, counterparties: [], at: ns('2026-09-28T15:01:48Z') });
+
+    it('is settled inside the venue, so it pairs', () => {
+        const { internal, external } = separatePortfolioTransfers([unshield, bought], { price });
+        expect(external).to.have.lengthOf(0);
+        expect(internal.find(t => t.reason === 'venue-trade').movements).to.have.lengthOf(2);
+    });
+
+    it('is still not judged on its own', () => {
+        // Alone, with nothing to pair against, it is neither called internal nor
+        // dropped: the counterparty rule has nothing to go on.
+        const { internal, external } = separatePortfolioTransfers([bought], { price });
+        expect(internal).to.have.lengthOf(0);
+        expect(external).to.deep.equal([bought]);
+    });
+
+    it('does not extend to a native or confidential leg without a counterparty', () => {
+        const native = move({ date: '2026-09-28', kind: 'deposit', token: '', symbol: 'NEAR', units: 300, counterparties: [], at: ns('2026-09-28T15:01:48Z') });
+        const { internal } = separatePortfolioTransfers([unshield, native], { price: t => (t === '' ? 50.77 : price(t)) });
+        expect(internal.find(t => t.reason === 'venue-trade')).to.equal(undefined);
     });
 });
