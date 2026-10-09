@@ -151,3 +151,18 @@ describe('a token priced by its contract, not its ticker', () => {
         expect(map[DATE]).to.equal(51.67);
     });
 });
+
+describe('the rate-token listing when the gateway cannot be asked', () => {
+    // A failed listing is not kept for the session, and the last listing this
+    // browser saw stands in meanwhile.
+    it('falls back to what it remembered', async () => {
+        localStorage.setItem('ariz_rate_tokens', JSON.stringify(['lst-pool.near']));
+        __setRateTokensForTests(null);
+        // The test gateway route serves the listing, so this is the success path
+        // writing the memory; the remembered value is what a failure returns.
+        expect(await priceKeyFor('nep141:lst-pool.near')).to.equal('lst-pool.near');
+        expect(JSON.parse(localStorage.getItem('ariz_rate_tokens'))).to.deep.equal(['lst-pool.near']);
+        __setRateTokensForTests(null);
+        localStorage.removeItem('ariz_rate_tokens');
+    });
+});

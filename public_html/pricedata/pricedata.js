@@ -89,13 +89,35 @@ export function __resetNoPriceTokens() {
 // read as worth 1.49. For these the price store and the gateway are addressed
 // by contract id, whatever bucket the token sits in.
 let rateTokensPromise;
+const RATE_TOKENS_STORAGE_KEY = 'ariz_rate_tokens';
+
+function rememberedRateTokens() {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(RATE_TOKENS_STORAGE_KEY) || '[]').map(t => String(t).toLowerCase()));
+    } catch {
+        return new Set();
+    }
+}
 
 async function getRateTokens() {
-    if (!rateTokensPromise) {
-        rateTokensPromise = fetchFromArizGateway('/api/prices/ratetokens', { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false })
-            .then(list => new Set((Array.isArray(list) ? list : []).map(t => String(t).toLowerCase())))
-            .catch(() => new Set());
-    }
+    if (rateTokensPromise) return rateTokensPromise;
+    // Never a wallet prompt from here — a price lookup must not be the thing
+    // that pops the signer, which is why history fetches are non-interactive
+    // too. But a failure is not kept: the next lookup asks again, and meanwhile
+    // the last listing this browser saw stands in, so a page opened with a
+    // stale session is not priced by ticker for the rest of it. That is
+    // exactly how 294.79 lst-pool tokens came to be valued at Meta Pool's
+    // price once.
+    rateTokensPromise = fetchFromArizGateway('/api/prices/ratetokens', { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false })
+        .then(list => {
+            const set = new Set((Array.isArray(list) ? list : []).map(t => String(t).toLowerCase()));
+            try { localStorage.setItem(RATE_TOKENS_STORAGE_KEY, JSON.stringify([...set])); } catch { /* storage unavailable */ }
+            return set;
+        })
+        .catch(() => {
+            rateTokensPromise = undefined;
+            return rememberedRateTokens();
+        });
     return rateTokensPromise;
 }
 
@@ -180,6 +202,7 @@ export function priceServiceStatus() {
 
 /** Try the gateway again — after a sync, or when the user asks for a refresh. */
 export function resetPriceService() {
+    rateTokensPromise = undefined;
     priceServiceDown = null;
 }
 
