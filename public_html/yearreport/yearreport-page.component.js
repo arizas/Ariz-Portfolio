@@ -203,7 +203,7 @@ customElements.define('year-report-page',
 
             const breakdown = allTokens && tokenBreakdown?.length ? `
                 <table class="table table-sm table-dark">
-                <thead><th>Token</th><th>Received</th><th>Deposit</th><th>Withdrawal</th><th>Expense</th><th>Reward</th></thead>
+                <thead><th>Token</th><th>Received</th><th>Deposit</th><th>Withdrawal</th><th>Expense</th><th>Reward</th><th>Profit</th><th>Loss</th></thead>
                 <tbody>
                 ${tokenBreakdown.map(t => `<tr>
                     <td>${label(t)}${t.priced === false ? ' <span class="text-warning">(no price)</span>' : ''}</td>
@@ -212,9 +212,53 @@ customElements.define('year-report-page',
                     <td>${formatNumber(t.withdrawal)}</td>
                     <td>${formatNumber(t.expense)}</td>
                     <td>${formatNumber(t.stakingReward)}</td>
+                    <td>${formatNumber(t.profit ?? 0)}</td>
+                    <td>${formatNumber(t.loss ?? 0)}</td>
                 </tr>`).join('')}
                 </tbody>
                 </table>` : '';
+
+            // Where the day's profit came from. Each disposal names the lot it
+            // consumed — when it was acquired and at what price — against what
+            // it fetched, and how that exit value was decided: a swap is valued
+            // on the leg that can be trusted (see swap-legs.js), everything
+            // else at the day's close. Without this the profit column is a
+            // number with no way to check it.
+            const units = (r, t) => Number(r.amount) * (t.decimalConversionValue ?? 1);
+            const formatUnits = (n) => Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(n);
+            const valuedBy = (r) => {
+                const by = r.swap?.valuedBy;
+                const who = (r.swap?.authority ?? []).map(escapeHtml).join(', ');
+                if (by === 'fiat') return `the venue's fiat mark${who ? ` for ${who}` : ''}`;
+                if (by === 'stablecoin') return `the ${who} leg of the swap`;
+                if (by === 'destination') return `the ${who} received`;
+                if (by === 'source') return `the ${who} given, at its close`;
+                return "the day's close";
+            };
+            const realized = allTokens ? (tokenBreakdown ?? []).flatMap(t => (t.realizations ?? []).map(r => ({ t, r }))) : [];
+            const realizations = realized.length ? `
+                <p class="small mb-1">Realized this day — the lot each disposal consumed, its entry price, and what it fetched:</p>
+                <div class="table-responsive">
+                <table class="table table-sm table-dark">
+                <thead><th>Token</th><th>Sold</th><th>Acquired</th><th>Entry / unit</th><th>Exit / unit</th><th>Cost</th><th>Proceeds</th><th>Profit</th><th>Loss</th><th>Exit valued by</th></thead>
+                <tbody>
+                ${realized.map(({ t, r }) => {
+                    const u = units(r, t);
+                    return `<tr>
+                    <td>${label(t)}</td>
+                    <td>${formatUnits(u)}</td>
+                    <td>${escapeHtml(r.position?.date ?? '')}</td>
+                    <td>${u > 0 ? formatNumber(r.initialConvertedValue / u) : ''}</td>
+                    <td>${formatNumber(r.conversionRate)}</td>
+                    <td>${formatNumber(r.initialConvertedValue)}</td>
+                    <td>${formatNumber(r.convertedValue)}</td>
+                    <td>${formatNumber(r.profit)}</td>
+                    <td>${formatNumber(r.loss)}</td>
+                    <td>${valuedBy(r)}</td>
+                </tr>`; }).join('')}
+                </tbody>
+                </table>
+                </div>` : '';
 
             // A transaction is shaped by which ledger it came from: native NEAR
             // rows name a signer and a receiver, fungible token rows name your
@@ -226,6 +270,7 @@ customElements.define('year-report-page',
             return `
                 ${reconcile}
                 ${breakdown}
+                ${realizations}
                 <div class="table-responsive">
                     <table class="table table-sm table-dark">
                     <thead>
