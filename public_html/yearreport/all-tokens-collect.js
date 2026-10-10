@@ -145,6 +145,10 @@ export async function collectAllTokenDays({
                 stakingReward, received, deposit, withdrawal, expense,
                 profit: Number(rowdata.profit ?? 0),
                 loss: Number(rowdata.loss ?? 0),
+                // What was sold that day and against which lot, so the day can
+                // show where its profit came from: the lot's date and entry
+                // price, the exit price, and how the exit value was decided.
+                realizations: rowdata.realizations ?? [],
                 totalBalance: conversionRate * units.totalBalance * decimalConversionValue,
                 totalChange: conversionRate * units.totalChange * decimalConversionValue,
                 accountBalance: conversionRate * units.accountBalance * decimalConversionValue,
