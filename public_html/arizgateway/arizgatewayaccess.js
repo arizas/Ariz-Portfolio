@@ -88,6 +88,78 @@ export async function signMessageWithWallet({ message, recipient, nonce }) {
 }
 
 /**
+ * NEP-413 signMessage as `accountId`, which need not be the signed-in account.
+ *
+ * The connected wallet signs if it already is `accountId`. Otherwise a
+ * throwaway connector — its own in-memory selector storage, never the app's —
+ * opens the wallet picker and asks the chosen wallet to signInAndSignMessage:
+ * one prompt, where the user picks `accountId` and signs. Plain signMessage
+ * cannot do this in every wallet: Meteor's signs as the account it has stored
+ * from sign-in, whatever `signerId` says.
+ *
+ * signInAndSignMessage stores the account it signed in, in the wallet's own
+ * entries of this page's localStorage (`<wallet id>:…`, e.g. Meteor's
+ * `meteor-wallet:meteor-account-data`, NEAR Mobile's session key). Those
+ * entries are shared with the app's connector, so left alone they would make
+ * the signed-in account `accountId`. They are put back as they were.
+ */
+export async function signMessageAsAccount(accountId, { message, recipient, nonce }) {
+    const connected = await currentWallet();
+    const signed = connected && await accountIdFromWallet(connected) === accountId
+        ? await connected.signMessage({ message, recipient, nonce })
+        : await signInOnceAndSign(accountId, { message, recipient, nonce });
+    // The signature only authenticates `accountId` if that account made it.
+    if (signed.accountId !== accountId) {
+        throw new Error(`The wallet signed as ${signed.accountId}, not ${accountId}`);
+    }
+    return signed;
+}
+
+let _testOtherAccountWallet = null;
+
+/**
+ * Test hook: the wallet signMessageAsAccount's throwaway picker would choose
+ * (manifest + signInAndSignMessage). Pass null to clear.
+ */
+export function __setTestOtherAccountWallet(wallet) {
+    _testOtherAccountWallet = wallet;
+}
+
+class MemoryStorage {
+    #map = new Map();
+    async get(key) { return this.#map.get(key) ?? null; }
+    async set(key, value) { this.#map.set(key, value); }
+    async remove(key) { this.#map.delete(key); }
+}
+
+/** The wallet picker of a throwaway connector, sharing no selector state with the app's. */
+async function pickWalletOnce() {
+    const { NearConnector } = await import('@hot-labs/near-connect');
+    const connector = new NearConnector({
+        network: 'mainnet', autoConnect: false, storage: new MemoryStorage(),
+    });
+    return connector.wallet(await connector.selectWallet({ features: { signInAndSignMessage: true } }));
+}
+
+async function signInOnceAndSign(accountId, { message, recipient, nonce }) {
+    const wallet = _testOtherAccountWallet ?? await pickWalletOnce();
+    const prefix = `${wallet.manifest.id}:`;
+    const walletEntries = () => Object.entries(localStorage).filter(([key]) => key.startsWith(prefix));
+    const before = walletEntries();
+    try {
+        const accounts = await wallet.signInAndSignMessage({
+            messageParams: { message, recipient, nonce }, network: 'mainnet',
+        });
+        const signedMessage = (accounts?.find((a) => a.accountId === accountId) ?? accounts?.[0])?.signedMessage;
+        if (!signedMessage) throw new Error('The wallet returned no signature');
+        return signedMessage;
+    } finally {
+        for (const [key] of walletEntries()) localStorage.removeItem(key);
+        for (const [key, value] of before) localStorage.setItem(key, value);
+    }
+}
+
+/**
  * Sign and send a transaction through the connected wallet (NEAR Connect).
  * Prompts a login first if not connected. `actions` use the wallet-selector
  * shape, e.g. [{ type: 'FunctionCall', params: { methodName, args, gas, deposit } }].

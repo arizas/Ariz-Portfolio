@@ -8,9 +8,8 @@ import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domaino
 import { exists } from '../storage/gitstorage.js';
 // Static imports on purpose — a dynamic import() breaks the single-file dist
 // (see the dist guard in playwright_tests/tests/wasmgit.spec.js).
-import { fetchConfidentialHistory, fetchConfidentialBalances,
+import { openConfidentialSession, fetchConfidentialHistory, fetchConfidentialBalances,
     ConfidentialHistoryUnavailableError } from '../near/intentshistory.js';
-import { requireWalletAccount } from '../arizgateway/arizgatewayaccess.js';
 
 /** Raw integer units as a decimal string, for a human-readable mismatch report. */
 function formatRawAmount(raw, decimals) {
@@ -93,30 +92,27 @@ customElements.define('accounts-page',
         /**
          * Fetch the confidential NEAR Intents history for one account row.
          * The 1Click API only reveals the SIGNING account's confidential
-         * ledger, so the connected wallet must be the row's account — anyone
-         * else's confidential data is unreachable by design. The result is
-         * stored client-side only (the user's git repository; it leaves the
-         * device solely via the encrypted store sync).
+         * ledger, so the row's account signs — through the signed-in wallet
+         * when that is the row's account, otherwise through a wallet picker
+         * that leaves the signed-in account as it is. One signature per fetch;
+         * no 1Click session is kept. The result is stored client-side only
+         * (the user's git repository; it leaves the device solely via the
+         * encrypted store sync).
          */
         async fetchConfidentialForAccount(account) {
             try {
                 if (!account) return;
-                const walletAccount = await requireWalletAccount();
-                if (walletAccount !== account) {
-                    await modalAlert('Wrong wallet for this account',
-                        `Confidential intents history can only be fetched by the account owner's wallet. `
-                        + `You are signed in as ${walletAccount} — to fetch for ${account}, sign in with that account's wallet first.`);
-                    return;
-                }
+                setProgressbarValue('indeterminate', `Sign the message as ${account} to read its confidential history…`);
+                const session = await openConfidentialSession(account);
                 setProgressbarValue('indeterminate', `Fetching confidential intents history for ${account}…`);
-                const items = await fetchConfidentialHistory();
+                const items = await fetchConfidentialHistory(session);
                 const { total, added, updated } = await writeConfidentialIntentsHistory(account, items);
 
                 // Prove the stored history is complete before trusting the
                 // numbers it produces — a truncated fetch still adds up.
                 setProgressbarValue('indeterminate', 'Reconciling against the confidential ledger…');
                 const mismatches = await reconcileStoredConfidentialBalances(
-                    account, await fetchConfidentialBalances());
+                    account, await fetchConfidentialBalances(session));
                 setProgressbarValue(null);
 
                 // modalAlert renders its content as HTML, and symbols come

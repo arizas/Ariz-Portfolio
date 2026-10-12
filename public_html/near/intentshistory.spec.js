@@ -1,8 +1,11 @@
 import {
     ACCESS_TOKEN_SESSION_STORAGE_KEY,
     __setTestWallet,
+    __setTestOtherAccountWallet,
+    getAccountId,
 } from '../arizgateway/arizgatewayaccess.js';
 import {
+    openConfidentialSession,
     fetchConfidentialHistory,
     buildAuthNonce,
     serializeNep413Payload,
@@ -12,11 +15,11 @@ import {
     ConfidentialHistoryTruncatedError,
     fetchConfidentialBalances,
     __resetForTests,
-    __setSessionForTests,
 } from './intentshistory.js';
 import {
     mockIntentsBackend,
     signingWallet,
+    otherAccountWallet,
     historyItem,
     ONECLICK_HISTORY_TEST_URL,
 } from './intentshistory.mock.js';
@@ -38,8 +41,13 @@ describe('intentshistory (1Click confidential history)', () => {
     afterEach(() => {
         backend.restore();
         __setTestWallet(null);
+        __setTestOtherAccountWallet(null);
         localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
     });
+
+    /** One click's worth: sign in as alice.near, then walk her history. */
+    const fetchAsAlice = async (options) =>
+        fetchConfidentialHistory(await openConfidentialSession('alice.near'), options);
 
     const shielding = historyItem({
         createdAt: '2026-07-08T17:48:43.001527Z',
@@ -79,7 +87,7 @@ describe('intentshistory (1Click confidential history)', () => {
     it('fetches the whole feed with one wallet signature, oldest-first', async () => {
         seedTypicalPages();
 
-        const items = await fetchConfidentialHistory();
+        const items = await fetchAsAlice();
 
         expect(items.map((i) => i.depositAddress)).to.deep.equal(['aaa1', 'bbb2', 'ccc3', 'ddd4']);
         expect(backend.authenticateCalls).to.equal(1);
@@ -99,7 +107,7 @@ describe('intentshistory (1Click confidential history)', () => {
         // confidential balance that was wrong but still added up.
         seedLongFeed(63);
 
-        const items = await fetchConfidentialHistory();
+        const items = await fetchAsAlice();
 
         expect(items.length, 'the whole feed, not one page').to.equal(63);
         expect(items[0].depositAddress).to.equal('dep000');
@@ -125,7 +133,7 @@ describe('intentshistory (1Click confidential history)', () => {
         };
 
         let caught = null;
-        await fetchConfidentialHistory({ maxPages: 5 }).catch((e) => { caught = e; });
+        await fetchAsAlice({ maxPages: 5 }).catch((e) => { caught = e; });
         window.fetch = realFetch;
 
         expect(caught).to.be.instanceOf(ConfidentialHistoryTruncatedError);
@@ -142,7 +150,7 @@ describe('intentshistory (1Click confidential history)', () => {
         };
 
         let caught = null;
-        await fetchConfidentialHistory({ maxPages: 5 }).catch((e) => { caught = e; });
+        await fetchAsAlice({ maxPages: 5 }).catch((e) => { caught = e; });
         window.fetch = realFetch;
 
         expect(caught).to.be.instanceOf(ConfidentialHistoryTruncatedError);
@@ -155,7 +163,7 @@ describe('intentshistory (1Click confidential history)', () => {
         // separate host while the same JWT still authenticates it.
         seedTypicalPages();
 
-        const items = await fetchConfidentialHistory();
+        const items = await fetchAsAlice();
 
         expect(items.length).to.equal(4);
         // Every history request the module made hit the history host.
@@ -176,15 +184,10 @@ describe('intentshistory (1Click confidential history)', () => {
         // carries no token must fail loudly rather than fetch strangers'
         // transactions into this user's ledger.
         seedTypicalPages();
-        __setSessionForTests({
-            accessToken: undefined,
-            accessExpiresAt: Date.now() + 900_000,
-            refreshExpiresAt: Date.now() + 900_000,
-        });
 
         let error;
         try {
-            await fetchConfidentialHistory();
+            await fetchConfidentialHistory({ config: backend.config, accountId: 'alice.near' });
         } catch (e) {
             error = e;
         }
@@ -199,7 +202,7 @@ describe('intentshistory (1Click confidential history)', () => {
 
         let error;
         try {
-            await fetchConfidentialHistory();
+            await fetchAsAlice();
         } catch (e) {
             error = e;
         }
@@ -211,7 +214,7 @@ describe('intentshistory (1Click confidential history)', () => {
 
     it('signs the exact trezu-style auth payload (message shape, recipient, nonce layout)', async () => {
         seedTypicalPages();
-        await fetchConfidentialHistory();
+        await fetchAsAlice();
 
         const { payload } = backend.lastAuthBody.signedData;
         expect(payload.recipient).to.equal('intents.near');
@@ -234,7 +237,7 @@ describe('intentshistory (1Click confidential history)', () => {
         seedTypicalPages();
         backend.failBeforeSuccess = 2;
 
-        const items = await fetchConfidentialHistory({ retryDelayMs: 1 });
+        const items = await fetchAsAlice({ retryDelayMs: 1 });
 
         expect(items.length).to.equal(4);
         expect(backend.historyRequests.length).to.equal(3); // 2 failed + 1 successful
@@ -245,51 +248,61 @@ describe('intentshistory (1Click confidential history)', () => {
         backend.failBeforeSuccess = 100;
 
         let message = '';
-        await fetchConfidentialHistory({ retryDelayMs: 1 }).catch((e) => { message = e.message; });
+        await fetchAsAlice({ retryDelayMs: 1 }).catch((e) => { message = e.message; });
         expect(message).to.contain('1Click history -> 500');
     });
 
-    it('refreshes an expired access token without a wallet signature', async () => {
+    it('signs anew for every fetch — no 1Click session is kept', async () => {
         seedTypicalPages();
-        __setSessionForTests({
-            accessToken: 'stale', refreshToken: 'old-refresh',
-            accessExpiresAt: Date.now() - 1, refreshExpiresAt: Date.now() + 60_000,
-        });
 
-        await fetchConfidentialHistory();
+        await fetchAsAlice();
+        await fetchAsAlice();
 
-        expect(backend.refreshCalls).to.equal(1);
-        expect(backend.authenticateCalls).to.equal(0);
-        expect(wallet.signatureCount).to.equal(0);
-        expect(backend.historyRequests[0].bearer).to.equal('access-1');
+        expect(wallet.signatureCount).to.equal(2);
+        expect(backend.authenticateCalls).to.equal(2);
     });
 
-    it('falls back to a fresh wallet signature when the refresh is rejected', async () => {
-        seedTypicalPages();
-        backend.refreshStatus = 401;
-        __setSessionForTests({
-            accessToken: 'stale', refreshToken: 'old-refresh',
-            accessExpiresAt: Date.now() - 1, refreshExpiresAt: Date.now() + 60_000,
+    describe('for an account other than the signed-in one', () => {
+        const SESSION_KEY = 'fake-web-wallet:account-data';
+        afterEach(() => localStorage.removeItem(SESSION_KEY));
+
+        it('signs as that account and leaves the signed-in account as it was', async () => {
+            seedTypicalPages();
+            const bob = otherAccountWallet('bob.near');
+            // The wallet's stored session for the signed-in account, which
+            // signing in as bob overwrites.
+            localStorage.setItem(SESSION_KEY, JSON.stringify({ accountId: 'alice.near' }));
+
+            const items = await fetchConfidentialHistory(await openConfidentialSession('bob.near'));
+
+            expect(items.length).to.equal(4);
+            expect(bob.signatureCount).to.equal(1);
+            expect(wallet.signatureCount, 'the signed-in wallet signs nothing').to.equal(0);
+            expect(JSON.parse(backend.lastAuthBody.signedData.payload.message).signer_id).to.equal('bob.near');
+            expect(await getAccountId()).to.equal('alice.near');
+            expect(JSON.parse(localStorage.getItem(SESSION_KEY)).accountId).to.equal('alice.near');
         });
 
-        await fetchConfidentialHistory();
+        it('leaves no wallet session behind when there was none', async () => {
+            otherAccountWallet('bob.near');
 
-        expect(backend.refreshCalls).to.equal(1);
-        expect(backend.authenticateCalls).to.equal(1);
-        expect(wallet.signatureCount).to.equal(1);
-    });
+            await openConfidentialSession('bob.near');
 
-    it('re-signs directly when the whole session is expired', async () => {
-        seedTypicalPages();
-        __setSessionForTests({
-            accessToken: 'stale', refreshToken: 'dead-refresh',
-            accessExpiresAt: Date.now() - 1, refreshExpiresAt: Date.now() - 1,
+            expect(localStorage.getItem(SESSION_KEY)).to.equal(null);
+            // Entries outside the wallet's own are not touched.
+            expect(JSON.parse(localStorage.getItem(ACCESS_TOKEN_SESSION_STORAGE_KEY)).accountId).to.equal('alice.near');
         });
 
-        await fetchConfidentialHistory();
+        it('refuses a signature made by a different account than the row', async () => {
+            otherAccountWallet('carol.near');
 
-        expect(backend.refreshCalls).to.equal(0);
-        expect(backend.authenticateCalls).to.equal(1);
+            let caught = null;
+            await openConfidentialSession('bob.near').catch((e) => { caught = e; });
+
+            expect(caught?.message).to.contain('signed as carol.near, not bob.near');
+            expect(backend.authenticateCalls, 'nothing sent to 1Click').to.equal(0);
+            expect(localStorage.getItem(SESSION_KEY)).to.equal(null);
+        });
     });
 
     it('reads the confidential ledger balances from the history host', async () => {
@@ -301,7 +314,7 @@ describe('intentshistory (1Click confidential history)', () => {
             ['1cs_v1:near:nep141:zec.omft.near', '4200'],
         ]);
 
-        const balances = await fetchConfidentialBalances();
+        const balances = await fetchConfidentialBalances(await openConfidentialSession('alice.near'));
 
         expect(backend.balanceRequests).to.equal(1);
         expect(balances.get('nep141:btc.omft.near')).to.equal(705233n);
@@ -319,7 +332,7 @@ describe('intentshistory (1Click confidential history)', () => {
             ] }), { status: 200, headers: { 'content-type': 'application/json' } });
         };
 
-        const balances = await fetchConfidentialBalances();
+        const balances = await fetchConfidentialBalances(await openConfidentialSession('alice.near'));
         window.fetch = realFetch;
 
         expect([...balances.keys()]).to.deep.equal(['nep141:btc.omft.near']);
@@ -329,7 +342,7 @@ describe('intentshistory (1Click confidential history)', () => {
         backend.configStatus = 404;
 
         let caught = null;
-        await fetchConfidentialHistory().catch((e) => { caught = e; });
+        await openConfidentialSession('alice.near').catch((e) => { caught = e; });
         expect(caught).to.be.instanceOf(ConfidentialHistoryUnavailableError);
         expect(wallet.signatureCount).to.equal(0);
     });
