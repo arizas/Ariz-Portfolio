@@ -1,7 +1,7 @@
 import './accounts-page.component.js';
-import { ACCESS_TOKEN_SESSION_STORAGE_KEY, __setTestWallet } from '../arizgateway/arizgatewayaccess.js';
+import { ACCESS_TOKEN_SESSION_STORAGE_KEY, __setTestWallet, __setTestOtherAccountWallet, getAccountId } from '../arizgateway/arizgatewayaccess.js';
 import { __resetForTests } from '../near/intentshistory.js';
-import { mockIntentsBackend, signingWallet, historyItem } from '../near/intentshistory.mock.js';
+import { mockIntentsBackend, signingWallet, otherAccountWallet, historyItem } from '../near/intentshistory.mock.js';
 import { getConfidentialIntentsHistory } from '../storage/domainobjectstore.js';
 
 describe('accounts-page.component', () => {
@@ -76,24 +76,13 @@ describe('accounts-page.component', () => {
         afterEach(() => {
             backend.restore();
             __setTestWallet(null);
+            __setTestOtherAccountWallet(null);
             localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
         });
 
         it('each account row has a fetch-confidential button', () => {
             configComponent.setAccounts(['alice.near']);
             expect(shadowRoot.querySelectorAll('.fetchConfidentialButton').length).to.equal(1);
-        });
-
-        it('refuses when the connected wallet is not the row account (nothing fetched or stored)', async () => {
-            signingWallet('alice.near');
-            configComponent.setAccounts(['bob.near']);
-
-            shadowRoot.querySelector('.fetchConfidentialButton').click();
-            const text = await dismissModal();
-            expect(text).to.contain('Wrong wallet');
-            expect(text).to.contain('alice.near');
-            expect(backend.authenticateCalls).to.equal(0);
-            expect(await getConfidentialIntentsHistory('bob.near')).to.deep.equal([]);
         });
 
         const shielding = historyItem({
@@ -119,6 +108,24 @@ describe('accounts-page.component', () => {
             const stored = await getConfidentialIntentsHistory('alice.near');
             expect(stored.length).to.equal(1);
             expect(stored[0].depositAddress).to.equal('acctpage1');
+        });
+
+        it('fetches for another account in the list, staying signed in as before', async () => {
+            const alice = signingWallet('alice.near');
+            const bob = otherAccountWallet('bob.near');
+            configComponent.setAccounts(['alice.near', 'bob.near']);
+            backend.feed = [{ ...shielding, recipient: 'bob.near', depositAddress: 'acctpage-bob' }];
+            backend.balances = new Map([['nep141:btc.omft.near', '544253']]);
+
+            shadowRoot.querySelectorAll('.fetchConfidentialButton')[1].click();
+            const text = await dismissModal();
+
+            expect(text).to.contain('Confidential history fetched');
+            expect(bob.signatureCount).to.equal(1);
+            expect(alice.signatureCount).to.equal(0);
+            expect(await getAccountId()).to.equal('alice.near');
+            const stored = await getConfidentialIntentsHistory('bob.near');
+            expect(stored.map((i) => i.depositAddress)).to.deep.equal(['acctpage-bob']);
         });
 
         it('says so, in readable amounts, when the stored history does not add up', async () => {

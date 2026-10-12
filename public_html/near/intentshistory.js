@@ -1,4 +1,4 @@
-import { arizgatewayhost, getAccessToken, requireWalletAccount, signMessageWithWallet } from '../arizgateway/arizgatewayaccess.js';
+import { arizgatewayhost, getAccessToken, signMessageAsAccount } from '../arizgateway/arizgatewayaccess.js';
 import { callViewFunction } from './rpc.js';
 import { normalizeIntentsAssetId } from './intents-tokens.js';
 import { historyItemKey } from './confidentialledger.js';
@@ -39,19 +39,12 @@ export const CONFIDENTIAL_HISTORY_API_URL = 'https://q8v3n6.defuse.org';
 /** Confidential history needs ONECLICK_API_KEY configured on the gateway. */
 export class ConfidentialHistoryUnavailableError extends Error { }
 
-// ---- module session state (in memory only — mirrors the DEK custody philosophy:
-// tokens are never persisted, a page reload re-signs at most once) --------------
+// Gateway config, cached for the page. No 1Click session is kept: every fetch
+// signs anew, as whichever account it is for (see openConfidentialSession).
 let _config = null;   // { apiUrl, apiKey } from the gateway
-let _session = null;  // { accessToken, refreshToken, accessExpiresAt, refreshExpiresAt }
 
 export function __resetForTests() {
     _config = null;
-    _session = null;
-}
-
-/** Test hook: inspect/seed the in-memory 1Click session. */
-export function __setSessionForTests(session) {
-    _session = session;
 }
 
 // ---- base58 (for the ed25519 signature the wallet returns base64-encoded,
@@ -170,31 +163,15 @@ async function api(config, path, { method = 'GET', body, bearer, base } = {}) {
     return { status: response.status, json };
 }
 
-function storeSession(authJson) {
-    // Never store a session without a token: the history host answers an
-    // unauthenticated request with 200 and *other accounts'* records rather
-    // than an error, so a tokenless session would silently pull in foreign
-    // transactions instead of failing (see requireBearer).
-    if (!authJson?.accessToken) {
-        throw new Error('1Click auth response contained no accessToken');
-    }
-    const now = Date.now();
-    _session = {
-        accessToken: authJson.accessToken,
-        refreshToken: authJson.refreshToken,
-        // Refresh one minute before expiry so an in-flight pagination never
-        // crosses the boundary with a stale token.
-        accessExpiresAt: now + (authJson.expiresIn ?? 900) * 1000 - 60_000,
-        refreshExpiresAt: now + (authJson.refreshExpiresIn ?? 0) * 1000 - 60_000,
-    };
-    return _session.accessToken;
-}
-
-/** Wallet-signed authentication against the 1Click API (one signature). */
-async function authenticate(config) {
-    const accountId = await requireWalletAccount();
+/**
+ * Sign in to 1Click as `accountId` — one wallet signature, by that account,
+ * whether or not it is the account signed in to Ariz — and return the session
+ * the fetches below take. Nothing is kept: the next fetch signs again.
+ */
+export async function openConfidentialSession(accountId) {
+    const config = await getIntentsApiConfig();
     const payload = await buildAuthPayload(accountId);
-    const signed = await signMessageWithWallet({
+    const signed = await signMessageAsAccount(accountId, {
         message: payload.message,
         recipient: payload.recipient,
         nonce: payload.nonce,
@@ -219,32 +196,17 @@ async function authenticate(config) {
     if (auth.status !== 200 && auth.status !== 201) {
         throw new Error(`1Click authenticate -> ${auth.status}: ${JSON.stringify(auth.json).slice(0, 300)}`);
     }
-    return storeSession(auth.json);
-}
-
-/**
- * A valid 1Click access token: cached while fresh, renewed via /v0/auth/refresh
- * while the refresh token lives (~7d), re-signed with the wallet only when the
- * whole session is gone.
- */
-async function obtainBearer(config) {
-    const now = Date.now();
-    if (_session && now < _session.accessExpiresAt) return _session.accessToken;
-    if (_session && now < _session.refreshExpiresAt) {
-        const refreshed = await api(config, '/v0/auth/refresh', {
-            method: 'POST',
-            body: { refreshToken: _session.refreshToken },
-        });
-        if (refreshed.status === 200 || refreshed.status === 201) {
-            return storeSession(refreshed.json);
-        }
-        _session = null; // refresh rejected -> fall through to a fresh signature
+    // Never hand out a session without a token: the history host answers an
+    // unauthenticated request with 200 and *other accounts'* records rather
+    // than an error (see requireBearer).
+    if (!auth.json?.accessToken) {
+        throw new Error('1Click auth response contained no accessToken');
     }
-    return authenticate(config);
+    return { config, accountId, accessToken: auth.json.accessToken };
 }
 
 /**
- * A session token, or an error — never undefined.
+ * The session's token, or an error — never undefined.
  *
  * The history host does not require authentication to answer: without an
  * `authorization` header it returns 200 and a global feed of other accounts'
@@ -253,12 +215,11 @@ async function obtainBearer(config) {
  * transactions into the user's own confidential ledger and year report, so
  * refuse to make the call at all.
  */
-async function requireBearer(config) {
-    const bearer = await obtainBearer(config);
-    if (!bearer) {
+function requireBearer(session) {
+    if (!session?.accessToken) {
         throw new Error('refusing to request confidential history without a session token');
     }
-    return bearer;
+    return session.accessToken;
 }
 
 const HISTORY_PAGE_LIMIT = 50;
@@ -266,12 +227,13 @@ const HISTORY_PAGE_LIMIT = 50;
 /** Raised when the host answers but the page walk cannot be trusted to be complete. */
 export class ConfidentialHistoryTruncatedError extends Error { }
 
-async function getHistoryPage(config, base, query, { retryDelayMs }) {
+async function getHistoryPage(session, base, query, { retryDelayMs }) {
+    const bearer = requireBearer(session);
     // The 1Click backend occasionally 500s ("AMQP Request failed") — retry
     // with backoff before giving up.
     let last;
     for (let attempt = 0; attempt < 5; attempt++) {
-        last = await api(config, query, { bearer: await requireBearer(config), base });
+        last = await api(session.config, query, { bearer, base });
         if (last.status < 500) break;
         await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (attempt + 1)));
     }
@@ -303,16 +265,16 @@ async function getHistoryPage(config, base, query, { retryDelayMs }) {
  * a walk down the wrong cursor produce byte-identical responses — which is why
  * the caller also reconciles the result against the balances the API reports.
  */
-async function fetchHistoryPages(config, byKey, { retryDelayMs, maxPages }) {
+async function fetchHistoryPages(session, byKey, { retryDelayMs, maxPages }) {
     // History lives on the dedicated (ungated) host, not the auth host — see the
     // HOST SPLIT note at the top of the file. The auth JWT works on both.
-    const base = config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
+    const base = session.config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
     let cursor = null;
     let lastPageSize = 0;
     for (let page = 0; page < maxPages; page++) {
         const query = `/v0/account/history?limit=${HISTORY_PAGE_LIMIT}` +
             (cursor ? `&prevCursor=${encodeURIComponent(cursor)}` : '');
-        const json = await getHistoryPage(config, base, query, { retryDelayMs });
+        const json = await getHistoryPage(session, base, query, { retryDelayMs });
         const items = json.items ?? [];
         const before = byKey.size;
         for (const item of items) byKey.set(historyItemKey(item), item);
@@ -346,7 +308,7 @@ async function fetchHistoryPages(config, byKey, { retryDelayMs, maxPages }) {
 }
 
 /**
- * All confidential-related history for the connected wallet account: shieldings
+ * All confidential-related history for the session's account: shieldings
  * (recipientType CONFIDENTIAL_INTENTS), unshieldings (depositType
  * CONFIDENTIAL_INTENTS) and confidential swaps (both). Returns items
  * oldest-first.
@@ -359,10 +321,9 @@ async function fetchHistoryPages(config, byKey, { retryDelayMs, maxPages }) {
  * identical requests. Items that touch no confidential leg produce no
  * movements downstream (confidentialledger.js), so an unfiltered feed is safe.
  */
-export async function fetchConfidentialHistory({ retryDelayMs = 1500, maxPages = 100 } = {}) {
-    const config = await getIntentsApiConfig();
+export async function fetchConfidentialHistory(session, { retryDelayMs = 1500, maxPages = 100 } = {}) {
     const byKey = new Map();
-    await fetchHistoryPages(config, byKey, { retryDelayMs, maxPages });
+    await fetchHistoryPages(session, byKey, { retryDelayMs, maxPages });
     return [...byKey.values()].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
 }
 
@@ -377,10 +338,9 @@ export async function fetchConfidentialHistory({ retryDelayMs = 1500, maxPages =
  * silently loses its oldest items still adds up — just to the wrong number.
  * See reconcileConfidentialBalances in confidentialledger.js.
  */
-export async function fetchConfidentialBalances({ retryDelayMs = 1500 } = {}) {
-    const config = await getIntentsApiConfig();
-    const base = config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
-    const json = await getHistoryPage(config, base, '/v0/account/balances', { retryDelayMs });
+export async function fetchConfidentialBalances(session, { retryDelayMs = 1500 } = {}) {
+    const base = session.config.historyApiUrl ?? CONFIDENTIAL_HISTORY_API_URL;
+    const json = await getHistoryPage(session, base, '/v0/account/balances', { retryDelayMs });
     const byAsset = new Map();
     for (const balance of json.balances ?? []) {
         if (balance.source !== 'private') continue;

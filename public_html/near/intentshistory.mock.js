@@ -1,4 +1,4 @@
-import { __setTestWallet, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
+import { __setTestWallet, __setTestOtherAccountWallet, arizgatewayhost } from '../arizgateway/arizgatewayaccess.js';
 import { rpcUrl } from './rpc.js';
 
 // Shared test doubles for the intentshistory specs (not a spec file itself —
@@ -9,7 +9,19 @@ export const ONECLICK_TEST_URL = 'https://oneclick.example.test';
 // History lives on a separate host from auth (see intentshistory.js HOST SPLIT).
 export const ONECLICK_HISTORY_TEST_URL = 'https://oneclick-history.example.test';
 
-/** Deterministic fake wallet that counts NEP-413 signatures. */
+async function fakeSignature(accountId, recipient, message) {
+    const seed = `${accountId}|${recipient}|${message}`;
+    const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed)));
+    const sig = new Uint8Array(64);
+    sig.set(bytes); sig.set(bytes, 32);
+    return {
+        accountId,
+        publicKey: 'ed25519:CziSGowWUKiP5N5pqGUgXCJXtqpySAk29YAU6zEs5RAi',
+        signature: btoa(String.fromCharCode(...sig)),
+    };
+}
+
+/** Deterministic fake wallet, connected as `accountId`, that counts NEP-413 signatures. */
 export function signingWallet(accountId) {
     const wallet = {
         accountId,
@@ -17,19 +29,31 @@ export function signingWallet(accountId) {
         async getAccounts() { return [{ accountId }]; },
         async signMessage({ message, recipient }) {
             wallet.signatureCount++;
-            const seed = `${accountId}|${recipient}|${message}`;
-            const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed)));
-            const sig = new Uint8Array(64);
-            sig.set(bytes); sig.set(bytes, 32);
-            return {
-                accountId,
-                publicKey: 'ed25519:CziSGowWUKiP5N5pqGUgXCJXtqpySAk29YAU6zEs5RAi',
-                signature: btoa(String.fromCharCode(...sig)),
-            };
+            return fakeSignature(accountId, recipient, message);
         },
         async signOut() { },
     };
     __setTestWallet(wallet);
+    return wallet;
+}
+
+/**
+ * The wallet signMessageAsAccount's throwaway picker would choose, signing in
+ * as `accountId`. Like Meteor and NEAR Mobile, signInAndSignMessage stores the
+ * signed-in account in the wallet's own entries of the page's localStorage —
+ * the state the app's connector shares, which must be put back.
+ */
+export function otherAccountWallet(accountId) {
+    const wallet = {
+        manifest: { id: 'fake-web-wallet', features: { signMessage: true, signInAndSignMessage: true } },
+        signatureCount: 0,
+        async signInAndSignMessage({ messageParams: { message, recipient } }) {
+            wallet.signatureCount++;
+            localStorage.setItem('fake-web-wallet:account-data', JSON.stringify({ accountId }));
+            return [{ accountId, signedMessage: await fakeSignature(accountId, recipient, message) }];
+        },
+    };
+    __setTestOtherAccountWallet(wallet);
     return wallet;
 }
 
@@ -94,8 +118,6 @@ export function mockIntentsBackend() {
         failBeforeSuccess: 0, // next N history requests answer 500
         authResponse: null,   // override the /v0/auth/authenticate body
         authenticateCalls: 0,
-        refreshCalls: 0,
-        refreshStatus: 200,
         historyRequests: [],
         balanceRequests: 0,
         lastAuthBody: null,
@@ -191,17 +213,6 @@ export function mockIntentsBackend() {
                 // `authResponse` lets a test return a malformed body (e.g. one
                 // with no accessToken) without hand-rolling a fetch stub.
                 return json(201, state.authResponse ?? {
-                    accessToken: `access-${state.tokenCounter}`,
-                    refreshToken: `refresh-${state.tokenCounter}`,
-                    expiresIn: 900,
-                    refreshExpiresIn: 604800,
-                });
-            }
-            if (path === '/v0/auth/refresh') {
-                state.refreshCalls++;
-                if (state.refreshStatus !== 200) return json(state.refreshStatus, { message: 'refresh rejected' });
-                state.tokenCounter++;
-                return json(201, {
                     accessToken: `access-${state.tokenCounter}`,
                     refreshToken: `refresh-${state.tokenCounter}`,
                     expiresIn: 900,
