@@ -456,3 +456,36 @@ describe('an intents leg with nobody named on the other side', () => {
         expect(internal.find(t => t.reason === 'venue-trade')).to.equal(undefined);
     });
 });
+
+// near.com shields NEAR by sending it to a 1Click deposit address, an implicit
+// account, and crediting wNEAR in the confidential bucket. The credit carries
+// that address as its swap key; the public leg names it as counterparty.
+describe('sending to your own confidential deposit address', () => {
+    const ADDRESS = '234a7933380a48e5b2b6ada06425d900b926b2c85f8f99259bdc119e43d92dba';
+    // The real day: the native balance also paid gas, and the confidential leg
+    // is stamped when the quote was made — 21 seconds before the NEAR was sent.
+    const sent = (over) => ({ date: '2026-10-12', kind: 'withdrawal', token: '', symbol: 'NEAR',
+        units: 400.00711498953746, counterparties: [ADDRESS], at: '1792163701551000000', ...over });
+    const credited = (over) => ({ date: '2026-10-12', kind: 'deposit', token: 'confidential:nep141:wrap.near',
+        symbol: 'wNEAR', units: 400, counterparties: ['intents.near'], swapKey: `confidential:${ADDRESS}`,
+        at: '1792163680640000000', ...over });
+
+    it('is a move between your own buckets, gas and quote time notwithstanding', () => {
+        const { internal, external } = separatePortfolioTransfers([sent(), credited()]);
+        expect(external).to.have.lengthOf(0);
+        expect(internal).to.have.lengthOf(1);
+        expect(internal[0].reason).to.equal('confidential-deposit-address');
+        expect(internal[0].from).to.equal('native');
+        expect(internal[0].to).to.equal('confidential');
+    });
+
+    it('still counts a transfer to some other implicit account', () => {
+        const { external } = separatePortfolioTransfers([sent({ counterparties: ['ab'.repeat(32)] }), credited()]);
+        expect(external.map(m => m.symbol)).to.deep.equal(['NEAR']);
+    });
+
+    it('pairs each confidential credit only once', () => {
+        const { external } = separatePortfolioTransfers([sent(), sent({ units: 1 }), credited()]);
+        expect(external).to.have.lengthOf(1);
+    });
+});

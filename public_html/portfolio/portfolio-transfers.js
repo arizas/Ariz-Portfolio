@@ -143,11 +143,52 @@ export function separatePortfolioTransfers(movements = [], {
     const internal = [];
     const taken = new Set();
 
+    const movable = movements.filter(m => m.kind === 'deposit' || m.kind === 'withdrawal');
+
+    // 0. Sent to the deposit address of your own confidential deposit. Shielding
+    //    from near.com hands out a 1Click deposit address — an implicit account —
+    //    and the confidential credit carries that address as its swap key. The
+    //    public leg names it as its counterparty. That is one address seen from
+    //    both sides, not a resemblance, so neither units nor time are asked:
+    //    the native leg also paid gas (400.00711 NEAR left, 400 wNEAR arrived),
+    //    and the confidential leg is stamped when the quote was made, before the
+    //    NEAR was even sent.
+    const confidentialByAddress = new Map();
+    for (const m of movable) {
+        if (bucketOf(m.token) !== 'confidential' || typeof m.swapKey !== 'string') continue;
+        if (!m.swapKey.startsWith(CONFIDENTIAL)) continue;
+        const address = m.swapKey.slice(CONFIDENTIAL.length);
+        if (!confidentialByAddress.has(address)) confidentialByAddress.set(address, []);
+        confidentialByAddress.get(address).push(m);
+    }
+    for (const sent of movable) {
+        if (bucketOf(sent.token) === 'confidential' || taken.has(sent)) continue;
+        for (const party of sent.counterparties ?? []) {
+            const credited = (confidentialByAddress.get(party) ?? [])
+                .find(c => !taken.has(c) && c.kind !== sent.kind);
+            if (!credited) continue;
+            taken.add(sent); taken.add(credited);
+            const from = sent.kind === 'withdrawal' ? sent : credited;
+            const to = sent.kind === 'withdrawal' ? credited : sent;
+            internal.push({
+                reason: 'confidential-deposit-address',
+                date: from.date,
+                asset: baseAsset(from.token),
+                symbol: from.symbol ?? to.symbol,
+                units: from.units,
+                from: bucketOf(from.token),
+                to: bucketOf(to.token),
+                depositAddress: party,
+                movements: [from, to],
+            });
+            break;
+        }
+    }
+
     // 1. The same asset, the same number of units, leaving one bucket and
     //    arriving in another on the same day. Units match to the last digit when
     //    it is one movement seen twice, which is what makes this a recognition
     //    rather than an arithmetic coincidence.
-    const movable = movements.filter(m => m.kind === 'deposit' || m.kind === 'withdrawal');
     for (let i = 0; i < movable.length; i++) {
         const a = movable[i];
         if (taken.has(a)) continue;
