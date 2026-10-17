@@ -114,8 +114,11 @@ keep their character, and shielding can be argued both ways.
 The ruling did not decide a balance moving between two ledgers of the same
 token, so this remains an interpretation. Treating shielding **the same as
 every other bucket move** keeps one uniform rule and errs on the strict side.
-A draft request for a binding ruling on the question is in
-[docs/bfu/](bfu/2026-10-anmodning-konfidensiell-saldo.md).
+Templates for requesting a binding ruling on the question are in
+[docs/bfu/](bfu/), one for a private person and one for an AS. The question
+is the same for both: crypto is not covered by fritaksmetoden (skatteloven
+§ 2-38 covers shares and other ownership interests), so a company realizes
+gains and losses on crypto under the same rule.
 
 Native NEAR into confidential (the near.com deposit flow: NEAR sent to a
 1Click deposit address, wNEAR credited in the confidential ledger) is both a

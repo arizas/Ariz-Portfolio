@@ -30,6 +30,8 @@ Hva betyr det i praksis?
 
 → Bytter (swaps), også i den konfidensielle saldoen, er ordinær realisasjon. Begge sider verdsettes på samme tall, helst handelsplassens egen kurs i øyeblikket byttet skjedde. Da forsvinner ingen verdi mellom salget og kjøpet.
 
+→ Dette gjelder også for aksjeselskap. Fritaksmetoden omfatter aksjer og andre eierandeler, ikke kryptovaluta. Et AS skattlegges derfor med 22 prosent på gevinst og får fradrag for tap, og realisasjon vurderes etter de samme reglene som for privatpersoner.
+
 Det viktigste: alle bevegelser tas vare på. Endrer praksis seg, kan regelen justeres uten at historikken går tapt.
 
 Dette er ikke skatterådgivning, men en beskrivelse av hvordan Ariz Portfolio regner. Ansvaret for skattemeldingen er ditt eget.

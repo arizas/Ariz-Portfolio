@@ -1,5 +1,5 @@
 <!--
-UTKAST. Ikke sendt.
+MAL for privatperson. For aksjeselskap: anmodning-konfidensiell-saldo-as.md.
 
 Felt i [HAKEPARENTES] fylles inn før innsending. Personopplysninger skal ikke
 committes; fyll dem inn i kopien som sendes, ikke i denne filen.
@@ -13,8 +13,14 @@ Uttalelsen kan bli publisert i anonymisert form.
 
 Sendes via innlogget melding på skatteetaten.no, eller til
 Skatteetaten, Postboks 9200 Grønland, 0134 Oslo.
-Gebyr: et halvt rettsgebyr (lønnstaker), til konto 7694 05 12251,
-merket med navn og fødselsnummer. Legg ved kvittering.
+Gebyr til konto 7694 05 12251, merket med navn og fødselsnummer. Legg ved
+kvittering. Lønnstakere, pensjonister og trygdede betaler et halvt
+rettsgebyr. Andre privatpersoner, og den som også driver enkeltpersonforetak,
+betaler to ganger rettsgebyret.
+-->
+<!--
+Uttalelsen binder bare den som ber om den. Andre kan vise til en publisert
+uttalelse, men kan ikke kreve å bli behandlet likt.
 -->
 
 # Anmodning om bindende forhåndsuttalelse
@@ -27,14 +33,14 @@ merket med navn og fødselsnummer. Legg ved kvittering.
 | Adresse | [ADRESSE] |
 | Fødselsnummer | [FØDSELSNUMMER] |
 | Telefon (dagtid) | [TELEFON] |
-| Gebyr | Et halvt rettsgebyr, betalt [DATO]. Kvittering vedlagt. |
+| Gebyr | [Et halvt / To ganger] rettsgebyr, betalt [DATO]. Kvittering vedlagt. |
 | Planlagt gjennomføring | [MÅNED ÅR], og ikke før uttalelsen foreligger |
 
 ## 1 Innledning
 
 Jeg ber om en bindende forhåndsuttalelse om hvorvidt det er realisasjon etter skatteloven § 9-2 (1) å flytte en kryptoeiendel fra min offentlige saldo i NEAR Intents til min konfidensielle saldo i NEAR Confidential Intents, og senere tilbake.
 
-Jeg er lønnstaker og driver ikke virksomhet med kryptoeiendeler. Spørsmålet gjelder gevinst og tap utenfor virksomhet, jf. skatteloven § 5-1 (2) og § 6-2 (1).
+Jeg er [lønnstaker] og driver ikke virksomhet med kryptoeiendeler. Spørsmålet gjelder gevinst og tap utenfor virksomhet, jf. skatteloven § 5-1 (2) og § 6-2 (1).
 
 Jeg har ingen tilknyttede personer, selskaper eller morselskap som nevnt i skatteforvaltningsforskriften § 6-1-4 (8). [BEKREFT]
 
