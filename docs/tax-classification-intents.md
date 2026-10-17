@@ -57,28 +57,61 @@ one blockchain to another normally means the taxpayer has given up ownership
 of the original token and replaced it with another — a realization. Cross
 chain bridging and wrapping are given as examples.
 
-The binding ruling **SKNS1-2025-83** (Skatteklagenemnda, 11.12.2025) applied
-this strictly to Coinbase's BTC ⇄ cbBTC conversion: even though the
-conversion was automatic, 1:1, fee-free, custody-preserving, and the taxpayer
-argued they never possessed cbBTC and remained beneficial owner of the BTC
-throughout ("more pledge than exchange"), the conversion was ruled a taxable
-realization (skatteloven §§ 5-1(2), 6-2(1), 9-2(1)); the appeal was rejected.
+The binding ruling **SKNS1-2025-83** (Skatteklagenemnda, 11.12.2025,
+unanimous, published 8.4.2026) applied this strictly. The facts: to borrow
+stablecoins from Spark with BTC as collateral, the taxpayer's BTC was
+converted 1:1 to Coinbase's cbBTC (an ERC-20 on Ethereum) by a lending
+platform acting as nominee, and the cbBTC deposited in Spark for spcbBTC. The
+taxpayer never had direct access to cbBTC and argued they remained owner of
+the BTC throughout ("more pledge than exchange"). Both steps were ruled
+realization by exchange, skatteloven § 9-2 (1) c; gain taxable under
+§ 5-1 (2), loss deductible under § 6-2 (1); the appeal was rejected.
+
+The test the committee applied (sekretariatet's innstilling § 4.3.2, adopted
+unanimously) is the one to reuse here: has the exchange *qualitatively
+changed the character of the ownership* (Rt. 2014 s. 822 Bonheur, which
+applies the continuity test of Rt. 2002 s. 798 Nordea: are the rights after
+the transaction of the same character as before)? The taxpayer lost actual
+and legal control (*råderett*) over the BTC and could only get it back by
+converting back; whoever holds cbBTC holds the right to redeem; and the 1:1
+conversion back is only an option, not the same asset. That the taxpayer
+never had access to cbBTC did not matter, since the platform acted on their
+behalf.
+
+Two supporting lines from skattekontoret's BFU, which the committee upheld:
+cbBTC is a separate asset with other properties (another chain, other
+verification, other markets, its own economic risk); and securities lending
+counted as realization before skatteloven § 9-11, even though the lender got
+the same securities back and kept the economic risk, because the ownership
+rights became *unusable* (*unyttbare*) to the lender. Technology neutrality
+was used against the taxpayer: the treatment is the same whoever carries
+out the transaction. The ruling quotes Skatte-ABC 2025 V-13-3.4.1
+(crypto-to-crypto), V-13-3.4.2 (liquidity pools) and V-13-3.4.3, and states
+its conclusions accord with the last two.
+
 Depositing L1 assets into the intents contract (receiving `…omft.near`
 tokens on NEAR) is structurally the same operation: a different token, issued
 by a third party, on a different chain.
 
 ### On treating shielding as a realization
 
-A defensible argument exists that shielding is a mere transfer: it moves a
-balance between the public and confidential ledgers of the **same intents
-token on the same chain** — the 1Click API reports shieldings with
-`originAsset == destinationAsset` and `amountIn == amountOut` exactly, there
-is no chain crossing, no third-party issuer, no counterparty and no
-consideration (*vederlag*). However, SKNS1-2025-83 shows the authorities
-interpret "replacement of one token with another" expansively (the taxpayer's
-1:1 / never-possessed / beneficial-ownership arguments were all rejected),
-and treating shielding **the same as every other bucket move** keeps one
-uniform rule and errs on the strict side.
+An argument exists that shielding is a mere transfer: the 1Click API reports
+shieldings with `originAsset == destinationAsset` and `amountIn == amountOut`
+exactly, and there is no counterparty and no consideration (*vederlag*). But
+under the continuity test of SKNS1-2025-83 the question is whether the rights
+keep their character, and they arguably do not: the balance leaves a public
+contract on NEAR (`intents.near`) for a ledger kept **off-chain** by an
+operator in a TEE, verifiable only through an authenticated API — a different
+place, other verification, its own risk. The public balance is no longer
+yours to use until you unshield it, which is the "unusable ownership rights"
+point of the securities-lending analogy. The ruling did not decide a balance
+moving between two ledgers of the same token, so this remains an
+interpretation; but treating shielding **the same as every other bucket
+move** keeps one uniform rule and errs on the strict side.
+
+Native NEAR into confidential (the near.com deposit flow: NEAR sent to a
+1Click deposit address, wNEAR credited in the confidential ledger) is both a
+wrap and a shielding, and realizes on the same rule.
 
 Consequences of the uniform realization treatment:
 
