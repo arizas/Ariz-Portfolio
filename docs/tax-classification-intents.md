@@ -17,7 +17,7 @@ as its own balance bucket:
 |---|---|---|---|
 | Native / L1 | `USDC` | The asset's own chain (or an exchange) | Chain explorers / APIs |
 | NEAR Intents | `USDC ( NEAR Intents / Ethereum )` | The intents multi-token contract on NEAR (`…omft.near` / nep245 asset ids) | NEAR RPC (public) |
-| Confidential | `USDC ( Confidential / Ethereum )` | The intents confidential (TEE) ledger | Only the owner, via the authenticated 1Click API (`/v0/account/balances`, `/v0/account/history`) |
+| Confidential | `USDC ( Confidential / Ethereum )` | NEAR Confidential Intents: a private NEAR shard, bridged to mainnet via a TEE | Only the owner, via the authenticated 1Click API (`/v0/account/balances`, `/v0/account/history`) |
 
 Separate buckets are required for **reconciliation**, independent of any tax
 question: shielded balances are invisible to all public APIs, so without a
@@ -95,19 +95,27 @@ by a third party, on a different chain.
 
 ### On treating shielding as a realization
 
-An argument exists that shielding is a mere transfer: the 1Click API reports
-shieldings with `originAsset == destinationAsset` and `amountIn == amountOut`
-exactly, and there is no counterparty and no consideration (*vederlag*). But
-under the continuity test of SKNS1-2025-83 the question is whether the rights
-keep their character, and they arguably do not: the balance leaves a public
-contract on NEAR (`intents.near`) for a ledger kept **off-chain** by an
-operator in a TEE, verifiable only through an authenticated API — a different
-place, other verification, its own risk. The public balance is no longer
-yours to use until you unshield it, which is the "unusable ownership rights"
-point of the securities-lending analogy. The ruling did not decide a balance
-moving between two ledgers of the same token, so this remains an
-interpretation; but treating shielding **the same as every other bucket
-move** keeps one uniform rule and errs on the strict side.
+Under the continuity test of SKNS1-2025-83 the question is whether the rights
+keep their character, and shielding can be argued both ways.
+
+- **For a transfer:** the 1Click API reports shieldings with
+  `originAsset == destinationAsset` and `amountIn == amountOut` exactly. No
+  new token is issued, there is no counterparty and no consideration
+  (*vederlag*), and the owner keeps full use of the asset on the confidential
+  side.
+- **For a realization:** per NEAR (intents.near.org/confidential), the
+  confidential balance lives on a **dedicated private NEAR shard**, run by
+  permissioned validators and connected to mainnet by a TEE-based bridge. The
+  balance leaves the public `intents.near` contract for that shard — other
+  verification, its own risk — and Skatte-ABC V-13-3.4.3 names bridging as a
+  normal realization. Whether a shard of the same NEAR chain is "another
+  blockchain" is exactly the open question.
+
+The ruling did not decide a balance moving between two ledgers of the same
+token, so this remains an interpretation. Treating shielding **the same as
+every other bucket move** keeps one uniform rule and errs on the strict side.
+A draft request for a binding ruling on the question is in
+[docs/bfu/](bfu/2026-10-anmodning-konfidensiell-saldo.md).
 
 Native NEAR into confidential (the near.com deposit flow: NEAR sent to a
 1Click deposit address, wNEAR credited in the confidential ledger) is both a

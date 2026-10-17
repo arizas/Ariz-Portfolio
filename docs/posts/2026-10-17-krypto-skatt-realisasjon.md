@@ -20,7 +20,7 @@ Hvorfor så strengt?
 
 Nemnda spurte om eiendomsretten har endret karakter. Skattyteren mistet råderetten over bitcoinen og kunne bare få den tilbake ved å bytte tilbake. Retten til å innløse fulgte cbBTC: ga han den videre, fikk mottakeren retten. cbBTC er også et annet formuesobjekt: en annen blokkjede, andre markeder og en egen risiko. At kursen er 1:1 og at du kan bytte tilbake, endrer ikke det. Litt forenklet: du har byttet produkt.
 
-Samme tankegang mener vi gjelder når midler flyttes inn i en konfidensiell saldo (på engelsk «shielding»). Saldoen føres ikke lenger åpent i en kontrakt på blokkjeden, men av en operatør utenfor kjeden, med en annen risiko. Man kan argumentere for at det bare er en overføring, fordi det er samme token og ingen motpart betaler noe. Men med denne avgjørelsen i bakhånd velger vi én konsekvent regel som heller mot det strenge.
+Samme tankegang mener vi gjelder når midler flyttes inn i en konfidensiell saldo (på engelsk «shielding»). Saldoen føres ikke lenger åpent i en kontrakt på NEAR, men på et eget, privat shard som er koblet til via en bro, med en annen risiko. Man kan argumentere for at det bare er en overføring, fordi det er samme token og ingen motpart betaler noe. Men med denne avgjørelsen i bakhånd velger vi én konsekvent regel som heller mot det strenge.
 
 Hva betyr det i praksis?
 
