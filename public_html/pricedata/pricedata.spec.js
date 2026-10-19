@@ -236,4 +236,19 @@ describe('load from server brings the stored prices up to date', () => {
         const mine = (await listStoredPriceHistories()).filter(h => h.token.toUpperCase() === 'REFRESHME');
         expect(mine.map(h => h.currency).sort()).to.deep.equal(['nok', 'usd']);
     });
+
+    // The listing has . and .. in it, and .. is the store's root. Taken for a
+    // token, it made accounts.json and currencylist.json price files, and the
+    // refresh asked the gateway for basetoken=.. — one answer away from
+    // writing prices over the account list.
+    it('lists no history outside the price directory', async function () {
+        const { listStoredPriceHistories } = await import('../storage/domainobjectstore.js');
+        const { writeFile } = await import('../storage/gitstorage.js');
+        // The in-memory store does not resolve .. the way the real filesystem
+        // does, so the root's file is put where pricehistory/.. finds it.
+        await writeFile('pricehistory/../accounts.json', JSON.stringify(['test.near']));
+        await setHistoricalPriceData('REFRESHME', 'NOK', { '2024-01-01': 10 });
+        const tokens = (await listStoredPriceHistories()).map(h => h.token);
+        expect(tokens.filter(t => t.startsWith('.'))).to.deep.equal([]);
+    });
 });
