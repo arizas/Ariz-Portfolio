@@ -1,5 +1,5 @@
 import { fetchFromArizGateway, SignatureRequiredError, hasFreshToken } from "../arizgateway/arizgatewayaccess.js";
-import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData as readHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList } from "../storage/domainobjectstore.js";
+import { getCustomExchangeRates, setCustomExchangeRates, getHistoricalPriceData as readHistoricalPriceData, setHistoricalPriceData, getCurrencyList as getStoredCurrencyList, setCurrencyList, listStoredPriceHistories } from "../storage/domainobjectstore.js";
 import { resolveSymbol } from "../near/intents-tokens.js";
 import { retry } from "../near/retry.js";
 
@@ -60,6 +60,22 @@ export class PriceServiceUnavailableError extends Error {
 
 export function setSkipFetchingPrices(token, currency) {
     skipFetchingPrices[`${token}-${currency}`] = true;
+}
+
+// The newest date in a history. A date missing before it is a hole the
+// gateway already answered past — a day before a token listed, a gap in a
+// provider's series — and asking again returns the same hole. Every visit to
+// the year report used to re-download every token with such a date, because
+// the session latch below forgets on reload. Only a date after it can be a
+// close the gateway has collected since.
+const newestDates = new WeakMap();
+function newestDate(pricedata) {
+    if (!newestDates.has(pricedata)) {
+        let newest = null;
+        for (const date of Object.keys(pricedata)) if (newest === null || date > newest) newest = date;
+        newestDates.set(pricedata, newest);
+    }
+    return newestDates.get(pricedata);
 }
 
 // The Ariz Gateway fetches token price data and is the single authority on which
@@ -267,6 +283,42 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     priceHistoryCache.delete(priceHistoryCacheKey(baseToken, currency));
 }
 
+/**
+ * Bring every stored price history up to date from the gateway — the price
+ * half of "load from server". A report only fetches for a date newer than any
+ * it holds; a hole further back is filled here, where the user asked for the
+ * server, rather than re-downloaded on every visit to the report.
+ *
+ * A token the gateway knows has no price is passed over. A signature or a
+ * gateway that stopped answering ends the run, since every token after it
+ * would stop the same way; any other failure is one token's and is reported.
+ *
+ * @param {(done: number, total: number, token: string, currency: string) => void} [onProgress]
+ * @param {{histories?: {token: string, currency: string}[]}} [options] which ones; all stored by default
+ * @returns {Promise<{updated: number, failed: {token: string, currency: string, error: string}[]}>}
+ */
+export async function refreshStoredPriceHistories(onProgress = () => {}, { histories } = {}) {
+    histories ??= await listStoredPriceHistories();
+    const noPrice = await getNoPriceTokens();
+    const failed = [];
+    let updated = 0;
+    for (const [i, { token, currency }] of histories.entries()) {
+        onProgress(i, histories.length, token, currency);
+        const coinGeckoId = symbolToCoinGeckoId[token.toUpperCase()] || token.toLowerCase();
+        if (noPrice.has(coinGeckoId)) continue;
+        try {
+            // Stored lowercase; asked for the way every other caller asks.
+            await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency: currency.toUpperCase() });
+            updated++;
+        } catch (e) {
+            if (e?.name === 'SignatureRequiredError' || e?.name === 'PriceServiceNotAnsweringError') throw e;
+            failed.push({ token, currency, error: e?.message ?? String(e) });
+        }
+    }
+    onProgress(histories.length, histories.length);
+    return { updated, failed };
+}
+
 // Real market symbols are short and contain no whitespace, slashes or URL
 // punctuation. Scam tokens sometimes embed a whole URL or sentence in their
 // symbol (e.g. "Claim Near Airdrop at https://..."), which has no price and can
@@ -286,12 +338,23 @@ function isLikelyValidSymbol(symbol) {
  * @returns {Promise<Object<string, number|null>>} map of symbol -> price (null if unavailable)
  */
 export async function getCurrentPrices(tokens, currency) {
+    return (await getCurrentQuotes(tokens, currency)).prices;
+}
+
+/**
+ * getCurrentPrices, plus when each price was set: `updatedAt[token]` is
+ * CoinGecko's last update in epoch millis, or null when the gateway did not
+ * say (one deployed before it passed the time along).
+ * @returns {Promise<{prices: Object<string, number|null>, updatedAt: Object<string, number|null>}>}
+ */
+export async function getCurrentQuotes(tokens, currency) {
     const result = {};
+    const updatedAt = {};
     const vs = currency.toLowerCase();
     const rateTokens = await getRateTokens();
     const uniqueTokens = [...new Set(tokens.filter(t => t && (isLikelyValidSymbol(t) || rateTokens.has(String(t).toLowerCase()))))];
     if (uniqueTokens.length === 0) {
-        return result;
+        return { prices: result, updatedAt };
     }
 
     // One batch request for everything. Retry to ride out gateway cold starts
@@ -318,8 +381,10 @@ export async function getCurrentPrices(tokens, currency) {
         // The gateway keys the response by the exact token string we passed in. A
         // null here means the gateway is reachable but has no price for this token.
         result[token] = data?.[token]?.[vs] ?? null;
+        const seconds = data?.[token]?.last_updated_at;
+        updatedAt[token] = typeof seconds === 'number' ? seconds * 1000 : null;
     }
-    return result;
+    return { prices: result, updatedAt };
 }
 
 /**
@@ -375,6 +440,9 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
             // The gateway already knows this token has no price (scam tokens, ARIZ
             // credits). Skip it - the price simply isn't available.
             skipFetchingPrices[skipFetchingPricesKey] = true;
+        } else if (newestDate(pricedata) !== null && datestring < newestDate(pricedata)) {
+            // A hole the gateway already answered past. Not latched: a later
+            // date may still be one it has collected since.
         } else {
             // Load the whole price history from the gateway automatically (no
             // prompt): either it loads, or the price is not available.

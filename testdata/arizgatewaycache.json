@@ -6,5 +6,7 @@
  "https://arizgateway.fly.dev/api/prices/history?basetoken=goodtoken&currency=NOK": "{\"2024-01-01\": 1.23}",
  "https://arizgateway.fly.dev/api/prices/ratetokens": "[\n \"lst-pool.near\"\n]",
  "https://arizgateway.fly.dev/api/prices/history?basetoken=ariz&currency=USD": "invalid signature",
- "https://arizgateway.fly.dev/api/prices/history?basetoken=ariz&currency=NOK": "invalid signature"
+ "https://arizgateway.fly.dev/api/prices/history?basetoken=ariz&currency=NOK": "invalid signature",
+ "https://arizgateway.fly.dev/api/prices/history?basetoken=stale&currency=NOK": "{\"2024-01-05\": 50}",
+ "https://arizgateway.fly.dev/api/prices/history?basetoken=refreshme&currency=NOK": "{\"2024-01-01\": 10, \"2024-01-02\": 20, \"2024-01-03\": 30}"
 }

@@ -171,6 +171,9 @@ customElements.define('portfolio-page',
             const cur = portfolio.currency.toUpperCase();
             const money = makeMoneyFormatter(cur);
             const fromLabel = formatDate(portfolio.fromDate);
+            // "Now" is when the spot prices were set, which a cached page can be
+            // well past.
+            this.nowLabel = portfolio.pricesAsOf != null ? formatDateTime(portfolio.pricesAsOf) : 'Now';
             const realizedClass = portfolio.totalRealized >= 0 ? 'gain' : 'loss';
             const unrealClass = portfolio.totalUnrealized >= 0 ? 'gain' : 'loss';
             const resultClass = portfolio.totalResult >= 0 ? 'gain' : 'loss';
@@ -201,7 +204,7 @@ customElements.define('portfolio-page',
                     Try <strong>Refresh</strong> in a moment.
                 </div>` : ''}
                 <div class="card-surface hero-card">
-                    <div class="label">Total value now ${hasStaking ? '<span class="muted">(incl. staked)</span>' : ''}</div>
+                    <div class="label">Total value${portfolio.pricesAsOf != null ? '' : ' now'}${hasStaking ? ' <span class="muted">(incl. staked)</span>' : ''}${portfolio.pricesAsOf != null ? ` <span class="muted">· prices as of ${escapeHtml(this.nowLabel)}</span>` : ''}</div>
                     <div class="hero-value">${money(totalNow)}</div>
                     ${heroSub}
                 </div>
@@ -234,7 +237,7 @@ customElements.define('portfolio-page',
                     </div>
                     <div class="bal-arrow">&rarr;</div>
                     <div>
-                        <div class="label">Now${hasStaking ? ' · incl. staked' : ''}</div>
+                        <div class="label">${escapeHtml(this.nowLabel)}${hasStaking ? ' · incl. staked' : ''}</div>
                         <div class="bal-value">${money(totalNow)}</div>
                     </div>
                 </div>
@@ -394,7 +397,7 @@ customElements.define('portfolio-page',
                     ${row('Added, net', signed(added), 'sum')}
                     ${r.rewards ? row('Rewards received', signed(r.rewards)) : ''}
                     ${row('Value change', signed(r.valueChange ?? r.gain))}
-                    ${row('Now', money(r.closing), 'sum')}
+                    ${row(escapeHtml(this.nowLabel ?? 'Now'), money(r.closing), 'sum')}
                     <div class="flow-lead">
                         Of the <strong>${money(Math.abs(change))}</strong>
                         ${change >= 0 ? 'increase' : 'decrease'},
@@ -497,6 +500,13 @@ function formatSigned(value, money) {
 function formatSignedPct(pct) {
     const sign = pct > 0 ? '+' : '';
     return `${sign}${pct.toFixed(1)} %`;
+}
+
+function formatDateTime(millis) {
+    // epoch millis -> 'dd.MM.yyyy HH:mm', local time
+    const t = new Date(millis);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(t.getDate())}.${pad(t.getMonth() + 1)}.${t.getFullYear()} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
 }
 
 function formatDate(isoDate) {

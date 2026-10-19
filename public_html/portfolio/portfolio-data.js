@@ -27,7 +27,7 @@ import {
     getDecimalConversionValue
 } from '../yearreport/yearreportdata.js';
 import { resolveSymbol, resolveDisplaySymbol } from '../near/intents-tokens.js';
-import { getCurrentPrices, priceKeyFor, getEODPrice, getEODPriceMap, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
+import { getCurrentQuotes, priceKeyFor, getEODPrice, getEODPriceMap, PriceServiceUnavailableError } from '../pricedata/pricedata.js';
 import { getReceivedAccounts } from '../storage/domainobjectstore.js';
 import { movementsForToken, receivedClassifier, mergedReceivedTypes } from './flow-extract.js';
 import { decomposeFlows } from './flow-decomposition.js';
@@ -169,8 +169,18 @@ async function computeBase(currency, onProgress, force) {
     const pricedSymbols = holdings.filter(h => h.amount > DUST_THRESHOLD).map(h => h.priceKey);
     let currentPrices = {};
     let pricesUnavailable = false;
+    // When the prices were set, so the page can say what "now" means. The
+    // oldest of them, since that is how current the total is; the time they
+    // were asked for when the gateway does not say.
+    let pricesAsOf = null;
     try {
-        currentPrices = await getCurrentPrices(pricedSymbols, currency);
+        const askedAt = Date.now();
+        const quotes = await getCurrentQuotes(pricedSymbols, currency);
+        currentPrices = quotes.prices;
+        const times = Object.keys(currentPrices)
+            .filter(k => currentPrices[k] != null)
+            .map(k => quotes.updatedAt[k] ?? askedAt);
+        pricesAsOf = times.length ? Math.min(...times) : null;
     } catch (e) {
         // Price service unreachable (transient, affects every token). Keep going so
         // cached cost basis / realized still render, but flag it so the page can say
@@ -217,6 +227,7 @@ async function computeBase(currency, onProgress, force) {
         stakedRawByDate,
         stakedCostBasis: nearStakedCostBasis,
         pricesUnavailable,
+        pricesAsOf,
         nearPrice: currentPrices['NEAR'] ?? null,
         nearDecimal: Math.pow(10, -24)
     };
@@ -362,6 +373,7 @@ export async function calculatePortfolio(currency, fromDate, onProgress = () => 
         currency,
         fromDate,
         pricesUnavailable: base.pricesUnavailable,
+        pricesAsOf: base.pricesAsOf,
         holdings: visibleHoldings,
         // UB (now) — liquid holdings
         totalValue: base.totalValue,
