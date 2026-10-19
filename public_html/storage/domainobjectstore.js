@@ -430,6 +430,10 @@ export async function listStoredPriceHistories() {
     const seen = new Set();
     const out = [];
     for (const dir of (await readdir(pricedatadir)).sort()) {
+        // The listing includes . and .., and .. is the store's root: its
+        // accounts.json, currencylist.json and the rest would read as price
+        // files, and a refresh would write prices over them.
+        if (dir.startsWith('.')) continue;
         const files = await readdir(`${pricedatadir}/${dir}`).catch(() => []);
         for (const file of files) {
             if (!file.endsWith('.json')) continue;
