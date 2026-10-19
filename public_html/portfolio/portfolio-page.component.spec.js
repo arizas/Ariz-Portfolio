@@ -328,3 +328,36 @@ describe('the same figure is called the same thing', () => {
         expect(text).to.not.include('Withdrawals out');
     });
 });
+
+// "Now" was the page's word for prices it did not date, and a page left open,
+// or served from the session cache, is well past now.
+describe('when the prices are from', () => {
+    const portfolio = {
+        currency: 'nok', fromDate: '2026-01-01',
+        totalValue: 1000, ibValue: 800, stakedAmount: 0,
+        totalRealized: 0, totalUnrealized: 200, totalResult: 200, totalUnrealizedPct: 25,
+        holdings: [],
+    };
+    const asOf = new Date(2026, 9, 18, 14, 32).getTime();
+
+    it('dates the total and the balance by when the prices were set', () => {
+        const el = document.createElement('portfolio-page');
+        el.render({ ...portfolio, pricesAsOf: asOf });
+        const text = el.summaryEl.textContent.replace(/\s+/g, ' ');
+        expect(text).to.include('prices as of 18.10.2026 14:32');
+        expect(text).to.not.match(/\bNow\b/);
+    });
+
+    it('carries the time into where the money came from', async () => {
+        const el = makePage(base);
+        el.render({ ...portfolio, pricesAsOf: asOf });
+        await el.renderFlows();
+        expect(el.flowsEl.textContent).to.include('18.10.2026 14:32');
+    });
+
+    it('says now when it has no time for the prices', () => {
+        const el = document.createElement('portfolio-page');
+        el.render({ ...portfolio, pricesAsOf: null });
+        expect(el.summaryEl.textContent).to.include('Total value now');
+    });
+});

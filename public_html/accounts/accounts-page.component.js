@@ -6,6 +6,7 @@ import { modalAlert } from '../ui/modal.js';
 import { escapeHtml } from '../util/escape-html.js';
 import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domainobjectstore.js';
 import { exists } from '../storage/gitstorage.js';
+import { refreshStoredPriceHistories } from '../pricedata/pricedata.js';
 // Static imports on purpose — a dynamic import() breaks the single-file dist
 // (see the dist guard in playwright_tests/tests/wasmgit.spec.js).
 import { openConfidentialSession, fetchConfidentialHistory, fetchConfidentialBalances,
@@ -48,6 +49,14 @@ customElements.define('accounts-page',
                         console.log(`Loaded ${result.newTransactionsCount} NEAR transactions from server`);
                         console.log(`Loaded ${result.newFtTransactionsCount} token transactions from server`);
                         console.log(`Loaded staking data for ${result.stakingPools?.length || 0} pools from server`);
+                    }
+                    // After the transactions, so prices are as current as what they value.
+                    const prices = await refreshStoredPriceHistories((done, total, token, currency) =>
+                        setProgressbarValue(total ? done / total : 'indeterminate',
+                            token ? `Updating prices ${token}/${currency.toUpperCase()} (${done + 1} of ${total})` : 'Updating prices'));
+                    console.log(`Updated ${prices.updated} price histories from server`);
+                    if (prices.failed.length) {
+                        console.warn('Price histories that could not be updated', prices.failed);
                     }
                     setProgressbarValue(null);
                 } catch (e) {

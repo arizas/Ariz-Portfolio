@@ -420,6 +420,29 @@ export async function getHistoricalPriceData(token, targetCurrency) {
     return pricedata;
 }
 
+/**
+ * Every price history this store holds, as { token, currency } with the token
+ * as its directory is spelled. One entry per token whatever the casing of its
+ * directories: a write lands in the one that exists.
+ */
+export async function listStoredPriceHistories() {
+    if (!(await exists(pricedatadir))) return [];
+    const seen = new Set();
+    const out = [];
+    for (const dir of (await readdir(pricedatadir)).sort()) {
+        const files = await readdir(`${pricedatadir}/${dir}`).catch(() => []);
+        for (const file of files) {
+            if (!file.endsWith('.json')) continue;
+            const currency = file.slice(0, -'.json'.length);
+            const key = `${dir.toUpperCase()}\u0000${currency}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push({ token: dir, currency });
+        }
+    }
+    return out;
+}
+
 export async function setHistoricalPriceData(token, targetCurrency, pricedata) {
     const pricedatapath = await getPriceDataPath(token, targetCurrency);
     await makeDirs(pricedatapath);

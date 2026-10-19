@@ -1,5 +1,5 @@
 import { setHistoricalPriceData } from "../storage/domainobjectstore.js";
-import { getEODPrice, getEODPriceMap, fetchHistoricalPricesFromArizGateway, clearPriceHistoryCache, __resetNoPriceTokens, __setRateTokensForTests, priceKeyFor, setSkipFetchingPrices } from "./pricedata.js";
+import { getEODPrice, getEODPriceMap, fetchHistoricalPricesFromArizGateway, clearPriceHistoryCache, __resetNoPriceTokens, __setRateTokensForTests, priceKeyFor, setSkipFetchingPrices, refreshStoredPriceHistories } from "./pricedata.js";
 import { mockWalletAuthenticationData, mockArizGatewayAccess } from "../arizgateway/arizgatewayaccess.spec.js";
 
 describe('pricedata from Ariz gateway', () => {
@@ -164,5 +164,76 @@ describe('the rate-token listing when the gateway cannot be asked', () => {
         expect(JSON.parse(localStorage.getItem('ariz_rate_tokens'))).to.deep.equal(['lst-pool.near']);
         __setRateTokensForTests(null);
         localStorage.removeItem('ariz_rate_tokens');
+    });
+});
+
+// A missing date fetches the whole history, and the session latch forgets on
+// reload: every visit to the year report re-downloaded every token whose report
+// asked for a date the gateway does not have.
+describe('a hole in a history is not asked for again', () => {
+    let historyRequests;
+    let realFetch;
+    before(async function () {
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+        __resetNoPriceTokens();
+    });
+    beforeEach(() => {
+        historyRequests = 0;
+        realFetch = window.fetch;
+        window.fetch = (url, ...rest) => {
+            if (String(url).includes('/api/prices/history')) historyRequests++;
+            return realFetch(url, ...rest);
+        };
+    });
+    afterEach(() => { window.fetch = realFetch; });
+
+    it('does not fetch for a date older than the newest it holds', async function () {
+        await setHistoricalPriceData('HOLEY', 'NOK', { '2024-01-01': 10, '2024-01-03': 30 });
+        clearPriceHistoryCache();
+        expect(await getEODPrice('NOK', '2024-01-02', 'HOLEY')).to.equal(0);
+        expect(historyRequests).to.equal(0);
+    });
+
+    it('still fetches for a date after the newest it holds', async function () {
+        await setHistoricalPriceData('STALE', 'NOK', { '2024-01-01': 10 });
+        clearPriceHistoryCache();
+        expect(await getEODPrice('NOK', '2024-01-05', 'STALE')).to.equal(50);
+        expect(historyRequests).to.equal(1);
+    });
+});
+
+// "Load from server" is where a hole is filled: the report no longer asks for
+// a date older than the newest it holds.
+describe('load from server brings the stored prices up to date', () => {
+    before(async function () {
+        mockWalletAuthenticationData();
+        await mockArizGatewayAccess();
+        __resetNoPriceTokens();
+    });
+
+    it('fills a hole the report would not ask for', async function () {
+        await setHistoricalPriceData('REFRESHME', 'NOK', { '2024-01-01': 10, '2024-01-03': 30 });
+        clearPriceHistoryCache();
+        expect(await getEODPrice('NOK', '2024-01-02', 'REFRESHME')).to.equal(0);
+
+        const result = await refreshStoredPriceHistories(() => {}, { histories: [{ token: 'REFRESHME', currency: 'nok' }] });
+
+        expect(result).to.deep.equal({ updated: 1, failed: [] });
+        expect(await getEODPrice('NOK', '2024-01-02', 'REFRESHME')).to.equal(20);
+    });
+
+    it('passes over a token the gateway knows has no price', async function () {
+        // The gateway's no-price set holds "scamtoken" (cached fixture).
+        const result = await refreshStoredPriceHistories(() => {}, { histories: [{ token: 'SCAMTOKEN', currency: 'nok' }] });
+        expect(result).to.deep.equal({ updated: 0, failed: [] });
+    });
+
+    it('lists each stored history once, whatever the casing of its directory', async function () {
+        const { listStoredPriceHistories } = await import('../storage/domainobjectstore.js');
+        await setHistoricalPriceData('REFRESHME', 'NOK', { '2024-01-01': 10 });
+        await setHistoricalPriceData('REFRESHME', 'USD', { '2024-01-01': 1 });
+        const mine = (await listStoredPriceHistories()).filter(h => h.token.toUpperCase() === 'REFRESHME');
+        expect(mine.map(h => h.currency).sort()).to.deep.equal(['nok', 'usd']);
     });
 });
