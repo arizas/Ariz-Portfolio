@@ -96,13 +96,25 @@ export async function setExpenseAccounts(expenseaccounts) {
     await writeFile(expenseaccountsfile, JSON.stringify(expenseaccounts));
 }
 
-export async function getIgnoredFungibleTokens() {
-    if (await exists(ignorefungibletokensfile)) {
-        return JSON.parse(await readTextFile(ignorefungibletokensfile));
-    } else {
-        return [];
-    }
+/**
+ * Tokens left out of the year report, and tokens the user put back.
+ *
+ * `excluded` is [{ contractId, symbol, reason? }]; reason 'no-price' marks one
+ * added because the gateway knows it has no price. `kept` is the contract ids
+ * the user included again, so they are not excluded automatically a second
+ * time. The file used to be the bare `excluded` array, and still reads as one.
+ */
+export async function getTokenExclusions() {
+    if (!(await exists(ignorefungibletokensfile))) return { excluded: [], kept: [] };
+    const stored = JSON.parse(await readTextFile(ignorefungibletokensfile));
+    if (Array.isArray(stored)) return { excluded: stored, kept: [] };
+    return { excluded: stored.excluded ?? [], kept: stored.kept ?? [] };
 }
+
+export async function setTokenExclusions({ excluded, kept }) {
+    await writeFile(ignorefungibletokensfile, JSON.stringify({ excluded, kept }, null, 1));
+}
+
 
 export async function getAccounts() {
     return JSON.parse(await readTextFile(accountsconfigfile));

@@ -11,6 +11,7 @@ function deps(overrides = {}) {
         getFungibleTokenConvertedValuesForDay: async () => zero(),
         getDecimalConversionValue: () => 1e-6,
         getTokenSymbol: (t) => t.toUpperCase(),
+        isKnownNoPriceToken: async () => false,
         ...overrides,
     };
 }
@@ -124,6 +125,28 @@ describe('days it cannot price', () => {
         expect(neverPriced.map(t => t.token)).to.deep.equal(['scam.near']);
         expect(contributions.some(c => c.token === 'scam.near')).to.equal(false);
         expect(contributions.some(c => c.symbol === 'NEAR')).to.equal(true);
+    });
+
+    // Never priced in a period is two things: a token with no market at all,
+    // and one not listed yet — or a gateway that did not answer. Only the
+    // gateway's no-price set tells them apart, and only the first may be
+    // excluded from every report after.
+    it('says which never-priced tokens the price service knows have no price', async () => {
+        const { neverPriced } = await run({
+            tokens: [{ contractId: 'scam.near', symbol: 'SCAM' }, { contractId: 'new.near', symbol: 'NEW' }],
+            deps: deps({
+                calculateYearReportData: async () => ({
+                    dailyBalances: { '2026-03-01': day({ totalBalance: 1e9 }) }, transactionsByDate: {},
+                }),
+                getConvertedValuesForDay: async () => ({ ...zero(), conversionRate: 30 }),
+                getFungibleTokenConvertedValuesForDay: async () => ({ ...zero(), conversionRate: 0 }),
+                isKnownNoPriceToken: async (token) => token === 'scam.near',
+            }),
+        });
+        expect(neverPriced).to.deep.equal([
+            { token: 'scam.near', symbol: 'SCAM', noMarket: true },
+            { token: 'new.near', symbol: 'NEW', noMarket: false },
+        ]);
     });
 
     // A token that held nothing that day has no price to be missing. Flagging it

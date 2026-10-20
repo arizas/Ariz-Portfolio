@@ -316,8 +316,8 @@ export const GATEWAY_TIMEOUT_MILLIS = 30000;
  * 46)" while a modal it never mentioned waited to be scanned. Idle, no pending
  * request, no error. I spent a while blaming the gateway for that.
  */
-function sendToGateway(path, token, timeoutMillis) {
-    setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
+function sendToGateway(path, token, timeoutMillis, showProgress = true) {
+    if (showProgress) setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
     return fetch(`${arizgatewayhost}${path}`, {
         headers: { 'authorization': `Bearer ${token}` },
         signal: timeoutMillis > 0 ? AbortSignal.timeout(timeoutMillis) : undefined
@@ -339,9 +339,12 @@ export class SignatureRequiredError extends Error {
  * @param {boolean} [options.interactive] false for work the user did not ask
  *   for just now: use a token that is already valid, or give up saying so,
  *   rather than putting a wallet dialog in front of them
+ * @param {boolean} [options.showProgress] false when the caller keeps the
+ *   progress bar itself: the generic text would replace what it says, and
+ *   clearing the bar after each request would take it away between them
  */
 export async function fetchFromArizGateway(path, {
-    timeoutMillis = GATEWAY_TIMEOUT_MILLIS, interactive = true,
+    timeoutMillis = GATEWAY_TIMEOUT_MILLIS, interactive = true, showProgress = true,
 } = {}) {
     if (!interactive && !cachedTokenIsFresh(readCachedToken())) {
         throw new SignatureRequiredError(path);
@@ -350,7 +353,7 @@ export async function fetchFromArizGateway(path, {
         return {};
     }
     try {
-        let response = await sendToGateway(path, await getAccessToken(), timeoutMillis);
+        let response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress);
 
         // A 401 says this token is not accepted, and sending it again cannot
         // change that — the caller above wraps some of these in a retry loop,
@@ -364,20 +367,20 @@ export async function fetchFromArizGateway(path, {
         if (response.status === 401) {
             localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
             if (!interactive) {
-                setProgressbarValue(null);
+                if (showProgress) setProgressbarValue(null);
                 throw new SignatureRequiredError(path);
             }
-            response = await sendToGateway(path, await getAccessToken(), timeoutMillis);
+            response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress);
         }
 
-        setProgressbarValue(null);
+        if (showProgress) setProgressbarValue(null);
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`${response.status} ${response.statusText}: ${errorText}`);
         }
         return await response.json();
     } catch (e) {
-        setProgressbarValue(null);
+        if (showProgress) setProgressbarValue(null);
         // Name the wait, so a timeout does not arrive looking like the token
         // having no price.
         if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {

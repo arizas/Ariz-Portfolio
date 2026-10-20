@@ -90,6 +90,14 @@ export default /*html*/ `<style>
     </div>
 </div>
 
+<details id="excludedtokens" class="small mt-2">
+    <summary>Excluded tokens (<span id="excludedcount">0</span>)</summary>
+    <p class="text-muted mb-1">Left out of <em>All tokens</em> and <em>Print (all tokens)</em>.
+        A token the price service knows has no price is added here when the combined view finds it;
+        one you include again stays included.</p>
+    <ul id="excludedlist" class="list-unstyled mb-1"></ul>
+    <button class="btn btn-sm btn-outline-secondary" id="exclude_selected_token_button">Exclude selected token</button>
+</details>
 <div id="reportprogress" class="text-muted small mt-2"></div>
 <div id="reportcaption" class="text-muted small"></div>
 

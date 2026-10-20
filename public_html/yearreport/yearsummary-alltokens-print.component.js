@@ -1,5 +1,6 @@
 import html from './yearsummary-alltokens-print.component.html.js';
-import { getAccounts, getAllFungibleTokenEntries, getIgnoredFungibleTokens } from '../storage/domainobjectstore.js';
+import { getAccounts, getAllFungibleTokenEntries, getTokenExclusions } from '../storage/domainobjectstore.js';
+import { isExcluded } from './token-exclusions.js';
 import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency } from './yearreport-table-renderer.js';
 import { getDecimalConversionValue, getTokenSymbol } from './yearreportdata.js';
 
@@ -42,10 +43,12 @@ customElements.define('yearsummary-alltokens-print',
             let totalProfit = 0;
             let totalLoss = 0;
 
-            const ignoredFungibleTokens = await getIgnoredFungibleTokens();
+            const exclusions = await getTokenExclusions();
             for (const tokenEntry of tokens) {
                 const { contractId, symbol } = tokenEntry;
-                if (ignoredFungibleTokens.find(t => t.symbol === symbol || t.contractId === contractId)) {
+                // By contract: NPRO and wNEAR each exist natively and inside
+                // intents under one symbol, and excluding one is not both.
+                if (isExcluded(exclusions, contractId, symbol)) {
                     continue;
                 }
                 const tokenreport = document.createElement('year-report-print');

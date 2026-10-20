@@ -53,7 +53,8 @@ customElements.define('accounts-page',
                     // After the transactions, so prices are as current as what they value.
                     const prices = await refreshStoredPriceHistories((done, total, token, currency) =>
                         setProgressbarValue(total ? done / total : 'indeterminate',
-                            token ? `Updating prices ${token}/${currency.toUpperCase()} (${done + 1} of ${total})` : 'Updating prices'));
+                            // The bar takes HTML, and a token's name is whatever its minter chose.
+                            token ? `Updating prices: ${escapeHtml(token)} in ${escapeHtml(currency.toUpperCase())} (${done + 1} of ${total})` : 'Updating prices'));
                     console.log(`Updated ${prices.updated} price histories from server`);
                     if (prices.failed.length) {
                         console.warn('Price histories that could not be updated', prices.failed);

@@ -230,7 +230,7 @@ export class PriceServiceNotAnsweringError extends Error {
     }
 }
 
-export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR", currency, todate = new Date().toJSON() }) {
+export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR", currency, todate = new Date().toJSON(), showProgress = true }) {
     // A door closed because nobody had signed should open again the moment
     // somebody has. Without this the user signs in, re-runs the report, and gets
     // the same refusal until they reload the page — the latch outliving the
@@ -249,7 +249,7 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     try {
         pricesMap = await fetchFromArizGateway(
             `/api/prices/history?basetoken=${coinGeckoId}&currency=${currency}&todate=${todate}`,
-            { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false });
+            { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false, showProgress });
     } catch (e) {
         // Neither of these is "this token has no price", and saying so is the
         // difference between a report that explains itself and one that quietly
@@ -307,8 +307,9 @@ export async function refreshStoredPriceHistories(onProgress = () => {}, { histo
         const coinGeckoId = symbolToCoinGeckoId[token.toUpperCase()] || token.toLowerCase();
         if (noPrice.has(coinGeckoId)) continue;
         try {
-            // Stored lowercase; asked for the way every other caller asks.
-            await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency: currency.toUpperCase() });
+            // Stored lowercase; asked for the way every other caller asks. The
+            // progress bar is the caller's, saying which token and currency.
+            await fetchHistoricalPricesFromArizGateway({ baseToken: token, currency: currency.toUpperCase(), showProgress: false });
             updated++;
         } catch (e) {
             if (e?.name === 'SignatureRequiredError' || e?.name === 'PriceServiceNotAnsweringError') throw e;
@@ -464,6 +465,23 @@ export async function getEODPrice(currency, datestring, token = defaultToken) {
     }
     const price = pricedata[datestring];
     return price ?? 0;
+}
+
+/**
+ * Whether the gateway knows this token has no price anywhere — the scam
+ * airdrops and credits in its no-price set. Resolved the way a price lookup
+ * resolves it. False when the set could not be fetched: not knowing is not
+ * the same answer.
+ */
+export async function isKnownNoPriceToken(token) {
+    if (!token) return false;
+    if (await priceKeyFor(token)) return false;
+    const isContract = /^nep(141|245):/.test(token) || /\.(near|testnet)$/.test(token)
+        || (token.length === 64 && /^[a-f0-9]+$/.test(token));
+    const symbol = isContract ? await resolveSymbol(token) : token;
+    if (!symbol) return false;
+    const coinGeckoId = symbolToCoinGeckoId[symbol.toUpperCase()] || symbol.toLowerCase();
+    return (await getNoPriceTokens()).has(coinGeckoId);
 }
 
 /**
