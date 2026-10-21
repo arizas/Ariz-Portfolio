@@ -16,7 +16,7 @@ export default /*html*/ `
 </style>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand nav-link" href="/">NEAR account report</a>
+        <a class="navbar-brand nav-link" href="/">Ariz Portfolio</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
             aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -40,11 +40,10 @@ export default /*html*/ `
 <br />
 <div class="container" id="mainContainer">
     <div class="px-3 py-4 py-md-5 text-center">
-        <h1 class="display-5 fw-bold">Your keys. Your crypto. Full clarity.</h1>
+        <h1 class="display-5 fw-bold">Ariz Portfolio</h1>
         <p class="lead text-muted mx-auto" style="max-width: 640px;">
-            Ariz gives you a clean overview of your NEAR accounts — transactions, staking rewards,
-            and an annual report with profit and loss for every transaction. Non-custodial, so your
-            keys and funds never leave your hands.
+            An overview of one or more NEAR accounts: holdings, transactions, staking rewards,
+            and a year report with profit and loss, valued in the currency you choose.
         </p>
     </div>
 
@@ -52,25 +51,11 @@ export default /*html*/ `
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
-                    <i class="bi bi-shield-lock fs-3"></i>
-                    <h6 class="card-title mt-2 fw-semibold">Non-custodial by design</h6>
-                    <p class="card-text text-muted small mb-0">
-                        Your keys and funds stay yours &mdash; Ariz signs in with a wallet
-                        signature and can never move your funds. It builds your reports from
-                        public on-chain data and stores them so your history grows over time
-                        &mdash; as an open git repository you can clone and keep yourself.
-                    </p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-body">
                     <i class="bi bi-wallet2 fs-3"></i>
-                    <h6 class="card-title mt-2 fw-semibold">Your whole portfolio</h6>
+                    <h6 class="card-title mt-2 fw-semibold">Holdings</h6>
                     <p class="card-text text-muted small mb-0">
-                        NEAR, staking, and NEAR Intents holdings in one overview,
-                        valued in the currency you choose.
+                        NEAR, staked NEAR, fungible tokens, and NEAR Intents holdings, including
+                        confidential ones, shown across all your accounts and over time.
                     </p>
                 </div>
             </div>
@@ -79,10 +64,24 @@ export default /*html*/ `
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <i class="bi bi-file-earmark-text fs-3"></i>
-                    <h6 class="card-title mt-2 fw-semibold">Built for tax reporting</h6>
+                    <h6 class="card-title mt-2 fw-semibold">Year report</h6>
                     <p class="card-text text-muted small mb-0">
-                        An annual report with FIFO profit and loss per transaction — designed to make
-                        crypto tax reporting manageable. Verify the numbers before you file.
+                        Daily balances, staking rewards, deposits and withdrawals, and
+                        First-In-First-Out profit and loss, with yearly totals. Counterparties can
+                        be classified, for example as income or expense.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-shield-lock fs-3"></i>
+                    <h6 class="card-title mt-2 fw-semibold">Data and keys</h6>
+                    <p class="card-text text-muted small mb-0">
+                        You sign in with a wallet signature; Ariz cannot move your funds. Your data
+                        is stored in your browser as a git repository. Syncing to the server is
+                        end-to-end encrypted, and you can clone the repository yourself.
                     </p>
                 </div>
             </div>
@@ -91,12 +90,13 @@ export default /*html*/ `
 
     <div class="alert alert-light border mt-4 mb-2 small text-muted" role="alert">
         <strong>Disclaimer.</strong>
-        This tool is not financial, investment, or tax advice. Reports are based on the user's
-        configuration and the calculations of the software. Users should verify the correctness of
-        the calculations and ensure that all relevant data is collected — the software does not
-        guarantee correctness in calculations or accuracy and completeness in the underlying data.
+        This tool is not financial, investment, or tax advice. It helps you prepare tax and
+        accounting reports, but does not claim that its output complies with the rules in your
+        jurisdiction. Reports are based on your configuration and the software's calculations, and
+        on-chain data can be incomplete or ambiguous: review the numbers and make sure all relevant
+        data is included. You are responsible for the final report.
         Your data stays in your custody: server-side storage is a convenience for syncing between
-        devices, and encrypted data can never be read or recovered by the operator — keep your own
+        devices, and encrypted data can never be read or recovered by the operator, so keep your own
         copy of your data and your encryption key.
         The source code is open and available at
         <a href="https://github.com/arizas/Ariz-Portfolio" target="_blank" rel="noopener noreferrer">
