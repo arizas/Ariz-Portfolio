@@ -7,9 +7,9 @@ test("should open app", async ({ page }) => {
     "/"
   );
   await pause500ifRecordingVideo(page);
-  const header = await page.getByRole('link', { name: 'NEAR account report' });
+  const header = await page.getByRole('link', { name: 'Ariz Portfolio' });
 
-  await expect(header).toContainText("NEAR account report");
+  await expect(header).toContainText("Ariz Portfolio");
 });
 
 test("mobile hamburger menu toggles the navbar", async ({ page }) => {
