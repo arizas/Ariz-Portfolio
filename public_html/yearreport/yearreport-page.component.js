@@ -1,6 +1,8 @@
 import { getCurrencyList } from '../pricedata/pricedata.js';
 import html from './yearreport-page.component.html.js';
-import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
+import { getAllFungibleTokenEntries, getTokenExclusions } from '../storage/domainobjectstore.js';
+import { isExcluded, excludeToken, includeToken, excludeNoPriceTokens } from './token-exclusions.js';
+import { ALL_TOKENS } from './all-tokens-daily.js';
 import { resolveDisplaySymbol } from '../near/intents-tokens.js';
 import { renderMonthPeriodReportTable, getNumberFormatter, getAmountFormatter } from './yearreport-table-renderer.js';
 import { escapeHtml, escapeUrlComponent } from '../util/escape-html.js';
@@ -112,6 +114,17 @@ customElements.define('year-report-page',
             const numDecimals = 2;
             currencyselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals, tokenselect.value));
             tokenselect.addEventListener('change', () => this.updateView(currencyselect.value, numDecimals, tokenselect.value));
+            this.tokenSelect = tokenselect;
+            this.exclusions = await getTokenExclusions();
+            this.renderExclusions();
+            this.shadowRoot.querySelector('#exclude_selected_token_button').addEventListener('click', async () => {
+                const contractId = tokenselect.value;
+                const entry = this.tokenEntries.find(e => e.contractId === contractId);
+                if (!entry) return;
+                this.exclusions = await excludeToken(entry);
+                this.renderExclusions();
+                if (this.token === ALL_TOKENS) await this.refreshView();
+            });
             this.updateView(currencyselect.value, numDecimals, tokenselect.value);
 
             this.shadowRoot.querySelector('#print_current_token_button').addEventListener('click', () => {
@@ -298,9 +311,42 @@ ${isFungible(tx) ? `<td>${escapeHtml(tx.involved_account_id ?? '')}</td><td>${es
                 `;
         }
 
+        /**
+         * The exclude list, editable, and the token selector saying which of
+         * its tokens are on it. Excluded tokens stay selectable on their own:
+         * that is how to see why one is there.
+         */
+        renderExclusions() {
+            const { excluded } = this.exclusions;
+            const list = this.shadowRoot.querySelector('#excludedlist');
+            this.shadowRoot.querySelector('#excludedcount').innerText = excluded.length;
+            list.innerHTML = excluded.map((t, i) => `<li class="d-flex align-items-center gap-2 mb-1">
+                <span>${escapeHtml(this.displaySymbols?.get(t.contractId) ?? t.symbol ?? t.contractId)}</span>
+                ${t.reason === 'no-price' ? '<span class="text-muted">no price</span>' : ''}
+                <button class="btn btn-sm btn-outline-secondary py-0" data-index="${i}">Include again</button>
+            </li>`).join('') || '<li class="text-muted">None.</li>';
+            list.querySelectorAll('button[data-index]').forEach(button => button.addEventListener('click', async () => {
+                this.exclusions = await includeToken(excluded[Number(button.dataset.index)].contractId);
+                this.renderExclusions();
+                if (this.token === ALL_TOKENS) await this.refreshView();
+            }));
+            for (const option of this.tokenSelect?.options ?? []) {
+                const entry = this.tokenEntries?.find(e => e.contractId === option.value);
+                if (!entry) continue;
+                const name = this.displaySymbols.get(entry.contractId);
+                option.text = isExcluded(this.exclusions, entry.contractId, entry.symbol) ? `${name} (excluded)` : name;
+            }
+            const selected = this.tokenEntries?.find(e => e.contractId === this.tokenSelect?.value);
+            this.shadowRoot.querySelector('#exclude_selected_token_button').disabled =
+                !selected || isExcluded(this.exclusions, selected.contractId, selected.symbol);
+        }
+
         async refreshView() {
+            this.renderExclusions();
             const progress = this.shadowRoot.querySelector('#reportprogress');
-            await renderMonthPeriodReportTable({
+            const excludedEntries = (this.tokenEntries ?? [])
+                .filter(e => isExcluded(this.exclusions, e.contractId, e.symbol));
+            const result = await renderMonthPeriodReportTable({
                 shadowRoot: this.shadowRoot,
                 token: this.token,
                 month: this.month,
@@ -308,7 +354,8 @@ ${isFungible(tx) ? `<td>${escapeHtml(tx.involved_account_id ?? '')}</td><td>${es
                 year: this.year,
                 convertToCurrency: this.convertToCurrency,
                 numDecimals: this.numDecimals,
-                tokens: this.tokenEntries,
+                tokens: (this.tokenEntries ?? []).filter(e => !excludedEntries.includes(e)),
+                excluded: excludedEntries.map(e => this.displaySymbols.get(e.contractId) ?? e.symbol),
                 onProgress: (message) => { if (progress) progress.innerText = message; },
                 perRowFunction: async ({
                     datestring,
@@ -333,6 +380,15 @@ ${isFungible(tx) ? `<td>${escapeHtml(tx.involved_account_id ?? '')}</td><td>${es
             // The last token read is not news once the table is there, and left
             // standing it makes a finished report look like it is still working.
             if (progress) progress.innerText = '';
+            // A token the price service knows has no price goes on the list, so
+            // the next report does not read it at all. Only that answer: a
+            // token merely unpriced this period may be one not yet listed.
+            const noMarket = (result?.neverPriced ?? []).filter(t => t.noMarket)
+                .map(t => ({ contractId: t.token, symbol: t.symbol }));
+            if (noMarket.length && (await excludeNoPriceTokens(noMarket)).length) {
+                this.exclusions = await getTokenExclusions();
+                this.renderExclusions();
+            }
             // Once, after the table is built — not once per rendered row.
             this._sizeTableViewport();
         }

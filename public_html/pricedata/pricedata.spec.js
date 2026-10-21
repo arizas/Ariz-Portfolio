@@ -223,6 +223,19 @@ describe('load from server brings the stored prices up to date', () => {
         expect(await getEODPrice('NOK', '2024-01-02', 'REFRESHME')).to.equal(20);
     });
 
+    // Every gateway request used to put "Loading data from Ariz gateway" on the
+    // bar, so the refresh's own "Updating prices" never stayed long enough to read.
+    it('leaves the progress bar saying what it is updating', async function () {
+        const { setProgressbarValue } = await import('../ui/progress-bar.js');
+        await setHistoricalPriceData('REFRESHME', 'NOK', { '2024-01-01': 10 });
+        await refreshStoredPriceHistories((done, total, token, currency) => {
+            if (token) setProgressbarValue(done / total, `Updating prices: ${token} in ${currency.toUpperCase()}`);
+        }, { histories: [{ token: 'REFRESHME', currency: 'nok' }] });
+        const text = document.querySelector('progress-bar').shadowRoot.querySelector('.progress-text').textContent;
+        setProgressbarValue(null);
+        expect(text).to.include('Updating prices: REFRESHME in NOK');
+    });
+
     it('passes over a token the gateway knows has no price', async function () {
         // The gateway's no-price set holds "scamtoken" (cached fixture).
         const result = await refreshStoredPriceHistories(() => {}, { histories: [{ token: 'SCAMTOKEN', currency: 'nok' }] });

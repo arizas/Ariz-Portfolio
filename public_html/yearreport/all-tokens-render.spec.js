@@ -22,7 +22,7 @@ const contribution = (over = {}) => ({
     ...over,
 });
 
-async function render(collectResult, { convertToCurrency = 'nok', perRowFunction = async () => { } } = {}) {
+async function render(collectResult, { convertToCurrency = 'nok', perRowFunction = async () => { }, excluded } = {}) {
     const shadowRoot = table();
     const result = await renderPeriodReportTable({
         shadowRoot,
@@ -31,6 +31,7 @@ async function render(collectResult, { convertToCurrency = 'nok', perRowFunction
         periodEndDate: new Date('2026-03-05'),
         convertToCurrency,
         perRowFunction,
+        excluded,
         collect: async () => ({
             contributions: [], transactionsByDate: {}, failed: [], neverPriced: [], flowsByDate: {},
             pricesUnavailable: {},
@@ -179,6 +180,12 @@ describe('what it will not add up quietly', () => {
         expect(body.innerText).to.include('ARIZ');
         expect(body.innerText).to.not.include('https://event.example');
         expect(body.innerText).to.not.include('no price:');
+    });
+
+    // A total that is short some tokens says so, even when the user chose it.
+    it('names the tokens left out by the exclude list', async () => {
+        const { body } = await render({ contributions: [contribution({ deposit: 1000 })] }, { excluded: ['ARIZ', 'MOON'] });
+        expect(body.innerText).to.include('Excluded, so not read: ARIZ, MOON');
     });
 
     // Refusing is what the flow panel does; a year of days cannot disappear over

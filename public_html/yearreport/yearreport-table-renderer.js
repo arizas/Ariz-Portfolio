@@ -57,16 +57,16 @@ export async function renderYearReportTable({ shadowRoot, token, year, convertTo
     return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction, tokens, onProgress });
 }
 
-export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction, tokens, onProgress }) {
+export async function renderMonthPeriodReportTable({ shadowRoot, token, year, month, periodLengthMonths, convertToCurrency, perRowFunction, tokens, excluded, onProgress }) {
     const { periodStartDate, periodEndDate } = calculatePeriodStartAndEndDate(year, month, periodLengthMonths);
     console.log(year, month, periodLengthMonths, periodStartDate, periodEndDate);
-    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction, tokens, onProgress });
+    return await renderPeriodReportTable({ shadowRoot, token, periodEndDate, periodStartDate, convertToCurrency, perRowFunction, tokens, excluded, onProgress });
 }
 
-export async function renderPeriodReportTable({ shadowRoot, token, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, onProgress, collect }) {
+export async function renderPeriodReportTable({ shadowRoot, token, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, excluded, onProgress, collect }) {
     if (token === ALL_TOKENS) {
         return await renderAllTokensPeriodTable({
-            shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, onProgress, collect,
+            shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens, excluded, onProgress, collect,
         });
     }
     // Switching back from the combined view: those columns mean what they say
@@ -235,7 +235,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
  */
 export async function renderAllTokensPeriodTable({
     shadowRoot, periodStartDate, periodEndDate, convertToCurrency, perRowFunction, tokens,
-    onProgress = () => { }, collect = collectAllTokenDays,
+    excluded = [], onProgress = () => { }, collect = collectAllTokenDays,
 }) {
     const yearReportTable = shadowRoot.querySelector('#dailybalancestable');
     while (yearReportTable.lastElementChild) {
@@ -297,6 +297,10 @@ Open a day to see every token's own deposits and withdrawals.`);
     if (failed.length) {
         yearReportTable.appendChild(messageRow(
             `Left out: ${failed.map(f => `${f.symbol} (${f.message})`).join(', ')}. The totals below are short those tokens.`));
+    }
+    if (excluded.length) {
+        yearReportTable.appendChild(messageRow(
+            `Excluded, so not read: ${nameList(excluded)}. Edit the list under Excluded tokens.`));
     }
     if (neverPriced.length) {
         yearReportTable.appendChild(messageRow(

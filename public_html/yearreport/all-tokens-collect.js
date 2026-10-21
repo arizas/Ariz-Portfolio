@@ -15,7 +15,7 @@ import {
     getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay,
     getDecimalConversionValue, getTokenSymbol,
 } from './yearreportdata.js';
-import { getEODPriceMap } from '../pricedata/pricedata.js';
+import { getEODPriceMap, isKnownNoPriceToken } from '../pricedata/pricedata.js';
 import { getReceivedAccounts } from '../storage/domainobjectstore.js';
 import { movementsForToken, receivedClassifier, mergedReceivedTypes } from '../portfolio/flow-extract.js';
 import { separateSwaps } from '../portfolio/flow-decomposition.js';
@@ -28,7 +28,7 @@ const defaultDeps = {
     calculateYearReportData, calculateProfitLoss,
     getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay,
     getDecimalConversionValue, getTokenSymbol,
-    getEODPriceMap, getReceivedAccounts, separateSwaps,
+    getEODPriceMap, getReceivedAccounts, separateSwaps, isKnownNoPriceToken,
 };
 
 /**
@@ -170,7 +170,12 @@ export async function collectAllTokenDays({
         // that was never priced across the whole period is the second kind: said
         // once, above the table, and kept out of the days.
         if (!pricedAnyDay && tokenContributions.some(c => c.priced === false)) {
-            neverPriced.push({ token, symbol });
+            // Never priced in the period is not the same as no price at all —
+            // a token before it listed, or a gateway that did not answer. Only
+            // the gateway's own no-price set says the second, and only that
+            // lets the page exclude the token for good.
+            const noMarket = await d.isKnownNoPriceToken(token).catch(() => false);
+            neverPriced.push({ token, symbol, noMarket });
             continue;
         }
         contributions.push(...tokenContributions);
