@@ -2,6 +2,7 @@ import html from './yearreport-print.component.html.js';
 import { getNumberFormatter, hideProfitLossIfNoConvertToCurrency, renderMonthPeriodReportTable } from './yearreport-table-renderer.js';
 import { ALL_TOKENS } from './all-tokens-daily.js';
 import { getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
+import { escapeHtml, escapeUrlComponent } from '../util/escape-html.js';
 
 customElements.define('year-report-print',
     class extends HTMLElement {
@@ -70,17 +71,17 @@ customElements.define('year-report-print',
                 ${datestring}
                 </td>
                 ${(allTokens ? !!tx.token : !!this.token) ? `
-                <td>${tx.involved_account_id}</td>
-                <td>${tx.affected_account_id}</td>
-                <td>${tx.cause}</td>
+                <td>${escapeHtml(tx.involved_account_id ?? '')}</td>
+                <td>${escapeHtml(tx.affected_account_id ?? '')}</td>
+                <td>${escapeHtml(tx.cause ?? '')}</td>
             
                 <td class="numeric">${(tx.delta_amount * (allTokens ? (tx.decimalConversionValue ?? 1) : decimalConversionValue)).toFixed(numDecimals)}</td>`
                                     :
-                                    `<td>${tx.signer_id}</td>
-                <td>${tx.receiver_id}</td>
-                <td>${tx.action_kind}</td>
+                                    `<td>${escapeHtml(tx.signer_id ?? '')}</td>
+                <td>${escapeHtml(tx.receiver_id ?? '')}</td>
+                <td>${escapeHtml(tx.action_kind ?? '')}</td>
                 <td class="numeric">${tx.visibleChangedBalance.toFixed(numDecimals)}</td>`}
-                <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${tx.hash}">&#128194;</a>
+                <td><a class="btn btn-light" target="_blank" href="https://nearblocks.io/txns/${escapeUrlComponent(tx.hash ?? '')}">&#128194;</a>
                 </td>`;
                             transactionstablebody.appendChild(transactionRow);
                         }

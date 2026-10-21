@@ -1,6 +1,7 @@
 import html from './counterparties-page.component.html.js';
 import { getAccounts, getTransactionsForAccount, getAllFungibleTokenTransactions, getReceivedAccounts, setReceivedAccounts, getExpenseAccounts, setExpenseAccounts } from '../storage/domainobjectstore.js';
 import { getStakingAccounts } from '../near/stakingpool.js';
+import { escapeHtml } from '../util/escape-html.js';
 
 // Token prices cache, keyed by symbol (uppercase)
 let tokenPricesCache = null;
@@ -402,7 +403,7 @@ customElements.define('counterparties-page',
                         const val = getValue(data);
                         if (val > 0n) {
                             const price = this.tokenPrices?.[symbol.toUpperCase()] || 0;
-                            lines.push(`${formatTokenAmount(val, data.decimals, price)} ${symbol}`);
+                            lines.push(`${formatTokenAmount(val, data.decimals, price)} ${escapeHtml(symbol)}`);
                         }
                     }
                     return lines.join('<br>') || '0';
@@ -416,20 +417,23 @@ customElements.define('counterparties-page',
                     : '';
 
                 const classification = cp.isReceived ? 'received' : cp.isExpense ? 'expense' : 'deposit';
+                // Every name here is someone else's choosing: the account that
+                // sent the transaction, the symbol of the token it sent.
+                const account = escapeHtml(cp.account);
                 tr.innerHTML = `
-                    <td><select class="form-select form-select-sm classification-select" data-account="${cp.account}">
+                    <td><select class="form-select form-select-sm classification-select" data-account="${account}">
                         <option value="deposit" ${classification === 'deposit' ? 'selected' : ''}>deposit/withdrawal</option>
                         <option value="received" ${classification === 'received' ? 'selected' : ''}>received</option>
                         <option value="expense" ${classification === 'expense' ? 'selected' : ''}>expense</option>
                     </select></td>
-                    <td class="text-break">${cp.account}</td>
+                    <td class="text-break">${account}</td>
                     <td class="text-end">${cp.txCount}</td>
                     <td class="text-end">${formatTokenList(d => d.incoming)}</td>
                     <td class="text-end">${formatUSD(cp.incomingUsd)}</td>
                     <td class="text-end">${formatTokenList(d => d.outgoing)}</td>
                     <td class="text-end">${formatUSD(cp.outgoingUsd)}</td>
                     <td>${suggestionHtml}</td>
-                    <td><input type="text" class="form-control form-control-sm description-input" data-account="${cp.account}" value="${cp.description || ''}" placeholder="Description..."></td>
+                    <td><input type="text" class="form-control form-control-sm description-input" data-account="${account}" value="${escapeHtml(cp.description || '')}" placeholder="Description..."></td>
                 `;
                 tbody.appendChild(tr);
             }

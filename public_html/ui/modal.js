@@ -1,4 +1,5 @@
 import { modalTemplate } from './modal.html.js';
+import { escapeHtml } from '../util/escape-html.js';
 
 customElements.define('common-modal',
     class extends HTMLElement {
@@ -18,20 +19,29 @@ export async function modal(modalContent) {
     return result;
 }
 
-export async function modalYesNo(title, question) {
+/**
+ * Text unless the caller says it is markup it built itself, with every value
+ * in it escaped. Error messages carry server text, asset ids and account
+ * names, none of which are ours to trust.
+ */
+function body(content, html) {
+    return html ? String(content) : escapeHtml(String(content ?? '')).replace(/\n/g, '<br>');
+}
+
+export async function modalYesNo(title, question, { html = false } = {}) {
     return modal(`
-    <h3>${title}</h3>
-    <p>${question}</p>
+    <h3>${escapeHtml(title)}</h3>
+    <p>${body(question, html)}</p>
     <p>
         <button onclick="getRootNode().result(false)">No</button>
         <button onclick="getRootNode().result(true)">Yes</button>
     </p>`);
 }
 
-export async function modalAlert(title, content) {
+export async function modalAlert(title, content, { html = false } = {}) {
     return modal(`
-    <h3>${title}</h3>
-    <p>${content}</p>
+    <h3>${escapeHtml(title)}</h3>
+    <p>${body(content, html)}</p>
     <p>
         <button onclick="getRootNode().result(true)">Dismiss</button>
     </p>`);
