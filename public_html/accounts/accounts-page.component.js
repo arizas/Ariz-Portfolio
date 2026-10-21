@@ -53,8 +53,7 @@ customElements.define('accounts-page',
                     // After the transactions, so prices are as current as what they value.
                     const prices = await refreshStoredPriceHistories((done, total, token, currency) =>
                         setProgressbarValue(total ? done / total : 'indeterminate',
-                            // The bar takes HTML, and a token's name is whatever its minter chose.
-                            token ? `Updating prices: ${escapeHtml(token)} in ${escapeHtml(currency.toUpperCase())} (${done + 1} of ${total})` : 'Updating prices'));
+                            token ? `Updating prices: ${token} in ${currency.toUpperCase()} (${done + 1} of ${total})` : 'Updating prices'));
                     console.log(`Updated ${prices.updated} price histories from server`);
                     if (prices.failed.length) {
                         console.warn('Price histories that could not be updated', prices.failed);
@@ -138,10 +137,10 @@ customElements.define('accounts-page',
                             + `derived ${formatRawAmount(m.derived, m.decimals)}, `
                             + `actual ${formatRawAmount(m.actual, m.decimals)}`).join('<br>')
                         + `<br><br>Nothing was deleted — the store only ever merges. Fetch again, and `
-                        + `report this if it persists.`);
+                        + `report this if it persists.`, { html: true });
                 } else {
                     await modalAlert('Confidential history fetched',
-                        `${summary}<br><br>Derived balances match the intents API exactly.`);
+                        `${summary}<br><br>Derived balances match the intents API exactly.`, { html: true });
                 }
                 this.dispatchChangeEvent();
             } catch (e) {

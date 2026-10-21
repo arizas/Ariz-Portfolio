@@ -85,12 +85,19 @@ customElements.define('progress-bar', class ProgressBar extends HTMLElement {
 
     setValue(val, extratext, allowStop = false) {
         if (val == 'indeterminate') {
-            this.shadowRoot.querySelector('.progress-text').innerHTML = `<div style="margin-top: 10px">${extratext}</div>`;
+            // Text, never markup: callers pass token names, account names and
+            // server error messages, none of them ours to trust.
+            const line = document.createElement('div');
+            line.style.marginTop = '10px';
+            line.textContent = extratext ?? '';
+            this.shadowRoot.querySelector('.progress-text').replaceChildren(line);
             this.shadowRoot.querySelector('.progress-fill').style.width = `10%`;
             this.shadowRoot.querySelector('.progress-fill').style.animationName = 'indeterminate';
         } else {
             this.shadowRoot.querySelector('.progress-fill').style.animationName = 'none';
-            this.shadowRoot.querySelector('.progress-text').innerHTML = `${(val * 100).toFixed(0)}%${extratext ? `<br />${extratext}` : ''}`;
+            const text = this.shadowRoot.querySelector('.progress-text');
+            text.replaceChildren(`${(val * 100).toFixed(0)}%`);
+            if (extratext) text.append(document.createElement('br'), String(extratext));
             this.shadowRoot.querySelector('.progress-fill').style.width = `${(val * 100).toFixed(2)}%`;
         }
         if (allowStop) {

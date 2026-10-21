@@ -248,7 +248,7 @@ export async function fetchHistoricalPricesFromArizGateway({ baseToken = "NEAR",
     let pricesMap;
     try {
         pricesMap = await fetchFromArizGateway(
-            `/api/prices/history?basetoken=${coinGeckoId}&currency=${currency}&todate=${todate}`,
+            `/api/prices/history?basetoken=${encodeURIComponent(coinGeckoId)}&currency=${encodeURIComponent(currency)}&todate=${encodeURIComponent(todate)}`,
             { timeoutMillis: PRICE_TIMEOUT_MILLIS, interactive: false, showProgress });
     } catch (e) {
         // Neither of these is "this token has no price", and saying so is the

@@ -2,6 +2,7 @@ import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay,
 import { browserLocale } from '../util/locale.js';
 import { ALL_TOKENS, combineDailyRows } from './all-tokens-daily.js';
 import { collectAllTokenDays } from './all-tokens-collect.js';
+import { escapeHtml } from '../util/escape-html.js';
 
 const numDecimals = 2;
 
@@ -108,7 +109,9 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
 
     const decimalConversionValue = token ? getDecimalConversionValue(token) : Math.pow(10, -24);
     const tokenNumberFormatter = getNumberFormatter();
-    const symbol = token === '' ? 'NEAR' : (getTokenSymbol(token) || token);
+    // Escaped: it lands in innerHTML, and a token's symbol is whatever its
+    // minter wrote — or, on the print page, whatever the URL says.
+    const symbol = escapeHtml(token === '' ? 'NEAR' : (getTokenSymbol(token) || token));
     const formatTokenAmount = (amount) => {
         return `<span class="token_amount">${tokenNumberFormatter(amount * decimalConversionValue)} ${symbol}</span>`;
     };
@@ -167,7 +170,7 @@ export async function renderPeriodReportTable({ shadowRoot, token, periodStartDa
             const detailInfoElement = row.querySelector('.inforow td table tbody');
             detailInfoElement.innerHTML = rowdata.realizations.map(r => `
                 <tr>
-                    <td>${r.position.date}</td>
+                    <td>${escapeHtml(r.position.date)}</td>
                     <td>${formatTokenAmount(r.position.initialAmount)}</td>
                     <td>${formatNumber(r.position.conversionRate)}</td>
                     <td>${formatTokenAmount(r.amount)}</td>
