@@ -151,8 +151,11 @@ export function readTransactionsTable(page) {
  * the position first.
  */
 export async function measureTransactionsTable(page) {
-    await page.waitForFunction(`(() => {
-        const root = ${PAGE_ROOT};
+    // A function, not a string: the page's Content-Security-Policy forbids
+    // evaluating strings, and Playwright evaluates a string predicate in the page.
+    await page.waitForFunction(() => {
+        const root = document.querySelector('app-near-account-report').shadowRoot
+            .querySelector('transactions-page').shadowRoot;
         const container = root.querySelector('.table-responsive');
         if (!container) return false;
         // With no rows the component collapses the container to its content
@@ -167,7 +170,7 @@ export async function measureTransactionsTable(page) {
         const available = Math.max(0, window.innerHeight - (top + window.scrollY));
         const floor = parseFloat(getComputedStyle(container).minHeight) || 0;
         return Math.abs(height - Math.max(available, floor)) < 1;
-    })()`, undefined, { timeout: 10_000 })
+    }, undefined, { timeout: 10_000 })
         // Swallowed on purpose: the assertions below report the numbers that
         // never agreed, which is a far more useful failure than a bare
         // "waitForFunction timed out" at the end of the test's own timeout.

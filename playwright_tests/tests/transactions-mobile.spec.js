@@ -123,7 +123,7 @@ test('a resize while the page is scrolled sizes the table from its place in the 
     // The wheel is handled on the compositor, so the scroll lands a frame or
     // two after the call returns — resizing before it does would measure an
     // unscrolled page and prove nothing.
-    await page.waitForFunction('window.scrollY > 0');
+    await page.waitForFunction(() => window.scrollY > 0);
     await page.setViewportSize({ width: 844, height: 440 });
 
     // Settle on the browser rather than on the height, which is what is under
@@ -131,7 +131,7 @@ test('a resize while the page is scrolled sizes the table from its place in the 
     // pass so the resize handler and the observer have both run. Measuring any
     // earlier reads the height from before the resize, and the CSS floor keeps
     // the rendered height at 240px either way, so nothing would give it away.
-    await page.waitForFunction('window.innerHeight === 440');
+    await page.waitForFunction(() => window.innerHeight === 440);
     await page.evaluate(() => new Promise(resolve =>
         requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
