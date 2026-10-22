@@ -1,22 +1,15 @@
-import httpServer from "http-server";
-import path from "path";
 import { startServer as startGitServer } from './githttpserver.js';
+import { startDistServer } from '../dist-preview.mjs';
 
 // Start git server on port 15000 (hardcoded in githttpserver.js)
 startGitServer();
 console.log('Git server listening on port 15000');
 
-// Start the HTTP server for dist folder
-const appserver = httpServer.createServer({
-  root: path.join(process.cwd(), "dist"),
-  cors: true,
-  cache: -1,
-  proxy: 'http://localhost:8081?'  // SPA support - serve index.html for all routes
-});
-
-appserver.listen(8081, () => {
-  console.log("App HTTP server serving dist/ on port 8081");
-});
+// Serve dist/ the way the gateway does: a plain static server would hand out
+// the bundle's Content-Security-Policy nonce placeholder, and the page would
+// run no script at all. Every path gets the page, as an SPA needs.
+const appserver = await startDistServer(8081);
+console.log("App HTTP server serving dist/ on port 8081");
 
 // Verify servers are running
 setTimeout(async () => {

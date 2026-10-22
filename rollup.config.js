@@ -3,6 +3,7 @@ import terser from '@rollup/plugin-terser';
 import { readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import copy from 'rollup-plugin-copy';
+import { withContentSecurityPolicy } from './csp.js';
 
 // Read a worker's source with its static relative imports resolved inline, so it
 // can be embedded as a self-contained blob (the inlining wraps the source in a
@@ -58,9 +59,13 @@ export default {
             name: 'inline-js',
             closeBundle: () => {
                 const js = readFileSync('dist/app.js').toString();
-                const html = readFileSync('dist/index.html').toString()
-                    .replace(`<script type="module" src="./app.js"></script>`,
-                        `<script type="module">${js}</script>`);
+                // The policy goes in before the app is inlined, so its tag
+                // rewriting never reads the app's own code. A replacer function,
+                // so a `$&` or `$'` in the minified code is not a pattern.
+                const html = withContentSecurityPolicy(readFileSync('dist/index.html').toString())
+                    .replace(/<script nonce="([^"]*)" type="module" src="\.\/app\.js"><\/script>/,
+                        (_, nonce) => `<script nonce="${nonce}" type="module">${js}</script>`);
+                if (html.includes('src="./app.js"')) throw new Error('app.js was not inlined');
                 writeFileSync('dist/index.html', html);
                 unlinkSync(`dist/app.js`);
             }
