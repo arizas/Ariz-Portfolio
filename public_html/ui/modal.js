@@ -10,9 +10,21 @@ customElements.define('common-modal',
         }
     });
 
-export async function modal(modalContent) {
+/**
+ * A button with `data-result` resolves the modal: with `results[name](root)`
+ * when the caller maps that name, otherwise with the attribute read as JSON.
+ * Listeners, not inline onclick: the Content-Security-Policy that keeps an
+ * injected handler from running keeps ours from running too.
+ */
+export async function modal(modalContent, results = {}) {
     const modalElement = document.createElement('common-modal');
-    modalElement.shadowRoot.innerHTML = modalTemplate(modalContent);
+    const root = modalElement.shadowRoot;
+    root.innerHTML = modalTemplate(modalContent);
+    for (const button of root.querySelectorAll('[data-result]')) {
+        const name = button.dataset.result;
+        button.addEventListener('click', () =>
+            root.result(Object.hasOwn(results, name) ? results[name](root) : JSON.parse(name)));
+    }
     document.documentElement.appendChild(modalElement);
     const result = await modalElement.resultPromise;
     document.documentElement.removeChild(modalElement);
@@ -33,8 +45,8 @@ export async function modalYesNo(title, question, { html = false } = {}) {
     <h3>${escapeHtml(title)}</h3>
     <p>${body(question, html)}</p>
     <p>
-        <button onclick="getRootNode().result(false)">No</button>
-        <button onclick="getRootNode().result(true)">Yes</button>
+        <button data-result="false">No</button>
+        <button data-result="true">Yes</button>
     </p>`);
 }
 
@@ -43,6 +55,6 @@ export async function modalAlert(title, content, { html = false } = {}) {
     <h3>${escapeHtml(title)}</h3>
     <p>${body(content, html)}</p>
     <p>
-        <button onclick="getRootNode().result(true)">Dismiss</button>
+        <button data-result="true">Dismiss</button>
     </p>`);
 }

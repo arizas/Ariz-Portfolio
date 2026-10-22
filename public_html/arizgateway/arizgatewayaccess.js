@@ -39,12 +39,23 @@ export function __setTestWallet(wallet) {
     _testWallet = wallet;
 }
 
+/**
+ * This page load's Content-Security-Policy nonce, for the wallet connector: it
+ * runs each wallet's code in a srcdoc iframe that inherits the policy, and
+ * that code runs only if its script tag carries the nonce. Read from the
+ * script property — the attribute is blanked once the page has loaded. None
+ * on the dev server, which serves no policy.
+ */
+function cspNonce() {
+    return document.querySelector('script[nonce]')?.nonce || undefined;
+}
+
 async function getConnector() {
     if (!_connectorPromise) {
         // Lazy dynamic import so specs that only use the injected test wallet
         // never load the wallet UI library.
         _connectorPromise = import('@hot-labs/near-connect').then(
-            ({ NearConnector }) => new NearConnector({ network: 'mainnet' })
+            ({ NearConnector }) => new NearConnector({ network: 'mainnet', cspNonce: cspNonce() })
         );
     }
     return _connectorPromise;
@@ -136,7 +147,7 @@ class MemoryStorage {
 async function pickWalletOnce() {
     const { NearConnector } = await import('@hot-labs/near-connect');
     const connector = new NearConnector({
-        network: 'mainnet', autoConnect: false, storage: new MemoryStorage(),
+        network: 'mainnet', autoConnect: false, storage: new MemoryStorage(), cspNonce: cspNonce(),
     });
     return connector.wallet(await connector.selectWallet({ features: { signInAndSignMessage: true } }));
 }

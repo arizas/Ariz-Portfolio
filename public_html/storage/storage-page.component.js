@@ -46,9 +46,12 @@ export async function syncUnlockPrompt() {
         <small>Anyone with access to this browser profile could read the stored key.
         Do not enable this on a shared computer.</small></p>
     <p>
-        <button onclick="getRootNode().result({ proceed: false })">Cancel</button>
-        <button onclick="getRootNode().result({ proceed: true, remember: getRootNode().getElementById('rememberdekcheckbox').checked })">Continue</button>
-    </p>`);
+        <button data-result="cancel">Cancel</button>
+        <button data-result="continue">Continue</button>
+    </p>`, {
+        cancel: () => ({ proceed: false }),
+        continue: (root) => ({ proceed: true, remember: root.getElementById('rememberdekcheckbox').checked }),
+    });
 }
 
 /**
