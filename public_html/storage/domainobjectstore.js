@@ -8,6 +8,7 @@ import { fetchRawAccountingExport, convertAccountingExportToTransactions, isV2Fo
 import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedConfidentialFtTransaction,
     confidentialBalancesFromItems, reconcileConfidentialBalances, historyItemKey } from '../near/confidentialledger.js';
 import { resolveDecimals, resolveSymbol, normalizeIntentsAssetId } from '../near/intents-tokens.js';
+import { fetchAccessKeys, mergeAccessKeys, dateAddedKeys, findLastUses } from '../near/accesskeys.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -642,4 +643,125 @@ export async function fetchTransactionsFromAccountingExport(account, options = {
         console.error('Error fetching from accounting export:', error);
         throw error;
     }
+}
+function getAccessKeysPath(account) {
+    return `${accountdatadir}/${account}/accesskeys.json`;
+}
+
+/**
+ * What is known about an account's access keys: what the chain showed at the
+ * last check (`observed`) and what the user wrote (`notes`). See
+ * mergeAccessKeys in near/accesskeys.js for how a check folds in. Returns null
+ * before the first check.
+ */
+export async function getAccessKeys(account) {
+    const path = getAccessKeysPath(account);
+    if (await exists(path)) {
+        return JSON.parse(await readTextFile(path));
+    }
+    return null;
+}
+
+export async function writeAccessKeys(account, accessKeys) {
+    await makeAccountDataDirs(account);
+    await writeFile(getAccessKeysPath(account), JSON.stringify(accessKeys, null, 1));
+}
+
+/**
+ * Save the user's notes on one key. Reads the file right before writing, so a
+ * refresh that landed in between keeps its observation.
+ * @param {string} account
+ * @param {string} publicKey
+ * @param {{label?: string, text?: string}} notes
+ */
+export async function setAccessKeyNotes(account, publicKey, notes) {
+    const accessKeys = (await getAccessKeys(account)) ?? { checkedAt: null, checkedAtBlock: null, keys: {} };
+    const entry = accessKeys.keys[publicKey] ?? {};
+    accessKeys.keys[publicKey] = {
+        ...entry,
+        notes: { ...entry.notes, ...notes, updatedAt: new Date().toISOString() }
+    };
+    await writeAccessKeys(account, accessKeys);
+}
+
+/**
+ * Check the account's keys on chain and store the result. Notes are taken from
+ * the file as it is right before the write, not as it was before the network
+ * calls, so a note saved while this ran is kept.
+ */
+export async function refreshAccessKeys(account) {
+    const fetched = await fetchAccessKeys(account);
+    const merged = await dateAddedKeys(
+        mergeAccessKeys(await getAccessKeys(account), fetched, new Date().toISOString()));
+    for (const [publicKey, entry] of Object.entries((await getAccessKeys(account))?.keys ?? {})) {
+        if (entry.notes) {
+            merged.keys[publicKey] = { ...merged.keys[publicKey], notes: entry.notes };
+        }
+    }
+    await writeAccessKeys(account, merged);
+    return merged;
+}
+
+function getTransactionSignaturesPath(account) {
+    return `${accountdatadir}/${account}/transactionsignatures.json`;
+}
+
+/**
+ * The account's transactions as far as they are fetched, NEAR and token
+ * transfers together, newest first. A transaction a relayer submitted for the
+ * account may move no NEAR, and then it is only among the token transfers.
+ */
+async function getTransactionsNewestFirst(account) {
+    const byHash = new Map();
+    const add = (hash, block_timestamp) => {
+        if (hash && !hash.startsWith('block-') && block_timestamp && !byHash.has(hash)) {
+            byHash.set(hash, { hash, block_timestamp: String(block_timestamp) });
+        }
+    };
+    for (const tx of await getTransactionsForAccount(account)) {
+        add(tx.hash, tx.block_timestamp);
+    }
+    for (const tx of await getAllFungibleTokenTransactions(account)) {
+        if (!isDerivedConfidentialFtTransaction(tx)) {
+            add(tx.transaction_hash, tx.block_timestamp);
+        }
+    }
+    return [...byHash.values()].sort((a, b) => {
+        const diff = BigInt(b.block_timestamp) - BigInt(a.block_timestamp);
+        return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+    });
+}
+
+/**
+ * Find when each of the account's keys last signed, from the fetched
+ * transaction history (see findLastUses in near/accesskeys.js). Only
+ * `observed.lastUsed` is written, onto the file as it is right before the
+ * write, so notes and a check that landed meanwhile are kept.
+ * @returns {Promise<{accessKeys: object, looked: number, unchecked: number}>}
+ */
+export async function findAccessKeyLastUses(account, options = {}) {
+    const accessKeys = await getAccessKeys(account);
+    if (!accessKeys) {
+        throw new Error(`Check the keys of ${account} on chain first`);
+    }
+    const signaturesPath = getTransactionSignaturesPath(account);
+    const signatureCache = (await exists(signaturesPath)) ? JSON.parse(await readTextFile(signaturesPath)) : {};
+    const result = await findLastUses({
+        ...options,
+        accessKeys,
+        accountId: account,
+        transactions: await getTransactionsNewestFirst(account),
+        signatureCache
+    });
+    await writeFile(signaturesPath, JSON.stringify(signatureCache));
+
+    const latest = await getAccessKeys(account);
+    for (const [publicKey, entry] of Object.entries(latest.keys)) {
+        const observed = accessKeys.keys[publicKey]?.observed;
+        if (entry.observed && observed && entry.observed.nonce === observed.nonce) {
+            entry.observed.lastUsed = observed.lastUsed ?? null;
+        }
+    }
+    await writeAccessKeys(account, latest);
+    return { accessKeys: latest, ...result };
 }

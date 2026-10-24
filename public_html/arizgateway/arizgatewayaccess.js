@@ -86,6 +86,25 @@ export async function getAccountId() {
 }
 
 /**
+ * The connected account and, when the wallet tells, the access key it signs
+ * with. Not every wallet reports its key: `publicKey` is then null.
+ * @returns {Promise<{accountId: string, publicKey: string|null}|null>}
+ */
+export async function getConnectedAccount() {
+    const wallet = await currentWallet();
+    if (!wallet) return null;
+    try {
+        const account = (await wallet.getAccounts())?.[0];
+        if (account?.accountId) {
+            return { accountId: account.accountId, publicKey: account.publicKey ?? null };
+        }
+    } catch {
+        // fall through to what the wallet object says
+    }
+    return wallet.accountId ? { accountId: wallet.accountId, publicKey: null } : null;
+}
+
+/**
  * NEP-413 signMessage through the connected wallet (or the injected test
  * wallet). Used for gateway auth tokens and for encryption-key derivation
  * (encryptionkey.js) — the latter with its own fixed nonce and a recipient
