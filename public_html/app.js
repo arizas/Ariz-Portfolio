@@ -1,6 +1,7 @@
 import { exists } from './storage/gitstorage.js';
 import './near/stakingpool.js';
 import './accounts/accounts-page.component.js';
+import './accesskeys/accesskeys-page.component.js';
 import './transactions/transactions-page.component.js';
 import './stakingview/staking-page.component.js';
 import './storage/storage-page.component.js';
