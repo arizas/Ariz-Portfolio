@@ -86,6 +86,25 @@ export async function getAccountId() {
 }
 
 /**
+ * The connected account and, when the wallet tells, the access key it signs
+ * with. Not every wallet reports its key: `publicKey` is then null.
+ * @returns {Promise<{accountId: string, publicKey: string|null}|null>}
+ */
+export async function getConnectedAccount() {
+    const wallet = await currentWallet();
+    if (!wallet) return null;
+    try {
+        const account = (await wallet.getAccounts())?.[0];
+        if (account?.accountId) {
+            return { accountId: account.accountId, publicKey: account.publicKey ?? null };
+        }
+    } catch {
+        // fall through to what the wallet object says
+    }
+    return wallet.accountId ? { accountId: wallet.accountId, publicKey: null } : null;
+}
+
+/**
  * NEP-413 signMessage through the connected wallet (or the injected test
  * wallet). Used for gateway auth tokens and for encryption-key derivation
  * (encryptionkey.js) — the latter with its own fixed nonce and a recipient
@@ -327,10 +346,14 @@ export const GATEWAY_TIMEOUT_MILLIS = 30000;
  * 46)" while a modal it never mentioned waited to be scanned. Idle, no pending
  * request, no error. I spent a while blaming the gateway for that.
  */
-function sendToGateway(path, token, timeoutMillis, showProgress = true) {
+function sendToGateway(path, token, timeoutMillis, showProgress = true, body = undefined) {
     if (showProgress) setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
     return fetch(`${arizgatewayhost}${path}`, {
-        headers: { 'authorization': `Bearer ${token}` },
+        ...(body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) }),
+        headers: {
+            'authorization': `Bearer ${token}`,
+            ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
         signal: timeoutMillis > 0 ? AbortSignal.timeout(timeoutMillis) : undefined
     });
 }
@@ -353,9 +376,10 @@ export class SignatureRequiredError extends Error {
  * @param {boolean} [options.showProgress] false when the caller keeps the
  *   progress bar itself: the generic text would replace what it says, and
  *   clearing the bar after each request would take it away between them
+ * @param {object} [options.body] sent as JSON in a POST
  */
 export async function fetchFromArizGateway(path, {
-    timeoutMillis = GATEWAY_TIMEOUT_MILLIS, interactive = true, showProgress = true,
+    timeoutMillis = GATEWAY_TIMEOUT_MILLIS, interactive = true, showProgress = true, body = undefined,
 } = {}) {
     if (!interactive && !cachedTokenIsFresh(readCachedToken())) {
         throw new SignatureRequiredError(path);
@@ -364,7 +388,7 @@ export async function fetchFromArizGateway(path, {
         return {};
     }
     try {
-        let response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress);
+        let response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress, body);
 
         // A 401 says this token is not accepted, and sending it again cannot
         // change that — the caller above wraps some of these in a retry loop,
@@ -381,7 +405,7 @@ export async function fetchFromArizGateway(path, {
                 if (showProgress) setProgressbarValue(null);
                 throw new SignatureRequiredError(path);
             }
-            response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress);
+            response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress, body);
         }
 
         if (showProgress) setProgressbarValue(null);

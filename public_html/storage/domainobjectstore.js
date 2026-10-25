@@ -8,6 +8,7 @@ import { fetchRawAccountingExport, convertAccountingExportToTransactions, isV2Fo
 import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedConfidentialFtTransaction,
     confidentialBalancesFromItems, reconcileConfidentialBalances, historyItemKey } from '../near/confidentialledger.js';
 import { resolveDecimals, resolveSymbol, normalizeIntentsAssetId } from '../near/intents-tokens.js';
+import { fetchAccessKeys, searchLastUses, mergeAccessKeys } from '../near/accesskeys.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -642,4 +643,81 @@ export async function fetchTransactionsFromAccountingExport(account, options = {
         console.error('Error fetching from accounting export:', error);
         throw error;
     }
+}
+function getAccessKeysPath(account) {
+    return `${accountdatadir}/${account}/accesskeys.json`;
+}
+
+/**
+ * What is known about an account's access keys: what the chain showed at the
+ * last check (`observed`) and what the user wrote (`notes`). See
+ * mergeAccessKeys in near/accesskeys.js for how a check folds in. Returns null
+ * before the first check.
+ */
+export async function getAccessKeys(account) {
+    const path = getAccessKeysPath(account);
+    if (await exists(path)) {
+        return JSON.parse(await readTextFile(path));
+    }
+    return null;
+}
+
+export async function writeAccessKeys(account, accessKeys) {
+    await makeAccountDataDirs(account);
+    await writeFile(getAccessKeysPath(account), JSON.stringify(accessKeys, null, 1));
+}
+
+/**
+ * Save the user's notes on one key. Reads the file right before writing, so a
+ * refresh that landed in between keeps its observation.
+ * @param {string} account
+ * @param {string} publicKey
+ * @param {{label?: string, text?: string}} notes
+ */
+export async function setAccessKeyNotes(account, publicKey, notes) {
+    const accessKeys = (await getAccessKeys(account)) ?? { checkedAt: null, checkedAtBlock: null, keys: {} };
+    const entry = accessKeys.keys[publicKey] ?? {};
+    accessKeys.keys[publicKey] = {
+        ...entry,
+        notes: { ...entry.notes, ...notes, updatedAt: new Date().toISOString() }
+    };
+    await writeAccessKeys(account, accessKeys);
+}
+
+/**
+ * Check the account's keys on chain and store the result. Notes are taken from
+ * the file as it is right before the write, not as it was before the network
+ * calls, so a note saved while this ran is kept.
+ */
+export async function refreshAccessKeys(account) {
+    return storeAccessKeys(account, await fetchAccessKeys(account));
+}
+
+/**
+ * Have the gateway search on for the last uses it does not know yet, and
+ * store the keys as it then answers. Asks until the search is complete, or
+ * until `shouldStop()` says so between requests.
+ * @param {string} account
+ * @param {{shouldStop?: () => boolean}} [options]
+ * @returns {Promise<{accessKeys: object, complete: boolean}>}
+ */
+export async function findAccessKeyLastUses(account, { shouldStop = () => false } = {}) {
+    for (;;) {
+        const fetched = await searchLastUses(account);
+        const accessKeys = await storeAccessKeys(account, fetched);
+        if (fetched.lastUseSearch?.complete || shouldStop()) {
+            return { accessKeys, complete: !!fetched.lastUseSearch?.complete };
+        }
+    }
+}
+
+async function storeAccessKeys(account, fetched) {
+    const merged = mergeAccessKeys(await getAccessKeys(account), fetched, new Date().toISOString());
+    for (const [publicKey, entry] of Object.entries((await getAccessKeys(account))?.keys ?? {})) {
+        if (entry.notes) {
+            merged.keys[publicKey] = { ...merged.keys[publicKey], notes: entry.notes };
+        }
+    }
+    await writeAccessKeys(account, merged);
+    return merged;
 }
