@@ -52,6 +52,12 @@ function describeLastUse(observed, cell) {
         return;
     }
     cell.textContent = describeLastUseWindow(observed);
+    if (observed.lastUseNotIndexed) {
+        const note = document.createElement('div');
+        note.className = 'small text-muted';
+        note.textContent = "not in FastNear's index of signed transactions";
+        cell.appendChild(note);
+    }
 }
 
 function describeLastUseWindow(observed) {
@@ -124,18 +130,19 @@ customElements.define('access-keys-page',
             const status = this.shadowRoot.querySelector('#lastusestatus');
             errorElement.hidden = true;
             status.textContent = '';
+            let rounds = 0;
             try {
-                const { accessKeys, pages, complete } = await findAccessKeyLastUses(account, {
-                    onProgress: (pagesRead, keysLeft) => setProgressbarValue('indeterminate',
-                        `Looking through ${account}'s signed transactions: ${pagesRead * 200} so far, ${keysLeft} keys still to find`, true).stopButtonClicked
+                const { accessKeys, complete } = await findAccessKeyLastUses(account, {
+                    shouldStop: () => setProgressbarValue('indeterminate',
+                        `Looking through ${account}'s signed transactions (${++rounds})`, true).stopButtonClicked
                 });
                 const notFound = Object.values(accessKeys.keys).filter(({ observed }) =>
                     observed && !observed.deletedBetween && observed.transactionsSigned > 0 && !observed.lastUsed).length;
-                status.textContent = pages === 0
-                    ? 'No key has signed anything since the last search.'
-                    : `Looked through ${pages * 200 > 200 ? `up to ${pages * 200}` : 'the newest 200'} signed transactions.`
-                    + (!complete ? ` ${notFound} ${notFound === 1 ? 'key was' : 'keys were'} not found yet: click again to look further back.`
-                        : notFound ? ` ${notFound} ${notFound === 1 ? 'key is' : 'keys are'} not in FastNear's index of signed transactions.` : '');
+                status.textContent = !complete
+                    ? `Stopped. ${notFound} ${notFound === 1 ? 'key was' : 'keys were'} not found yet: click again to go on.`
+                    : notFound
+                        ? `${notFound} ${notFound === 1 ? 'key is' : 'keys are'} not in FastNear's index of signed transactions.`
+                        : 'The last use of every key that has signed is found.';
                 if (this.accountSelect.value === account) {
                     this.render(accessKeys);
                 }

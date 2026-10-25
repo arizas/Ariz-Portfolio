@@ -6,39 +6,51 @@ const ACCOUNT = 'accesskeys-test.near';
 
 describe('accesskeys-page.component', () => {
     let realFetch;
+    // The keys as the chain has them (RPC shape); the mocked gateway answers with them.
     let chainKeys;
     let blockLookup = Promise.resolve();
-    // FastNear's index of the account's signed transactions, newest first.
-    let signedIndex = [];
+    // What the gateway's last-use search answers, one response per request.
+    let lastUseAnswers = [];
     const gatewayCalls = [];
 
-    // The gateway as this test wants it, signed in: the key list, a fixed time
-    // for every block, and the signed-transaction index.
+    const asGatewayKey = ({ public_key, access_key }) => {
+        const start = Math.floor(access_key.nonce / 1_000_000);
+        const known = start >= 9_820_210;
+        const permission = access_key.permission === 'FullAccess' ? { type: 'FullAccess' } : {
+            type: 'FunctionCall', receiverId: access_key.permission.FunctionCall.receiver_id,
+            methodNames: access_key.permission.FunctionCall.method_names, allowance: access_key.permission.FunctionCall.allowance
+        };
+        return {
+            publicKey: public_key, nonce: access_key.nonce, permission,
+            addedBlock: known ? start + 1 : null, addedAt: known ? '2024-04-19T04:48:31.587Z' : null,
+            transactionsSigned: known ? access_key.nonce % 1_000_000 : access_key.nonce,
+            lastUse: null, lastUseNotIndexed: false
+        };
+    };
+
+    // The gateway as this test wants it, signed in.
     before(async () => {
         localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
             JSON.stringify({ token: 'test-token', accountId: ACCOUNT, issuedAt: Date.now() }));
         realFetch = window.fetch;
         window.fetch = async (url, options) => {
-            const prefix = `${arizgatewayhost}/api/fastnear`;
+            const prefix = `${arizgatewayhost}/api/accesskeys/`;
             if (!String(url).startsWith(prefix)) {
                 return realFetch(url, options);
             }
             const path = String(url).substring(prefix.length);
-            const body = JSON.parse(options.body);
-            gatewayCalls.push({ path, body, authorization: options.headers.authorization });
-            const json = (result) => new Response(JSON.stringify(result));
-            if (path === '/rpc' && body.params?.request_type === 'view_access_key_list') {
-                return json({ jsonrpc: '2.0', result: { block_height: 217499500, keys: chainKeys } });
-            }
-            if (path === '/archival-rpc' && body.method === 'block') {
+            gatewayCalls.push({ path, method: options.method ?? 'GET' });
+            if (path === ACCOUNT) {
                 await blockLookup;
-                return json({ jsonrpc: '2.0', result: { header: { timestamp_nanosec: '1713502111587973394' } } });
+                return new Response(JSON.stringify({ blockHeight: 217499500, keys: chainKeys.map(asGatewayKey) }));
             }
-            if (path === '/tx/v0/account') {
-                return json({ account_txs: signedIndex.map(({ hash, at }) => ({ transaction_hash: hash, tx_block_timestamp: at })) });
-            }
-            if (path === '/tx/v0/transactions') {
-                return json({ transactions: body.tx_hashes.map(hash => ({ transaction: signedIndex.find(t => t.hash === hash).transaction })) });
+            if (path === `${ACCOUNT}/lastuse` && options.method === 'POST') {
+                const { lastUses, complete } = lastUseAnswers.shift();
+                return new Response(JSON.stringify({
+                    blockHeight: 217499500,
+                    keys: chainKeys.map(asGatewayKey).map(k => ({ ...k, lastUse: lastUses[k.publicKey] ?? null })),
+                    lastUseSearch: { complete }
+                }));
             }
             return new Response('not mocked', { status: 500 });
         };
@@ -109,51 +121,36 @@ describe('accesskeys-page.component', () => {
         }
     });
 
-    it('finds the last use of each key through the gateway', async () => {
+    it('asks the gateway to search on until every last use is found', async () => {
         const page = document.createElement('access-keys-page');
         document.documentElement.appendChild(page);
         const shadowRoot = await page.readyPromise;
         try {
-            const ns = (iso) => (BigInt(Date.parse(iso)) * 1_000_000n).toString();
             chainKeys = [
                 { public_key: 'ed25519:FULL', access_key: { nonce: 117149950000043, permission: 'FullAccess' } },
                 { public_key: 'ed25519:LEDGER', access_key: { nonce: 117149960000005, permission: 'FullAccess' } }
             ];
             await page.refresh();
-            signedIndex = [
-                {
-                    hash: 'RELAYED', at: ns('2026-06-03T10:00:00.000Z'), transaction: {
-                        hash: 'RELAYED', signer_id: 'relayer.nearmobile.near', public_key: 'ed25519:RELAYER', nonce: 9,
-                        actions: [{ Delegate: { delegate_action: { sender_id: ACCOUNT, public_key: 'ed25519:FULL', nonce: 117149950000043 } } }]
-                    }
-                },
-                {
-                    hash: 'OWN', at: ns('2026-05-02T10:00:00.000Z'), transaction: {
-                        hash: 'OWN', signer_id: ACCOUNT, public_key: 'ed25519:LEDGER', nonce: 117149960000005, actions: []
-                    }
-                }
+            const full = { nonce: 117149950000043, txHash: 'RELAYED', at: '2026-06-03T10:00:00.000Z', relayer: 'relayer.nearmobile.near' };
+            const ledger = { nonce: 117149960000005, txHash: 'OWN', at: '2026-05-02T10:00:00.000Z', relayer: null };
+            lastUseAnswers = [
+                { lastUses: { 'ed25519:FULL': full }, complete: false },
+                { lastUses: { 'ed25519:FULL': full, 'ed25519:LEDGER': ledger }, complete: true }
             ];
             gatewayCalls.length = 0;
             await page.findLastUses();
 
-            expect(gatewayCalls.map(c => c.path)).to.deep.equal(['/tx/v0/account', '/tx/v0/transactions']);
-            expect(gatewayCalls[0].body).to.deep.equal({ account_id: ACCOUNT, is_any_signer: true, limit: 200 });
-            expect(gatewayCalls[1].body).to.deep.equal({ tx_hashes: ['RELAYED', 'OWN'] });
-            expect(gatewayCalls[0].authorization).to.equal('Bearer test-token');
+            expect(gatewayCalls).to.deep.equal([
+                { path: `${ACCOUNT}/lastuse`, method: 'POST' },
+                { path: `${ACCOUNT}/lastuse`, method: 'POST' }
+            ]);
             const cell = (publicKey) => [...shadowRoot.querySelectorAll('#keystable tr')]
                 .find(row => row.querySelector('.publickey').title === publicKey).querySelector('.keylastused');
             expect(cell('ed25519:FULL').textContent).to.equal('2026-06-03via relayer.nearmobile.near');
             expect(cell('ed25519:LEDGER').textContent).to.equal('2026-05-02');
-            expect(shadowRoot.querySelector('#lastusestatus').textContent).to.equal('Looked through the newest 200 signed transactions.');
+            expect(shadowRoot.querySelector('#lastusestatus').textContent).to.equal('The last use of every key that has signed is found.');
             // The note from the first test is still there.
             expect((await getAccessKeys(ACCOUNT)).keys['ed25519:FULL'].notes.label).to.equal('Meteor on phone');
-
-            // No key has signed since: nothing to look up the second time.
-            gatewayCalls.length = 0;
-            await page.findLastUses();
-            expect(gatewayCalls).to.deep.equal([]);
-            expect(shadowRoot.querySelector('#lastusestatus').textContent).to.equal('No key has signed anything since the last search.');
-            expect(cell('ed25519:FULL').textContent).to.equal('2026-06-03via relayer.nearmobile.near');
         } finally {
             page.remove();
         }
