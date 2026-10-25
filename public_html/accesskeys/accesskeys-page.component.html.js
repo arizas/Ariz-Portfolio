@@ -46,15 +46,16 @@ export default /*html*/ `<style>
             Your notes are stored in your repository, next to the account's other data.
         </p>
         <p class="text-muted small mb-2">
-            <strong>Find last use</strong> looks up which key signed each transaction in the fetched history, newest
-            first. Signing a message (for example to sign in to an app) never reaches the chain, so a key used only
-            for that looks unused here.
+            <strong>Find last use</strong> looks through FastNear's index of the transactions the account signed,
+            newest first, including those a relayer submitted for it. Signing a message (for example to sign in to an
+            app) never reaches the chain, so a key used only for that looks unused here. The lookups go through the
+            Ariz gateway, which needs you signed in, and are paid in ARIZ.
         </p>
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
             <select class="form-select w-auto" id="accountselect"></select>
             <button class="btn btn-primary" id="refreshbutton">Check keys on chain</button>
             <button class="btn btn-outline-primary" id="lastusebutton"
-                title="Look up which key signed each of the account's fetched transactions">Find last use</button>
+                title="Look up which key signed each of the account's transactions">Find last use</button>
             <span class="text-muted small" id="checkedat"></span>
         </div>
         <div class="alert alert-danger" id="error" hidden></div>

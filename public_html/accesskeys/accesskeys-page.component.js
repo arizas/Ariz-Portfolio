@@ -40,7 +40,7 @@ function describeLastUse(observed, cell) {
     if (lastUsed) {
         const newer = observed.nonce - lastUsed.nonce;
         cell.textContent = newer > 0
-            ? `After ${day(lastUsed.at)} (${newer} newer ${newer === 1 ? 'signature' : 'signatures'} not in the fetched history)`
+            ? `After ${day(lastUsed.at)} (${newer} newer ${newer === 1 ? 'signature' : 'signatures'} not found yet)`
             : day(lastUsed.at);
         cell.title = `Transaction ${lastUsed.txHash}`;
         if (lastUsed.relayer) {
@@ -125,15 +125,17 @@ customElements.define('access-keys-page',
             errorElement.hidden = true;
             status.textContent = '';
             try {
-                const { accessKeys, looked, unchecked } = await findAccessKeyLastUses(account, {
-                    onProgress: (checked, total) => setProgressbarValue(checked / total,
-                        `Looking up who signed ${account}'s transactions`, true).stopButtonClicked
+                const { accessKeys, pages, complete } = await findAccessKeyLastUses(account, {
+                    onProgress: (pagesRead, keysLeft) => setProgressbarValue('indeterminate',
+                        `Looking through ${account}'s signed transactions: ${pagesRead * 200} so far, ${keysLeft} keys still to find`, true).stopButtonClicked
                 });
                 const notFound = Object.values(accessKeys.keys).filter(({ observed }) =>
                     observed && !observed.deletedBetween && observed.transactionsSigned > 0 && !observed.lastUsed).length;
-                status.textContent = `Looked up ${looked} transactions.`
-                    + (unchecked ? ` ${unchecked} older ones are not checked yet: click again to continue.`
-                        : notFound ? ` ${notFound} ${notFound === 1 ? 'key has' : 'keys have'} not signed anything in the fetched history.` : '');
+                status.textContent = pages === 0
+                    ? 'No key has signed anything since the last search.'
+                    : `Looked through ${pages * 200 > 200 ? `up to ${pages * 200}` : 'the newest 200'} signed transactions.`
+                    + (!complete ? ` ${notFound} ${notFound === 1 ? 'key was' : 'keys were'} not found yet: click again to look further back.`
+                        : notFound ? ` ${notFound} ${notFound === 1 ? 'key is' : 'keys are'} not in FastNear's index of signed transactions.` : '');
                 if (this.accountSelect.value === account) {
                     this.render(accessKeys);
                 }

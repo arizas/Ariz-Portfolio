@@ -346,10 +346,14 @@ export const GATEWAY_TIMEOUT_MILLIS = 30000;
  * 46)" while a modal it never mentioned waited to be scanned. Idle, no pending
  * request, no error. I spent a while blaming the gateway for that.
  */
-function sendToGateway(path, token, timeoutMillis, showProgress = true) {
+function sendToGateway(path, token, timeoutMillis, showProgress = true, body = undefined) {
     if (showProgress) setProgressbarValue('indeterminate', 'Loading data from Ariz gateway');
     return fetch(`${arizgatewayhost}${path}`, {
-        headers: { 'authorization': `Bearer ${token}` },
+        ...(body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) }),
+        headers: {
+            'authorization': `Bearer ${token}`,
+            ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
         signal: timeoutMillis > 0 ? AbortSignal.timeout(timeoutMillis) : undefined
     });
 }
@@ -372,9 +376,10 @@ export class SignatureRequiredError extends Error {
  * @param {boolean} [options.showProgress] false when the caller keeps the
  *   progress bar itself: the generic text would replace what it says, and
  *   clearing the bar after each request would take it away between them
+ * @param {object} [options.body] sent as JSON in a POST
  */
 export async function fetchFromArizGateway(path, {
-    timeoutMillis = GATEWAY_TIMEOUT_MILLIS, interactive = true, showProgress = true,
+    timeoutMillis = GATEWAY_TIMEOUT_MILLIS, interactive = true, showProgress = true, body = undefined,
 } = {}) {
     if (!interactive && !cachedTokenIsFresh(readCachedToken())) {
         throw new SignatureRequiredError(path);
@@ -383,7 +388,7 @@ export async function fetchFromArizGateway(path, {
         return {};
     }
     try {
-        let response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress);
+        let response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress, body);
 
         // A 401 says this token is not accepted, and sending it again cannot
         // change that — the caller above wraps some of these in a retry loop,
@@ -400,7 +405,7 @@ export async function fetchFromArizGateway(path, {
                 if (showProgress) setProgressbarValue(null);
                 throw new SignatureRequiredError(path);
             }
-            response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress);
+            response = await sendToGateway(path, await getAccessToken(), timeoutMillis, showProgress, body);
         }
 
         if (showProgress) setProgressbarValue(null);

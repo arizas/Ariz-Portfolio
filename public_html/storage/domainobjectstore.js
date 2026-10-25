@@ -702,64 +702,30 @@ export async function refreshAccessKeys(account) {
     return merged;
 }
 
-function getTransactionSignaturesPath(account) {
-    return `${accountdatadir}/${account}/transactionsignatures.json`;
-}
-
 /**
- * The account's transactions as far as they are fetched, NEAR and token
- * transfers together, newest first. A transaction a relayer submitted for the
- * account may move no NEAR, and then it is only among the token transfers.
- */
-async function getTransactionsNewestFirst(account) {
-    const byHash = new Map();
-    const add = (hash, block_timestamp) => {
-        if (hash && !hash.startsWith('block-') && block_timestamp && !byHash.has(hash)) {
-            byHash.set(hash, { hash, block_timestamp: String(block_timestamp) });
-        }
-    };
-    for (const tx of await getTransactionsForAccount(account)) {
-        add(tx.hash, tx.block_timestamp);
-    }
-    for (const tx of await getAllFungibleTokenTransactions(account)) {
-        if (!isDerivedConfidentialFtTransaction(tx)) {
-            add(tx.transaction_hash, tx.block_timestamp);
-        }
-    }
-    return [...byHash.values()].sort((a, b) => {
-        const diff = BigInt(b.block_timestamp) - BigInt(a.block_timestamp);
-        return diff > 0n ? 1 : diff < 0n ? -1 : 0;
-    });
-}
-
-/**
- * Find when each of the account's keys last signed, from the fetched
- * transaction history (see findLastUses in near/accesskeys.js). Only
- * `observed.lastUsed` is written, onto the file as it is right before the
- * write, so notes and a check that landed meanwhile are kept.
- * @returns {Promise<{accessKeys: object, looked: number, unchecked: number}>}
+ * Find when each of the account's keys last signed (see findLastUses in
+ * near/accesskeys.js). Only the last-use fields are written, onto the file as
+ * it is right before the write, so notes and a check that landed meanwhile
+ * are kept.
+ * @returns {Promise<{accessKeys: object, pages: number, complete: boolean}>}
  */
 export async function findAccessKeyLastUses(account, options = {}) {
     const accessKeys = await getAccessKeys(account);
     if (!accessKeys) {
         throw new Error(`Check the keys of ${account} on chain first`);
     }
-    const signaturesPath = getTransactionSignaturesPath(account);
-    const signatureCache = (await exists(signaturesPath)) ? JSON.parse(await readTextFile(signaturesPath)) : {};
-    const result = await findLastUses({
-        ...options,
-        accessKeys,
-        accountId: account,
-        transactions: await getTransactionsNewestFirst(account),
-        signatureCache
-    });
-    await writeFile(signaturesPath, JSON.stringify(signatureCache));
+    const result = await findLastUses({ ...options, accessKeys, accountId: account });
 
     const latest = await getAccessKeys(account);
     for (const [publicKey, entry] of Object.entries(latest.keys)) {
         const observed = accessKeys.keys[publicKey]?.observed;
         if (entry.observed && observed && entry.observed.nonce === observed.nonce) {
             entry.observed.lastUsed = observed.lastUsed ?? null;
+            if (observed.lastUseNotIndexed !== undefined) {
+                entry.observed.lastUseNotIndexed = observed.lastUseNotIndexed;
+            } else {
+                delete entry.observed.lastUseNotIndexed;
+            }
         }
     }
     await writeAccessKeys(account, latest);
