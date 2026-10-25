@@ -1,35 +1,40 @@
-import { rpcUrl } from './rpc.js';
-
-// The regular RPC only keeps a few days of transactions and blocks.
-export const archivalRpcUrl = 'https://archival-rpc.mainnet.fastnear.com/';
+import { fetchFromArizGateway, isSignedIn, loginToArizGateway } from '../arizgateway/arizgatewayaccess.js';
 
 /**
- * A JSON-RPC call to the archival RPC. Too many calls at once are turned away
- * without CORS headers, which the browser reports only as a failed fetch, so
- * a failed fetch is tried again after a pause.
+ * A FastNear call through the Ariz gateway (/api/fastnear), which carries its
+ * API key and bills the signed-in account in ARIZ. Straight from the browser
+ * an account with many keys runs into rate limits. A request turned away for
+ * being one too many, or one FastNear did not answer in time, is tried again
+ * after a pause.
+ * @param {string} path - /rpc, /archival-rpc, /tx/v0/account or /tx/v0/transactions
+ * @param {object} body
  */
-export async function archivalRpc(method, params, pauses = [1000, 3000, 9000]) {
+export async function fastnear(path, body, pauses = [1000, 3000, 9000]) {
+    if (!(await isSignedIn())) {
+        await loginToArizGateway();
+        if (!(await isSignedIn())) {
+            throw new Error('Sign in to the Ariz gateway: access keys are looked up through it');
+        }
+    }
     for (let attempt = 0; ; attempt++) {
         try {
-            const response = await fetch(archivalRpcUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jsonrpc: '2.0', id: method, method, params })
-            });
-            if (response.status !== 429) {
-                return await response.json();
-            }
-            if (attempt >= pauses.length) {
-                throw new Error(`The archival RPC turned away ${method}: too many requests`);
-            }
+            return await fetchFromArizGateway(`/api/fastnear${path}`, { body, showProgress: false });
         } catch (e) {
-            if (attempt >= pauses.length) {
+            if (/^402 /.test(e.message)) {
+                throw new Error('Looking up keys through the gateway is paid in ARIZ. Authorize the gateway on the'
+                    + ' Ariz credits page, with the account you are signed in with.', { cause: e });
+            }
+            // Turned away, or FastNear did not answer in time: worth another try.
+            const passing = /^(429|502|503|504) /.test(e.message) || /did not answer/.test(e.message);
+            if (!passing || attempt >= pauses.length) {
                 throw e;
             }
         }
         await new Promise(resolve => setTimeout(resolve, pauses[attempt]));
     }
 }
+
+const rpcCall = (method, params) => ({ jsonrpc: '2.0', id: method, method, params });
 
 // An access key's nonce says more than it looks. Since early in mainnet's life
 // a newly added key does not start at 0 but at (block_height - 1) * 10^6, where
@@ -63,17 +68,8 @@ export function decodeNonce(nonce) {
  * @returns {Promise<{blockHeight: number, keys: Array<{publicKey: string, nonce: number, permission: object}>}>}
  */
 export async function fetchAccessKeys(accountId) {
-    const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 'accesskeys',
-            method: 'query',
-            params: { request_type: 'view_access_key_list', finality: 'final', account_id: accountId }
-        })
-    });
-    const json = await response.json();
+    const json = await fastnear('/rpc',
+        rpcCall('query', { request_type: 'view_access_key_list', finality: 'final', account_id: accountId }));
     const error = json.error ?? (json.result?.error ? { message: json.result.error } : null);
     if (error) {
         throw new Error(`Could not list the access keys of ${accountId}: ${error.data ?? error.cause?.name ?? error.message}`);
@@ -111,7 +107,7 @@ function normalizePermission(permission) {
  */
 export async function getBlockTimestamp(blockHeight) {
     for (let height = blockHeight; height < blockHeight + 5; height++) {
-        const json = await archivalRpc('block', { block_id: height });
+        const json = await fastnear('/archival-rpc', rpcCall('block', { block_id: height }));
         const nanos = json.result?.header?.timestamp_nanosec;
         if (nanos) {
             return new Date(Number(BigInt(nanos) / 1_000_000n)).toISOString();
@@ -167,6 +163,7 @@ export function mergeAccessKeys(stored, fetched, checkedAt) {
                 firstSeenAt: sameKey ? before.firstSeenAt : checkedAt,
                 lastUseWindow,
                 lastUsed: sameKey ? before.lastUsed ?? null : null,
+                ...(sameKey && before.lastUseNotIndexed !== undefined ? { lastUseNotIndexed: before.lastUseNotIndexed } : {}),
                 deletedBetween: null
             }
         };
@@ -228,77 +225,89 @@ export function signaturesOf(transaction, accountId) {
     return signatures;
 }
 
-/**
- * Look a transaction up on the archival RPC and return the account's
- * signatures on it. A hash the chain does not know as a transaction (the
- * history can hold receipt ids) has none.
- */
-export async function fetchTransactionSignatures(txHash, accountId) {
-    const json = await archivalRpc('tx', { tx_hash: txHash, sender_account_id: accountId, wait_until: 'NONE' });
-    if (json.error?.cause?.name === 'UNKNOWN_TRANSACTION') {
-        return [];
-    }
-    if (json.error) {
-        throw new Error(`Could not look up transaction ${txHash}: ${json.error.data ?? json.error.message}`);
-    }
-    return signaturesOf(json.result.transaction, accountId);
-}
+const SIGNED_PAGE_SIZE = 200;
+const TRANSACTIONS_PER_CALL = 20;
 
 /**
- * Find when each key last signed, by looking up the account's transactions
- * newest first. The first signature found with a key is its latest in the
- * history; if it carries the key's current nonce, it is the latest there is.
+ * Find when each key last signed, from FastNear's index of the transactions
+ * the account signed (directly, or in a delegate action a relayer submitted),
+ * newest first. The first signature found with a key is its last use.
  *
- * Lookups are kept in `signatureCache` (hash -> signatures), so a second run
- * costs nothing for what is already checked. At most `maxLookups` new lookups
- * are made per run.
+ * A key whose last use is already known at its current nonce has not signed
+ * since, so it is not looked for again; a run after the first only goes as
+ * far back as the keys that moved. A key not found in the whole index (it
+ * signed before the index begins) is remembered as such for its nonce.
+ *
+ * Sets `observed.lastUsed` (or `observed.lastUseNotIndexed`) in place.
  *
  * @param {object} params
- * @param {object} params.accessKeys - accesskeys.json content; `observed.lastUsed` is set in place
- * @param {Array<{hash: string, block_timestamp: string}>} params.transactions - newest first
+ * @param {object} params.accessKeys - accesskeys.json content
  * @param {string} params.accountId
- * @param {object} params.signatureCache
- * @param {number} [params.maxLookups]
- * @param {Function} [params.lookup]
- * @param {Function} [params.onProgress] - (checked, total) => true to stop
- * @returns {Promise<{looked: number, unchecked: number}>} lookups made, and transactions left unchecked
+ * @param {number} [params.maxPages] - pages of 200 signed transactions per run
+ * @param {Function} [params.call] - (path, body) => JSON, see fastnear()
+ * @param {Function} [params.onProgress] - (pagesRead, keysLeft) => true to stop
+ * @returns {Promise<{pages: number, complete: boolean}>} complete: the search
+ *   ended because every key was found or the index ran out, not at the page limit
  */
-export async function findLastUses({ accessKeys, transactions, accountId, signatureCache,
-    maxLookups = 200, lookup = fetchTransactionSignatures, onProgress = () => false }) {
+export async function findLastUses({ accessKeys, accountId, maxPages = 25, call = fastnear, onProgress = () => false }) {
     const wanted = new Map(Object.entries(accessKeys.keys)
-        .filter(([, { observed }]) => observed && !observed.deletedBetween && observed.transactionsSigned > 0)
+        .filter(([, { observed }]) => observed && !observed.deletedBetween && observed.transactionsSigned > 0
+            && observed.lastUsed?.nonce !== observed.nonce && observed.lastUseNotIndexed !== observed.nonce)
         .map(([publicKey, { observed }]) => [publicKey, observed]));
-    for (const observed of wanted.values()) {
-        observed.lastUsed = null;
-    }
 
-    let looked = 0;
-    let index = 0;
-    for (; index < transactions.length && wanted.size > 0; index++) {
-        const { hash, block_timestamp } = transactions[index];
-        let signatures = signatureCache[hash];
-        if (!signatures) {
-            if (looked >= maxLookups || onProgress(index, transactions.length)) {
-                break;
-            }
-            signatures = await lookup(hash, accountId);
-            signatureCache[hash] = signatures;
-            looked++;
+    let pages = 0;
+    let resumeToken;
+    while (wanted.size > 0) {
+        if (pages >= maxPages || onProgress(pages, wanted.size)) {
+            return { pages, complete: false };
         }
-        for (const { publicKey, nonce, relayer } of signatures) {
-            const observed = wanted.get(publicKey);
-            // A key removed and added again has a new start nonce: a signature
-            // from below it belongs to the earlier key.
-            if (observed && (observed.addedBlock === null || nonce >= (observed.addedBlock - 1) * NONCE_RANGE_MULTIPLIER)) {
-                observed.lastUsed = {
-                    txHash: hash,
-                    at: new Date(Number(BigInt(block_timestamp) / 1_000_000n)).toISOString(),
-                    nonce,
-                    relayer
-                };
-                wanted.delete(publicKey);
+        const page = await call('/tx/v0/account', {
+            account_id: accountId, is_any_signer: true, limit: SIGNED_PAGE_SIZE,
+            ...(resumeToken ? { resume_token: resumeToken } : {})
+        });
+        pages++;
+        // An answer without the list is an error, never the end of the index:
+        // taken as the end, it would mark keys as not indexed for good.
+        if (!Array.isArray(page?.account_txs)) {
+            throw new Error(`FastNear's index of signed transactions did not answer with a list: ${JSON.stringify(page).substring(0, 200)}`);
+        }
+        const listed = page.account_txs;
+        const transactions = new Map();
+        for (let i = 0; i < listed.length; i += TRANSACTIONS_PER_CALL) {
+            const answer = await call('/tx/v0/transactions',
+                { tx_hashes: listed.slice(i, i + TRANSACTIONS_PER_CALL).map(tx => tx.transaction_hash) });
+            if (!Array.isArray(answer?.transactions)) {
+                throw new Error(`FastNear did not answer with the transactions: ${JSON.stringify(answer).substring(0, 200)}`);
             }
+            for (const tx of answer.transactions) {
+                transactions.set(tx.transaction.hash, tx.transaction);
+            }
+        }
+        for (const { transaction_hash, tx_block_timestamp } of listed) {
+            const transaction = transactions.get(transaction_hash);
+            for (const { publicKey, nonce, relayer } of transaction ? signaturesOf(transaction, accountId) : []) {
+                const observed = wanted.get(publicKey);
+                // A key removed and added again has a new start nonce: a
+                // signature from below it belongs to the earlier key.
+                if (observed && (observed.addedBlock === null || nonce >= (observed.addedBlock - 1) * NONCE_RANGE_MULTIPLIER)) {
+                    observed.lastUsed = {
+                        txHash: transaction_hash,
+                        at: new Date(Number(BigInt(tx_block_timestamp) / 1_000_000n)).toISOString(),
+                        nonce,
+                        relayer
+                    };
+                    delete observed.lastUseNotIndexed;
+                    wanted.delete(publicKey);
+                }
+            }
+        }
+        resumeToken = page.resume_token;
+        if (!resumeToken) {
+            for (const observed of wanted.values()) {
+                observed.lastUseNotIndexed = observed.nonce;
+            }
+            break;
         }
     }
-    return { looked, unchecked: wanted.size > 0 ? transactions.length - index : 0 };
+    return { pages, complete: true };
 }

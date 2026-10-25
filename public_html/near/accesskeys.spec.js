@@ -1,4 +1,5 @@
-import { decodeNonce, mergeAccessKeys, dateAddedKeys, signaturesOf, findLastUses } from './accesskeys.js';
+import { decodeNonce, mergeAccessKeys, dateAddedKeys, signaturesOf, findLastUses, fastnear } from './accesskeys.js';
+import { arizgatewayhost, ACCESS_TOKEN_SESSION_STORAGE_KEY } from '../arizgateway/arizgatewayaccess.js';
 
 const FULL = { type: 'FullAccess' };
 const key = (publicKey, nonce, permission = FULL) => ({ publicKey, nonce, permission });
@@ -116,64 +117,143 @@ describe('access keys', () => {
 
     describe('findLastUses', () => {
         const at = (iso) => (BigInt(Date.parse(iso)) * 1_000_000n).toString();
-        const transactions = [
-            { hash: 'T3', block_timestamp: at('2026-03-01T00:00:00.000Z') },
-            { hash: 'T2', block_timestamp: at('2026-02-01T00:00:00.000Z') },
-            { hash: 'T1', block_timestamp: at('2026-01-01T00:00:00.000Z') }
+        const signed = (hash, iso, publicKey, nonce, relayer = null) => ({
+            listed: { transaction_hash: hash, tx_block_timestamp: at(iso) },
+            transaction: relayer
+                ? { hash, signer_id: relayer, public_key: 'ed25519:R', nonce: 1, actions: [{ Delegate: { delegate_action: { sender_id: 'a.near', public_key: publicKey, nonce } } }] }
+                : { hash, signer_id: 'a.near', public_key: publicKey, nonce, actions: [] }
+        });
+        // Two pages of the signed-transaction index, newest first.
+        const index = [
+            [signed('T4', '2026-04-01T00:00:00.000Z', 'ed25519:A', 117149950000041, 'relayer.nearmobile.near'),
+                signed('T3', '2026-03-01T00:00:00.000Z', 'ed25519:B', 7)],
+            [signed('T2', '2026-02-01T00:00:00.000Z', 'ed25519:A', 117149950000040),
+                signed('T1', '2026-01-01T00:00:00.000Z', 'ed25519:C', 3)]
         ];
-        const chain = {
-            T3: [{ publicKey: 'ed25519:A', nonce: 117149950000041, relayer: 'relayer.nearmobile.near' }],
-            T2: [{ publicKey: 'ed25519:B', nonce: 5, relayer: null }],
-            T1: [{ publicKey: 'ed25519:A', nonce: 117149950000040, relayer: null }]
+        const fakeIndex = () => {
+            const calls = [];
+            const call = async (path, body) => {
+                calls.push({ path, body });
+                const all = index.flat();
+                if (path === '/tx/v0/account') {
+                    const page = body.resume_token ? Number(body.resume_token) : 0;
+                    return { account_txs: index[page].map(t => t.listed), resume_token: page + 1 < index.length ? String(page + 1) : null };
+                }
+                return { transactions: body.tx_hashes.map(hash => ({ transaction: all.find(t => t.listed.transaction_hash === hash).transaction })) };
+            };
+            return { calls, call };
         };
-        const accessKeysWith = (keys) => mergeAccessKeys(null, { blockHeight: 1, keys }, '2026-04-01T00:00:00.000Z');
+        const accessKeysWith = (keys) => mergeAccessKeys(null, { blockHeight: 1, keys }, '2026-05-01T00:00:00.000Z');
 
-        it('takes the newest signature of each key and stops when all are found', async () => {
-            const accessKeys = accessKeysWith([key('ed25519:A', 117149950000041), key('ed25519:B', 7), key('ed25519:NEW', 168955707000000)]);
-            const asked = [];
-            const signatureCache = {};
-            const result = await findLastUses({
-                accessKeys, transactions, accountId: 'a.near', signatureCache,
-                lookup: async (hash) => { asked.push(hash); return chain[hash]; }
-            });
-            expect(asked).to.deep.equal(['T3', 'T2']);
-            expect(result).to.deep.equal({ looked: 2, unchecked: 0 });
+        it('takes the newest signature of each key, and stops once all are found', async () => {
+            const accessKeys = accessKeysWith([key('ed25519:A', 117149950000041), key('ed25519:B', 7), key('ed25519:UNUSED', 168955707000000)]);
+            const { calls, call } = fakeIndex();
+            expect(await findLastUses({ accessKeys, accountId: 'a.near', call })).to.deep.equal({ pages: 1, complete: true });
+            expect(calls.map(c => c.path)).to.deep.equal(['/tx/v0/account', '/tx/v0/transactions']);
+            expect(calls[0].body).to.deep.equal({ account_id: 'a.near', is_any_signer: true, limit: 200 });
             expect(accessKeys.keys['ed25519:A'].observed.lastUsed).to.deep.equal({
-                txHash: 'T3', at: '2026-03-01T00:00:00.000Z', nonce: 117149950000041, relayer: 'relayer.nearmobile.near'
+                txHash: 'T4', at: '2026-04-01T00:00:00.000Z', nonce: 117149950000041, relayer: 'relayer.nearmobile.near'
             });
-            // B has signed twice since: its newest signature is not in the history.
-            expect(accessKeys.keys['ed25519:B'].observed.lastUsed.nonce).to.equal(5);
-            expect(accessKeys.keys['ed25519:NEW'].observed.lastUsed).to.equal(null);
+            expect(accessKeys.keys['ed25519:B'].observed.lastUsed.txHash).to.equal('T3');
+            expect(accessKeys.keys['ed25519:UNUSED'].observed.lastUsed).to.equal(null);
 
-            // A second run looks nothing up again.
-            asked.length = 0;
-            await findLastUses({ accessKeys, transactions, accountId: 'a.near', signatureCache, lookup: async (hash) => { asked.push(hash); return chain[hash]; } });
-            expect(asked).to.deep.equal([]);
-            expect(accessKeys.keys['ed25519:A'].observed.lastUsed.txHash).to.equal('T3');
+            // Nothing has signed since: nothing is looked up.
+            const again = fakeIndex();
+            expect(await findLastUses({ accessKeys, accountId: 'a.near', call: again.call })).to.deep.equal({ pages: 0, complete: true });
+            expect(again.calls).to.deep.equal([]);
         });
 
-        it('stops at the lookup budget and says how much is left', async () => {
+        it('follows the resume token, and remembers a key the index does not have', async () => {
+            const accessKeys = accessKeysWith([key('ed25519:C', 3), key('ed25519:OLD', 12)]);
+            const { calls, call } = fakeIndex();
+            expect(await findLastUses({ accessKeys, accountId: 'a.near', call })).to.deep.equal({ pages: 2, complete: true });
+            expect(calls[2].body.resume_token).to.equal('1');
+            expect(accessKeys.keys['ed25519:C'].observed.lastUsed.txHash).to.equal('T1');
+            expect(accessKeys.keys['ed25519:OLD'].observed.lastUseNotIndexed).to.equal(12);
+
+            // Not looked for again until its nonce moves.
+            const again = fakeIndex();
+            await findLastUses({ accessKeys, accountId: 'a.near', call: again.call });
+            expect(again.calls).to.deep.equal([]);
+        });
+
+        it('takes an answer without the list as an error, not as the end of the index', async () => {
             const accessKeys = accessKeysWith([key('ed25519:C', 3)]);
-            const result = await findLastUses({
-                accessKeys, transactions, accountId: 'a.near', signatureCache: {}, maxLookups: 2,
-                lookup: async (hash) => chain[hash]
-            });
-            expect(result).to.deep.equal({ looked: 2, unchecked: 1 });
+            const { call } = fakeIndex();
+            const failingSecondPage = async (path, body) => body.resume_token ? { message: 'rate limited' } : call(path, body);
+            let error;
+            try {
+                await findLastUses({ accessKeys, accountId: 'a.near', call: failingSecondPage });
+            } catch (e) {
+                error = e;
+            }
+            expect(error.message).to.match(/did not answer with a list/);
+            expect(accessKeys.keys['ed25519:C'].observed.lastUseNotIndexed).to.equal(undefined);
+        });
+
+        it('stops at the page limit, saying it is not done', async () => {
+            const accessKeys = accessKeysWith([key('ed25519:C', 3)]);
+            const { call } = fakeIndex();
+            expect(await findLastUses({ accessKeys, accountId: 'a.near', call, maxPages: 1 })).to.deep.equal({ pages: 1, complete: false });
             expect(accessKeys.keys['ed25519:C'].observed.lastUsed).to.equal(null);
+            expect(accessKeys.keys['ed25519:C'].observed.lastUseNotIndexed).to.equal(undefined);
         });
 
         it('does not credit a key added again with a signature from before', async () => {
-            // A was removed and added again in block 150000001: T1-T3 were signed by the earlier A.
+            // A was removed and added again in block 150000001: T4 and T2 were the earlier A.
             const accessKeys = accessKeysWith([key('ed25519:A', 150000000000001)]);
-            await findLastUses({ accessKeys, transactions, accountId: 'a.near', signatureCache: {}, lookup: async (hash) => chain[hash] });
+            await findLastUses({ accessKeys, accountId: 'a.near', call: fakeIndex().call });
             expect(accessKeys.keys['ed25519:A'].observed.lastUsed).to.equal(null);
         });
 
         it('keeps the last use across a check where the key did not change', () => {
             const accessKeys = accessKeysWith([key('ed25519:A', 117149950000041)]);
-            accessKeys.keys['ed25519:A'].observed.lastUsed = { txHash: 'T3', at: '2026-03-01T00:00:00.000Z', nonce: 117149950000041, relayer: null };
-            const next = mergeAccessKeys(accessKeys, { blockHeight: 2, keys: [key('ed25519:A', 117149950000041)] }, '2026-05-01T00:00:00.000Z');
-            expect(next.keys['ed25519:A'].observed.lastUsed.txHash).to.equal('T3');
+            accessKeys.keys['ed25519:A'].observed.lastUsed = { txHash: 'T4', at: '2026-04-01T00:00:00.000Z', nonce: 117149950000041, relayer: null };
+            const next = mergeAccessKeys(accessKeys, { blockHeight: 2, keys: [key('ed25519:A', 117149950000041)] }, '2026-06-01T00:00:00.000Z');
+            expect(next.keys['ed25519:A'].observed.lastUsed.txHash).to.equal('T4');
+        });
+    });
+
+    describe('fastnear (through the gateway)', () => {
+        let realFetch, responses, sent;
+        beforeEach(() => {
+            localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
+                JSON.stringify({ token: 'test-token', accountId: 'a.near', issuedAt: Date.now() }));
+            realFetch = window.fetch;
+            sent = [];
+            window.fetch = async (url, options) => {
+                sent.push({ url, options });
+                const [status, body] = responses.shift();
+                return new Response(body, { status });
+            };
+        });
+        afterEach(() => {
+            window.fetch = realFetch;
+            localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
+        });
+
+        it('posts to /api/fastnear with the token, and tries again after a 429', async () => {
+            responses = [[429, 'too many'], [200, '{"result":1}']];
+            expect(await fastnear('/rpc', { method: 'block' }, [1])).to.deep.equal({ result: 1 });
+            expect(sent.length).to.equal(2);
+            expect(sent[0].url).to.equal(`${arizgatewayhost}/api/fastnear/rpc`);
+            expect(sent[0].options.method).to.equal('POST');
+            expect(sent[0].options.body).to.equal('{"method":"block"}');
+            expect(sent[0].options.headers.authorization).to.equal('Bearer test-token');
+        });
+
+        it('tries again when FastNear did not answer in time', async () => {
+            responses = [[504, '{"error":"upstream_timeout"}'], [200, '{"result":2}']];
+            expect(await fastnear('/tx/v0/transactions', { tx_hashes: ['A'] }, [1])).to.deep.equal({ result: 2 });
+            expect(sent.length).to.equal(2);
+        });
+
+        it('says that the lookups are paid in ARIZ on a 402', async () => {
+            responses = [[402, '{"error":"authorization_required"}']];
+            let error;
+            try { await fastnear('/rpc', {}, [1]); } catch (e) { error = e; }
+            expect(error.message).to.match(/^Looking up keys through the gateway is paid in ARIZ/);
+            expect(sent.length).to.equal(1);
         });
     });
 });

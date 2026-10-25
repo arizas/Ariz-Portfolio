@@ -1,8 +1,6 @@
 import './accesskeys-page.component.js';
-import { setAccounts, getAccessKeys, setAccessKeyNotes, refreshAccessKeys, writeTransactions, writeFungibleTokenTransactions } from '../storage/domainobjectstore.js';
-import { archivalRpcUrl } from '../near/accesskeys.js';
-import { __setTestWallet } from '../arizgateway/arizgatewayaccess.js';
-import { rpcUrl } from '../near/rpc.js';
+import { setAccounts, getAccessKeys, setAccessKeyNotes, refreshAccessKeys } from '../storage/domainobjectstore.js';
+import { __setTestWallet, arizgatewayhost, ACCESS_TOKEN_SESSION_STORAGE_KEY } from '../arizgateway/arizgatewayaccess.js';
 
 const ACCOUNT = 'accesskeys-test.near';
 
@@ -10,35 +8,45 @@ describe('accesskeys-page.component', () => {
     let realFetch;
     let chainKeys;
     let blockLookup = Promise.resolve();
-    let chainTransactions = {};
-    const lookedUp = [];
+    // FastNear's index of the account's signed transactions, newest first.
+    let signedIndex = [];
+    const gatewayCalls = [];
 
-    // The chain as this test wants it: the key list from the RPC, and a fixed
-    // time for every block.
+    // The gateway as this test wants it, signed in: the key list, a fixed time
+    // for every block, and the signed-transaction index.
     before(async () => {
+        localStorage.setItem(ACCESS_TOKEN_SESSION_STORAGE_KEY,
+            JSON.stringify({ token: 'test-token', accountId: ACCOUNT, issuedAt: Date.now() }));
         realFetch = window.fetch;
         window.fetch = async (url, options) => {
-            if (url === rpcUrl && JSON.parse(options.body).params?.request_type === 'view_access_key_list') {
-                return new Response(JSON.stringify({ jsonrpc: '2.0', result: { block_height: 217499500, keys: chainKeys } }));
+            const prefix = `${arizgatewayhost}/api/fastnear`;
+            if (!String(url).startsWith(prefix)) {
+                return realFetch(url, options);
             }
-            if (url === archivalRpcUrl && JSON.parse(options.body).method === 'block') {
+            const path = String(url).substring(prefix.length);
+            const body = JSON.parse(options.body);
+            gatewayCalls.push({ path, body, authorization: options.headers.authorization });
+            const json = (result) => new Response(JSON.stringify(result));
+            if (path === '/rpc' && body.params?.request_type === 'view_access_key_list') {
+                return json({ jsonrpc: '2.0', result: { block_height: 217499500, keys: chainKeys } });
+            }
+            if (path === '/archival-rpc' && body.method === 'block') {
                 await blockLookup;
-                return new Response(JSON.stringify({ jsonrpc: '2.0', result: { header: { timestamp_nanosec: '1713502111587973394' } } }));
+                return json({ jsonrpc: '2.0', result: { header: { timestamp_nanosec: '1713502111587973394' } } });
             }
-            if (url === archivalRpcUrl && JSON.parse(options.body).method === 'tx') {
-                const { tx_hash } = JSON.parse(options.body).params;
-                lookedUp.push(tx_hash);
-                const transaction = chainTransactions[tx_hash];
-                return new Response(JSON.stringify(transaction
-                    ? { jsonrpc: '2.0', result: { transaction } }
-                    : { jsonrpc: '2.0', error: { cause: { name: 'UNKNOWN_TRANSACTION' }, data: `Transaction ${tx_hash} doesn't exist` } }));
+            if (path === '/tx/v0/account') {
+                return json({ account_txs: signedIndex.map(({ hash, at }) => ({ transaction_hash: hash, tx_block_timestamp: at })) });
             }
-            return realFetch(url, options);
+            if (path === '/tx/v0/transactions') {
+                return json({ transactions: body.tx_hashes.map(hash => ({ transaction: signedIndex.find(t => t.hash === hash).transaction })) });
+            }
+            return new Response('not mocked', { status: 500 });
         };
         await setAccounts([ACCOUNT]);
     });
     after(() => {
         window.fetch = realFetch;
+        localStorage.removeItem(ACCESS_TOKEN_SESSION_STORAGE_KEY);
     });
 
     it('keeps a note saved while a refresh was in flight', async () => {
@@ -101,7 +109,7 @@ describe('accesskeys-page.component', () => {
         }
     });
 
-    it('finds the last use of each key in the fetched history', async () => {
+    it('finds the last use of each key through the gateway', async () => {
         const page = document.createElement('access-keys-page');
         document.documentElement.appendChild(page);
         const shadowRoot = await page.readyPromise;
@@ -112,39 +120,39 @@ describe('accesskeys-page.component', () => {
                 { public_key: 'ed25519:LEDGER', access_key: { nonce: 117149960000005, permission: 'FullAccess' } }
             ];
             await page.refresh();
-            await writeTransactions(ACCOUNT, [
-                { hash: 'OWN', block_timestamp: ns('2026-05-02T10:00:00.000Z'), signer_id: ACCOUNT, args: {} },
-                { hash: 'INCOMING', block_timestamp: ns('2026-04-01T10:00:00.000Z'), signer_id: 'friend.near', args: {} }
-            ]);
-            // A relayed token transfer moves no NEAR: it is only among the token transactions.
-            await writeFungibleTokenTransactions(ACCOUNT, [{
-                transaction_hash: 'RELAYED', block_timestamp: ns('2026-06-03T10:00:00.000Z'),
-                ft: { contract_id: 'usdc.near', symbol: 'USDC' }
-            }]);
-            chainTransactions = {
-                RELAYED: {
-                    signer_id: 'relayer.nearmobile.near', public_key: 'ed25519:RELAYER', nonce: 9,
-                    actions: [{ Delegate: { delegate_action: { sender_id: ACCOUNT, public_key: 'ed25519:FULL', nonce: 117149950000043 } } }]
+            signedIndex = [
+                {
+                    hash: 'RELAYED', at: ns('2026-06-03T10:00:00.000Z'), transaction: {
+                        hash: 'RELAYED', signer_id: 'relayer.nearmobile.near', public_key: 'ed25519:RELAYER', nonce: 9,
+                        actions: [{ Delegate: { delegate_action: { sender_id: ACCOUNT, public_key: 'ed25519:FULL', nonce: 117149950000043 } } }]
+                    }
                 },
-                OWN: { signer_id: ACCOUNT, public_key: 'ed25519:LEDGER', nonce: 117149960000004, actions: [] },
-                INCOMING: { signer_id: 'friend.near', public_key: 'ed25519:FRIEND', nonce: 1, actions: [] }
-            };
-            lookedUp.length = 0;
+                {
+                    hash: 'OWN', at: ns('2026-05-02T10:00:00.000Z'), transaction: {
+                        hash: 'OWN', signer_id: ACCOUNT, public_key: 'ed25519:LEDGER', nonce: 117149960000005, actions: []
+                    }
+                }
+            ];
+            gatewayCalls.length = 0;
             await page.findLastUses();
 
-            expect(lookedUp).to.deep.equal(['RELAYED', 'OWN']);
+            expect(gatewayCalls.map(c => c.path)).to.deep.equal(['/tx/v0/account', '/tx/v0/transactions']);
+            expect(gatewayCalls[0].body).to.deep.equal({ account_id: ACCOUNT, is_any_signer: true, limit: 200 });
+            expect(gatewayCalls[1].body).to.deep.equal({ tx_hashes: ['RELAYED', 'OWN'] });
+            expect(gatewayCalls[0].authorization).to.equal('Bearer test-token');
             const cell = (publicKey) => [...shadowRoot.querySelectorAll('#keystable tr')]
                 .find(row => row.querySelector('.publickey').title === publicKey).querySelector('.keylastused');
             expect(cell('ed25519:FULL').textContent).to.equal('2026-06-03via relayer.nearmobile.near');
-            expect(cell('ed25519:LEDGER').textContent).to.equal('After 2026-05-02 (1 newer signature not in the fetched history)');
-            expect(shadowRoot.querySelector('#lastusestatus').textContent).to.equal('Looked up 2 transactions.');
+            expect(cell('ed25519:LEDGER').textContent).to.equal('2026-05-02');
+            expect(shadowRoot.querySelector('#lastusestatus').textContent).to.equal('Looked through the newest 200 signed transactions.');
             // The note from the first test is still there.
             expect((await getAccessKeys(ACCOUNT)).keys['ed25519:FULL'].notes.label).to.equal('Meteor on phone');
 
-            // Nothing new to look up the second time.
-            lookedUp.length = 0;
+            // No key has signed since: nothing to look up the second time.
+            gatewayCalls.length = 0;
             await page.findLastUses();
-            expect(lookedUp).to.deep.equal([]);
+            expect(gatewayCalls).to.deep.equal([]);
+            expect(shadowRoot.querySelector('#lastusestatus').textContent).to.equal('No key has signed anything since the last search.');
             expect(cell('ed25519:FULL').textContent).to.equal('2026-06-03via relayer.nearmobile.near');
         } finally {
             page.remove();
