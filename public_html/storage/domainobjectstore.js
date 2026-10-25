@@ -10,7 +10,7 @@ import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedC
 import { resolveDecimals, resolveSymbol, normalizeIntentsAssetId } from '../near/intents-tokens.js';
 import { applyNearCopyChoices, findNearCopies, gatewayNearBalances, nearCopyKey, resolveNearCopies } from '../near/near-duplicates.js';
 import { createGatewayChain } from '../near/balance-check.js';
-import { fetchAccessKeys, mergeAccessKeys, dateAddedKeys, findLastUses } from '../near/accesskeys.js';
+import { fetchAccessKeys, searchLastUses, mergeAccessKeys } from '../near/accesskeys.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -795,9 +795,29 @@ export async function setAccessKeyNotes(account, publicKey, notes) {
  * calls, so a note saved while this ran is kept.
  */
 export async function refreshAccessKeys(account) {
-    const fetched = await fetchAccessKeys(account);
-    const merged = await dateAddedKeys(
-        mergeAccessKeys(await getAccessKeys(account), fetched, new Date().toISOString()));
+    return storeAccessKeys(account, await fetchAccessKeys(account));
+}
+
+/**
+ * Have the gateway search on for the last uses it does not know yet, and
+ * store the keys as it then answers. Asks until the search is complete, or
+ * until `shouldStop()` says so between requests.
+ * @param {string} account
+ * @param {{shouldStop?: () => boolean}} [options]
+ * @returns {Promise<{accessKeys: object, complete: boolean}>}
+ */
+export async function findAccessKeyLastUses(account, { shouldStop = () => false } = {}) {
+    for (;;) {
+        const fetched = await searchLastUses(account);
+        const accessKeys = await storeAccessKeys(account, fetched);
+        if (fetched.lastUseSearch?.complete || shouldStop()) {
+            return { accessKeys, complete: !!fetched.lastUseSearch?.complete };
+        }
+    }
+}
+
+async function storeAccessKeys(account, fetched) {
+    const merged = mergeAccessKeys(await getAccessKeys(account), fetched, new Date().toISOString());
     for (const [publicKey, entry] of Object.entries((await getAccessKeys(account))?.keys ?? {})) {
         if (entry.notes) {
             merged.keys[publicKey] = { ...merged.keys[publicKey], notes: entry.notes };
@@ -805,34 +825,4 @@ export async function refreshAccessKeys(account) {
     }
     await writeAccessKeys(account, merged);
     return merged;
-}
-
-/**
- * Find when each of the account's keys last signed (see findLastUses in
- * near/accesskeys.js). Only the last-use fields are written, onto the file as
- * it is right before the write, so notes and a check that landed meanwhile
- * are kept.
- * @returns {Promise<{accessKeys: object, pages: number, complete: boolean}>}
- */
-export async function findAccessKeyLastUses(account, options = {}) {
-    const accessKeys = await getAccessKeys(account);
-    if (!accessKeys) {
-        throw new Error(`Check the keys of ${account} on chain first`);
-    }
-    const result = await findLastUses({ ...options, accessKeys, accountId: account });
-
-    const latest = await getAccessKeys(account);
-    for (const [publicKey, entry] of Object.entries(latest.keys)) {
-        const observed = accessKeys.keys[publicKey]?.observed;
-        if (entry.observed && observed && entry.observed.nonce === observed.nonce) {
-            entry.observed.lastUsed = observed.lastUsed ?? null;
-            if (observed.lastUseNotIndexed !== undefined) {
-                entry.observed.lastUseNotIndexed = observed.lastUseNotIndexed;
-            } else {
-                delete entry.observed.lastUseNotIndexed;
-            }
-        }
-    }
-    await writeAccessKeys(account, latest);
-    return { accessKeys: latest, ...result };
 }
