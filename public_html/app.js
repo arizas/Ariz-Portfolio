@@ -8,6 +8,7 @@ import './counterparties/counterparties-page.component.js';
 import './portfolio/portfolio-page.component.js';
 import './yearreport/yearreport-page.component.js';
 import './arizcredits/arizcredits-page.component.js';
+import './dataagent/data-check-page.component.js';
 import './yearreport/yearreport-print.component.js';
 import './yearreport/yearsummary-alltokens-print.component.js';
 

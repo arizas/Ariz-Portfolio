@@ -26,6 +26,7 @@ export const SCRIPT_PAGE_BYTES = 64 * 1024;
 export const DEFAULT_QUERY_LIMIT = 100;
 export const MAX_QUERY_LIMIT = 1000;
 const MAX_GROUPS = 500;
+const MAX_LISTED_BREAKS = 50;
 const MAX_FIELD_NAMES = 60;
 const MAX_LISTED_TOKENS = 30;
 const MAX_SAMPLE_VALUE_CHARS = 120;
@@ -384,6 +385,39 @@ export function createDataSession() {
                     ...Object.fromEntries(metrics.map(([name], index) => [name, typeof values[index] === 'bigint' ? String(values[index]) : values[index]])),
                 })),
             };
+        },
+
+        /**
+         * Where a token's stored balance does not continue from its previous row,
+         * over every row. It runs here because a script must split a large dataset,
+         * and a scan split by hand can lose the very rows where a break is.
+         */
+        balanceBreaks: async ({ account, token, from, to } = {}) => {
+            const rows = await matching({ dataset: 'records', account, token, from, to });
+            const ordered = rows.map((row, index) => ({ row, index }))
+                .sort((a, b) => (a.row.block_height - b.row.block_height) || (a.index - b.index));
+            const previous = new Map();
+            const breaks = [];
+            let breakCount = 0;
+            let unreadable = 0;
+            for (const { row } of ordered) {
+                if (!isDigits(row.balance_before) || !isDigits(row.balance_after)) {
+                    unreadable++;
+                    continue;
+                }
+                const expected = previous.get(row.token_id);
+                if (expected !== undefined && expected !== BigInt(row.balance_before)) {
+                    breakCount++;
+                    if (breaks.length < MAX_LISTED_BREAKS) {
+                        breaks.push({
+                            token: row.token_id, block_height: row.block_height, block_timestamp: row.block_timestamp, tx_hash: row.tx_hash,
+                            expected: String(expected), found: row.balance_before, difference: String(BigInt(row.balance_before) - expected),
+                        });
+                    }
+                }
+                previous.set(row.token_id, BigInt(row.balance_after));
+            }
+            return { checkedRows: rows.length, tokens: previous.size, unreadableRows: unreadable, breakCount, breaks };
         },
 
         /** Whether each stored file can be read, and which accounts have data. */

@@ -156,6 +156,18 @@ const ROWS = 100_000;
             amountInFormatted: '1', amountOutFormatted: '1', depositType: 'INTENTS', recipientType: 'CONFIDENTIAL_INTENTS',
         }]);
 
+        // A break just past where a scan split by hand once stopped: per token, and
+        // out of block order, as nothing guarantees the stored order.
+        const chain = [];
+        const held = { near: 0n, 'usdc.near': 0n };
+        for (let i = 0; i < 60000; i++) {
+            const token = i % 3 ? 'near' : 'usdc.near';
+            if (i === 50002) held.near += 777n;
+            chain.push({ block_height: 1000 + i, block_timestamp: new Date(start + i * 1000).toJSON(), tx_hash: `C${i}`, token_id: token, amount: '1000', balance_before: String(held[token]), balance_after: String(held[token] + 1000n) });
+            held[token] += 1000n;
+        }
+        [chain[10], chain[11]] = [chain[11], chain[10]];
+        await store.writeAccountingRecords('chain.near', { records: chain });
         const before = await snapshot();
         r.files = Object.keys(before).sort();
         const session = createDataSession();
@@ -182,6 +194,9 @@ const ROWS = 100_000;
         r.aggregate = await api.aggregate({ dataset: 'records', account: ACCOUNT, groupBy: ['token_id'], metrics: { total: ['sum', 'amount'], top: ['max', 'balance_after'] } });
         r.fullWalk = await runScript(`let n = 0; for await (const row of app.rows({ dataset: 'records', account: '${ACCOUNT}' })) n++; return n;`, api);
         r.afterFullWalk = await runScript(`return (await app.aggregate({ dataset: 'records', account: '${ACCOUNT}' })).matching`, api);
+        const chainSession = createDataSession();
+        r.breaks = await chainSession.api.balanceBreaks({ account: 'chain.near' });
+        r.breaksViaScript = await runScript(`return (await app.balanceBreaks({ account: 'chain.near', token: 'usdc.near' })).breakCount`, chainSession.api);
         r.nanoseconds = await api.describe({ dataset: 'transactions', account: ACCOUNT });
         r.check = await api.checkData();
 
@@ -320,6 +335,11 @@ const ROWS = 100_000;
     check('aggregate totals every row exactly, without passing them through a script',
         out.aggregate.matching === ROWS && near?.count === ROWS / 2 && near?.total === String(1000n * BigInt(ROWS / 2)) && near?.top === String(BigInt(ROWS) * 1000n + 777n),
         JSON.stringify(near));
+    const found = out.breaks.breaks[0];
+    check('balanceBreaks finds a break past any page boundary, per token, whatever the stored order',
+        out.breaks.checkedRows === 60000 && out.breaks.tokens === 2 && out.breaks.breakCount === 1 && found?.block_height === 51002 && found?.token === 'near' && found?.difference === '777',
+        JSON.stringify(out.breaks).slice(0, 220));
+    check('a chain with no break reports none', out.breaksViaScript.value === '0', out.breaksViaScript.value);
     check('a script that reads too much gets a reason it can act on', /use app\.aggregate/.test(out.fullWalk.error ?? ''), out.fullWalk.error);
     check('the next script is unaffected', out.afterFullWalk.value === String(ROWS), out.afterFullWalk.value);
     check('token and date filters apply', out.tokenFrom.rows[0]?.token_id === 'near' && out.tokenFrom.rows[0]?.block_timestamp.startsWith('2025-01-02'));
@@ -372,6 +392,135 @@ const ROWS = 100_000;
         JSON.stringify(out.damaged.problems));
     check('a damaged file fails a query clearly', /could not be read, run checkData/.test(out.damagedRead), out.damagedRead);
     check('a script can catch that and go on to checkData', out.damagedScript.error === null && /caught/.test(out.damagedScript.output[0]) && parsed(out.damagedScript).length === 3, JSON.stringify(out.damagedScript));
+    await ctx.close();
+}
+
+// ---- The page, and connecting an account ---------------------------------------
+{
+    const { ctx, page, external } = await newPage();
+    await page.goto(`${ORIGIN}/test.html`);
+    const out = await page.evaluate(async ({ ACCOUNT }) => {
+        const gs = await import('/storage/gitstorage.js');
+        const store = await import('/storage/domainobjectstore.js');
+        const nearai = await import('/dataagent/nearai-account.js');
+        const { __setTestWallet } = await import('/arizgateway/arizgatewayaccess.js');
+        await import('/dataagent/data-check-page.component.js');
+        const r = {};
+        await gs.configure_user({ accessToken: 'ANON', username: 'Test', useremail: 't@example.com' });
+        await store.setAccounts([ACCOUNT]);
+
+        // ---- Wallet sign-in, against a fake NEAR AI ----
+        const calls = [];
+        const reply = (status, body) => new Response(JSON.stringify(body), { status });
+        let keyChecks = 0;
+        const fetchFn = async (url, init = {}) => {
+            const path = url.replace('https://cloud-api.near.ai/v1', '');
+            const method = init.method ?? 'GET';
+            calls.push({ method, path, auth: init.headers?.Authorization, body: init.body && JSON.parse(init.body) });
+            if (path === '/auth/near') return reply(200, { access_token: 'SESSION' });
+            if (path === '/users/me') return reply(200, { workspaces: [{ id: 'w1' }] });
+            if (path === '/workspaces/w1/api-keys' && method === 'POST') return reply(200, { key: 'sk-NEWKEY', id: 'k2' });
+            if (path === '/check_api_key') return reply(++keyChecks === 1 ? 401 : 200, {});
+            if (path === '/users/me/refresh-tokens' && method === 'GET') {
+                return reply(200, [{ id: 'old', created_at: '2020-01-01T00:00:00Z' }, { id: 'mine', created_at: new Date().toJSON() }]);
+            }
+            return reply(200, {});
+        };
+        const signatures = [];
+        __setTestWallet({
+            async getAccounts() { return [{ accountId: 'wallet-user.near' }]; },
+            async signMessage(params) {
+                signatures.push(params);
+                return { accountId: 'wallet-user.near', publicKey: 'ed25519:PK', signature: 'SIG' };
+            },
+            async signOut() { },
+        });
+        const connected = await nearai.connectWithWallet({ fetchFn, sleep: async () => { }, previous: { keyId: 'k1', workspaceId: 'w1' } });
+        r.connected = connected;
+        r.signatures = signatures.map(({ message, recipient, nonce }) => ({ message, recipient, nonceLength: nonce.length, nonceTime: Number(new DataView(nonce.buffer).getBigUint64(0)) }));
+        r.calls = calls;
+        nearai.storeAccount(connected);
+        r.loaded = nearai.loadAccount();
+        const repoText = [];
+        for (const name of await gs.readdir('.')) {
+            if (!name.startsWith('.') && !(await gs.readdir(name).catch(() => null))) repoText.push(await gs.readTextFile(name));
+        }
+        r.keyInStore = repoText.some((text) => text.includes('sk-NEWKEY'));
+        nearai.forgetAccount();
+        r.afterForget = nearai.loadAccount();
+
+        // ---- The page, against a scripted model ----
+        nearai.storeAccount({ key: 'sk-TEST' });
+        const HOSTILE = '<img src="https://attacker.example/x.png?leak=1" onerror="window.__pwned=1"> ![x](https://attacker.example/y.png)';
+        const bodies = [];
+        const script = [
+            { tool_calls: [{ id: 'c1', type: 'function', function: { name: 'run_script', arguments: JSON.stringify({ code: `print(${JSON.stringify(HOSTILE)}); return 42;` }) } }] },
+            { tool_calls: [{ id: 'c2', type: 'function', function: { name: 'propose_change', arguments: JSON.stringify({ op: 'addAccount', args: { accountId: 'bob.near' } }) } }] },
+            { tool_calls: [{ id: 'c3', type: 'function', function: { name: 'propose_change', arguments: JSON.stringify({ op: 'addAccount', args: { accountId: 'carol.near' } }) } }] },
+            { content: HOSTILE },
+        ];
+        const realFetch = window.fetch;
+        window.fetch = async (url, init) => {
+            if (!String(url).startsWith('https://cloud-api.near.ai/')) return realFetch(url, init);
+            bodies.push({ url: String(url), auth: init.headers.Authorization, body: JSON.parse(init.body) });
+            return new Response(JSON.stringify({ choices: [{ message: { role: 'assistant', content: null, ...script[bodies.length - 1] } }] }));
+        };
+        const element = document.createElement('data-check-page');
+        document.body.append(element);
+        const $ = (id) => element.shadowRoot.getElementById(id);
+        r.page = { sendBeforeAcknowledge: $('send').disabled };
+        $('acknowledge').click();
+        r.page.sendAfterAcknowledge = $('send').disabled;
+        $('question').value = 'Anything wrong?';
+        $('ask').requestSubmit();
+        const waitFor = async (condition) => {
+            for (let i = 0; i < 200 && !condition(); i++) await new Promise((resolve) => setTimeout(resolve, 50));
+        };
+        await waitFor(() => element.shadowRoot.querySelector('.entry-answer'));
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const root = element.shadowRoot;
+        r.page.answerText = root.querySelector('.entry-answer')?.textContent;
+        r.page.images = root.querySelectorAll('img').length;
+        r.page.pwned = !!window.__pwned;
+        r.page.toolEntries = root.querySelectorAll('.entry-tool').length;
+        r.page.scriptShown = root.querySelector('.entry-tool pre')?.textContent.includes('return 42');
+        r.page.outputShown = root.querySelectorAll('.entry-tool pre')[1]?.textContent.includes('returned: 42');
+        r.page.pending = root.querySelectorAll('.pending-change').length;
+        r.page.accountsBeforeApproval = await store.getAccounts();
+        r.page.model = bodies[0]?.body.model;
+        r.page.auth = bodies[0]?.auth;
+        root.querySelectorAll('.pending-change .approve')[0].click();
+        await waitFor(() => root.querySelectorAll('.pending-change').length === 1);
+        root.querySelector('.pending-change .reject').click();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        r.page.pendingAfter = root.querySelectorAll('.pending-change').length;
+        r.page.accountsAfter = await store.getAccounts();
+        window.fetch = realFetch;
+        return r;
+    }, { ACCOUNT });
+
+    check('wallet sign-in signs for NEAR AI and creates a capped, expiring key',
+        out.signatures.length === 1 && out.signatures[0].recipient === 'cloud.near.ai' && out.signatures[0].nonceLength === 32
+        && Math.abs(out.signatures[0].nonceTime - Date.now()) < 60000
+        && out.calls.find((c) => c.path === '/workspaces/w1/api-keys')?.body.spendLimit.amount === 5_000_000_000
+        && !!out.calls.find((c) => c.path === '/workspaces/w1/api-keys')?.body.expires_at,
+        JSON.stringify(out.signatures));
+    check('the sign-in sends the signed account and a 32-byte nonce',
+        out.calls[0].path === '/auth/near' && out.calls[0].body.signed_message.accountId === 'wallet-user.near' && out.calls[0].body.payload.nonce.length === 32);
+    check('a key that is not active yet is waited for', out.connected.status === 'ok' && out.calls.filter((c) => c.path === '/check_api_key').length === 2);
+    check('the previous key is replaced', out.calls.some((c) => c.method === 'DELETE' && c.path === '/workspaces/w1/api-keys/k1'));
+    check('only the session this sign-in opened is closed',
+        out.calls.some((c) => c.method === 'DELETE' && c.path === '/users/me/refresh-tokens/mine') && !out.calls.some((c) => c.path === '/users/me/refresh-tokens/old'));
+    check('the key is kept in this browser, not the store', out.loaded.key === 'sk-NEWKEY' && !out.keyInStore && out.afterForget === null);
+
+    const p = out.page;
+    check('nothing can be asked before the privacy notice is accepted', p.sendBeforeAcknowledge === true && p.sendAfterAcknowledge === false);
+    check('the page talks to the pinned model with the user\'s key', /Flash-1017$/.test(p.model) && p.auth === 'Bearer sk-TEST', p.model);
+    check('hostile text from the model and from script output stays text',
+        p.images === 0 && !p.pwned && p.answerText?.includes('<img src=') && !external.some((url) => url.includes('attacker.example')), `images ${p.images}`);
+    check('each step shows its script and output', p.toolEntries === 3 && p.scriptShown && p.outputShown);
+    check('a proposal changes nothing until the user approves',
+        p.pending === 2 && p.accountsBeforeApproval.join() === ACCOUNT && p.accountsAfter.join() === `${ACCOUNT},bob.near` && p.pendingAfter === 0, p.accountsAfter.join());
     await ctx.close();
 }
 

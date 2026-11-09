@@ -15,12 +15,15 @@ export const SYSTEM_PROMPT = `You inspect a crypto portfolio's stored data for w
 
 Start from describe_data or check_data. Datasets can be large and one answer is small, so to compute anything over many rows, use aggregate_data or write a script with run_script instead of reading the rows. One script can read at most 10 MB in total, so prefer app.aggregate, where and from/to, and ask only for the fields it needs.
 
+To check that balances continue from row to row, use balance_breaks: it covers every row. If a question makes you split a scan over several scripts, resume from the cursor of the last row you actually processed and carry your state across, and do not say every row was checked unless your counts prove it.
+
 In a script, the data is only reachable through the app object:
 - await app.listDatasets()
 - await app.describe({ dataset, account })
 - await app.query({ dataset, account, token, from, to, where: [[field, condition, value]], fields, limit, cursor })
 - await app.aggregate({ dataset, account, token, from, to, where, groupBy: [field], metrics: { name: ['sum'|'min'|'max'|'first'|'last', field] } })
 - for await (const row of app.rows({ dataset, account, ... })) walks every matching row
+- await app.balanceBreaks({ account, token, from, to })
 - await app.checkData()
 - await app.proposeChange({ op, args })
 Conditions are =, !=, <, <=, >, >=, contains and missing. Balances are integer strings: compare them with BigInt. Use print() for what you need to see.
@@ -70,6 +73,14 @@ export const TOOLS = [
             metrics: { type: 'object', description: 'Result name to [sum|min|max|first|last, field]' },
         }, ['dataset']),
     },
+    {
+        name: 'balance_breaks',
+        description: 'Where a token balance in records does not continue from its previous row, over every row of an account.',
+        parameters: objectSchema({
+            account: { type: 'string' }, token: { type: 'string' },
+            from: { type: 'string', description: 'ISO date' }, to: { type: 'string', description: 'ISO date' },
+        }, ['account']),
+    },
     { name: 'check_data', description: 'Whether each stored file can be read, row counts per account, and accounts with no data or data with no account.', parameters: objectSchema({}) },
     {
         name: 'run_script',
@@ -98,6 +109,7 @@ export async function runTool({ api }, name, args) {
             case 'describe_data': return short(await api.describe(args));
             case 'query_data': return short(await api.query(args, { maxBytes: QUERY_TOOL_BYTES }));
             case 'aggregate_data': return short(await api.aggregate(args));
+            case 'balance_breaks': return short(await api.balanceBreaks(args));
             case 'check_data': return short(await api.checkData());
             case 'run_script': return formatScriptResult(await runScript(args.code, api));
             case 'propose_change': return short(await api.proposeChange(args));
@@ -115,7 +127,7 @@ const openAiTools = TOOLS.map((tool) => ({ type: 'function', function: tool }));
  * answers. `messages` is the history so far, and comes back extended.
  * @returns {Promise<{answer: string, messages: object[]}>}
  */
-export async function runAgentTurn({ session, apiKey, userMessage, messages = [], fetchFn = fetch, onToolCall = () => { } }) {
+export async function runAgentTurn({ session, apiKey, userMessage, messages = [], signal, fetchFn = fetch, onToolResult = () => { } }) {
     const history = messages.length ? [...messages] : [{ role: 'system', content: SYSTEM_PROMPT }];
     history.push({ role: 'user', content: userMessage });
 
@@ -124,8 +136,9 @@ export async function runAgentTurn({ session, apiKey, userMessage, messages = []
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({ model: NEAR_AI_MODEL, messages: history, tools: openAiTools, tool_choice: 'auto' }),
+            signal,
         });
-        if (!response.ok) throw new Error(`NEAR AI answered ${response.status}`);
+        if (!response.ok) throw Object.assign(new Error(`NEAR AI answered ${response.status}`), { status: response.status });
         const message = (await response.json()).choices?.[0]?.message;
         if (!message) throw new Error('NEAR AI sent no message');
         const { role, content, tool_calls: toolCalls } = message;
@@ -133,14 +146,15 @@ export async function runAgentTurn({ session, apiKey, userMessage, messages = []
         if (!toolCalls?.length) return { answer: content ?? '', messages: history };
 
         for (const call of toolCalls) {
+            let args = null;
             let result;
             try {
-                const args = JSON.parse(call.function.arguments || '{}');
-                onToolCall(call.function.name, args);
+                args = JSON.parse(call.function.arguments || '{}');
                 result = await runTool(session, call.function.name, args);
             } catch {
                 result = `ERROR: the arguments of ${call.function.name} were not valid JSON`;
             }
+            onToolResult(call.function.name, args, result);
             history.push({ role: 'tool', tool_call_id: call.id, content: result });
         }
     }
