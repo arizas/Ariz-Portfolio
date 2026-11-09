@@ -7,7 +7,7 @@ export default /*html*/ `
 </style>
 <div class="container-fluid">
     <h3>Data check</h3>
-    <p>Ask an AI model what is stale, wrong or missing in your stored data, or ask it questions about the data. It works through scripts, so most rows stay in this browser.</p>
+    <p>Ask an AI model what is stale, wrong or missing in your stored data, or ask it to explain a figure in your Year report or Portfolio. It works through scripts, so most rows stay in this browser.</p>
 
     <div class="alert alert-warning" role="alert">
         <strong>Not yet private enough for real financial data.</strong>

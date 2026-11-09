@@ -240,6 +240,12 @@ const ROWS = 100_000;
         started = performance.now();
         r.loopAfterHost = await runScript(`await app.listDatasets(); try { while (true) {} } catch (e) { } while (true) {}`, api, { timeoutMs: 1000 });
         r.loopAfterHostMs = Math.round(performance.now() - started);
+        // A report can take longer than a script may run; waiting for it is not the script running.
+        const slow = { slow: () => new Promise((resolve) => setTimeout(() => resolve('ready'), 1500)) };
+        started = performance.now();
+        r.slowHost = await runScript(`return await app.slow()`, slow, { timeoutMs: 1000 });
+        r.loopAfterSlowHost = await runScript(`await app.slow(); while (true) {}`, slow, { timeoutMs: 1000 });
+        r.slowHostMs = Math.round(performance.now() - started);
         r.memory = await runScript(`const a = []; while (true) a.push(new Array(1000000).fill(1));`, api);
         r.afterMemory = await runScript('return 1 + 1', api);
         r.syntax = await runScript('this is not javascript', api);
@@ -366,6 +372,9 @@ const ROWS = 100_000;
 
     check('an endless loop is stopped', /did not finish/.test(out.loop.error ?? '') && out.loopMs < 5000, `${out.loopMs} ms`);
     check('a loop after a host call, swallowing the interrupt, is stopped', /did not finish/.test(out.loopAfterHost.error ?? '') && out.loopAfterHostMs < 5000, `${out.loopAfterHostMs} ms: ${out.loopAfterHost.error}`);
+    check('waiting for the app does not use up a script\'s time, and a loop after it is still stopped',
+        out.slowHost.value === 'ready' && /did not finish/.test(out.loopAfterSlowHost.error ?? '') && out.slowHostMs < 6000,
+        `${out.slowHost.value ?? out.slowHost.error}; ${out.loopAfterSlowHost.error}; ${out.slowHostMs} ms`);
     check('running out of memory fails the script, not the page', !!out.memory.error && out.afterMemory.value === '2', `${out.memory.error}`);
     check('a syntax error comes back as an error', !!out.syntax.error, out.syntax.error);
     check('script output is capped', out.hugePrintChars < 6200, `${out.hugePrintChars} chars`);

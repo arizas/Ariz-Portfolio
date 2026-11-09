@@ -15,6 +15,7 @@ import {
     getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay,
     getDecimalConversionValue, getTokenSymbol,
 } from './yearreportdata.js';
+import { combineDailyRows } from './all-tokens-daily.js';
 import { getEODPriceMap, isKnownNoPriceToken } from '../pricedata/pricedata.js';
 import { getReceivedAccounts } from '../storage/domainobjectstore.js';
 import { movementsForToken, receivedClassifier, mergedReceivedTypes } from '../portfolio/flow-extract.js';
@@ -189,6 +190,29 @@ export async function collectAllTokenDays({
     });
 
     return { contributions, transactionsByDate, failed, neverPriced, flowsByDate, pricesUnavailable };
+}
+
+/**
+ * The all-tokens year report as figures: what the table draws, for anything else
+ * that has to show the same numbers. The data agent answers questions about the
+ * report from this, so it cannot disagree with the page the user checks it on.
+ *
+ * `flowTotals` are "added in" and "taken out", what crossed the portfolio's
+ * edge; `totals.deposit` and `totals.withdrawal` are the gross per-token sums,
+ * swaps included.
+ */
+export async function allTokensReport({
+    tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress = () => { }, collect = collectAllTokenDays,
+}) {
+    const { contributions, transactionsByDate, failed, neverPriced = [], flowsByDate = {}, pricesUnavailable = {} } =
+        await collect({ tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress });
+    const { rows, totals } = combineDailyRows(contributions);
+    const flowTotals = { deposit: 0, withdrawal: 0 };
+    for (const row of rows) {
+        flowTotals.deposit += flowsByDate[row.date]?.deposit ?? 0;
+        flowTotals.withdrawal += flowsByDate[row.date]?.withdrawal ?? 0;
+    }
+    return { contributions, rows, totals, flowTotals, flowsByDate, transactionsByDate, failed, neverPriced, pricesUnavailable };
 }
 
 /**

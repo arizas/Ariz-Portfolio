@@ -77,21 +77,26 @@ export async function runScript(code, api, { timeoutMs = SCRIPT_TIMEOUT_MS } = {
     // anything inherited: a plain object would answer to `constructor`.
     quickjs.hostFunctions = Object.create(null);
 
-    // One deadline for the whole run. A guest resuming after a host call runs
-    // outside callModFunction's own window, so it is set again each time.
+    // One deadline for the script's own running. A guest resuming after a host
+    // call runs outside callModFunction's own window, so it is set again each
+    // time. Time spent waiting for the app is added on: a report can take far
+    // longer than a script may, and is bounded by the app instead (reports.js).
     const deadline = Date.now() + timeoutMs;
-    const arm = () => quickjs.wasmInstance.set_eval_deadline(deadline);
+    let waitedMs = 0;
+    const arm = () => quickjs.wasmInstance.set_eval_deadline(deadline + waitedMs);
 
     quickjs.hostFunctions.appCall = async (params) => {
         const method = quickjs.getObjectPropertyValue(params, 'method');
         const argsText = quickjs.getObjectPropertyValue(params, 'args');
         let answerText;
+        const startedAt = Date.now();
         try {
             if (!Object.hasOwn(api, method)) throw new Error(`app.${method} does not exist`);
             answerText = JSON.stringify({ result: await api[method](JSON.parse(argsText)) });
         } catch (error) {
             answerText = JSON.stringify({ error: String((error && error.message) || error) });
         }
+        waitedMs += Date.now() - startedAt;
         arm();
         return quickjs.allocateJSstring(answerText);
     };

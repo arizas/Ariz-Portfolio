@@ -11,9 +11,11 @@ export const MAX_TOOL_RESULT_CHARS = 6000;
 const QUERY_TOOL_BYTES = 4000;
 const MAX_ITERATIONS = 20;
 
-export const SYSTEM_PROMPT = `You inspect a crypto portfolio's stored data for what is stale, wrong, or missing, and answer questions about it.
+export const SYSTEM_PROMPT = `You help the owner of a crypto portfolio understand their data and the app's reports, and find what is stale, wrong, or missing.
 
-Start from describe_data or check_data. Datasets can be large and one answer is small, so to compute anything over many rows, use aggregate_data or write a script with run_script instead of reading the rows. A script has 20 seconds, so prefer app.aggregate, where and from/to, and ask only for the fields it needs.
+There are two kinds of data. Stored data is what was fetched: accounts, transactions, records, staking, prices and the user's own settings. Reports are what the app computes from it, the same figures its pages show: year_report gives the Year report's totals for a year and currency, with every token together, and portfolio gives the Portfolio page's holdings and the change since a date. Behind a report's totals are datasets you can query and aggregate like the stored ones, with the same year and currency, or currency and fromDate: yearReportDays, yearReportTokens, yearReportRealizations and portfolioHoldings. To explain a figure, find the days, tokens or sales it is made of, then the stored transactions behind those. A report the owner doubts may be right about wrong data, so check the stored data before blaming the calculation. A report computes once a session, and the first time can take a minute.
+
+Start from describe_data or check_data for stored data, or from year_report or portfolio for a question about a report. Datasets can be large and one answer is small, so to compute anything over many rows, use aggregate_data or write a script with run_script instead of reading the rows. A script has 20 seconds, so prefer app.aggregate, where and from/to, and ask only for the fields it needs.
 
 To check that balances continue from row to row, use balance_breaks: it covers every row. If a question makes you split a scan over several scripts, resume from the cursor of the last row you actually processed and carry your state across, and do not say every row was checked unless your counts prove it.
 
@@ -23,6 +25,8 @@ In a script, the data is only reachable through the app object:
 - await app.query({ dataset, account, token, from, to, where: [[field, condition, value]], fields, limit, cursor })
 - await app.aggregate({ dataset, account, token, from, to, where, groupBy: [field], metrics: { name: ['sum'|'min'|'max'|'first'|'last', field] } })
 - for await (const row of app.rows({ dataset, account, ... })) walks every matching row
+- await app.yearReport({ year, currency }) and await app.portfolio({ currency, fromDate })
+- a report dataset takes its parameters beside dataset: app.query({ dataset: 'yearReportDays', year: 2025, currency: 'nok', where: [['takenOut', '>', 0]] })
 - await app.balanceBreaks({ account, token, from, to })
 - await app.checkData()
 - await app.proposeChange({ op, args })
@@ -34,13 +38,30 @@ Report only what a tool result shows, with the numbers from that result. Say whi
 
 const objectSchema = (properties, required = []) => ({ type: 'object', properties, required });
 
+const REPORT_ARGS = {
+    year: { type: 'integer', description: 'The year of a Year report' },
+    currency: { type: 'string', description: 'A currency code such as usd, eur or nok' },
+    fromDate: { type: 'string', description: 'yyyy-MM-dd: where the Portfolio\'s period starts, January 1st of this year if left out' },
+};
+
 const DATASET_ARGS = {
     dataset: { type: 'string', description: 'A dataset name from list_datasets' },
     account: { type: 'string', description: 'The NEAR account, for datasets that need one' },
+    ...REPORT_ARGS,
 };
 
 export const TOOLS = [
-    { name: 'list_datasets', description: 'List the datasets and what they hold.', parameters: objectSchema({}) },
+    { name: 'list_datasets', description: 'List the datasets, what they hold and what each needs.', parameters: objectSchema({}) },
+    {
+        name: 'year_report',
+        description: 'The Year report\'s totals for one year in one currency, every token together, as the page shows them, and which tokens were left out of them and why. May fetch prices, as the page does.',
+        parameters: objectSchema({ year: REPORT_ARGS.year, currency: REPORT_ARGS.currency }, ['year', 'currency']),
+    },
+    {
+        name: 'portfolio',
+        description: 'The Portfolio page: value, cost basis and result of the holdings now, staked NEAR, the opening figures at fromDate, and how the change since then splits into flows and gain. May fetch prices, as the page does.',
+        parameters: objectSchema({ currency: REPORT_ARGS.currency, fromDate: REPORT_ARGS.fromDate }, ['currency']),
+    },
     {
         name: 'describe_data',
         description: 'Row count, first and last entry, tokens, field names and two sample rows of a dataset.',
@@ -106,6 +127,8 @@ export async function runTool({ api }, name, args) {
     try {
         switch (name) {
             case 'list_datasets': return short(await api.listDatasets());
+            case 'year_report': return short(await api.yearReport(args));
+            case 'portfolio': return short(await api.portfolio(args));
             case 'describe_data': return short(await api.describe(args));
             case 'query_data': return short(await api.query(args, { maxBytes: QUERY_TOOL_BYTES }));
             case 'aggregate_data': return short(await api.aggregate(args));

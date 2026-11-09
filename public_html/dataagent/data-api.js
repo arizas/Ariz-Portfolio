@@ -2,11 +2,15 @@
 // scripts it writes alike. There are no paths and no file access here: a dataset
 // has a name, and the domain store knows where it lives.
 //
-// Reading never changes the repository and never touches the network. That rules
-// out the getters that derive confidential rows (they resolve token metadata,
-// which can fetch and write a cache file) and getDepositAccounts when the file is
-// missing (it writes a default). So `records` and `ftTransactions` are what is
-// stored, and confidential history is its own dataset.
+// Reading stored data never changes the repository and never touches the network.
+// That rules out the getters that derive confidential rows (they resolve token
+// metadata, which can fetch and write a cache file) and getDepositAccounts when
+// the file is missing (it writes a default). So `records` and `ftTransactions` are
+// what is stored, and confidential history is its own dataset.
+//
+// Reports are the exception, and say so: the year report and the portfolio are
+// computed the way their pages compute them, prices fetched included. See
+// reports.js.
 //
 // A change is only ever proposed. Applying one is on the session rather than in
 // `api`, so neither the model nor a script can reach it: the user does.
@@ -20,6 +24,7 @@ import {
 import { exists } from '../storage/gitstorage.js';
 import { checkStoreFiles } from '../storage/store-check.js';
 import { excludeToken, includeToken, isExcluded } from '../yearreport/token-exclusions.js';
+import { createReports, portfolioParams, yearReportParams } from './reports.js';
 
 /** The most one answer to a script may carry; it pages for the rest. */
 export const SCRIPT_PAGE_BYTES = 64 * 1024;
@@ -113,7 +118,34 @@ const DATASETS = {
         },
         tokens: noTokens,
     },
+    yearReportDays: {
+        description: 'The Year report with every token together, in one currency: one row per day of the year, the same figures as the page. addedIn and takenOut crossed the portfolio\'s edge; swaps are neither.',
+        report: 'year',
+        load: (args, reports) => reports.year(args).then((report) => report.days),
+        tokens: (row) => row.tokensMoved,
+    },
+    yearReportTokens: {
+        description: 'The Year report per token and day: balance, deposits, withdrawals, rewards, profit and loss, in token units (…Amount) and in the currency.',
+        report: 'year',
+        load: (args, reports) => reports.year(args).then((report) => report.tokens),
+        tokens: (row) => [row.token, row.symbol],
+    },
+    yearReportRealizations: {
+        description: 'Every sale in the Year report and the purchase lot it was matched with first in, first out: when and at what price each was bought, sold, and the profit or loss.',
+        report: 'year',
+        load: (args, reports) => reports.year(args).then((report) => report.realizations),
+        tokens: (row) => [row.token, row.symbol],
+    },
+    portfolioHoldings: {
+        description: 'The Portfolio page: each token held now, its value, cost basis and unrealized result, its realized result since fromDate, and what it held at fromDate.',
+        report: 'portfolio',
+        load: (args, reports) => reports.portfolio(args).then((report) => report.holdings),
+        tokens: (row) => [row.token, row.symbol],
+    },
 };
+
+const REPORT_PARAMS = { year: yearReportParams, portfolio: portfolioParams };
+const NEEDS = { year: ['year', 'currency'], portfolio: ['currency', 'fromDate'] };
 
 const getPath = (row, path) => path.split('.').reduce((value, key) => value?.[key], row);
 
@@ -261,6 +293,7 @@ export function createDataSession() {
     let lastFilter = null;
     const pending = new Map();
     let nextChangeId = 1;
+    const reports = createReports();
 
     function datasetFor({ dataset: name, account }) {
         if (!Object.hasOwn(DATASETS, name ?? '')) {
@@ -271,14 +304,22 @@ export function createDataSession() {
         return dataset;
     }
 
+    /** Which rows a dataset means: the account, or the report's checked parameters. */
+    function scopeOf(args) {
+        const dataset = datasetFor(args);
+        if (dataset.report) return REPORT_PARAMS[dataset.report](args);
+        return dataset.perAccount ? { account: args.account } : {};
+    }
+
     // A dataset is parsed once a session, so paging through it is not a parse per page.
     function rowsOf(args) {
         const dataset = datasetFor(args);
-        const key = `${args.dataset}\u0000${dataset.perAccount ? args.account : ''}`;
+        const scope = scopeOf(args);
+        const key = JSON.stringify([args.dataset, scope]);
         if (!loaded.has(key)) {
-            loaded.set(key, Promise.resolve(dataset.load(args)).catch((error) => {
+            loaded.set(key, Promise.resolve(dataset.load(scope, reports)).catch((error) => {
                 loaded.delete(key);
-                throw new Error(`the stored ${args.dataset} data could not be read, run checkData (${error?.name ?? 'error'})`);
+                throw dataset.report ? error : new Error(`the stored ${args.dataset} data could not be read, run checkData (${error?.name ?? 'error'})`);
             }));
         }
         return loaded.get(key);
@@ -286,7 +327,7 @@ export function createDataSession() {
 
     async function matching(args) {
         const dataset = datasetFor(args);
-        const key = JSON.stringify([args.dataset, args.account, args.token, args.from, args.to, args.where]);
+        const key = JSON.stringify([args.dataset, scopeOf(args), args.token, args.from, args.to, args.where]);
         if (lastFilter?.key !== key) {
             const rows = await rowsOf(args);
             lastFilter = { key, rows: rows.filter(buildFilter({ ...args, dataset })) };
@@ -295,8 +336,17 @@ export function createDataSession() {
     }
 
     const api = {
-        listDatasets: async () => Object.entries(DATASETS).map(([name, { description, perAccount }]) =>
-            ({ dataset: name, description, needsAccount: !!perAccount })),
+        listDatasets: async () => Object.entries(DATASETS).map(([name, { description, perAccount, report }]) =>
+            ({ dataset: name, description, needs: report ? NEEDS[report] : perAccount ? ['account'] : [] })),
+
+        /**
+         * The Year report's totals for a year and currency, every token together,
+         * and what was left out of them and why. The same figures as the page.
+         */
+        yearReport: async (args = {}) => (await reports.year(args)).summary,
+
+        /** The Portfolio page's figures: holdings now, and the change since fromDate. */
+        portfolio: async (args = {}) => (await reports.portfolio(args)).summary,
 
         /** The shape of a dataset, whatever its size. */
         describe: async (args = {}) => {
@@ -444,7 +494,9 @@ export function createDataSession() {
             await CHANGES[change.op].check(change.args);
             await CHANGES[change.op].apply(change.args);
             pending.delete(id);
+            // An exclusion changes the year report, and an account changes everything.
             loaded.clear();
+            reports.clear();
             lastFilter = null;
         },
     };
