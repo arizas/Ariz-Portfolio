@@ -20,11 +20,14 @@ import {
     getDepositAccounts, getExpenseAccounts, getHistoricalPriceData, getReceivedAccounts,
     getStakingRewardsForAccountAndPool, getStoredFungibleTokenTransactions, getStoredRecordsForAccount,
     getStoredStakingPools, getTokenExclusions, getTransactionsForAccount, listStoredPriceHistories,
+    setExpenseAccounts, setReceivedAccounts,
 } from '../storage/domainobjectstore.js';
+import { refreshStoredPriceHistories } from '../pricedata/pricedata.js';
+import { fetchAccountsFromExport, fetchConfidentialForAccount } from '../accounts/account-actions.js';
 import { exists } from '../storage/gitstorage.js';
 import { checkStoreFiles } from '../storage/store-check.js';
 import { excludeToken, includeToken, isExcluded } from '../yearreport/token-exclusions.js';
-import { createReports, portfolioParams, yearReportParams } from './reports.js';
+import { balanceCheckParams, createReports, portfolioParams, yearReportParams } from './reports.js';
 
 /** The most one answer to a script may carry; it pages for the rest. */
 export const SCRIPT_PAGE_BYTES = 64 * 1024;
@@ -142,10 +145,16 @@ const DATASETS = {
         load: (args, reports) => reports.portfolio(args).then((report) => report.holdings),
         tokens: (row) => [row.token, row.symbol],
     },
+    balanceCheck: {
+        description: 'Each token of an account, its stored final balance next to the chain: current, behind (moved since the stored data ends), wrong (the chain never held it), unknown, or not stored (held now with no stored row).',
+        report: 'balances',
+        load: (args, reports) => reports.balances(args).then((report) => report.rows),
+        tokens: (row) => [row.token],
+    },
 };
 
-const REPORT_PARAMS = { year: yearReportParams, portfolio: portfolioParams };
-const NEEDS = { year: ['year', 'currency'], portfolio: ['currency', 'fromDate'] };
+const REPORT_PARAMS = { year: yearReportParams, portfolio: portfolioParams, balances: balanceCheckParams };
+const NEEDS = { year: ['year', 'currency'], portfolio: ['currency', 'fromDate'], balances: ['account'] };
 
 const getPath = (row, path) => path.split('.').reduce((value, key) => value?.[key], row);
 
@@ -285,7 +294,102 @@ const CHANGES = {
         },
         apply: ({ contractId }) => includeToken(contractId),
     },
+    removeAccount: {
+        describe: ({ accountId }) => `Stop tracking ${accountId}. Its stored data stays in the repository`,
+        check: async ({ accountId }) => trackedAccount(accountId),
+        apply: async ({ accountId }) => setAccounts((await accountsChange(accountId).read()).filter((account) => account !== accountId)),
+    },
+    fetchTransactions: {
+        describe: ({ accounts }) => `Fetch the transactions of ${accounts.join(', ')} from the Ariz gateway, merge them into the store, then update prices. `
+            + 'Free for an account the gateway already keeps up to date. For one it does not, you become its payer, billed in ARIZ for keeping it synced',
+        check: async ({ accounts }) => {
+            if (!Array.isArray(accounts) || accounts.length === 0) throw new Error('accounts must be a list of the portfolio\'s accounts');
+            for (const account of accounts) await trackedAccount(account);
+        },
+        apply: async ({ accounts }) => {
+            const result = await fetchAccountsFromExport(accounts);
+            return {
+                fetched: result.fetched,
+                pricesUpdated: result.pricesUpdated,
+                pricesFailed: result.pricesFailed.length,
+            };
+        },
+    },
+    fetchConfidentialHistory: {
+        describe: ({ accountId }) => `Fetch the confidential intents history of ${accountId}. Your wallet asks you to sign as ${accountId}. It is stored in your repository only`,
+        check: async ({ accountId }) => trackedAccount(accountId),
+        apply: async ({ accountId }) => {
+            const { fetched, total, added, updated, mismatches } = await fetchConfidentialForAccount(accountId);
+            return {
+                fetched, total, added, updated,
+                balancesMatchTheLedger: mismatches.length === 0,
+                mismatches: mismatches.slice(0, 20).map((m) => ({ asset: m.symbol ?? m.assetId, derived: String(m.derived), actual: String(m.actual) })),
+            };
+        },
+    },
+    refreshPrices: {
+        describe: () => 'Update the stored price histories from the Ariz gateway',
+        check: async () => { },
+        apply: async () => {
+            const result = await refreshStoredPriceHistories();
+            return { updated: result.updated, failed: result.failed.length };
+        },
+    },
+    setCounterparty: {
+        describe: ({ account, category, description }) => ({
+            none: `Make ${account} an ordinary counterparty again, neither received nor expense`,
+            received: `Count what ${account} sends you as received income`,
+            expense: `Count what you pay ${account} as an expense`,
+        }[category] + (description ? ` (${description})` : '')),
+        check: async ({ account, category, description }) => {
+            if (!ACCOUNT_ID.test(account ?? '')) throw new Error(`not a valid NEAR account: ${account}`);
+            if (!['received', 'expense', 'none'].includes(category)) throw new Error('category must be received, expense or none');
+            if (description !== undefined && (typeof description !== 'string' || description.length > 200)) throw new Error('description must be a short string');
+        },
+        // A counterparty is one or the other, as on the Counterparties page.
+        apply: async ({ account, category, description = '' }) => {
+            const received = await getReceivedAccounts();
+            const expense = await getExpenseAccounts();
+            delete received[account];
+            delete expense[account];
+            if (category === 'received') received[account] = { description };
+            if (category === 'expense') expense[account] = { description };
+            await setReceivedAccounts(received);
+            await setExpenseAccounts(expense);
+        },
+    },
+    openPage: {
+        describe: ({ page, year, currency }) => (page === 'year-summary-print'
+            ? `Open the printable Year report summary for ${year} in ${String(currency).toUpperCase()} in a new tab`
+            : `Open the ${page} page in a new tab`),
+        check: async (args) => { pagePath(args); },
+        apply: async (args) => {
+            // Beside this page, wherever the app is served from.
+            const url = new URL(pagePath(args), new URL('.', location.href));
+            if (!window.open(url, '_blank', 'noopener')) throw new Error('the browser blocked the new tab');
+            return { opened: url.pathname + url.search };
+        },
+    },
 };
+
+// Pages the assistant may open for the user, in a new tab so the conversation
+// stays. Storage is here rather than a sync action: syncing is the Storage
+// page's own guided flow, with its key unlock and signatures.
+const PAGES = ['portfolio', 'year-report', 'transactions', 'staking', 'counterparties', 'accounts', 'storage', 'arizcredits'];
+
+function pagePath({ page, year, currency } = {}) {
+    if (page === 'year-summary-print') {
+        const { year: y, currency: c } = yearReportParams({ year, currency });
+        return `yearsummary-alltokens-print?year=${y}&month=0&nummonths=12&currency=${c}`;
+    }
+    if (!PAGES.includes(page)) throw new Error(`page must be one of ${[...PAGES, 'year-summary-print'].join(', ')}`);
+    return page;
+}
+
+async function trackedAccount(accountId) {
+    if (!ACCOUNT_ID.test(accountId ?? '')) throw new Error(`not a valid NEAR account: ${accountId}`);
+    if (!(await accountsChange(accountId).read()).includes(accountId)) throw new Error(`${accountId} is not one of the portfolio's accounts`);
+}
 
 /** One agent session: what it has read so far, and the changes waiting for the user. */
 export function createDataSession() {
@@ -347,6 +451,12 @@ export function createDataSession() {
 
         /** The Portfolio page's figures: holdings now, and the change since fromDate. */
         portfolio: async (args = {}) => (await reports.portfolio(args)).summary,
+
+        /**
+         * Whether an account's stored history ends where the chain is: per token,
+         * current, behind or wrong, and what is held now with no stored row.
+         */
+        balanceCheck: async (args = {}) => (await reports.balances(args)).summary,
 
         /** The shape of a dataset, whatever its size. */
         describe: async (args = {}) => {
@@ -491,13 +601,22 @@ export function createDataSession() {
         applyChange: async (id) => {
             const change = pending.get(id);
             if (!change) throw new Error(`no pending change ${id}`);
-            await CHANGES[change.op].check(change.args);
-            await CHANGES[change.op].apply(change.args);
-            pending.delete(id);
-            // An exclusion changes the year report, and an account changes everything.
-            loaded.clear();
-            reports.clear();
-            lastFilter = null;
+            // A fetch takes a while, and a second click must not run it twice.
+            if (change.applying) throw new Error(`change ${id} is already being applied`);
+            change.applying = true;
+            try {
+                await CHANGES[change.op].check(change.args);
+                const result = await CHANGES[change.op].apply(change.args);
+                pending.delete(id);
+                return result ?? null;
+            } finally {
+                change.applying = false;
+                // Whatever got written: an exclusion changes the year report, a
+                // fetch or an account changes everything.
+                loaded.clear();
+                reports.clear();
+                lastFilter = null;
+            }
         },
     };
 }

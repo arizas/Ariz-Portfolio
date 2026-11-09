@@ -11,7 +11,11 @@ export const MAX_TOOL_RESULT_CHARS = 6000;
 const QUERY_TOOL_BYTES = 4000;
 const MAX_ITERATIONS = 20;
 
-export const SYSTEM_PROMPT = `You help the owner of a crypto portfolio understand their data and the app's reports, and find what is stale, wrong, or missing.
+export const SYSTEM_PROMPT = `You are the assistant in Ariz Portfolio, an app that keeps a NEAR crypto portfolio's history in the owner's own encrypted repository. You answer the owner's questions about their portfolio and the app's reports, find what is stale, wrong or missing, and do things in the app for them, always with their approval.
+
+To find out whether stored data is missing or out of date, use balance_check for an account: it compares each token's stored final balance with the chain, says which are current, behind (moved since the data ends: fetching fixes it), or wrong (the chain never held it: the stored history has a gap), and lists what the account holds that the data never mentions.
+
+To do something, use propose_change. The owner sees what it will do and approves or rejects it; nothing happens before. You can propose: addAccount { accountId }, removeAccount { accountId }, fetchTransactions { accounts: [accountId] } (from the Ariz gateway, then prices), fetchConfidentialHistory { accountId } (the owner's wallet signs), refreshPrices {}, setCounterparty { account, category: received|expense|none, description }, excludeToken { contractId, symbol, reason }, includeToken { contractId }, and openPage { page } with page one of portfolio, year-report, transactions, staking, counterparties, accounts, storage, arizcredits, or year-summary-print with year and currency. Syncing the repository happens on the storage page, so open it for that. Never offer to buy, authorize or revoke credits, export or forget the encryption key, or delete data: open the page that does it and say what to do there. After the owner approves, you are told the result.
 
 There are two kinds of data. Stored data is what was fetched: accounts, transactions, records, staking, prices and the user's own settings. Reports are what the app computes from it, the same figures its pages show: year_report gives the Year report's totals for a year and currency, with every token together, and portfolio gives the Portfolio page's holdings and the change since a date. Behind a report's totals are datasets you can query and aggregate like the stored ones, with the same year and currency, or currency and fromDate: yearReportDays, yearReportTokens, yearReportRealizations and portfolioHoldings. To explain a figure, find the days, tokens or sales it is made of, then the stored transactions behind those. A report the owner doubts may be right about wrong data, so check the stored data before blaming the calculation. A report computes once a session, and the first time can take a minute.
 
@@ -25,7 +29,7 @@ In a script, the data is only reachable through the app object:
 - await app.query({ dataset, account, token, from, to, where: [[field, condition, value]], fields, limit, cursor })
 - await app.aggregate({ dataset, account, token, from, to, where, groupBy: [field], metrics: { name: ['sum'|'min'|'max'|'first'|'last', field] } })
 - for await (const row of app.rows({ dataset, account, ... })) walks every matching row
-- await app.yearReport({ year, currency }) and await app.portfolio({ currency, fromDate })
+- await app.yearReport({ year, currency }), await app.portfolio({ currency, fromDate }) and await app.balanceCheck({ account })
 - a report dataset takes its parameters beside dataset: app.query({ dataset: 'yearReportDays', year: 2025, currency: 'nok', where: [['takenOut', '>', 0]] })
 - await app.balanceBreaks({ account, token, from, to })
 - await app.checkData()
@@ -61,6 +65,11 @@ export const TOOLS = [
         name: 'portfolio',
         description: 'The Portfolio page: value, cost basis and result of the holdings now, staked NEAR, the opening figures at fromDate, and how the change since then splits into flows and gain. May fetch prices, as the page does.',
         parameters: objectSchema({ currency: REPORT_ARGS.currency, fromDate: REPORT_ARGS.fromDate }, ['currency']),
+    },
+    {
+        name: 'balance_check',
+        description: 'Compare each token\'s stored final balance for one of the portfolio\'s accounts with the chain: current, behind or wrong, and what the account holds that no stored row mentions. Reads public chain data.',
+        parameters: objectSchema({ account: { type: 'string' } }, ['account']),
     },
     {
         name: 'describe_data',
@@ -110,7 +119,7 @@ export const TOOLS = [
     },
     {
         name: 'propose_change',
-        description: 'Ask the user to approve a change: addAccount { accountId }, excludeToken { contractId, symbol, reason } or includeToken { contractId }.',
+        description: 'Ask the owner to approve something: addAccount, removeAccount, fetchTransactions, fetchConfidentialHistory, refreshPrices, setCounterparty, excludeToken, includeToken or openPage, with the args the instructions give.',
         parameters: objectSchema({ op: { type: 'string' }, args: { type: 'object' } }, ['op', 'args']),
     },
 ];
@@ -129,6 +138,7 @@ export async function runTool({ api }, name, args) {
             case 'list_datasets': return short(await api.listDatasets());
             case 'year_report': return short(await api.yearReport(args));
             case 'portfolio': return short(await api.portfolio(args));
+            case 'balance_check': return short(await api.balanceCheck(args));
             case 'describe_data': return short(await api.describe(args));
             case 'query_data': return short(await api.query(args, { maxBytes: QUERY_TOOL_BYTES }));
             case 'aggregate_data': return short(await api.aggregate(args));

@@ -24,7 +24,7 @@ export function isV2Format(data) {
  * @param {string} tokenId - Token ID
  * @returns {boolean} True if staking pool
  */
-function isStakingPool(tokenId) {
+export function isStakingPool(tokenId) {
     return tokenId.includes('.poolv1.near') ||
            tokenId.includes('.pool.near') ||
            tokenId.endsWith('.pool.f863973.m0');

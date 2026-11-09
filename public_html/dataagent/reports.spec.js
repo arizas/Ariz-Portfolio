@@ -1,10 +1,10 @@
 import '../yearreport/yearreport-print.component.js';
 import { renderPeriodReportTable } from '../yearreport/yearreport-table-renderer.js';
 import { ALL_TOKENS } from '../yearreport/all-tokens-daily.js';
-import { setAccounts, writeTransactions, writeFungibleTokenTransactions, setHistoricalPriceData, getAllFungibleTokenEntries } from '../storage/domainobjectstore.js';
+import { setAccounts, writeTransactions, writeFungibleTokenTransactions, setHistoricalPriceData, getAllFungibleTokenEntries, writeAccountingRecords } from '../storage/domainobjectstore.js';
 import { setSkipFetchingPrices, clearPriceHistoryCache } from '../pricedata/pricedata.js';
 import { createDataSession } from './data-api.js';
-import { createReports, MAX_REPORTS_PER_SESSION } from './reports.js';
+import { computeBalanceCheck, createReports, MAX_REPORTS_PER_SESSION } from './reports.js';
 
 // The agent answers questions about the Year report, so its figures have to be
 // the page's figures. Both come from one function; this checks that holds for
@@ -132,6 +132,36 @@ describe('the data agent\'s reports', () => {
             try { await api.query({ dataset: 'yearReportDays', ...bad }); } catch (e) { error = e; }
             expect(error?.message, JSON.stringify(bad)).to.match(/year must be|currency must be/);
         }
+    });
+
+    it('checks balances only for the portfolio\'s own accounts with stored records', async () => {
+        const { api } = createDataSession();
+        let error;
+        try { await api.balanceCheck({ account: 'stranger.near' }); } catch (e) { error = e; }
+        expect(error.message).to.match(/not one of the portfolio's accounts/);
+        try { await api.balanceCheck({ account: ACCOUNT }); } catch (e) { error = e; }
+        expect(error.message).to.match(/no stored records to check: fetch its transactions first/);
+    });
+
+    it('sums a balance check up, and keeps every token for drilling down', async () => {
+        await writeAccountingRecords(ACCOUNT, { metadata: { firstBlock: 1, lastBlock: 900, historyComplete: true }, records: [] });
+        const check = async () => ({
+            chainHeight: 1000,
+            tokens: [
+                { token: 'near', kind: 'near', stored: '5', now: '5', status: 'current' },
+                { token: 'wrap.near', kind: 'fungible token', stored: '3', now: '1', status: 'behind', difference: '-2' },
+                { token: 'usdc.near', kind: 'fungible token', stored: '9', now: '4', atLastStoredBlock: '4', status: 'wrong', difference: '-5' },
+            ],
+            heldButNotStored: [{ token: 'meta-pool.near', kind: 'fungible token', now: '287' }],
+            holdingsListed: true, holdingsError: null,
+        });
+        const reports = createReports({ balances: (params) => computeBalanceCheck(params, { check }) });
+        const { summary, rows } = await reports.balances({ account: ACCOUNT });
+        expect(summary).to.include({ tokensChecked: 3, current: 1, blocksSinceStoredFile: 100, holdingsNotListed: null });
+        expect(summary.wrong.map((t) => t.token)).to.deep.equal(['usdc.near']);
+        expect(summary.behind.map((t) => t.token)).to.deep.equal(['wrap.near']);
+        expect(summary.heldButNotStored.map((t) => t.token)).to.deep.equal(['meta-pool.near']);
+        expect(rows.map((r) => r.status)).to.deep.equal(['current', 'behind', 'wrong', 'not stored']);
     });
 
     it('computes a report once a session, and only so many', async () => {

@@ -1,16 +1,13 @@
 import { setProgressbarValue } from '../ui/progress-bar.js';
-import { fetchTransactionsFromAccountingExport, writeConfidentialIntentsHistory,
-    reconcileStoredConfidentialBalances } from '../storage/domainobjectstore.js';
+import { fetchAccountsFromExport, fetchConfidentialForAccount } from './account-actions.js';
 import accountsPageComponentHtml from './accounts-page.component.html.js';
 import { modalAlert } from '../ui/modal.js';
 import { escapeHtml } from '../util/escape-html.js';
 import { accountsconfigfile, getAccounts, setAccounts } from '../storage/domainobjectstore.js';
 import { exists } from '../storage/gitstorage.js';
-import { refreshStoredPriceHistories } from '../pricedata/pricedata.js';
 // Static imports on purpose — a dynamic import() breaks the single-file dist
 // (see the dist guard in playwright_tests/tests/wasmgit.spec.js).
-import { openConfidentialSession, fetchConfidentialHistory, fetchConfidentialBalances,
-    ConfidentialHistoryUnavailableError } from '../near/intentshistory.js';
+import { ConfidentialHistoryUnavailableError } from '../near/intentshistory.js';
 
 /** Raw integer units as a decimal string, for a human-readable mismatch report. */
 function formatRawAmount(raw, decimals) {
@@ -42,21 +39,18 @@ customElements.define('accounts-page',
 
             this.shadowRoot.getElementById('loadfromexportbutton').addEventListener('click', async () => {
                 try {
-                    for (const account of this.getAccounts()) {
-                        setProgressbarValue('indeterminate', `Downloading transaction history for ${account} from server...`);
-                        const result = await fetchTransactionsFromAccountingExport(account, { merge: true });
-
-                        console.log(`Loaded ${result.newTransactionsCount} NEAR transactions from server`);
-                        console.log(`Loaded ${result.newFtTransactionsCount} token transactions from server`);
-                        console.log(`Loaded staking data for ${result.stakingPools?.length || 0} pools from server`);
+                    const result = await fetchAccountsFromExport(this.getAccounts(), {
+                        onProgress: (message) => setProgressbarValue('indeterminate', message),
+                        onPriceProgress: (done, total, token, currency) =>
+                            setProgressbarValue(total ? done / total : 'indeterminate',
+                                token ? `Updating prices: ${token} in ${currency.toUpperCase()} (${done + 1} of ${total})` : 'Updating prices'),
+                    });
+                    for (const fetched of result.fetched) {
+                        console.log(`Loaded ${fetched.newTransactions} NEAR transactions, ${fetched.newTokenTransactions} token transactions and staking data for ${fetched.stakingPools} pools for ${fetched.account}`);
                     }
-                    // After the transactions, so prices are as current as what they value.
-                    const prices = await refreshStoredPriceHistories((done, total, token, currency) =>
-                        setProgressbarValue(total ? done / total : 'indeterminate',
-                            token ? `Updating prices: ${token} in ${currency.toUpperCase()} (${done + 1} of ${total})` : 'Updating prices'));
-                    console.log(`Updated ${prices.updated} price histories from server`);
-                    if (prices.failed.length) {
-                        console.warn('Price histories that could not be updated', prices.failed);
+                    console.log(`Updated ${result.pricesUpdated} price histories from server`);
+                    if (result.pricesFailed.length) {
+                        console.warn('Price histories that could not be updated', result.pricesFailed);
                     }
                     setProgressbarValue(null);
                 } catch (e) {
@@ -111,22 +105,16 @@ customElements.define('accounts-page',
         async fetchConfidentialForAccount(account) {
             try {
                 if (!account) return;
-                setProgressbarValue('indeterminate', `Sign the message as ${account} to read its confidential history…`);
-                const session = await openConfidentialSession(account);
-                setProgressbarValue('indeterminate', `Fetching confidential intents history for ${account}…`);
-                const items = await fetchConfidentialHistory(session);
-                const { total, added, updated } = await writeConfidentialIntentsHistory(account, items);
-
-                // Prove the stored history is complete before trusting the
+                // Proves the stored history is complete before trusting the
                 // numbers it produces — a truncated fetch still adds up.
-                setProgressbarValue('indeterminate', 'Reconciling against the confidential ledger…');
-                const mismatches = await reconcileStoredConfidentialBalances(
-                    account, await fetchConfidentialBalances(session));
+                const { fetched, total, added, updated, mismatches } = await fetchConfidentialForAccount(account, {
+                    onProgress: (message) => setProgressbarValue('indeterminate', message),
+                });
                 setProgressbarValue(null);
 
                 // modalAlert renders its content as HTML, and symbols come
                 // from the intents token API — escape every interpolated value.
-                const summary = `${items.length} item(s) fetched, ${added} new and ${updated} updated — `
+                const summary = `${fetched} item(s) fetched, ${added} new and ${updated} updated — `
                     + `${total} stored for ${escapeHtml(account)}, in your repository only, `
                     + `never on the gateway.`;
                 if (mismatches.length > 0) {

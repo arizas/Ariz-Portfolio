@@ -26,6 +26,7 @@ customElements.define('ai-assistant-page',
             document.querySelectorAll('link').forEach((link) => this.shadowRoot.appendChild(link.cloneNode()));
             this.session = createDataSession();
             this.messages = [];
+            this.notes = [];
             this.element = (id) => this.shadowRoot.getElementById(id);
 
             this.element('acknowledge').addEventListener('change', () => this.refresh());
@@ -118,7 +119,7 @@ customElements.define('ai-assistant-page',
                     session: this.session,
                     apiKey: loadAccount().key,
                     userMessage: question,
-                    messages: this.messages,
+                    messages: this.messages.length ? [...this.messages, ...this.notes.splice(0)] : this.messages,
                     signal: this.abort.signal,
                     onToolResult: (name, args, result) => {
                         this.addToolEntry(name, args, result);
@@ -135,6 +136,14 @@ customElements.define('ai-assistant-page',
             }
         }
 
+        // Read with the next question, so the assistant knows what happened to
+        // what it proposed. Marked as the app's, since the owner did not type it.
+        // Queued rather than added to the history: a change can be approved while
+        // a turn is still running, and that turn's history replaces this.messages.
+        tellAssistant(text) {
+            this.notes.push({ role: 'user', content: `[From the app, not typed by the owner: ${text}]` });
+        }
+
         renderChanges() {
             const list = this.element('changelist');
             const changes = this.session.pendingChanges();
@@ -148,14 +157,26 @@ customElements.define('ai-assistant-page',
                 approve.className = 'btn btn-sm btn-primary approve';
                 approve.textContent = 'Approve';
                 approve.addEventListener('click', () => this.run(async () => {
-                    await this.session.applyChange(change.id);
-                    this.renderChanges();
+                    approve.disabled = true;
+                    approve.textContent = 'Working…';
+                    try {
+                        const result = await this.session.applyChange(change.id);
+                        const text = result ? JSON.stringify(result) : 'done';
+                        this.addEntry('entry-done', `Done: ${change.summary}. ${text}`);
+                        this.tellAssistant(`the owner approved "${change.summary}", and it is done. Result: ${text}`);
+                    } catch (error) {
+                        this.tellAssistant(`the owner approved "${change.summary}", and it failed: ${error?.message ?? error}`);
+                        throw error;
+                    } finally {
+                        this.renderChanges();
+                    }
                 }));
                 const reject = document.createElement('button');
                 reject.className = 'btn btn-sm btn-outline-secondary reject';
                 reject.textContent = 'Reject';
                 reject.addEventListener('click', () => {
                     this.session.rejectChange(change.id);
+                    this.tellAssistant(`the owner rejected "${change.summary}"`);
                     this.renderChanges();
                 });
                 row.append(text, approve, reject);

@@ -10,8 +10,11 @@
 import { allTokensReport } from '../yearreport/all-tokens-collect.js';
 import { calculatePeriodStartAndEndDate } from '../yearreport/yearreport-table-renderer.js';
 import { isExcluded } from '../yearreport/token-exclusions.js';
-import { getAllFungibleTokenEntries, getTokenExclusions } from '../storage/domainobjectstore.js';
+import {
+    getAccounts, getAllFungibleTokenEntries, getStoredRecordsFileInfo, getStoredRecordsForAccount, getTokenExclusions,
+} from '../storage/domainobjectstore.js';
 import { calculateFlowDecomposition, calculatePortfolio } from '../portfolio/portfolio-data.js';
+import { checkBalancesAgainstChain } from '../near/balance-check.js';
 
 const CURRENCY = /^[a-z]{3,5}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,6 +43,13 @@ export function yearReportParams({ year, currency } = {}) {
 export function portfolioParams({ currency, fromDate = `${new Date().getUTCFullYear()}-01-01` } = {}) {
     if (!DATE.test(String(fromDate)) || Number.isNaN(Date.parse(fromDate))) throw new Error(`fromDate must be yyyy-MM-dd, got ${fromDate}`);
     return { currency: currencyOf(currency), fromDate };
+}
+
+const ACCOUNT_ID = /^(?=.{2,64}$)[a-z0-9]+([-_][a-z0-9]+)*(\.[a-z0-9]+([-_][a-z0-9]+)*)*$/;
+
+export function balanceCheckParams({ account } = {}) {
+    if (!ACCOUNT_ID.test(account ?? '')) throw new Error(`a balance check needs a valid account, got ${account}`);
+    return { account };
 }
 
 const symbolText = (symbol) => {
@@ -218,13 +228,43 @@ async function computePortfolio({ currency, fromDate }) {
     return { summary, holdings };
 }
 
+export async function computeBalanceCheck({ account }, { check = checkBalancesAgainstChain } = {}) {
+    // Only the portfolio's own accounts: this asks public RPC about each token,
+    // and a script must not turn it into a scanner of anyone's accounts.
+    if (!(await getAccounts()).includes(account)) throw new Error(`${account} is not one of the portfolio's accounts`);
+    const file = await getStoredRecordsFileInfo(account);
+    if (!file) throw new Error(`${account} has no stored records to check: fetch its transactions first`);
+    const result = await check(account, await getStoredRecordsForAccount(account));
+    const of = (status) => result.tokens.filter((token) => token.status === status);
+    const brief = ({ token, kind, stored, now, atLastStoredBlock, lastStoredTime, difference, error }) =>
+        ({ token, kind, stored, now, atLastStoredBlock, lastStoredTime, difference, error });
+    const rows = [...result.tokens, ...result.heldButNotStored.map((held) => ({ ...held, status: 'not stored' }))];
+    const summary = {
+        report: 'stored balances against the chain',
+        account,
+        storedFile: file,
+        chainHeight: result.chainHeight,
+        blocksSinceStoredFile: file.lastBlock ? result.chainHeight - file.lastBlock : null,
+        tokensChecked: result.tokens.length,
+        current: of('current').length,
+        behind: listed(of('behind').map(brief)),
+        wrong: listed(of('wrong').map(brief)),
+        unknown: listed(of('unknown').map(brief)),
+        heldButNotStored: listed(result.heldButNotStored),
+        holdingsNotListed: result.holdingsError,
+        meaning: 'current: the chain holds what the store ends on. behind: the store was right at its last row and the token moved since, so fetching the account brings it up to date; staking pools are always a little behind, by the rewards since. wrong: the chain never held what the store ends on, so the stored history is wrong or has a gap. heldButNotStored: held now with no stored row at all. Amounts are raw integers in the token\'s smallest unit.',
+        drillDown: 'balanceCheck, with the same account',
+    };
+    return { summary, rows };
+}
+
 // A report reads every token and may fetch prices for each. A script waiting for
 // one does not use up its own time, so this is what stops a loop over made-up
 // currencies from sending the gateway a request per token per currency.
 export const MAX_REPORTS_PER_SESSION = 8;
 
 /** Reports for one agent session, each computed once per set of parameters. */
-export function createReports({ year = computeYearReport, portfolio = computePortfolio } = {}) {
+export function createReports({ year = computeYearReport, portfolio = computePortfolio, balances = computeBalanceCheck } = {}) {
     const cache = new Map();
     // Started, not kept: a failed one is dropped from the cache so it can be
     // retried, and must still count.
@@ -246,6 +286,7 @@ export function createReports({ year = computeYearReport, portfolio = computePor
     return {
         year: (args) => cached('year report', yearReportParams(args), year),
         portfolio: (args) => cached('portfolio', portfolioParams(args), portfolio),
+        balances: (args) => cached('balance check', balanceCheckParams(args), balances),
         clear: () => cache.clear(),
     };
 }

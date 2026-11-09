@@ -244,6 +244,24 @@ export async function getStoredRecordsForAccount(account) {
 }
 
 /**
+ * What the records file says about itself: the blocks the export covered, and
+ * whether the gateway considered the history complete. Null when there is none.
+ */
+export async function getStoredRecordsFileInfo(account) {
+    const path = `${accountdatadir}/${account}/records.json`;
+    if (!(await exists(path))) return null;
+    const data = JSON.parse(await readTextFile(path));
+    const metadata = data?.metadata ?? {};
+    return {
+        records: Array.isArray(data?.records) ? data.records.length : 0,
+        firstBlock: metadata.firstBlock ?? null,
+        lastBlock: metadata.lastBlock ?? null,
+        historyComplete: metadata.historyComplete ?? null,
+        updatedAt: data?.updatedAt ?? null,
+    };
+}
+
+/**
  * Read the raw V2 records file. Returns an array of BalanceChangeRecord
  * (one per token balance change at a block), or an empty array if the
  * file doesn't exist yet (i.e. the user hasn't re-fetched from the gateway
