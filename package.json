@@ -15,6 +15,7 @@
     "test": "wtr",
     "test:e2e": "npx playwright test",
     "test:opfs-worker": "node test_servers/opfs-worker-harness.mjs",
+    "test:data-agent": "node test_servers/data-agent-harness.mjs",
     "test:encrypted-sync": "node test_servers/encrypted-sync-harness.mjs",
     "test:e2e:watch": "npx playwright test --ui",
     "test:e2e:watch:codespaces": "yarn test:e2e --ui-host=0.0.0.0",
