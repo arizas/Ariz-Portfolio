@@ -3,12 +3,12 @@
 // The policy allows images from any https host, so a markdown or HTML image in the
 // model's answer would otherwise send data wherever its URL said.
 
-import html from './data-check-page.component.html.js';
+import html from './ai-assistant-page.component.html.js';
 import { runAgentTurn } from './agent.js';
 import { createDataSession } from './data-api.js';
 import { checkKey, connectWithWallet, forgetAccount, loadAccount, storeAccount } from './nearai-account.js';
 
-const DEFAULT_QUESTION = 'Is anything stale, wrong or missing in my stored data?';
+const DEFAULT_QUESTION = 'What does my data cover, and is anything stale, wrong or missing?';
 
 const CONNECTION_TEXT = {
     ok: 'Connected to NEAR AI.',
@@ -17,7 +17,7 @@ const CONNECTION_TEXT = {
     unknown: 'Connected. NEAR AI could not confirm the key yet.',
 };
 
-customElements.define('data-check-page',
+customElements.define('ai-assistant-page',
     class extends HTMLElement {
         constructor() {
             super();

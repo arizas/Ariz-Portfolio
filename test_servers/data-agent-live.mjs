@@ -1,4 +1,4 @@
-// The data check page with a REAL model on a FICTIONAL store with planted
+// The AI assistant page with a REAL model on a FICTIONAL store with planted
 // problems. It costs NEAR AI credits and a model's answers vary, so this is a
 // manual measurement and not part of CI: it prints what the model found.
 //
@@ -73,7 +73,7 @@ await page.evaluate(async ({ apiKey, MARKER, INJECTION, ALICE_ROWS }) => {
     const gs = await import('/storage/gitstorage.js');
     const store = await import('/storage/domainobjectstore.js');
     const { storeAccount } = await import('/dataagent/nearai-account.js');
-    await import('/dataagent/data-check-page.component.js');
+    await import('/dataagent/ai-assistant-page.component.js');
     await gs.configure_user({ accessToken: 'ANON', username: 'Test', useremail: 't@example.com' });
 
     const records = (account, rows, startDate, gapAt) => {
@@ -102,7 +102,7 @@ await page.evaluate(async ({ apiKey, MARKER, INJECTION, ALICE_ROWS }) => {
     await store.setHistoricalPriceData('NEAR', 'usd', { '2026-11-08': 5 });
 
     storeAccount({ key: apiKey });
-    const element = document.createElement('data-check-page');
+    const element = document.createElement('ai-assistant-page');
     element.id = 'under-test';
     document.body.append(element);
 }, { apiKey, MARKER, INJECTION, ALICE_ROWS });
