@@ -4,15 +4,14 @@
 //
 // A fresh engine per run, so nothing carries over from one script to the next.
 
-const QUICKJS_URL = 'https://cdn.jsdelivr.net/npm/quickjs-wasm@0.0.5/js/quickjs.js';
+// 0.0.6 or later: from 0.0.6 the engine frees what each host call returned, so a
+// script can page through a dataset of any size and only the time limit bounds it.
+const QUICKJS_URL = 'https://cdn.jsdelivr.net/npm/quickjs-wasm@0.0.6/js/quickjs.js';
 
 export const SCRIPT_TIMEOUT_MS = 20000;
 // The engine's wasm memory is a fixed 16 MB, whatever a limit above that says.
+// That bounds what a script holds at once, not what it reads in total.
 export const SCRIPT_MEMORY_LIMIT = 15 * 1024 * 1024;
-// quickjs-wasm 0.0.5 keeps about what each host call returned until the run ends,
-// so what a script can read is a total, however small the pages. Past this it gets
-// a reason it can act on, rather than the engine failing with no way to answer.
-export const MAX_SCRIPT_READ_CHARS = 10 * 1000 * 1000;
 /** What a script may hand back. Anything larger would end up in the model's context. */
 export const MAX_SCRIPT_OUTPUT_CHARS = 6000;
 
@@ -82,7 +81,6 @@ export async function runScript(code, api, { timeoutMs = SCRIPT_TIMEOUT_MS } = {
     // outside callModFunction's own window, so it is set again each time.
     const deadline = Date.now() + timeoutMs;
     const arm = () => quickjs.wasmInstance.set_eval_deadline(deadline);
-    let readChars = 0;
 
     quickjs.hostFunctions.appCall = async (params) => {
         const method = quickjs.getObjectPropertyValue(params, 'method');
@@ -91,10 +89,6 @@ export async function runScript(code, api, { timeoutMs = SCRIPT_TIMEOUT_MS } = {
         try {
             if (!Object.hasOwn(api, method)) throw new Error(`app.${method} does not exist`);
             answerText = JSON.stringify({ result: await api[method](JSON.parse(argsText)) });
-            readChars += answerText.length;
-            if (readChars > MAX_SCRIPT_READ_CHARS) {
-                throw new Error(`this script has read ${MAX_SCRIPT_READ_CHARS / 1e6} MB, the most one script can: use app.aggregate, narrow it with where and from/to, or ask for fewer fields`);
-            }
         } catch (error) {
             answerText = JSON.stringify({ error: String((error && error.message) || error) });
         }

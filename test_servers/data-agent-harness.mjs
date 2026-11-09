@@ -219,7 +219,13 @@ const ROWS = 100_000;
             out.viaEnv = await env.callHostAsync({ function_name: 'appCall', method: '__proto__', args: '{}' });
             return out;
         `, api);
-        r.unknownHostFunction = await runScript(`await env.callHostAsync({ function_name: 'constructor' }); return 'came back';`, api, { timeoutMs: 3000 });
+        // quickjs-wasm 0.0.6 answers a host function it does not have with undefined.
+        // Object.prototype.constructor would answer with something else.
+        r.unknownHostFunction = await runScript(`
+            const answers = [];
+            for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) answers.push(typeof await env.callHostAsync({ function_name: name }));
+            return answers.join();
+        `, api, { timeoutMs: 3000 });
         r.traversal = {};
         for (const account of ['..', '../..', '../accounts', 'alice.near/../..', '.', 'ALICE/x']) {
             r.traversal[account] = await api.query({ dataset: 'records', account }).then(() => 'answered', (error) => error.message);
@@ -340,7 +346,8 @@ const ROWS = 100_000;
         out.breaks.checkedRows === 60000 && out.breaks.tokens === 2 && out.breaks.breakCount === 1 && found?.block_height === 51002 && found?.token === 'near' && found?.difference === '777',
         JSON.stringify(out.breaks).slice(0, 220));
     check('a chain with no break reports none', out.breaksViaScript.value === '0', out.breaksViaScript.value);
-    check('a script that reads too much gets a reason it can act on', /use app\.aggregate/.test(out.fullWalk.error ?? ''), out.fullWalk.error);
+    check('a script walks every row of a file far larger than its memory', out.fullWalk.error === null && out.fullWalk.value === String(ROWS),
+        `${out.fullWalk.value ?? out.fullWalk.error} rows from ${(out.recordsChars / 1e6).toFixed(1)} MB`);
     check('the next script is unaffected', out.afterFullWalk.value === String(ROWS), out.afterFullWalk.value);
     check('token and date filters apply', out.tokenFrom.rows[0]?.token_id === 'near' && out.tokenFrom.rows[0]?.block_timestamp.startsWith('2025-01-02'));
     check('prices read through the app, not via ..', out.prices.rows.length === 2 && out.prices.rows[0].token === 'NEAR', JSON.stringify(out.prices.rows));
@@ -352,7 +359,7 @@ const ROWS = 100_000;
     const isolation = parsed(out.isolation);
     const reachable = Object.entries(isolation).filter(([, value]) => value !== 'undefined' && value !== 'refused');
     check('a script reaches no network, DOM, storage or write API', out.isolation.error === null && reachable.length === 0, JSON.stringify(isolation));
-    check('inherited names are not app methods or host functions', parsed(out.inherited).onApp === 'undefined' && /does not exist/.test(parsed(out.inherited).viaEnv) && !/came back/.test(JSON.stringify(out.unknownHostFunction)),
+    check('inherited names are not app methods or host functions', parsed(out.inherited).onApp === 'undefined' && /does not exist/.test(parsed(out.inherited).viaEnv) && out.unknownHostFunction.value === 'undefined,undefined,undefined,undefined',
         `${JSON.stringify(out.inherited)} ${JSON.stringify(out.unknownHostFunction)}`);
     check('a path as an account is refused', Object.values(out.traversal).every((answer) => /valid account/.test(answer)), JSON.stringify(out.traversal));
     check('a path or __proto__ as a dataset is refused', /unknown dataset/.test(out.unknownDataset) && /unknown dataset/.test(out.proto));

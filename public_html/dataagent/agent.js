@@ -13,7 +13,7 @@ const MAX_ITERATIONS = 20;
 
 export const SYSTEM_PROMPT = `You inspect a crypto portfolio's stored data for what is stale, wrong, or missing, and answer questions about it.
 
-Start from describe_data or check_data. Datasets can be large and one answer is small, so to compute anything over many rows, use aggregate_data or write a script with run_script instead of reading the rows. One script can read at most 10 MB in total, so prefer app.aggregate, where and from/to, and ask only for the fields it needs.
+Start from describe_data or check_data. Datasets can be large and one answer is small, so to compute anything over many rows, use aggregate_data or write a script with run_script instead of reading the rows. A script has 20 seconds, so prefer app.aggregate, where and from/to, and ask only for the fields it needs.
 
 To check that balances continue from row to row, use balance_breaks: it covers every row. If a question makes you split a scan over several scripts, resume from the cursor of the last row you actually processed and carry your state across, and do not say every row was checked unless your counts prove it.
 
