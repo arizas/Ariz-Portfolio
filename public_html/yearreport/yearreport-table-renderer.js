@@ -1,7 +1,7 @@
 import { calculateYearReportData, calculateProfitLoss, getConvertedValuesForDay, getFungibleTokenConvertedValuesForDay, getDecimalConversionValue, getTokenSymbol } from './yearreportdata.js';
 import { browserLocale } from '../util/locale.js';
-import { ALL_TOKENS, combineDailyRows } from './all-tokens-daily.js';
-import { collectAllTokenDays } from './all-tokens-collect.js';
+import { ALL_TOKENS } from './all-tokens-daily.js';
+import { allTokensReport, collectAllTokenDays } from './all-tokens-collect.js';
 import { escapeHtml } from '../util/escape-html.js';
 
 const numDecimals = 2;
@@ -259,11 +259,8 @@ export async function renderAllTokensPeriodTable({
         return empty;
     }
 
-    const { contributions, transactionsByDate, failed, neverPriced = [], flowsByDate = {},
-        pricesUnavailable = {} } = await collect({
-        tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress,
-    });
-    const { rows, totals } = combineDailyRows(contributions);
+    const { rows, totals, flowTotals, flowsByDate, transactionsByDate, failed, neverPriced, pricesUnavailable } =
+        await allTokensReport({ tokens, periodStartDate, periodEndDate, convertToCurrency, onProgress, collect });
 
     const formatNumber = getAmountFormatter();
     // The flow columns answer a different question here than they do per token,
@@ -314,12 +311,9 @@ Open a day to see every token's own deposits and withdrawals.`);
             `Held on some days with no price that day, so the balance columns are short them: ${nameList(totals.unvalued)}. Days where one of them actually moved are marked on the row.`));
     }
 
-    const flowTotals = { deposit: 0, withdrawal: 0 };
     for (const rowdata of rows) {
         const datestring = rowdata.date;
         const flows = flowsByDate[datestring] ?? EMPTY_FLOWS;
-        flowTotals.deposit += flows.deposit;
-        flowTotals.withdrawal += flows.withdrawal;
         const row = rowTemplate.cloneNode(true).content;
 
         row.querySelector('.dailybalancerow_datetime').innerText = datestring;

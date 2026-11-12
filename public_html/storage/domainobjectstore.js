@@ -133,11 +133,16 @@ export async function getAllFungibleTokenTransactionsByTxHash(account) {
     return transactionsMap;
 }
 
-export async function getAllFungibleTokenTransactions(account) {
+/** The fungible token file as stored: no derived rows, no network, no writes. */
+export async function getStoredFungibleTokenTransactions(account) {
     const fungibleTokenTransactionsPath = getFungibleTokenTransactionsPath(account);
-    const stored = (await exists(fungibleTokenTransactionsPath))
+    return (await exists(fungibleTokenTransactionsPath))
         ? JSON.parse(await readTextFile(fungibleTokenTransactionsPath))
         : [];
+}
+
+export async function getAllFungibleTokenTransactions(account) {
+    const stored = await getStoredFungibleTokenTransactions(account);
     // The confidential bucket is derived at read time from the (client-only)
     // confidential history file — never persisted into this file (see
     // writeFungibleTokenTransactions), so a gateway re-sync can't touch it.
@@ -230,6 +235,32 @@ export async function writeAccountingRecords(account, jsonData) {
     await writeFile(`${accountdatadir}/${account}/records.json`, JSON.stringify(jsonData, null, 1));
 }
 
+/** The records file as stored: no derived rows, no network, no writes. */
+export async function getStoredRecordsForAccount(account) {
+    const path = `${accountdatadir}/${account}/records.json`;
+    if (!(await exists(path))) return [];
+    const data = JSON.parse(await readTextFile(path));
+    return Array.isArray(data?.records) ? data.records : [];
+}
+
+/**
+ * What the records file says about itself: the blocks the export covered, and
+ * whether the gateway considered the history complete. Null when there is none.
+ */
+export async function getStoredRecordsFileInfo(account) {
+    const path = `${accountdatadir}/${account}/records.json`;
+    if (!(await exists(path))) return null;
+    const data = JSON.parse(await readTextFile(path));
+    const metadata = data?.metadata ?? {};
+    return {
+        records: Array.isArray(data?.records) ? data.records.length : 0,
+        firstBlock: metadata.firstBlock ?? null,
+        lastBlock: metadata.lastBlock ?? null,
+        historyComplete: metadata.historyComplete ?? null,
+        updatedAt: data?.updatedAt ?? null,
+    };
+}
+
 /**
  * Read the raw V2 records file. Returns an array of BalanceChangeRecord
  * (one per token balance change at a block), or an empty array if the
@@ -237,12 +268,7 @@ export async function writeAccountingRecords(account, jsonData) {
  * since this feature shipped).
  */
 export async function getRecordsForAccount(account) {
-    const path = `${accountdatadir}/${account}/records.json`;
-    let records = [];
-    if (await exists(path)) {
-        const data = JSON.parse(await readTextFile(path));
-        records = Array.isArray(data?.records) ? data.records : [];
-    }
+    const records = await getStoredRecordsForAccount(account);
     // Confidential-bucket rows are derived at read time and never written into
     // records.json — that file is overwritten wholesale by every gateway sync.
     return records.concat(await getConfidentialRecordsForAccount(account));

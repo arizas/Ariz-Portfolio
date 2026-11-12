@@ -79,6 +79,9 @@ jobs:
       - name: Run OPFS worker harness
         run: yarn test:opfs-worker
 
+      - name: Run data agent harness
+        run: yarn test:data-agent
+
   test_encrypted_sync:
     name: Test encrypted gateway sync (service worker e2e)
     runs-on: ubuntu-latest
