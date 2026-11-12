@@ -30,6 +30,7 @@ export default /*html*/ `
     </section>
 
     <div id="transcript" aria-live="polite"></div>
+    <p id="status" class="text-body-secondary small mb-2" role="status" hidden></p>
 
     <section id="changes" class="mb-3" hidden>
         <h5>Changes waiting for your approval</h5>

@@ -512,6 +512,19 @@ self.onmessage = async (msg) => {
         }
         postMessage({ result });
     } catch (error) {
-        postMessage({ error: error.toString() });
+        postMessage({ error: describeError(error, params) });
     }
 };
+
+// Emscripten's file system throws an ErrnoError that is no Error and has no
+// message: its toString() is "[object Object]", which was all a caller ever saw.
+// Emscripten's own errno numbers, not Linux's.
+const ERRNO_NAMES = { 2: 'EACCES', 20: 'EEXIST', 31: 'EISDIR', 44: 'ENOENT', 54: 'ENOTDIR', 55: 'ENOTEMPTY' };
+function describeError(error, params) {
+    if (typeof error === 'string') return error;
+    let text = error?.message;
+    if (!text && error?.errno !== undefined) text = `${error.code ?? ERRNO_NAMES[error.errno] ?? 'file system error'} (errno ${error.errno})`;
+    if (!text) text = String(error);
+    if (text === '[object Object]') text = 'file system error';
+    return params?.path ? `${params.command} ${params.path}: ${text}` : text;
+}

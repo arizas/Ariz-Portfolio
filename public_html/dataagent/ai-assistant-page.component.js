@@ -24,7 +24,7 @@ customElements.define('ai-assistant-page',
             this.attachShadow({ mode: 'open' });
             this.shadowRoot.innerHTML = html;
             document.querySelectorAll('link').forEach((link) => this.shadowRoot.appendChild(link.cloneNode()));
-            this.session = createDataSession();
+            this.session = createDataSession({ onProgress: (message) => this.progress(message) });
             this.messages = [];
             this.notes = [];
             this.element = (id) => this.shadowRoot.getElementById(id);
@@ -93,18 +93,52 @@ customElements.define('ai-assistant-page',
             return entry;
         }
 
-        // What each step really did, so a finding can be checked against what produced it.
-        addToolEntry(name, args, result) {
+        // What is being waited for, and for how long: a step can take a minute,
+        // and without this the page looks like it hangs.
+        setStatus(text) {
+            const status = this.element('status');
+            clearInterval(this.statusTimer);
+            status.hidden = !text;
+            if (!text) return;
+            const since = Date.now();
+            const show = () => { status.textContent = `${text} (${Math.round((Date.now() - since) / 1000)} s)`; };
+            show();
+            this.statusTimer = setInterval(show, 1000);
+        }
+
+        // From the app, while a step runs: shown as the status, and kept in the
+        // step's entry, so what it asked the gateway for can be read afterwards.
+        progress(message) {
+            this.setStatus(message);
+            if (!this.runningStep) return;
+            const line = document.createElement('div');
+            line.textContent = message;
+            this.runningStep.log.append(line);
+        }
+
+        // What each step really did, so a finding can be checked against what
+        // produced it. Shown as soon as it starts.
+        startToolEntry(name, args) {
             const details = document.createElement('details');
             details.className = 'entry entry-tool';
             const summary = document.createElement('summary');
-            summary.textContent = `Ran ${name}`;
+            summary.textContent = `Running ${name}…`;
             const code = document.createElement('pre');
             code.textContent = typeof args?.code === 'string' ? args.code : JSON.stringify(args, null, 1);
+            const log = document.createElement('div');
+            log.className = 'small text-body-secondary mb-2';
             const output = document.createElement('pre');
-            output.textContent = result;
-            details.append(summary, code, output);
+            details.append(summary, code, log, output);
             this.element('transcript').append(details);
+            this.runningStep = { name, summary, log, output };
+            this.setStatus(`Running ${name}`);
+        }
+
+        finishToolEntry(name, args, result) {
+            if (this.runningStep?.name !== name) this.startToolEntry(name, args);
+            this.runningStep.summary.textContent = `Ran ${name}`;
+            this.runningStep.output.textContent = result;
+            this.runningStep = null;
         }
 
         async ask() {
@@ -121,8 +155,10 @@ customElements.define('ai-assistant-page',
                     userMessage: question,
                     messages: this.messages.length ? [...this.messages, ...this.notes.splice(0)] : this.messages,
                     signal: this.abort.signal,
+                    onModelCall: (step) => this.setStatus(step === 1 ? 'Waiting for NEAR AI' : `Waiting for NEAR AI (step ${step})`),
+                    onToolStart: (name, args) => this.startToolEntry(name, args),
                     onToolResult: (name, args, result) => {
-                        this.addToolEntry(name, args, result);
+                        this.finishToolEntry(name, args, result);
                         this.renderChanges();
                     },
                 });
@@ -133,6 +169,8 @@ customElements.define('ai-assistant-page',
                 throw error;
             } finally {
                 this.answering = false;
+                this.runningStep = null;
+                this.setStatus(null);
             }
         }
 
@@ -168,6 +206,9 @@ customElements.define('ai-assistant-page',
                         this.tellAssistant(`the owner approved "${change.summary}", and it failed: ${error?.message ?? error}`);
                         throw error;
                     } finally {
+                        // The action's progress was the status; a running
+                        // question sets its own again with its next step.
+                        if (!this.answering) this.setStatus(null);
                         this.renderChanges();
                     }
                 }));

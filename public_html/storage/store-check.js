@@ -24,10 +24,28 @@ const PRICE_FILE = { shape: isPlainObject, expected: 'an object', rows: (d) => O
 const ACCOUNTS_FILE = { shape: isArray, expected: 'an array', rows: (d) => d.length };
 
 // A listing includes . and .., and .. is the store's root.
-const list = async (dir) => (await exists(dir)) ? (await readdir(dir)).filter((name) => !name.startsWith('.')) : [];
+// A path that cannot be listed, such as a file where a folder belongs, is a
+// problem to report and not a reason to stop checking the rest.
+const unlistable = [];
+const list = async (dir) => {
+    if (!(await exists(dir))) return [];
+    try {
+        return (await readdir(dir)).filter((name) => !name.startsWith('.'));
+    } catch (error) {
+        unlistable.push({ path: dir, status: 'unlistable', error: String(error?.message ?? error).slice(0, 200) });
+        return [];
+    }
+};
+
+const errorText = (error) => String(error?.message ?? error).slice(0, 200);
 
 async function checkFile(path, rule) {
-    const text = await readTextFile(path);
+    let text;
+    try {
+        text = await readTextFile(path);
+    } catch (error) {
+        return { path, status: 'unreadable', error: errorText(error) };
+    }
     const bytes = text.length;
     if (hasConflictMarkers(text)) return { path, bytes, status: 'conflict-markers' };
     let data;
@@ -46,6 +64,7 @@ async function checkFile(path, rule) {
  */
 export async function checkStoreFiles() {
     const results = [];
+    unlistable.length = 0;
 
     let trackedAccounts = [];
     if (await exists(accountsconfigfile)) {
@@ -82,6 +101,7 @@ export async function checkStoreFiles() {
         }
     }
 
+    results.push(...unlistable.splice(0));
     return {
         checked: results.length,
         problems: results.filter((result) => result.status !== 'ok'),

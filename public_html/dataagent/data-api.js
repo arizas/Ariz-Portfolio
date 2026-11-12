@@ -264,6 +264,11 @@ const accountsChange = (accountId) => ({
 
 // Every change the agent may ask for. Transaction data is not here: it comes from
 // a fetch, and the next sync would overwrite an edit.
+// The price refresh counts; the page wants a sentence.
+const priceProgress = (progress) => (done, total, token, currency) => progress(token
+    ? `Updating prices: ${token} in ${currency} (${done + 1} of ${total})`
+    : `Updated ${total} price histories`);
+
 const CHANGES = {
     addAccount: {
         describe: ({ accountId }) => `Track the account ${accountId}`,
@@ -306,8 +311,8 @@ const CHANGES = {
             if (!Array.isArray(accounts) || accounts.length === 0) throw new Error('accounts must be a list of the portfolio\'s accounts');
             for (const account of accounts) await trackedAccount(account);
         },
-        apply: async ({ accounts }) => {
-            const result = await fetchAccountsFromExport(accounts);
+        apply: async ({ accounts }, progress) => {
+            const result = await fetchAccountsFromExport(accounts, { onProgress: progress, onPriceProgress: priceProgress(progress) });
             return {
                 fetched: result.fetched,
                 pricesUpdated: result.pricesUpdated,
@@ -318,8 +323,8 @@ const CHANGES = {
     fetchConfidentialHistory: {
         describe: ({ accountId }) => `Fetch the confidential intents history of ${accountId}. Your wallet asks you to sign as ${accountId}. It is stored in your repository only`,
         check: async ({ accountId }) => trackedAccount(accountId),
-        apply: async ({ accountId }) => {
-            const { fetched, total, added, updated, mismatches } = await fetchConfidentialForAccount(accountId);
+        apply: async ({ accountId }, progress) => {
+            const { fetched, total, added, updated, mismatches } = await fetchConfidentialForAccount(accountId, { onProgress: progress });
             return {
                 fetched, total, added, updated,
                 balancesMatchTheLedger: mismatches.length === 0,
@@ -330,8 +335,8 @@ const CHANGES = {
     refreshPrices: {
         describe: () => 'Update the stored price histories from the Ariz gateway',
         check: async () => { },
-        apply: async () => {
-            const result = await refreshStoredPriceHistories();
+        apply: async (args, progress) => {
+            const result = await refreshStoredPriceHistories(priceProgress(progress));
             return { updated: result.updated, failed: result.failed.length };
         },
     },
@@ -392,12 +397,17 @@ async function trackedAccount(accountId) {
 }
 
 /** One agent session: what it has read so far, and the changes waiting for the user. */
-export function createDataSession() {
+/**
+ * @param {object} [options]
+ * @param {(message: string) => void} [options.onProgress] what a long call is
+ *   waiting for right now, for the page to show while it waits
+ */
+export function createDataSession({ onProgress = () => { } } = {}) {
     const loaded = new Map();
     let lastFilter = null;
     const pending = new Map();
     let nextChangeId = 1;
-    const reports = createReports();
+    const reports = createReports({ progress: (message) => onProgress(message) });
 
     function datasetFor({ dataset: name, account }) {
         if (!Object.hasOwn(DATASETS, name ?? '')) {
@@ -456,7 +466,7 @@ export function createDataSession() {
          * Whether an account's stored history ends where the chain is: per token,
          * current, behind or wrong, and what is held now with no stored row.
          */
-        balanceCheck: async (args = {}) => (await reports.balances(args)).summary,
+        balanceCheck: async (args = {}) => (args.account === undefined ? reports.allBalances() : (await reports.balances(args)).summary),
 
         /** The shape of a dataset, whatever its size. */
         describe: async (args = {}) => {
@@ -606,7 +616,7 @@ export function createDataSession() {
             change.applying = true;
             try {
                 await CHANGES[change.op].check(change.args);
-                const result = await CHANGES[change.op].apply(change.args);
+                const result = await CHANGES[change.op].apply(change.args, (message) => onProgress(message));
                 pending.delete(id);
                 return result ?? null;
             } finally {

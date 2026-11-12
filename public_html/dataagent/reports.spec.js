@@ -181,4 +181,32 @@ describe('the data agent\'s reports', () => {
         expect(failing).to.equal(MAX_REPORTS_PER_SESSION);
         expect(error.message).to.match(/the most it may/);
     });
+
+    it('checks every account in one go, outside the report limit, and tries a failing one only so often', async () => {
+        await setAccounts(['a.near', 'b.near', 'c.near']);
+        const calls = {};
+        const reports = createReports({
+            balances: async ({ account }) => {
+                calls[account] = (calls[account] ?? 0) + 1;
+                if (account === 'c.near') throw new Error('Failed to fetch');
+                return {
+                    summary: {
+                        storedFile: { updatedAt: '2026-10-23T00:00:00Z' }, blocksSinceStoredFile: 10, tokensChecked: 2, current: 1,
+                        behind: [{ token: 'near' }], wrong: [], unknown: [], heldButNotStored: [], holdingsNotListed: null,
+                    },
+                };
+            },
+        });
+        // Far more than the report limit, none of it counted against it.
+        for (let i = 0; i < MAX_REPORTS_PER_SESSION; i++) await reports.balances({ account: 'a.near' });
+        const all = await reports.allBalances();
+        expect(all.accounts.map((a) => [a.account, a.behind ?? a.error])).to.deep.equal([
+            ['a.near', ['near']], ['b.near', ['near']], ['c.near', 'the balance check could not be computed: Failed to fetch'],
+        ]);
+        await reports.allBalances();
+        await reports.allBalances();
+        const last = await reports.allBalances();
+        expect(last.accounts[2].error).to.match(/failed 3 times this session/);
+        expect(calls).to.deep.equal({ 'a.near': 1, 'b.near': 1, 'c.near': 3 });
+    });
 });

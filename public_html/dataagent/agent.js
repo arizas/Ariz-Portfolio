@@ -13,7 +13,7 @@ const MAX_ITERATIONS = 20;
 
 export const SYSTEM_PROMPT = `You are the assistant in Ariz Portfolio, an app that keeps a NEAR crypto portfolio's history in the owner's own encrypted repository. You answer the owner's questions about their portfolio and the app's reports, find what is stale, wrong or missing, and do things in the app for them, always with their approval.
 
-To find out whether stored data is missing or out of date, use balance_check for an account: it compares each token's stored final balance with the chain, says which are current, behind (moved since the data ends: fetching fixes it), or wrong (the chain never held it: the stored history has a gap), and lists what the account holds that the data never mentions.
+To find out whether stored data is missing or out of date, use balance_check, first without an account to see every account at once, then with one for the amounts: it compares each token's stored final balance with the chain, says which are current, behind (moved since the data ends: fetching fixes it), or wrong (the chain never held it: the stored history has a gap), and lists what the account holds that the data never mentions.
 
 To do something, use propose_change. The owner sees what it will do and approves or rejects it; nothing happens before. You can propose: addAccount { accountId }, removeAccount { accountId }, fetchTransactions { accounts: [accountId] } (from the Ariz gateway, then prices), fetchConfidentialHistory { accountId } (the owner's wallet signs), refreshPrices {}, setCounterparty { account, category: received|expense|none, description }, excludeToken { contractId, symbol, reason }, includeToken { contractId }, and openPage { page } with page one of portfolio, year-report, transactions, staking, counterparties, accounts, storage, arizcredits, or year-summary-print with year and currency. Syncing the repository happens on the storage page, so open it for that. Never offer to buy, authorize or revoke credits, export or forget the encryption key, or delete data: open the page that does it and say what to do there. After the owner approves, you are told the result.
 
@@ -29,7 +29,7 @@ In a script, the data is only reachable through the app object:
 - await app.query({ dataset, account, token, from, to, where: [[field, condition, value]], fields, limit, cursor })
 - await app.aggregate({ dataset, account, token, from, to, where, groupBy: [field], metrics: { name: ['sum'|'min'|'max'|'first'|'last', field] } })
 - for await (const row of app.rows({ dataset, account, ... })) walks every matching row
-- await app.yearReport({ year, currency }), await app.portfolio({ currency, fromDate }) and await app.balanceCheck({ account })
+- await app.yearReport({ year, currency }), await app.portfolio({ currency, fromDate }) and await app.balanceCheck({ account }), or app.balanceCheck() for every account
 - a report dataset takes its parameters beside dataset: app.query({ dataset: 'yearReportDays', year: 2025, currency: 'nok', where: [['takenOut', '>', 0]] })
 - await app.balanceBreaks({ account, token, from, to })
 - await app.checkData()
@@ -68,8 +68,8 @@ export const TOOLS = [
     },
     {
         name: 'balance_check',
-        description: 'Compare each token\'s stored final balance for one of the portfolio\'s accounts with the chain: current, behind or wrong, and what the account holds that no stored row mentions. Reads public chain data.',
-        parameters: objectSchema({ account: { type: 'string' } }, ['account']),
+        description: 'Compare each token\'s stored final balance with the chain: current, behind or wrong, and what the account holds that no stored row mentions. Without an account, every account of the portfolio in brief, in one step; with one, that account with amounts. Reads public chain data through the Ariz gateway.',
+        parameters: objectSchema({ account: { type: 'string', description: 'Leave out to check every account' } }),
     },
     {
         name: 'describe_data',
@@ -149,7 +149,8 @@ export async function runTool({ api }, name, args) {
             default: return `ERROR: no tool named ${name}`;
         }
     } catch (error) {
-        return `ERROR: ${error?.message ?? error}`;
+        const text = error?.message ?? (typeof error === 'string' ? error : JSON.stringify(error));
+        return `ERROR: ${text}`;
     }
 }
 
@@ -160,11 +161,15 @@ const openAiTools = TOOLS.map((tool) => ({ type: 'function', function: tool }));
  * answers. `messages` is the history so far, and comes back extended.
  * @returns {Promise<{answer: string, messages: object[]}>}
  */
-export async function runAgentTurn({ session, apiKey, userMessage, messages = [], signal, fetchFn = fetch, onToolResult = () => { } }) {
+export async function runAgentTurn({
+    session, apiKey, userMessage, messages = [], signal, fetchFn = fetch,
+    onModelCall = () => { }, onToolStart = () => { }, onToolResult = () => { },
+}) {
     const history = messages.length ? [...messages] : [{ role: 'system', content: SYSTEM_PROMPT }];
     history.push({ role: 'user', content: userMessage });
 
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+        onModelCall(iteration + 1);
         const response = await fetchFn(`${NEAR_AI_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -183,6 +188,7 @@ export async function runAgentTurn({ session, apiKey, userMessage, messages = []
             let result;
             try {
                 args = JSON.parse(call.function.arguments || '{}');
+                onToolStart(call.function.name, args);
                 result = await runTool(session, call.function.name, args);
             } catch {
                 result = `ERROR: the arguments of ${call.function.name} were not valid JSON`;

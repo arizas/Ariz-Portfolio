@@ -14,18 +14,20 @@
 //
 // And what the account holds now that the store has no row for at all.
 //
-// Read-only and public: archival RPC and FastNear's account API, no signing.
+// Read-only and public, through the Ariz gateway's balances API: a handful of
+// requests per account, each with many reads, made with the gateway's FastNear
+// key. Straight from the browser, FastNear's archival node allows about 2
+// requests a second and answers the rest with a 429 without CORS headers,
+// which a check of a few accounts ran into at once.
 
 import { isStakingPool } from './accounting-export.js';
+import { fetchFromArizGateway } from '../arizgateway/arizgatewayaccess.js';
 
-const INTENTS_CONTRACT_ID = 'intents.near';
-
-export const ARCHIVAL_RPC_URL = 'https://archival-rpc.mainnet.fastnear.com/';
-export const FASTNEAR_API_URL = 'https://api.fastnear.com';
 // A transfer through a contract settles over several receipts: on real data the
 // balance a record ends on is on chain one block after the record's block.
 export const SETTLE_BLOCKS = [0, 1, 3];
-const CONCURRENCY = 4;
+/** The most reads the gateway takes in one request. */
+export const MAX_READS_PER_REQUEST = 300;
 
 export function tokenKind(token) {
     if (token === 'near') return 'near';
@@ -34,53 +36,34 @@ export function tokenKind(token) {
     return 'fungible token';
 }
 
-/** Raw balances on chain, at a block or now. */
-export function createChainReader({ fetchFn = (...args) => fetch(...args), rpcUrl = ARCHIVAL_RPC_URL } = {}) {
-    const query = async (params, block) => {
-        const response = await fetchFn(rpcUrl, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0', id: 'balance-check', method: 'query',
-                params: { ...params, ...(block === 'final' ? { finality: 'final' } : { block_id: block }) },
-            }),
-        });
-        const answer = await response.json();
-        if (answer.error) throw new Error(answer.error.cause?.name ?? answer.error.name ?? 'RPC error');
-        return answer.result;
-    };
-    const view = async (contract, method, args, block) => {
-        const result = await query({
-            request_type: 'call_function', account_id: contract, method_name: method,
-            args_base64: btoa(JSON.stringify(args)),
-        }, block);
-        return JSON.parse(new TextDecoder().decode(new Uint8Array(result.result)));
-    };
-    return {
-        finalHeight: async () => (await query({ request_type: 'view_account', account_id: INTENTS_CONTRACT_ID }, 'final')).block_height,
-        balance: async (account, token, block) => {
-            switch (tokenKind(token)) {
-                case 'near': return (await query({ request_type: 'view_account', account_id: account }, block)).amount;
-                case 'intents': return String(await view(INTENTS_CONTRACT_ID, 'mt_balance_of', { account_id: account, token_id: token }, block));
-                case 'staking pool': return String(await view(token, 'get_account_total_balance', { account_id: account }, block));
-                default: return String(await view(token, 'ft_balance_of', { account_id: account }, block));
-            }
-        },
-        intentsTokens: async (account) => (await view(INTENTS_CONTRACT_ID, 'mt_tokens_for_owner', { account_id: account }, 'final'))
-            .map((entry) => entry.token_id),
-    };
-}
+const API_KIND = { near: 'near', intents: 'intents', 'staking pool': 'pool', 'fungible token': 'ft' };
 
-async function inBatches(items, work) {
-    const results = new Array(items.length);
-    let next = 0;
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, async () => {
-        while (next < items.length) {
-            const index = next++;
-            results[index] = await work(items[index]);
-        }
-    }));
-    return results;
+/**
+ * The gateway's balances API: `readBalances` answers each read with a balance
+ * or an error of its own, `holdings` lists what the account holds now.
+ */
+export function createGatewayChain({ request = fetchFromArizGateway } = {}) {
+    const path = (account) => `/api/balances/${encodeURIComponent(account)}`;
+    return {
+        readBalances: async (account, reads) => {
+            let finalHeight = null;
+            const balances = [];
+            for (let i = 0; i < reads.length; i += MAX_READS_PER_REQUEST) {
+                const answer = await request(path(account), {
+                    body: { reads: reads.slice(i, i + MAX_READS_PER_REQUEST) }, showProgress: false, timeoutMillis: 120000,
+                });
+                if (!Array.isArray(answer?.balances)) throw new Error('the gateway did not answer with balances: are you signed in?');
+                finalHeight ??= answer.finalHeight;
+                balances.push(...answer.balances);
+            }
+            return { finalHeight, balances };
+        },
+        holdings: async (account) => {
+            const answer = await request(`${path(account)}/holdings`, { showProgress: false });
+            if (!Array.isArray(answer?.tokens)) throw new Error('the gateway did not list the holdings: are you signed in?');
+            return answer;
+        },
+    };
 }
 
 /** The last stored row of each token: highest block, and the later row on a tie. */
@@ -101,11 +84,18 @@ export function lastStoredRows(records) {
  * @param {object[]} records the account's stored records
  * @returns {Promise<{chainHeight: number, tokens: object[], heldButNotStored: object[], holdingsListed: boolean, holdingsError: string|null}>}
  */
-export async function checkBalancesAgainstChain(account, records, {
-    chain = createChainReader(), fetchFn = (...args) => fetch(...args),
-} = {}) {
-    const chainHeight = await chain.finalHeight();
-    const tokens = await inBatches(lastStoredRows(records), async (row) => {
+export async function checkBalancesAgainstChain(account, records, { chain = createGatewayChain(), progress = () => { } } = {}) {
+    const read = (token, block) => ({ kind: API_KIND[tokenKind(token)], token, block });
+    const rows = lastStoredRows(records);
+    const ask = (reads, what) => {
+        progress(`Asking the gateway for ${reads.length} balance${reads.length === 1 ? '' : 's'} of ${account} ${what}`);
+        return chain.readBalances(account, reads);
+    };
+
+    // Every token now, in one go.
+    const now = await ask(rows.length ? rows.map((row) => read(row.token_id, 'final')) : [read('near', 'final')], 'now');
+    const tokens = rows.map((row, index) => {
+        const answer = now.balances[index];
         const entry = {
             token: row.token_id,
             kind: tokenKind(row.token_id),
@@ -113,19 +103,28 @@ export async function checkBalancesAgainstChain(account, records, {
             lastStoredTime: row.block_timestamp ?? null,
             stored: String(row.balance_after),
         };
-        try {
-            entry.now = await chain.balance(account, row.token_id, 'final');
-            if (entry.now === entry.stored) return { ...entry, status: 'current' };
-            const difference = String(BigInt(entry.now) - BigInt(entry.stored));
-            let atLastStoredBlock;
-            for (const after of SETTLE_BLOCKS) {
-                const then = await chain.balance(account, row.token_id, row.block_height + after);
-                if (then === entry.stored) return { ...entry, status: 'behind', difference };
-                atLastStoredBlock ??= then;
-            }
-            return { ...entry, status: 'wrong', difference, atLastStoredBlock };
-        } catch (error) {
-            return { ...entry, status: 'unknown', error: String(error?.message ?? error).slice(0, 200) };
+        if (answer?.error !== undefined || answer?.balance === undefined) return { ...entry, status: 'unknown', error: answer?.error ?? 'no answer' };
+        entry.now = answer.balance;
+        return entry.now === entry.stored ? { ...entry, status: 'current' } : entry;
+    });
+
+    // Where they differ, what the chain held when the store ends: at the last
+    // stored block and the few after it, all in one go.
+    const moved = tokens.filter((token) => !token.status);
+    const then = moved.length ? await ask(moved.flatMap((token) =>
+        SETTLE_BLOCKS.map((after) => read(token.token, token.lastStoredBlock + after))),
+    `at the last stored blocks of the ${moved.length} token${moved.length === 1 ? '' : 's'} that moved`) : { balances: [] };
+    moved.forEach((token, index) => {
+        const answers = then.balances.slice(index * SETTLE_BLOCKS.length, (index + 1) * SETTLE_BLOCKS.length);
+        token.difference = String(BigInt(token.now) - BigInt(token.stored));
+        if (answers.some((answer) => answer?.balance === token.stored)) {
+            token.status = 'behind';
+        } else if (answers.every((answer) => answer?.balance === undefined)) {
+            token.status = 'unknown';
+            token.error = answers[0]?.error ?? 'no answer';
+        } else {
+            token.status = 'wrong';
+            token.atLastStoredBlock = answers.find((answer) => answer?.balance !== undefined).balance;
         }
     });
 
@@ -135,27 +134,22 @@ export async function checkBalancesAgainstChain(account, records, {
     const heldButNotStored = [];
     let holdingsError = null;
     try {
-        const response = await fetchFn(`${FASTNEAR_API_URL}/v1/account/${encodeURIComponent(account)}/full`);
-        if (!response.ok) throw new Error(`FastNear answered ${response.status}`);
-        const full = await response.json();
-        for (const token of full.tokens ?? []) {
-            if (!stored.has(token.contract_id) && token.balance && token.balance !== '0') {
-                heldButNotStored.push({ token: token.contract_id, kind: 'fungible token', now: String(token.balance) });
-            }
+        progress(`Asking the gateway what ${account} holds now`);
+        const held = await chain.holdings(account);
+        for (const { token, balance } of held.tokens) {
+            if (!stored.has(token) && balance && balance !== '0') heldButNotStored.push({ token, kind: 'fungible token', now: balance });
         }
-        const pools = (full.pools ?? []).map((pool) => pool.pool_id).filter((pool) => !stored.has(pool));
-        const intents = (await chain.intentsTokens(account)).filter((token) => !stored.has(token));
-        for (const found of await inBatches([...pools, ...intents], async (token) => {
-            try {
-                return { token, kind: tokenKind(token), now: await chain.balance(account, token, 'final') };
-            } catch (error) {
-                return { token, kind: tokenKind(token), error: String(error?.message ?? error).slice(0, 200) };
-            }
-        })) {
-            if (found.error || (found.now && found.now !== '0')) heldButNotStored.push(found);
+        const toRead = [...held.pools, ...held.intents].filter((token) => !stored.has(token));
+        if (toRead.length) {
+            const found = await ask(toRead.map((token) => read(token, 'final')), 'held with no stored row');
+            toRead.forEach((token, index) => {
+                const { balance, error } = found.balances[index] ?? { error: 'no answer' };
+                if (error !== undefined) heldButNotStored.push({ token, kind: tokenKind(token), error });
+                else if (balance !== '0') heldButNotStored.push({ token, kind: tokenKind(token), now: balance });
+            });
         }
     } catch (error) {
         holdingsError = String(error?.message ?? error).slice(0, 200);
     }
-    return { chainHeight, tokens, heldButNotStored, holdingsListed: holdingsError === null, holdingsError };
+    return { chainHeight: now.finalHeight, tokens, heldButNotStored, holdingsListed: holdingsError === null, holdingsError };
 }
