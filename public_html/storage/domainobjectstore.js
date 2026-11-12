@@ -8,6 +8,8 @@ import { fetchRawAccountingExport, convertAccountingExportToTransactions, isV2Fo
 import { deriveConfidentialRecords, deriveConfidentialFtTransactions, isDerivedConfidentialFtTransaction,
     confidentialBalancesFromItems, reconcileConfidentialBalances, historyItemKey } from '../near/confidentialledger.js';
 import { resolveDecimals, resolveSymbol, normalizeIntentsAssetId } from '../near/intents-tokens.js';
+import { applyNearCopyChoices, findNearCopies, gatewayNearBalances, nearCopyKey, resolveNearCopies } from '../near/near-duplicates.js';
+import { createGatewayChain } from '../near/balance-check.js';
 
 export const accountdatadir = 'accountdata';
 export const accountsconfigfile = 'accounts.json';
@@ -592,6 +594,82 @@ export async function getStoredStakingPools(account) {
  * @param {boolean} options.merge - Whether to merge with existing transactions (default: true)
  * @returns {Promise<Object>} Result with transactions, ftTransactions, stakingPools, and counts
  */
+/**
+ * The fetched records with each NEAR movement stored more than once kept once,
+ * where the chain shows it (see near-duplicates.js). Before anything derived
+ * from them is written, so transactions.json never sees the copies either. A
+ * gateway that cannot be read leaves the records as fetched: the copies are
+ * then reported by the data check, and resolved on a later fetch.
+ */
+export async function withoutNearCopies(account, rawData, nearBalancesAt = gatewayNearBalances(createGatewayChain(), account)) {
+    const none = { rawData, nearCopies: { removed: 0, undecided: 0 } };
+    if (!isV2Format(rawData) || findNearCopies(rawData.records).length === 0) return none;
+
+    // The owner's choices first: a group the chain could not settle stays
+    // decided the way the owner decided it, fetch after fetch.
+    const chosen = applyNearCopyChoices(rawData.records, await getNearCopyChoices(account));
+    let records = chosen.records;
+    let removed = chosen.removed.length;
+    let undecided = findNearCopies(records).filter((group) => !chosen.decided.has(nearCopyKey(group))).length;
+    if (undecided > 0) {
+        setProgressbarValue('indeterminate', `Checking NEAR rows stored twice for ${account} against the chain...`);
+        try {
+            const byChain = await resolveNearCopies(records, nearBalancesAt, { skip: chosen.decided });
+            records = byChain.records;
+            removed += byChain.removed.length;
+            undecided = byChain.unresolved.length;
+        } catch (error) {
+            // Left as fetched; the data check lists them, and a later fetch tries again.
+            console.warn(`Could not check NEAR rows stored twice for ${account}:`, error);
+        }
+    }
+    if (removed > 0) console.log(`Kept one copy of ${removed} NEAR row(s) stored twice for ${account}`);
+    return {
+        rawData: removed === 0 ? rawData : {
+            ...rawData,
+            records,
+            metadata: rawData.metadata ? { ...rawData.metadata, totalRecords: records.length } : rawData.metadata,
+        },
+        nearCopies: { removed, undecided },
+    };
+}
+
+function getNearCopyChoicesPath(account) {
+    return `${accountdatadir}/${account}/near_copy_choices.json`;
+}
+
+/** The owner's choices for NEAR rows stored twice that the chain could not settle, by nearCopyKey. */
+export async function getNearCopyChoices(account) {
+    const path = getNearCopyChoicesPath(account);
+    if (!(await exists(path))) return {};
+    const data = JSON.parse(await readTextFile(path));
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+}
+
+/**
+ * Record the owner's choice for one group of copies, and apply it to the stored
+ * records now. Kept in its own file because records.json is replaced by every
+ * fetch; the choice is applied to each fetch again.
+ */
+export async function setNearCopyChoice(account, key, keep) {
+    await makeAccountDataDirs(account);
+    const choices = await getNearCopyChoices(account);
+    choices[key] = { keep, decidedAt: new Date().toISOString() };
+    await writeFile(getNearCopyChoicesPath(account), JSON.stringify(choices, null, 1));
+
+    const path = `${accountdatadir}/${account}/records.json`;
+    if (!(await exists(path))) return { removed: 0 };
+    const data = JSON.parse(await readTextFile(path));
+    if (!Array.isArray(data?.records)) return { removed: 0 };
+    const { records, removed } = applyNearCopyChoices(data.records, { [key]: choices[key] });
+    if (removed.length > 0) {
+        await writeAccountingRecords(account, {
+            ...data, records, metadata: data.metadata ? { ...data.metadata, totalRecords: records.length } : data.metadata,
+        });
+    }
+    return { removed: removed.length };
+}
+
 export async function fetchTransactionsFromAccountingExport(account, options = { merge: true }) {
     setProgressbarValue('indeterminate', `Fetching accounting data for ${account}...`);
 
@@ -600,7 +678,7 @@ export async function fetchTransactionsFromAccountingExport(account, options = {
         // Transactions page (which reads records directly), then convert to
         // the V1-like internal format for the existing year-report /
         // counterparties / staking consumers.
-        const rawData = await fetchRawAccountingExport(account);
+        const { rawData, nearCopies } = await withoutNearCopies(account, await fetchRawAccountingExport(account), options.nearBalancesAt);
         await writeAccountingRecords(account, rawData);
 
         const internalFormat = isV2Format(rawData) ? convertV2ToInternalFormat(rawData) : rawData;
@@ -661,6 +739,7 @@ export async function fetchTransactionsFromAccountingExport(account, options = {
             newTransactionsCount: newTransactions.length,
             newFtTransactionsCount: newFtTransactions.length,
             newStakingEntriesCount: totalStakingEntries,
+            nearCopies,
             source: 'accounting-export'
         };
     } catch (error) {

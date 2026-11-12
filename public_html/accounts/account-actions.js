@@ -20,6 +20,10 @@ export async function fetchAccountsFromExport(accounts, { onProgress = () => { }
             newTransactions: result.newTransactionsCount,
             newTokenTransactions: result.newFtTransactionsCount,
             stakingPools: result.stakingPools?.length || 0,
+            // NEAR rows the export holds twice: copies removed where the chain
+            // or the owner decided, and groups still waiting for the owner.
+            nearCopiesRemoved: result.nearCopies?.removed ?? 0,
+            nearCopiesUndecided: result.nearCopies?.undecided ?? 0,
         });
     }
     const prices = await refreshStoredPriceHistories(onPriceProgress);

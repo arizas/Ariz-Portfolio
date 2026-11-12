@@ -18,6 +18,7 @@ const ACCOUNT_FILES = {
     'fungible_token_transactions.json': { shape: isArray, expected: 'an array', rows: (d) => d.length },
     'records.json': { shape: (d) => isArray(d?.records), expected: 'an object with a records array', rows: (d) => d.records.length },
     'confidential_intents_history.json': { shape: isArray, expected: 'an array', rows: (d) => d.length },
+    'near_copy_choices.json': { shape: isPlainObject, expected: 'an object', rows: (d) => Object.keys(d).length },
 };
 const POOL_FILE = { shape: isArray, expected: 'an array', rows: (d) => d.length };
 const PRICE_FILE = { shape: isPlainObject, expected: 'an object', rows: (d) => Object.keys(d).length };
