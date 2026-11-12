@@ -20,8 +20,10 @@ import {
     getDepositAccounts, getExpenseAccounts, getHistoricalPriceData, getReceivedAccounts,
     getStakingRewardsForAccountAndPool, getStoredFungibleTokenTransactions, getStoredRecordsForAccount,
     getStoredStakingPools, getTokenExclusions, getTransactionsForAccount, listStoredPriceHistories,
-    setExpenseAccounts, setReceivedAccounts,
+    setExpenseAccounts, setNearCopyChoice, setReceivedAccounts,
 } from '../storage/domainobjectstore.js';
+import { findNearCopies, gatewayNearBalances, nearCopyKey, resolveNearCopies } from '../near/near-duplicates.js';
+import { createGatewayChain } from '../near/balance-check.js';
 import { refreshStoredPriceHistories } from '../pricedata/pricedata.js';
 import { fetchAccountsFromExport, fetchConfidentialForAccount } from '../accounts/account-actions.js';
 import { exists } from '../storage/gitstorage.js';
@@ -363,6 +365,40 @@ const CHANGES = {
             await setExpenseAccounts(expense);
         },
     },
+    // Only for copies the chain could not settle: those it settles the next
+    // fetch removes by itself. What the owner reads is built from what check
+    // found in the store and on the chain, never from the model's wording.
+    keepNearCopy: {
+        describe: ({ account, keep }, { group }) => {
+            const amount = BigInt(group[0].amount);
+            const near = (Number(amount < 0n ? -amount : amount) / 1e24).toFixed(4);
+            const counterparty = group.map((r) => r.counterparty).find((c) => c && c !== 'unknown');
+            const what = `${near} NEAR ${amount < 0n ? 'sent' : 'received'}${counterparty ? ` ${amount < 0n ? 'to' : 'from'} ${counterparty}` : ''}`;
+            const blocks = group.map((r) => r.block_height);
+            const sameReceipt = new Set(group.map((r) => r.receipt_id).filter(Boolean)).size === 1 && group.every((r) => r.receipt_id);
+            return `${account}: blocks ${blocks.join(' and ')} each record ${what}${sameReceipt ? ', with the same receipt' : ''}. `
+                + `The chain shows this change at none of these blocks, so the app cannot tell which row is right. `
+                + (keep === 'all'
+                    ? 'Keep all of them, as separate movements'
+                    : `Keep the row at block ${keep} and remove the other${group.length > 2 ? 's' : ''}`)
+                + '. This choice is kept for later fetches';
+        },
+        check: async ({ account, key, keep }, { nearBalancesFor }) => {
+            await trackedAccount(account);
+            const group = findNearCopies(await getStoredRecordsForAccount(account)).find((g) => nearCopyKey(g) === key);
+            if (!group) throw new Error(`no NEAR rows stored twice with the key ${key} in ${account}: see nearCopies in balance_breaks`);
+            if (keep !== 'all' && !group.some((r) => r.block_height === keep)) {
+                throw new Error(`keep must be one of the blocks ${group.map((r) => r.block_height).join(', ')}, or 'all'`);
+            }
+            // The owner is asked only what the chain cannot answer.
+            const { unresolved } = await resolveNearCopies(group, nearBalancesFor(account));
+            if (unresolved.length === 0) {
+                throw new Error('the chain settles these rows, so the owner need not choose: fetchTransactions for the account keeps the right one');
+            }
+            return { group };
+        },
+        apply: async ({ account, key, keep }) => setNearCopyChoice(account, key, keep),
+    },
     openPage: {
         describe: ({ page, year, currency }) => (page === 'year-summary-print'
             ? `Open the printable Year report summary for ${year} in ${String(currency).toUpperCase()} in a new tab`
@@ -402,7 +438,12 @@ async function trackedAccount(accountId) {
  * @param {(message: string) => void} [options.onProgress] what a long call is
  *   waiting for right now, for the page to show while it waits
  */
-export function createDataSession({ onProgress = () => { } } = {}) {
+export function createDataSession({
+    onProgress = () => { },
+    // The account's NEAR balance at blocks, for keepNearCopy's check: the gateway's.
+    nearBalancesFor = (account) => gatewayNearBalances(createGatewayChain(), account),
+} = {}) {
+    const context = { nearBalancesFor };
     const loaded = new Map();
     let lastFilter = null;
     const pending = new Map();
@@ -568,6 +609,7 @@ export function createDataSession({ onProgress = () => { } } = {}) {
                 .sort((a, b) => (a.row.block_height - b.row.block_height) || (a.index - b.index));
             const previous = new Map();
             const breaks = [];
+            const breakRows = [];
             let breakCount = 0;
             let unreadable = 0;
             for (const { row } of ordered) {
@@ -579,6 +621,7 @@ export function createDataSession({ onProgress = () => { } } = {}) {
                 if (expected !== undefined && expected !== BigInt(row.balance_before)) {
                     breakCount++;
                     if (breaks.length < MAX_LISTED_BREAKS) {
+                        breakRows.push(row);
                         breaks.push({
                             token: row.token_id, block_height: row.block_height, block_timestamp: row.block_timestamp, tx_hash: row.tx_hash,
                             expected: String(expected), found: row.balance_before, difference: String(BigInt(row.balance_before) - expected),
@@ -587,7 +630,25 @@ export function createDataSession({ onProgress = () => { } } = {}) {
                 }
                 previous.set(row.token_id, BigInt(row.balance_after));
             }
-            return { checkedRows: rows.length, tokens: previous.size, unreadableRows: unreadable, breakCount, breaks };
+            // A NEAR movement stored twice reads as a break that is not a gap:
+            // nothing is missing, one row is extra. Named apart, with the key
+            // keepNearCopy takes, so it is not reported as missing history.
+            const copies = findNearCopies(rows);
+            const copyOf = new Map(copies.flatMap((group) => group.map((r) => [r, nearCopyKey(group)])));
+            breaks.forEach((entry, i) => {
+                if (copyOf.has(breakRows[i])) entry.copyOf = copyOf.get(breakRows[i]);
+            });
+            return {
+                checkedRows: rows.length, tokens: previous.size, unreadableRows: unreadable, breakCount, breaks,
+                nearCopies: copies.slice(0, MAX_LISTED_BREAKS).map((group) => ({
+                    key: nearCopyKey(group),
+                    blocks: group.map((r) => r.block_height),
+                    amount: group[0].amount,
+                    counterparty: group.map((r) => r.counterparty).find((c) => c && c !== 'unknown') ?? null,
+                    sameReceipt: group.every((r) => r.receipt_id) && new Set(group.map((r) => r.receipt_id)).size === 1,
+                })),
+                nearCopyCount: copies.length,
+            };
         },
 
         /** Whether each stored file can be read, and which accounts have data. */
@@ -596,9 +657,9 @@ export function createDataSession({ onProgress = () => { } } = {}) {
         /** Validate a change and queue it for the user. Nothing is written. */
         proposeChange: async ({ op, args = {} } = {}) => {
             if (!Object.hasOwn(CHANGES, op ?? '')) throw new Error(`unknown change ${op} (one of ${Object.keys(CHANGES).join(', ')})`);
-            await CHANGES[op].check(args);
+            const found = (await CHANGES[op].check(args, context)) ?? {};
             const id = nextChangeId++;
-            pending.set(id, { id, op, args, summary: CHANGES[op].describe(args) });
+            pending.set(id, { id, op, args, summary: CHANGES[op].describe(args, found) });
             return { id, summary: pending.get(id).summary, status: 'waiting for the user to approve' };
         },
     };
@@ -615,7 +676,7 @@ export function createDataSession({ onProgress = () => { } } = {}) {
             if (change.applying) throw new Error(`change ${id} is already being applied`);
             change.applying = true;
             try {
-                await CHANGES[change.op].check(change.args);
+                await CHANGES[change.op].check(change.args, context);
                 const result = await CHANGES[change.op].apply(change.args, (message) => onProgress(message));
                 pending.delete(id);
                 return result ?? null;

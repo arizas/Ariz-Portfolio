@@ -1,4 +1,4 @@
-import { setAccounts, getAccounts, getReceivedAccounts, getExpenseAccounts, setReceivedAccounts, setExpenseAccounts, getStoredRecordsFileInfo } from '../storage/domainobjectstore.js';
+import { setAccounts, getAccounts, getReceivedAccounts, getExpenseAccounts, setReceivedAccounts, setExpenseAccounts, getStoredRecordsFileInfo, writeAccountingRecords, getStoredRecordsForAccount, getNearCopyChoices } from '../storage/domainobjectstore.js';
 import { mockWalletAuthenticationData, mockArizGatewayAccess } from '../arizgateway/arizgatewayaccess.spec.js';
 import { createDataSession } from './data-api.js';
 
@@ -91,5 +91,53 @@ describe('the assistant\'s actions', function () {
         const results = await Promise.allSettled([session.applyChange(id), session.applyChange(id)]);
         expect(results.map((r) => r.status).sort()).to.deep.equal(['fulfilled', 'rejected']);
         expect(results.find((r) => r.status === 'rejected').reason.message).to.match(/already being applied/);
+    });
+
+    describe('a NEAR movement stored twice', function () {
+        // other.near: one withdrawal at block 221111269, where the balance moved,
+        // and again at 221111265 with the same receipt.
+        const Y = (near) => (BigInt(Math.round(near * 1e4)) * 10n ** 20n).toString();
+        const copy = (block) => ({
+            block_height: block, block_timestamp: '2026-10-22T15:38:51.263Z', tx_hash: 'DTJZ3FQK', tx_block: null,
+            signer_id: null, receiver_id: 'other.near', predecessor_id: 'intents.near', receipt_id: 'HrwfSfUV',
+            counterparty: 'intents.near', token_id: 'near', amount: Y(2.2893), balance_before: Y(35.6028), balance_after: Y(37.8921),
+        });
+        const store = () => writeAccountingRecords('other.near', { version: 2, accountId: 'other.near', records: [copy(221111269), copy(221111265)], metadata: {} });
+        const readerOf = (balanceAt) => () => async (blocks) => new Map(blocks.map((b) => [b, Y(balanceAt(b))]));
+        before(() => setAccounts([ACCOUNT, 'other.near']));
+
+        it('is listed apart from real breaks, with the key to decide it by', async () => {
+            await store();
+            const { api } = createDataSession();
+            const result = await api.balanceBreaks({ account: 'other.near' });
+            expect(result.nearCopyCount).to.equal(1);
+            expect(result.nearCopies[0].blocks).to.deep.equal([221111265, 221111269]);
+            expect(result.nearCopies[0].sameReceipt).to.be.true;
+            expect(result.breaks.every((b) => b.copyOf === result.nearCopies[0].key)).to.be.true;
+        });
+
+        it('is not put to the owner when the chain settles it', async () => {
+            await store();
+            const { api } = createDataSession({ nearBalancesFor: readerOf((b) => (b >= 221111269 ? 37.8921 : 35.6028)) });
+            const { nearCopies: [{ key }] } = await api.balanceBreaks({ account: 'other.near' });
+            expect(await refused(api.proposeChange({ op: 'keepNearCopy', args: { account: 'other.near', key, keep: 221111269 } })))
+                .to.match(/the chain settles these rows/);
+        });
+
+        it('says what the app could not decide, and keeps the owner\'s choice for later fetches', async () => {
+            await store();
+            const session = createDataSession({ nearBalancesFor: readerOf(() => 35.6028) });
+            const { nearCopies: [{ key }] } = await session.api.balanceBreaks({ account: 'other.near' });
+            expect(await refused(session.api.proposeChange({ op: 'keepNearCopy', args: { account: 'other.near', key, keep: 5 } })))
+                .to.match(/keep must be one of the blocks 221111265, 221111269/);
+
+            const proposal = await session.api.proposeChange({ op: 'keepNearCopy', args: { account: 'other.near', key, keep: 221111269 } });
+            expect(proposal.summary).to.equal('other.near: blocks 221111265 and 221111269 each record 2.2893 NEAR received from intents.near, with the same receipt. '
+                + 'The chain shows this change at none of these blocks, so the app cannot tell which row is right. '
+                + 'Keep the row at block 221111269 and remove the other. This choice is kept for later fetches');
+            expect(await session.applyChange(proposal.id)).to.deep.equal({ removed: 1 });
+            expect((await getStoredRecordsForAccount('other.near')).map((r) => r.block_height)).to.deep.equal([221111269]);
+            expect((await getNearCopyChoices('other.near'))[key].keep).to.equal(221111269);
+        });
     });
 });

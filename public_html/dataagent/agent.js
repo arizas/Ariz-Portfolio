@@ -21,7 +21,7 @@ There are two kinds of data. Stored data is what was fetched: accounts, transact
 
 Start from describe_data or check_data for stored data, or from year_report or portfolio for a question about a report. Datasets can be large and one answer is small, so to compute anything over many rows, use aggregate_data or write a script with run_script instead of reading the rows. A script has 20 seconds, so prefer app.aggregate, where and from/to, and ask only for the fields it needs.
 
-To check that balances continue from row to row, use balance_breaks: it covers every row. If a question makes you split a scan over several scripts, resume from the cursor of the last row you actually processed and carry your state across, and do not say every row was checked unless your counts prove it.
+To check that balances continue from row to row, use balance_breaks: it covers every row. A break marked copyOf is not missing history: it is one NEAR movement stored twice, listed in nearCopies. A fetch removes such copies where the chain shows which row is right. Only for copies still there after a fetch, propose keepNearCopy { account, key, keep } with keep one of its blocks or 'all'; the app tells the owner what it could not decide. If a question makes you split a scan over several scripts, resume from the cursor of the last row you actually processed and carry your state across, and do not say every row was checked unless your counts prove it.
 
 In a script, the data is only reachable through the app object:
 - await app.listDatasets()
@@ -119,7 +119,7 @@ export const TOOLS = [
     },
     {
         name: 'propose_change',
-        description: 'Ask the owner to approve something: addAccount, removeAccount, fetchTransactions, fetchConfidentialHistory, refreshPrices, setCounterparty, excludeToken, includeToken or openPage, with the args the instructions give.',
+        description: 'Ask the owner to approve something: addAccount, removeAccount, fetchTransactions, fetchConfidentialHistory, refreshPrices, setCounterparty, excludeToken, includeToken, keepNearCopy or openPage, with the args the instructions give.',
         parameters: objectSchema({ op: { type: 'string' }, args: { type: 'object' } }, ['op', 'args']),
     },
 ];
