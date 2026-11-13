@@ -4,11 +4,31 @@
 // model's answer would otherwise send data wherever its URL said.
 
 import html from './ai-assistant-page.component.html.js';
-import { runAgentTurn } from './agent.js';
+import { NEAR_AI_MODEL, runAgentTurn } from './agent.js';
 import { createDataSession } from './data-api.js';
 import { checkKey, connectWithWallet, forgetAccount, loadAccount, storeAccount } from './nearai-account.js';
+import { verifyModel } from './nearai-attestation.js';
+import { createClientKey } from './nearai-e2ee.js';
+import { fetchChatModels, privacyStatement } from './nearai-models.js';
+import { fetchFromArizGateway } from '../arizgateway/arizgatewayaccess.js';
 
 const DEFAULT_QUESTION = 'What does my data cover, and is anything stale, wrong or missing?';
+
+const MODEL_STORAGE_KEY = 'ariz_nearai_model';
+/** NVIDIA's verdict is valid for an hour: a verification older than this is done again before asking. */
+const VERIFIED_FOR_MS = 50 * 60 * 1000;
+const PRIVACY_CLASS = { checking: 'alert-secondary', private: 'alert-success', 'not-private': 'alert-warning', unsupported: 'alert-warning', failed: 'alert-danger' };
+
+function loadModelChoice() {
+    try { return localStorage.getItem(MODEL_STORAGE_KEY) || NEAR_AI_MODEL; } catch { return NEAR_AI_MODEL; }
+}
+
+/** The GPU evidence goes to NVIDIA through the Ariz gateway; the browser checks NVIDIA's signed answer. */
+async function relayGpuEvidence(payload) {
+    const answer = await fetchFromArizGateway('/api/nearai/gpu-attestation', { body: payload, showProgress: false, timeoutMillis: 60000 });
+    if (!Array.isArray(answer)) throw new Error('sign in to the Ariz gateway to reach NVIDIA\'s attestation service');
+    return answer;
+}
 
 const CONNECTION_TEXT = {
     ok: 'Connected to NEAR AI.',
@@ -28,8 +48,20 @@ customElements.define('ai-assistant-page',
             this.messages = [];
             this.notes = [];
             this.element = (id) => this.shadowRoot.getElementById(id);
+            this.model = loadModelChoice();
+            this.models = [{ id: this.model, name: this.model }];
+            this.verifications = new Map();
+            this.acknowledged = new Set();
+            // This page's own key: the enclave encrypts its answers to it.
+            this.client = createClientKey();
 
-            this.element('acknowledge').addEventListener('change', () => this.refresh());
+            this.element('acknowledge').addEventListener('change', () => {
+                if (this.element('acknowledge').checked) this.acknowledged.add(this.model);
+                else this.acknowledged.delete(this.model);
+                this.refresh();
+            });
+            this.element('model').addEventListener('change', () => this.chooseModel(this.element('model').value));
+            this.element('verify').addEventListener('click', () => this.verifyChosen({ again: true }));
             this.element('connectwallet').addEventListener('click', () => this.run(() => this.connectWallet()));
             this.element('usekey').addEventListener('click', () => this.run(() => this.usePastedKey()));
             this.element('forget').addEventListener('click', () => {
@@ -42,7 +74,102 @@ customElements.define('ai-assistant-page',
                 event.preventDefault();
                 this.run(() => this.ask());
             });
+            this.renderModels();
             this.refresh();
+            this.loadModels();
+            this.verifyChosen();
+        }
+
+        async loadModels() {
+            try {
+                const models = await fetchChatModels();
+                this.models = models.some((m) => m.id === this.model) ? models : [{ id: this.model, name: this.model }, ...models];
+            } catch (error) {
+                console.warn('Could not list NEAR AI models:', error);
+            }
+            this.renderModels();
+        }
+
+        renderModels() {
+            const select = this.element('model');
+            select.replaceChildren(...this.models.map(({ id, name }) => {
+                const option = document.createElement('option');
+                option.value = id;
+                const result = this.verifications.get(id);
+                option.textContent = name + (result ? (result.verified ? ' (verified private)' : result.checks.some((c) => c.unsupported) ? ' (not verifiable here)' : ' (not private)') : '');
+                return option;
+            }));
+            select.value = this.model;
+        }
+
+        modelInfo() {
+            return this.models.find((m) => m.id === this.model) ?? { id: this.model, name: this.model };
+        }
+
+        chooseModel(id) {
+            if (id === this.model) return;
+            this.model = id;
+            try { localStorage.setItem(MODEL_STORAGE_KEY, id); } catch { /* the choice lasts this visit only */ }
+            // Nothing said to one model is sent to another.
+            this.messages = [];
+            this.notes = [];
+            if (this.element('transcript').childElementCount > 0) this.addEntry('entry-done', `New conversation with ${this.modelInfo().name}.`);
+            this.verifyChosen();
+        }
+
+        isFresh(result) {
+            return result?.verified && Date.now() - Date.parse(result.verifiedAt) < VERIFIED_FOR_MS;
+        }
+
+        async verifyChosen({ again = false } = {}) {
+            const model = this.model;
+            const known = this.verifications.get(model);
+            if (known && !again && (this.isFresh(known) || !known.verified)) return this.renderPrivacy();
+            this.verifications.delete(model);
+            this.renderPrivacy();
+            this.refresh();
+            const result = await verifyModel(model, { relayGpu: relayGpuEvidence }).catch((error) => ({
+                model, verified: false, signingKey: null, software: {}, verifiedAt: new Date().toISOString(),
+                checks: [{ id: 'report', ok: false, label: 'Verification ran', detail: String(error?.message ?? error) }],
+            }));
+            this.verifications.set(model, result);
+            if (model === this.model) {
+                this.renderModels();
+                this.renderPrivacy();
+                this.refresh();
+            }
+            return result;
+        }
+
+        renderPrivacy() {
+            const result = this.verifications.get(this.model) ?? null;
+            const statement = privacyStatement(this.modelInfo(), result);
+            const box = this.element('privacy');
+            box.className = `alert mb-0 ${PRIVACY_CLASS[statement.kind]}`;
+            this.element('privacytext').textContent = statement.text;
+            this.element('checks').hidden = !result;
+            this.element('checklist').replaceChildren(...(result?.checks ?? []).map((check) => {
+                const item = document.createElement('li');
+                item.textContent = `${check.ok ? '✓' : '✗'} ${check.label}${check.informational ? ' (shown, not required)' : ''}${check.detail ? `: ${check.detail}` : ''}`;
+                return item;
+            }));
+            const software = this.element('software');
+            software.replaceChildren();
+            for (const [where, what] of [['The model enclave runs', result?.software?.model], ['NEAR AI\'s gateway enclave runs', result?.software?.gateway]]) {
+                if (!what?.images?.length) continue;
+                const line = document.createElement('div');
+                line.textContent = `${where}: ${what.images.join(', ')}`;
+                software.append(line);
+            }
+            this.element('acknowledgebox').hidden = !statement.acknowledge;
+            this.element('acknowledgelabel').textContent = statement.acknowledge ?? '';
+            this.element('acknowledge').checked = this.acknowledged.has(this.model);
+        }
+
+        /** Verified now, or the owner accepted that this model is not private. */
+        mayAsk() {
+            const result = this.verifications.get(this.model);
+            return Boolean(result?.verified) || (Boolean(result) && this.acknowledged.has(this.model));
         }
 
         refresh() {
@@ -51,7 +178,7 @@ customElements.define('ai-assistant-page',
                 ? (this.connectionText ?? `Connected to NEAR AI${account.accountId ? ` as ${account.accountId}` : ''}.`)
                 : 'Connect your NEAR AI account. It uses your own credits, and the browser talks to NEAR AI directly.';
             this.element('forget').hidden = !account;
-            this.element('send').disabled = !account || this.busy || !this.element('acknowledge').checked;
+            this.element('send').disabled = !account || this.busy || !this.mayAsk();
             this.element('stop').hidden = !this.answering;
         }
 
@@ -149,9 +276,18 @@ customElements.define('ai-assistant-page',
             this.answering = true;
             this.refresh();
             try {
+                // A verification is checked again once NVIDIA's verdict nears its expiry.
+                let result = this.verifications.get(this.model);
+                if (result?.verified && !this.isFresh(result)) {
+                    this.setStatus('Checking the model again');
+                    result = await this.verifyChosen({ again: true });
+                }
+                if (!this.mayAsk()) throw new Error(privacyStatement(this.modelInfo(), result ?? null).text);
                 const { answer, messages } = await runAgentTurn({
                     session: this.session,
                     apiKey: loadAccount().key,
+                    model: this.model,
+                    privacy: result?.verified ? { signingKey: result.signingKey, client: this.client } : null,
                     userMessage: question,
                     messages: this.messages.length ? [...this.messages, ...this.notes.splice(0)] : this.messages,
                     signal: this.abort.signal,

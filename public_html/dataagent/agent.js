@@ -3,9 +3,10 @@
 // here and only what a question needs goes to the model.
 
 import { formatScriptResult, runScript } from './script-sandbox.js';
+import { decryptResponseBody, encryptionHeaders, encryptRequestBody, verifyAnswerSignature } from './nearai-e2ee.js';
 
 export const NEAR_AI_BASE_URL = 'https://cloud-api.near.ai/v1';
-/** Attested per NEAR AI's catalogue. Pinned: most of that catalogue is not. */
+/** The default model: it runs in NEAR AI's confidential hardware, which the page verifies. */
 export const NEAR_AI_MODEL = 'deepseek-ai/DeepSeek-V4.1-Flash-1017';
 export const MAX_TOOL_RESULT_CHARS = 6000;
 const QUERY_TOOL_BYTES = 4000;
@@ -157,12 +158,45 @@ export async function runTool({ api }, name, args) {
 const openAiTools = TOOLS.map((tool) => ({ type: 'function', function: tool }));
 
 /**
+ * One model call. With `privacy` (a verified enclave's key and this browser's
+ * key) the request is encrypted to the enclave, and the answer is used only
+ * after its signature shows the enclave produced it for exactly that request.
+ */
+async function callModel({ model, history, apiKey, privacy, signal, fetchFn }) {
+    const plain = { model, messages: history, tools: openAiTools, tool_choice: 'auto' };
+    const requestText = JSON.stringify(privacy ? await encryptRequestBody(plain, privacy.signingKey) : plain);
+    const response = await fetchFn(`${NEAR_AI_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            ...(privacy ? encryptionHeaders(privacy.client.publicKeyHex, privacy.signingKey) : {}),
+        },
+        body: requestText,
+        signal,
+    });
+    const responseText = await response.text();
+    if (!response.ok) {
+        let detail = '';
+        try { detail = JSON.parse(responseText)?.error?.message ?? ''; } catch { /* not JSON */ }
+        throw Object.assign(new Error(`NEAR AI answered ${response.status}${detail ? `: ${String(detail).slice(0, 300)}` : ''}`), { status: response.status });
+    }
+    const body = JSON.parse(responseText);
+    if (!privacy) return body;
+    await verifyAnswerSignature({ chatId: body.id, model, requestBody: requestText, responseText, signingKey: privacy.signingKey, apiKey, fetchFn });
+    return decryptResponseBody(body, privacy.client.seed);
+}
+
+/**
  * One user turn: call the model, run the tools it asks for, repeat until it
  * answers. `messages` is the history so far, and comes back extended.
+ * `privacy` is { signingKey, client } for a verified model, or null to send
+ * in the clear: then NEAR AI, and the provider behind it, can read everything.
  * @returns {Promise<{answer: string, messages: object[]}>}
  */
 export async function runAgentTurn({
     session, apiKey, userMessage, messages = [], signal, fetchFn = fetch,
+    model = NEAR_AI_MODEL, privacy = null,
     onModelCall = () => { }, onToolStart = () => { }, onToolResult = () => { },
 }) {
     const history = messages.length ? [...messages] : [{ role: 'system', content: SYSTEM_PROMPT }];
@@ -170,14 +204,7 @@ export async function runAgentTurn({
 
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
         onModelCall(iteration + 1);
-        const response = await fetchFn(`${NEAR_AI_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: NEAR_AI_MODEL, messages: history, tools: openAiTools, tool_choice: 'auto' }),
-            signal,
-        });
-        if (!response.ok) throw Object.assign(new Error(`NEAR AI answered ${response.status}`), { status: response.status });
-        const message = (await response.json()).choices?.[0]?.message;
+        const message = (await callModel({ model, history, apiKey, privacy, signal, fetchFn })).choices?.[0]?.message;
         if (!message) throw new Error('NEAR AI sent no message');
         const { role, content, tool_calls: toolCalls } = message;
         history.push({ role, content: content ?? '', ...(toolCalls?.length ? { tool_calls: toolCalls } : {}) });

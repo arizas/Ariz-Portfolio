@@ -9,15 +9,26 @@ export default /*html*/ `
     <h3>AI assistant</h3>
     <p>Ask about your portfolio in your own words: what a figure in your Year report or Portfolio is made of, what happened on a day, or whether anything is stale, wrong or missing. It works through the app and through scripts, so most rows stay in this browser. Anything it would change waits for your approval.</p>
 
-    <div class="alert alert-warning" role="alert">
-        <strong>Not yet private enough for real financial data.</strong>
-        Your questions, plus whatever the model reads or its scripts print, go to NEAR AI over ordinary TLS.
-        This page does not yet verify that the model runs in a trusted environment, and does not use end-to-end encryption.
-        <div class="form-check mt-2">
-            <input class="form-check-input" type="checkbox" id="acknowledge">
-            <label class="form-check-label" for="acknowledge">I understand, and accept this for the data in this store</label>
+    <section id="modelsection" class="mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <label for="model" class="form-label mb-0">Model</label>
+            <select id="model" class="form-select w-auto"></select>
+            <button id="verify" type="button" class="btn btn-sm btn-outline-secondary">Check again</button>
         </div>
-    </div>
+        <p class="small text-body-secondary mb-2">Changing the model starts a new conversation, so nothing said to one model is sent to another.</p>
+        <div id="privacy" class="alert mb-0" role="status">
+            <div id="privacytext"></div>
+            <details id="checks" class="mt-2" hidden>
+                <summary>What this browser checked</summary>
+                <ul id="checklist" class="mb-1"></ul>
+                <div id="software" class="small"></div>
+            </details>
+            <div id="acknowledgebox" class="form-check mt-2" hidden>
+                <input class="form-check-input" type="checkbox" id="acknowledge">
+                <label class="form-check-label" for="acknowledge" id="acknowledgelabel"></label>
+            </div>
+        </div>
+    </section>
 
     <section id="connect" class="mb-3">
         <p id="connection"></p>
