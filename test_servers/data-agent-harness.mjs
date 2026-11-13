@@ -478,6 +478,14 @@ const ROWS = 100_000;
         const realFetch = window.fetch;
         window.fetch = async (url, init) => {
             if (!String(url).startsWith('https://cloud-api.near.ai/')) return realFetch(url, init);
+            // The model list, and an attestation report NEAR AI refuses: this run
+            // is the not-private path, which the owner must accept first.
+            if (String(url).includes('/v1/models')) {
+                return new Response(JSON.stringify({ data: [{ id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', name: 'DeepSeek V4.1 Flash 1017' }, { id: 'anthropic/claude-sonnet-5-5', name: 'Claude Sonnet 5.5' }] }));
+            }
+            if (String(url).includes('/v1/attestation/report')) {
+                return new Response(JSON.stringify({ error: { message: 'TEE attestation is not supported for external providers' } }), { status: 400 });
+            }
             bodies.push({ url: String(url), auth: init.headers.Authorization, body: JSON.parse(init.body) });
             return new Response(JSON.stringify({ choices: [{ message: { role: 'assistant', content: null, ...script[bodies.length - 1] } }] }));
         };
@@ -485,6 +493,9 @@ const ROWS = 100_000;
         document.body.append(element);
         const $ = (id) => element.shadowRoot.getElementById(id);
         r.page = { sendBeforeAcknowledge: $('send').disabled };
+        for (let i = 0; i < 200 && $('acknowledgebox').hidden; i++) await new Promise((resolve) => setTimeout(resolve, 50));
+        r.page.privacyText = $('privacytext').textContent;
+        r.page.models = [...$('model').options].map((o) => o.value);
         $('acknowledge').click();
         r.page.sendAfterAcknowledge = $('send').disabled;
         $('question').value = 'Anything wrong?';
@@ -531,6 +542,9 @@ const ROWS = 100_000;
 
     const p = out.page;
     check('nothing can be asked before the privacy notice is accepted', p.sendBeforeAcknowledge === true && p.sendAfterAcknowledge === false);
+    check('a model NEAR AI cannot attest is called not private, with what NEAR AI said',
+        /^Not private\./.test(p.privacyText ?? '') && /external providers/.test(p.privacyText) && /can read them/.test(p.privacyText), p.privacyText);
+    check('every model NEAR AI lists can be chosen', p.models?.length === 2 && p.models.includes('anthropic/claude-sonnet-5-5'), JSON.stringify(p.models));
     check('the page talks to the pinned model with the user\'s key', /Flash-1017$/.test(p.model) && p.auth === 'Bearer sk-TEST', p.model);
     check('hostile text from the model and from script output stays text',
         p.images === 0 && !p.pwned && p.answerText?.includes('<img src=') && !external.some((url) => url.includes('attacker.example')), `images ${p.images}`);

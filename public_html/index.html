@@ -9,7 +9,10 @@
     {
       "imports": {
         "near-api-js": "https://ga.jspm.io/npm:near-api-js@4.0.2/lib/browser-index.js",
-        "@hot-labs/near-connect": "https://esm.sh/@hot-labs/near-connect@0.11.4"
+        "@hot-labs/near-connect": "https://esm.sh/@hot-labs/near-connect@0.11.4",
+        "@noble/ciphers/chacha": "https://ga.jspm.io/npm:@noble/ciphers@1.3.0/esm/chacha.js",
+        "@noble/curves/ed25519": "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/ed25519.js",
+        "@phala/dcap-qvl": "https://ga.jspm.io/npm:@phala/dcap-qvl@0.7.1/src/index.js"
       },
       "scopes": {
         "https://ga.jspm.io/": {
@@ -55,7 +58,25 @@
           "statuses": "https://ga.jspm.io/npm:statuses@1.5.0/dev.index.js",
           "toidentifier": "https://ga.jspm.io/npm:toidentifier@1.0.0/index.js",
           "util": "https://ga.jspm.io/npm:@jspm/core@2.0.1/nodelibs/browser/util.js",
-          "xtend": "https://ga.jspm.io/npm:xtend@4.0.2/immutable.js"
+          "xtend": "https://ga.jspm.io/npm:xtend@4.0.2/immutable.js",
+          "@peculiar/asn1-schema": "https://ga.jspm.io/npm:@peculiar/asn1-schema@2.11.1/build/es2015/index.js",
+          "@peculiar/asn1-x509": "https://ga.jspm.io/npm:@peculiar/asn1-x509@2.11.1/build/es2015/index.js",
+          "@peculiar/utils": "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/index.js",
+          "@peculiar/utils/bytes": "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/bytes/index.js",
+          "@peculiar/utils/encoding": "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/encoding/index.js",
+          "asn1.js": "https://ga.jspm.io/npm:asn1.js@5.4.1/lib/asn1.js",
+          "asn1js": "https://ga.jspm.io/npm:asn1js@3.1.0/build/index.es.js",
+          "bn.js": "https://ga.jspm.io/npm:bn.js@5.2.5/lib/bn.js",
+          "brorand": "https://ga.jspm.io/npm:brorand@1.1.0/index.js",
+          "elliptic": "https://ga.jspm.io/npm:elliptic@6.6.1/lib/elliptic.js",
+          "hash.js": "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash.js",
+          "hmac-drbg": "https://ga.jspm.io/npm:hmac-drbg@1.0.1/lib/hmac-drbg.js",
+          "minimalistic-assert": "https://ga.jspm.io/npm:minimalistic-assert@1.0.1/index.js",
+          "minimalistic-crypto-utils": "https://ga.jspm.io/npm:minimalistic-crypto-utils@1.0.1/lib/utils.js",
+          "pvtsutils": "https://ga.jspm.io/npm:pvtsutils@1.3.6/build/index.js",
+          "pvutils": "https://ga.jspm.io/npm:pvutils@1.2.0/build/utils.es.js",
+          "safer-buffer": "https://ga.jspm.io/npm:safer-buffer@2.1.2/safer.js",
+          "tslib": "https://ga.jspm.io/npm:tslib@2.9.1/tslib.es6.mjs"
         },
         "https://ga.jspm.io/npm:@near-js/crypto@1.2.4/_/HcaMPL-t.js": {
           "@noble/curves/ed25519": "https://ga.jspm.io/npm:@noble/curves@1.2.0/esm/ed25519.js"
@@ -81,7 +102,85 @@
         },
         "https://ga.jspm.io/npm:http-errors@1.7.2/": {
           "depd": "https://ga.jspm.io/npm:depd@1.1.2/lib/browser/index.js"
+        },
+        "https://ga.jspm.io/npm:@noble/ciphers@1.3.0/": {
+          "@noble/hashes/crypto": "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/crypto.js",
+          "@noble/hashes/": "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/"
+        },
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/": {
+          "@noble/hashes/crypto": "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/crypto.js",
+          "@noble/hashes/": "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/"
+        },
+        "https://ga.jspm.io/npm:@noble/hashes@1.8.0/": {
+          "@noble/hashes/crypto": "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/crypto.js",
+          "@noble/hashes/": "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/"
+        },
+        "https://ga.jspm.io/npm:asn1.js@5.4.1/": {
+          "bn.js": "https://ga.jspm.io/npm:bn.js@4.12.5/lib/bn.js"
+        },
+        "https://ga.jspm.io/npm:elliptic@6.6.1/": {
+          "bn.js": "https://ga.jspm.io/npm:bn.js@4.12.5/lib/bn.js"
         }
+      },
+      "integrity": {
+        "https://ga.jspm.io/npm:@noble/ciphers@1.3.0/_/3B-zqd9f.js": "sha384-peUQ5FJaU5ID9rBvraQeZPczFsHhwbsBx0zClt06gySrH0RvSXhY43SmUteJi5Ir",
+        "https://ga.jspm.io/npm:@noble/ciphers@1.3.0/esm/_poly1305.js": "sha384-z+xEoBS68TKQWadYbGS1Vc2XGJxK8kar5P3yBbSBtLTYlKnZLxfNVBae/gIQQZ4v",
+        "https://ga.jspm.io/npm:@noble/ciphers@1.3.0/esm/chacha.js": "sha384-NFckq+GM0tRMhqgo3kdteg1KB4HoBnwO7w3mfzQDL3CyWPcSZ/H2HOewks+91fHq",
+        "https://ga.jspm.io/npm:@noble/ciphers@1.3.0/esm/utils.js": "sha384-s2aNhlWn2MSIZGEIu3NL+8qczUvbEqjnmLEN5Hznk4NdlL2osZOUTqH4ug28T7k3",
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/abstract/curve.js": "sha384-BhoyFZ6XQRhxkuGQrI6DrJ2tGMRZcCFm+xOBDWPWO7O+PL73zH+Exggn5+ugRcKO",
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/abstract/edwards.js": "sha384-oP8n0oHhFvxqH6r88LL9xRou4RadxuOsQXfLwzrPWiAfeHVwdP6qasxxxjwOgFd3",
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/abstract/hash-to-curve.js": "sha384-xcjMITCu/vZCHzWxRr90yEDZdOHPs4vZMjn1XlORx1IUen68mJO1hJRZLClJ8fUZ",
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/abstract/modular.js": "sha384-/0oumBgtGiBls7ZnqnMCFz82n9vb4DATnZkdmXhKpAxsdrsZB2Gc/OttKUqunpCU",
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/abstract/montgomery.js": "sha384-MMFSu1BsHfzZt/rWDXhHjo7RLfTvKIH+iOY+tDizknDx0koOTAgo7tPVqKVJAev1",
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/ed25519.js": "sha384-Zzv/q1Z9dNsCIn48hUuci+zJ1uJc/Sf+fsdg+i+CYBaoRtoCvdHSbPCuaawJA8D2",
+        "https://ga.jspm.io/npm:@noble/curves@1.9.7/esm/utils.js": "sha384-e8weQhIVR7BdPU0THIaQSSaLB+qDMcxn8Ny8weB4gb0cAoq4fIGGrlrNKVWtDQYr",
+        "https://ga.jspm.io/npm:@noble/hashes@1.8.0/_/B3HWstSx.js": "sha384-uvfIQyByGtqYd+t6Yn5NNiE27d91tztWvCwFTdoQGfZD6er/e4iiIa+8UOXGRwzR",
+        "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/_md.js": "sha384-FsIwB/MU+d0zuzmYMBeej5N2+A4tvq99KQL+uQb5owWAPmqwiq/XMvzTmGtI5Hj9",
+        "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/crypto.js": "sha384-HuAK+S7gdFo59cf08yenExev9ICXZzXVY49xehSqn22TobYf5o1NgfPenCmljcAa",
+        "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/sha2.js": "sha384-Ju+7dxwi1usNlqAcH6z/YE9XRcgHBnusIKSexVgmgc1m53sb0KgsN/ovWXVK5PY0",
+        "https://ga.jspm.io/npm:@noble/hashes@1.8.0/esm/utils.js": "sha384-Fxhtkca+B42EP1mQjOEPRYQ88HqpAo8eHVUXkThJbdnW9MKPEwEzTBvYKHThb1yv",
+        "https://ga.jspm.io/npm:@peculiar/asn1-schema@2.11.1/build/es2015/index.js": "sha384-ZtZT6Yl0MSuCuYPeCCkpoH8rMsZuKdCaPmZdXnbi3Q7ATwLVfihH8o+GfcMaUiWc",
+        "https://ga.jspm.io/npm:@peculiar/asn1-x509@2.11.1/build/es2015/index.js": "sha384-7mkWfREuZc/nTJorcnn+eoDuIH5Xwl2zecCEDP9oodJ0XCY3r7n9vyjgz3IZlQNU",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/_/B2T6prTk.js": "sha384-nKq09lZOCS9uqJUGVga0iXqCzEMdZBnA8gLxzzuPmhGb2By1R5TbMkxwfqg4Ydy8",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/_/BPC7_ple.js": "sha384-xgtblN78VXeEhrtqTpoSf1ymFNHIX72G1ymTXBuJfYa+zUdmyC4dlY8iJqf6OQwy",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/_/BSIlsmls.js": "sha384-otTljGKo1C+U+HjfRkpY1D7mDEnnv1A2wbdn9jzHJS8yx3s7+ak0jxKErW6Wl6Mo",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/_/BpUcCuM9.js": "sha384-xnb7DyNIddTKR/YnC9qCEpOPs3D7EihKH5Y+I/ezd0s0Zc4ZzinNYkGJFVCsTHOR",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/_/C8QoFkGY.js": "sha384-e800Mqv1hhjNsJylzHkXCi3oiiANFmh2CIGwnVj9c0HBsGLi6RbgG5UrSWieky2B",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/_/CmYxjTrs.js": "sha384-VFH4+PJQbDkKHr/3L0GUWE7J/xOaSbgy2I0Nf+p18mPUEjROuOl2n21soLPgQ6gw",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/_/DOtW2WDQ.js": "sha384-FGSf+Yr+fHW1+fvF8xowaa9NhoBw8etsudbkX8gm7xbRFlYqxTkJrYHNmWEmId8B",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/bytes/index.js": "sha384-4a9C6DCbTh7UAKZRtextgIAiU2u24mwohIE4kb55UtBxpaIp9t8KhXJRMZZTefu3",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/converters/index.js": "sha384-rJaIPuf985iUnEJMwJs3XjBB1EVQHR/WucvYm1SCkCTj5dY1ZTk7xOiAiwnETb6s",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/encoding/index.js": "sha384-pWRMd5D1BR1HSktv3DZaLi+p7Y1/ueSLJZ2L5xbOcsvpJhRnkLEuB9AS2W/q4AQ2",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/index.js": "sha384-aSZgr/il9HOMCSaO5ziUCGNaWeIejkapwDvCZhzxQZyLBTZXWu9EUlavzHrYllcF",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/legacy/index.js": "sha384-QpjLCOG1Ri90tINzLpU4fJhzIlyKNgMm/M1mLDPme00nULxIal6wyELcPv6BQs31",
+        "https://ga.jspm.io/npm:@peculiar/utils@2.0.3/build/esm/pem/index.js": "sha384-7dRSq9whl6K38B1WPrvOZ5bR34ETslKCo6JMvCeTkruJDi3/2P4Y58XeEar49atU",
+        "https://ga.jspm.io/npm:@phala/dcap-qvl@0.7.1/_/DqJGJuBy.js": "sha384-AYgwaUUleHxcnsf7/fw/7uU/i/YeCO+oDWudMTNlrFDU2ezY2fUlHaQa8Zj+yIe4",
+        "https://ga.jspm.io/npm:@phala/dcap-qvl@0.7.1/src/index.js": "sha384-ZLE130Gh/U8NUsrWZaUcj0mnyBRjpMQBUfKyK9N1x9zgr5dhuWPqfrYhcGV2med+",
+        "https://ga.jspm.io/npm:asn1.js@5.4.1/lib/asn1.js": "sha384-PXKWnNYwPNtdjvHrE3/ECifMdRBnuPbEtb/8gwGNkPneK+V3akRrqxrxdwD1rjar",
+        "https://ga.jspm.io/npm:asn1js@3.1.0/build/index.es.js": "sha384-lhtYLEIgetMEiKFt7TFYMPtz11s3Q7ZaGr7PTrUp+gq8GCa+RANjFPQY0+QzOrC6",
+        "https://ga.jspm.io/npm:bn.js@4.12.5/lib/bn.js": "sha384-DXqG6vkOmEk5wX+93eVttjzgQEvVEUpvMdBuk1MX4bN40Kc/mdJCawjZD5brjZKi",
+        "https://ga.jspm.io/npm:bn.js@5.2.5/lib/bn.js": "sha384-H3dqQGtJsYH5kBgnxcN5wen33kDnIkl6toX6lilFThTHbgHbxtjFaB+JMeZe62je",
+        "https://ga.jspm.io/npm:brorand@1.1.0/index.js": "sha384-ybinJoSGkZf6gPnphCxb6Ey2MQ+VBWSPaCs8LSXsUoZh1nvJs8OHdbuU1uNbXMZp",
+        "https://ga.jspm.io/npm:elliptic@6.6.1/_/DKEJ0zq6.js": "sha384-XIngRWTXvqzCeg5cHd31vIVQwHLpkZZDh3Q2POENHftkrT3MmTQSxtElApz0ecup",
+        "https://ga.jspm.io/npm:elliptic@6.6.1/_/DMogx849.js": "sha384-O3bTD/o3oaccVRFqF01ibGe2XGRuor/0qkjIu1msyopKe/MzYma5hMxX4+KEim3K",
+        "https://ga.jspm.io/npm:elliptic@6.6.1/lib/elliptic.js": "sha384-W/rMLMIJcAUtRSF/7nukJtFUXkBR2FYHss/ei0ejsZ+LOFuIFmx5fjzM8Sl6MK71",
+        "https://ga.jspm.io/npm:elliptic@6.6.1/package.json.js": "sha384-HTLMnENkSDhs9LHDPqAgYcSjKGIEhdfGiTGf6aQD5S4YyajgVY3+Jq+PWBITPqga",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/_/c1705aed.js": "sha384-20ICyyaSE3OiNEYRUo1mTmIJsE+1cuP+FLyQtsj2y01q5jQ+oqaQqu05G9f3NuUZ",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/_/c331ab0b.js": "sha384-2P34GvnV+ucc9mqYNywgz7pe1EXnNh7zlkHyv+9/FsAiEuD9stgWfSqd9sef/BIs",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash.js": "sha384-4uyXpRDb2AM+LQ900eAmkrQdWSvHBUtcYhcbT/qcB4e0sNsACKH1C6YdfJXAsPL/",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash/ripemd.js": "sha384-OTybSAg0nh8yCczP7YGVBIYQdj+8Sz4NaCxFJHMPX67zSFWb//mVI828AkZkF+/P",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash/sha/1.js": "sha384-ZU2UqFHf4PHsU9acenHoGbcfMAJjuCf27bOBRtrOlGjMs9t3g4K6a9T9JhNglS5g",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash/sha/224.js": "sha384-+zkcFgAcl3AQRWTzdVY54fCqM6OX2Hy0MPgEVmx2gqgEjePeCQzZc20Amgt0uSaM",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash/sha/256.js": "sha384-wT4wipvGle+sMLIM8GFZTkdvlUo0iEZIoejqcdCBh/E+dMy/Nt63gHQA+yTWcE5Y",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash/sha/384.js": "sha384-XYaRXMAs1M1oFXTCAx2ZYamVtpKDauQcYoFJPkT3YUPmqcCkwD0ToLKFaDMc0yc5",
+        "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash/sha/512.js": "sha384-TCohuf04YIjjNXjihxwW1aL5RrcveZIJDiyohCqYOW2v9LEtdumSY/fxiSADa5hD",
+        "https://ga.jspm.io/npm:hmac-drbg@1.0.1/lib/hmac-drbg.js": "sha384-RVVr4o1PbKmwdOUPfbTNNxuwWMwH2apwPHPoEWaBanssUWielPA8CrfME6er3wy1",
+        "https://ga.jspm.io/npm:minimalistic-assert@1.0.1/index.js": "sha384-P/NnQT/R2BiNC48V1y5gbDxklmbB8YD7gBEGUsmN1BNgSgGHCtcK+ta0I21B/JuT",
+        "https://ga.jspm.io/npm:minimalistic-crypto-utils@1.0.1/lib/utils.js": "sha384-1Bx/yb/FR14ECyNnMQxCud2j4iWDMLZ5KgM7huBqUZq3u3PbM+nEHmTRfU+Cp3vU",
+        "https://ga.jspm.io/npm:pvtsutils@1.3.6/build/index.js": "sha384-XzgAyzGCqPTubPb/Obvrh1GioUu76I9vHH21oQSvBCHIEKoldWGrikJ66XRJW57B",
+        "https://ga.jspm.io/npm:pvutils@1.2.0/build/utils.es.js": "sha384-AFtlfyY0IZHCsVGj153DipJ7+aUOHqcdrqJ9jjrym994oITHCSsbgdq4KIsbdoyg",
+        "https://ga.jspm.io/npm:safer-buffer@2.1.2/safer.js": "sha384-SSv///Pvq9osDxwGEQZoJ9xFY5T/m3vIMwfiErYaVq2pf2oa4LgsLom4wDtTMYrh",
+        "https://ga.jspm.io/npm:tslib@2.9.1/tslib.es6.mjs": "sha384-Hs+f5HgFuj8oG/pOEV2dGOSxqVVcEpkTg2OycV45drP5Fm4tntKyle8AmGpPQxAC"
       }
     }
     </script>
