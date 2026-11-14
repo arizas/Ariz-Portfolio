@@ -62,7 +62,9 @@ The model matters: of the models that verify, Qwen 3.6 35B A3B, the default, ans
 - `yarn test`: unit tests in a real browser, including the attestation checks against recorded NEAR AI reports ([nearai-attestation.spec.js](public_html/dataagent/nearai-attestation.spec.js)), the encryption and response-signature checks ([nearai-e2ee.spec.js](public_html/dataagent/nearai-e2ee.spec.js)) and the agent loop ([agent.spec.js](public_html/dataagent/agent.spec.js)). Expect all tests to pass.
 - `yarn test:data-agent`: the assistant's toolkit in a headless browser on the real OPFS git worker, with a scripted model: scripts run in the QuickJS sandbox, cannot reach the network or the page, and proposed changes wait for approval. Expect `56/56 passed`.
 
-**Demo video:** see the demo post on X (link in the hackathon submission).
+**Demo video:** [full demo on YouTube](https://youtu.be/R-s91wwyrEg) (2:51), and the [demo post on X](https://x.com/HelloAriz/status/2121580638151041356) (2:18). The account names and amounts in the demo are disguised.
+
+**Team:** Stian Forland and Peter Salomonsen (Ariz AS).
 
 # How to use
 
