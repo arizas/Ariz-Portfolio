@@ -1,4 +1,4 @@
-import { isTransientFailure, runAgentTurn } from './agent.js';
+import { isTransientFailure, runAgentTurn, toolMessageContent } from './agent.js';
 
 const answer = (content) => new Response(JSON.stringify({ id: 'c1', choices: [{ message: { role: 'assistant', content } }] }));
 const failing = (status, message) => new Response(JSON.stringify({ error: { message } }), { status });
@@ -46,6 +46,27 @@ describe('the model call', () => {
         const stopped = await ask([Object.assign(new Error('stopped'), { name: 'AbortError' }), answer('never')]);
         expect(stopped.calls.length).to.equal(1);
         expect(stopped.error.name).to.equal('AbortError');
+    });
+
+    it('sends a tool result that is a JSON array inside an object, and shows it as it was', async () => {
+        const toolCall = new Response(JSON.stringify({ id: 'c0', choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 't1', type: 'function', function: { name: 'list_datasets', arguments: '{}' } }] } }] }));
+        const shown = [];
+        const out = await ask([toolCall, answer('done')], {
+            session: { api: { listDatasets: async () => [{ dataset: 'accounts' }] } },
+            onToolResult: (name, args, result) => shown.push(result),
+        });
+        expect(out.answer).to.equal('done');
+        const sent = JSON.parse(out.calls[1]).messages.find((m) => m.role === 'tool');
+        expect(JSON.parse(sent.content)).to.deep.equal({ result: [{ dataset: 'accounts' }] });
+        expect(JSON.parse(shown[0])).to.deep.equal([{ dataset: 'accounts' }]);
+    });
+
+    it('leaves every other tool result as it is', () => {
+        expect(toolMessageContent(' [1, 2]')).to.equal('{"result":[1,2]}');
+        expect(toolMessageContent('[]')).to.equal('{"result":[]}');
+        expect(toolMessageContent('{"rows":[1]}')).to.equal('{"rows":[1]}');
+        expect(toolMessageContent('[1, 2] and more text')).to.equal('[1, 2] and more text');
+        expect(toolMessageContent('ERROR: no such dataset')).to.equal('ERROR: no such dataset');
     });
 
     it('treats only the provider\'s failures as worth another try', () => {
