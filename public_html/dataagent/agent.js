@@ -157,6 +157,23 @@ export async function runTool({ api }, name, args) {
 
 const openAiTools = TOOLS.map((tool) => ({ type: 'function', function: tool }));
 
+/**
+ * A tool result as the model is sent it. NEAR AI's provider for DeepSeek fails
+ * ("Provider failed … Upstream request failed", every time, not now and then) on
+ * a tool message whose text is a JSON array, even "[]"; the same array inside an
+ * object goes through. list_datasets answers with one, and a script may print one.
+ */
+export function toolMessageContent(result) {
+    const text = String(result ?? '');
+    if (!text.trimStart().startsWith('[')) return text;
+    try {
+        const value = JSON.parse(text);
+        return Array.isArray(value) ? JSON.stringify({ result: value }) : text;
+    } catch {
+        return text;
+    }
+}
+
 export const MAX_MODEL_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 2000;
 
@@ -250,7 +267,7 @@ export async function runAgentTurn({
                 result = `ERROR: the arguments of ${call.function.name} were not valid JSON`;
             }
             onToolResult(call.function.name, args, result);
-            history.push({ role: 'tool', tool_call_id: call.id, content: result });
+            history.push({ role: 'tool', tool_call_id: call.id, content: toolMessageContent(result) });
         }
     }
     throw new Error(`the model did not finish within ${MAX_ITERATIONS} steps`);
