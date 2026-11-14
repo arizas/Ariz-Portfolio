@@ -20,6 +20,49 @@ A web application for getting an overview of one or multiple NEAR accounts: what
 - **Staking rewards**: per account and staking pool.
 - **Counterparties**: classify who you transact with (for example as income or expense), so transfers are not all treated the same.
 - **Confidential NEAR Intents**: fetch an account's confidential history by signing with that account's wallet. It is stored only in your own repository, never on the server.
+- **AI assistant**: ask about your portfolio in your own words. It runs on a NEAR AI Cloud model whose confidential hardware your browser verifies first, every message is end-to-end encrypted to that hardware, and the model works through the app's own reports and small JavaScript programs that run in a sandbox in your browser. Anything that would change your data waits for your approval.
+
+# NEAR HACKATHON: Privacy & Private AI
+
+Built at NEAR HACKATHON (2026-10-19 to 2026-11-14), track **Privacy & Private AI**.
+
+**The problem.** A portfolio's full transaction history is exactly the data you should not paste into a cloud AI, yet it is where an AI is most useful: "how did I do this year, and why?" Ariz Portfolio already kept that history only in your browser (and encrypted in the cloud). The hackathon work lets an AI read it without the data becoming readable to anyone else.
+
+**What was built in the window**, judged against the baseline below:
+
+- **Private AI assistant on NEAR AI Cloud** (`/ai-assistant`, [public_html/dataagent/](public_html/dataagent/)):
+  - Sign in to NEAR AI with your NEAR wallet (one NEP-413 signature, no transaction). The browser creates an API key with a spending cap and keeps it in the browser only, so inference runs on your own NEAR AI credits and the browser talks to NEAR AI directly.
+  - **Attestation checked in the browser** before any question is sent ([nearai-attestation.js](public_html/dataagent/nearai-attestation.js)): the Intel TDX quote of the model's enclave, that the report binds the model's signing key and a fresh nonce from this browser, the software it runs, and NVIDIA's signed verdict that the GPUs are in confidential mode (the GPU evidence is relayed to NVIDIA through the Ariz gateway, and the browser checks NVIDIA's signature itself). A model that does not pass is shown as not private, and the page asks for explicit consent before using it.
+  - **End-to-end encryption to the enclave** ([nearai-e2ee.js](public_html/dataagent/nearai-e2ee.js)): NEAR AI's encryption protocol v2 with all fields encrypted (messages, tool definitions, tool calls and results), XChaCha20-Poly1305 to the attested key; every answer's signature by that key is checked against the exact request and response.
+  - **The model writes JavaScript instead of reading raw data** ([script-sandbox.js](public_html/dataagent/script-sandbox.js)): its programs run in QuickJS compiled to WebAssembly, a fresh engine per run, with no DOM, network or storage and a 20 s limit. The only way out is `app.*`, the same read API the app's pages use ([data-api.js](public_html/dataagent/data-api.js)); only the program's output goes back to the model, encrypted.
+  - **Approval for every change**: the assistant can only propose actions (add an account, fetch history, set a counterparty, …); nothing happens until the owner clicks Approve.
+- **Gateway support** ([arizas/ariz-gateway](https://github.com/arizas/ariz-gateway)): the NVIDIA attestation relay ([#60](https://github.com/arizas/ariz-gateway/pull/60)) and a balances API for the assistant's balance check ([#59](https://github.com/arizas/ariz-gateway/pull/59)).
+- **Hardening for running model-written code next to your data**: a Content-Security-Policy where script runs only by a per-load nonce ([#139](https://github.com/arizas/Ariz-Portfolio/pull/139)), token names always shown as text ([#138](https://github.com/arizas/Ariz-Portfolio/pull/138)), and the assistant's answers rendered without parsing markup ([#145](https://github.com/arizas/Ariz-Portfolio/pull/145)).
+- Also in the window: an exclude list for unpriced tokens ([#136](https://github.com/arizas/Ariz-Portfolio/pull/136)), duplicate NEAR movements resolved against the chain ([#143](https://github.com/arizas/Ariz-Portfolio/pull/143)), retrying a failed provider call ([#145](https://github.com/arizas/Ariz-Portfolio/pull/145)), and a workaround for NEAR AI's DeepSeek provider rejecting tool results that are JSON arrays ([#146](https://github.com/arizas/Ariz-Portfolio/pull/146)).
+
+**Diff of the hackathon work:** [pre-hackathon...hackathon-submission](https://github.com/arizas/Ariz-Portfolio/compare/pre-hackathon...hackathon-submission) (tag `pre-hackathon` = 04dd300, the last commit before 2026-10-19's announcement).
+
+**Baseline (built before the window):** the app itself (portfolio, year report, accounting, prices), storage in an in-browser git repository with [wasm-git](https://github.com/petersalomonsen/wasm-git), end-to-end encrypted sync with [encrypted-git-storage](https://github.com/petersalomonsen/encrypted-git-storage), the Ariz gateway and the web4 hosting. These are the author's own earlier projects. The QuickJS engine is the author's [quickjs-wasm](https://github.com/petersalomonsen/quickjs-rust-near) package; version 0.0.6, which frees the result of each host call so a script can page through a dataset of any size, was published in the window. The code was written with the help of Claude Code.
+
+**How NEAR is used:** NEAR AI Cloud for private inference in TEEs (Intel TDX and NVIDIA confidential GPUs), with NEAR wallet sign-in to NEAR AI; NEP-413 signed messages for the Ariz gateway; the app is served from the web4 contract `arizportfolio.near`; the data itself is NEAR accounts, staking and NEAR Intents history.
+
+## Try it
+
+**In the live app** (https://arizportfolio.near.page):
+
+1. Open **AI assistant**. Click **Connect with wallet** and sign the message with a NEAR wallet: the page says *Connected to NEAR AI as \<your account\>*. This uses your NEAR AI account's credits; add them at cloud.near.ai if it says there are none.
+2. Choose the model **Qwen 3.6 35B A3B FP8**. Within a few seconds the box turns green, *Private. … runs in confidential hardware that this browser verified*; open **What this browser checked** to see each check (Intel, nonce binding, software, NVIDIA). The GPU check goes through the Ariz gateway, which asks you to sign in with your wallet (a signature, no cost). Choose a model NEAR AI runs at Chutes or Tinfoil (for example Kimi K3) and it says *Not verified* instead, with a checkbox to accept that.
+3. Ask *What does my data cover, and is anything stale, wrong or missing?* With no accounts added, there is little to find. To ask about a real portfolio, add an account on **Accounts** and click **load from server** first; downloading history uses Ariz credits (**Ariz credits** page).
+4. Ask *How did my portfolio do in NOK since 1 January 2026? Split the change into money I put in or took out, staking rewards, and market movement. Then write a script that ranks my holdings by result since then (unrealized plus realized) and name the best three and the worst three.* Each step the model took appears above the answer: open **Ran run_script** to see the program it wrote and its output. In the browser's developer tools (Network), the request to `cloud-api.near.ai/v1/chat/completions` has a body of hex ciphertext where the question and tool results would be.
+
+The model matters: of the models that verify, Qwen 3.6 35B A3B answered this question in 30-45 s with one or two scripts in our runs, while DeepSeek V4.1 Flash, the default, often explored for many steps.
+
+**Locally, with no keys or credits** (Node 20+, `yarn install`):
+
+- `yarn test`: unit tests in a real browser, including the attestation checks against recorded NEAR AI reports ([nearai-attestation.spec.js](public_html/dataagent/nearai-attestation.spec.js)), the encryption and response-signature checks ([nearai-e2ee.spec.js](public_html/dataagent/nearai-e2ee.spec.js)) and the agent loop ([agent.spec.js](public_html/dataagent/agent.spec.js)). Expect all tests to pass.
+- `yarn test:data-agent`: the assistant's toolkit in a headless browser on the real OPFS git worker, with a scripted model: scripts run in the QuickJS sandbox, cannot reach the network or the page, and proposed changes wait for approval. Expect `56/56 passed`.
+
+**Demo video:** see the demo post on X (link in the hackathon submission).
 
 # How to use
 
