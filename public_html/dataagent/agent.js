@@ -6,8 +6,12 @@ import { formatScriptResult, runScript } from './script-sandbox.js';
 import { decryptResponseBody, encryptionHeaders, encryptRequestBody, verifyAnswerSignature } from './nearai-e2ee.js';
 
 export const NEAR_AI_BASE_URL = 'https://cloud-api.near.ai/v1';
-/** The default model: it runs in NEAR AI's confidential hardware, which the page verifies. */
-export const NEAR_AI_MODEL = 'deepseek-ai/DeepSeek-V4.1-Flash-1017';
+/**
+ * The default model: it runs in NEAR AI's confidential hardware, which the page verifies.
+ * Of the models that verify, Qwen 3.6 35B A3B answered a portfolio question in 30-45 s
+ * with one or two scripts; DeepSeek V4.1 Flash explored for 10-20 steps, minutes each.
+ */
+export const NEAR_AI_MODEL = 'Qwen/Qwen3.6-35B-A3B-FP8';
 export const MAX_TOOL_RESULT_CHARS = 6000;
 const QUERY_TOOL_BYTES = 4000;
 const MAX_ITERATIONS = 20;

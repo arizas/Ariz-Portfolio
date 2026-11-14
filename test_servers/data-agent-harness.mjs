@@ -481,7 +481,7 @@ const ROWS = 100_000;
             // The model list, and an attestation report NEAR AI refuses: this run
             // is the not-private path, which the owner must accept first.
             if (String(url).includes('/v1/models')) {
-                return new Response(JSON.stringify({ data: [{ id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', name: 'DeepSeek V4.1 Flash 1017' }, { id: 'anthropic/claude-sonnet-5-5', name: 'Claude Sonnet 5.5' }] }));
+                return new Response(JSON.stringify({ data: [{ id: 'Qwen/Qwen3.6-35B-A3B-FP8', name: 'Qwen 3.6 35B A3B FP8' }, { id: 'anthropic/claude-sonnet-5-5', name: 'Claude Sonnet 5.5' }] }));
             }
             if (String(url).includes('/v1/attestation/report')) {
                 return new Response(JSON.stringify({ error: { message: 'TEE attestation is not supported for external providers' } }), { status: 400 });
@@ -545,7 +545,7 @@ const ROWS = 100_000;
     check('a model NEAR AI cannot attest is called not private, with what NEAR AI said',
         /^Not private\./.test(p.privacyText ?? '') && /external providers/.test(p.privacyText) && /can read them/.test(p.privacyText), p.privacyText);
     check('every model NEAR AI lists can be chosen', p.models?.length === 2 && p.models.includes('anthropic/claude-sonnet-5-5'), JSON.stringify(p.models));
-    check('the page talks to the pinned model with the user\'s key', /Flash-1017$/.test(p.model) && p.auth === 'Bearer sk-TEST', p.model);
+    check('the page talks to the pinned model with the user\'s key', /Qwen3\.6-35B-A3B-FP8$/.test(p.model) && p.auth === 'Bearer sk-TEST', p.model);
     check('hostile text from the model and from script output stays text',
         p.images === 0 && !p.pwned && p.answerText?.includes('<img src=') && !external.some((url) => url.includes('attacker.example')), `images ${p.images}`);
     check('each step shows its script and output', p.toolEntries === 3 && p.scriptShown && p.outputShown);
