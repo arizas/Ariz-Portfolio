@@ -1,9 +1,12 @@
 // Everything on this page that came from the model or the store, a token name in
 // a script's output included, is shown with textContent and never parsed as markup.
 // The policy allows images from any https host, so a markdown or HTML image in the
-// model's answer would otherwise send data wherever its URL said.
+// model's answer would otherwise send data wherever its URL said. The answer's
+// paragraphs, lists and tables are laid out by renderAnswer, which builds elements
+// with textContent too, and leaves links and images as text.
 
 import html from './ai-assistant-page.component.html.js';
+import { renderAnswer } from './answer-text.js';
 import { NEAR_AI_MODEL, runAgentTurn } from './agent.js';
 import { createDataSession } from './data-api.js';
 import { checkKey, connectWithWallet, forgetAccount, loadAccount, storeAccount } from './nearai-account.js';
@@ -215,7 +218,8 @@ customElements.define('ai-assistant-page',
         addEntry(className, text) {
             const entry = document.createElement('div');
             entry.className = `entry ${className}`;
-            entry.textContent = text;
+            if (className === 'entry-answer') entry.append(renderAnswer(text));
+            else entry.textContent = text;
             this.element('transcript').append(entry);
             return entry;
         }
@@ -292,6 +296,7 @@ customElements.define('ai-assistant-page',
                     messages: this.messages.length ? [...this.messages, ...this.notes.splice(0)] : this.messages,
                     signal: this.abort.signal,
                     onModelCall: (step) => this.setStatus(step === 1 ? 'Waiting for NEAR AI' : `Waiting for NEAR AI (step ${step})`),
+                    onRetry: (failure) => this.setStatus(`${failure}, so the same request is sent again`),
                     onToolStart: (name, args) => this.startToolEntry(name, args),
                     onToolResult: (name, args, result) => {
                         this.finishToolEntry(name, args, result);

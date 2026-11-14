@@ -157,15 +157,24 @@ export async function runTool({ api }, name, args) {
 
 const openAiTools = TOOLS.map((tool) => ({ type: 'function', function: tool }));
 
+export const MAX_MODEL_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 2000;
+
+/** A failure worth one more try: the provider's, not the request's. */
+export function isTransientFailure(status, text = '') {
+    if ([502, 503, 504].includes(status)) return true;
+    return status === 400 && /upstream request failed|provider failed/i.test(text);
+}
+
 /**
  * One model call. With `privacy` (a verified enclave's key and this browser's
  * key) the request is encrypted to the enclave, and the answer is used only
  * after its signature shows the enclave produced it for exactly that request.
  */
-async function callModel({ model, history, apiKey, privacy, signal, fetchFn }) {
+async function callModel({ model, history, apiKey, privacy, signal, fetchFn, retryDelayMs = RETRY_DELAY_MS, onRetry = () => { } }) {
     const plain = { model, messages: history, tools: openAiTools, tool_choice: 'auto' };
     const requestText = JSON.stringify(privacy ? await encryptRequestBody(plain, privacy.signingKey) : plain);
-    const response = await fetchFn(`${NEAR_AI_BASE_URL}/chat/completions`, {
+    const send = () => fetchFn(`${NEAR_AI_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -175,7 +184,27 @@ async function callModel({ model, history, apiKey, privacy, signal, fetchFn }) {
         body: requestText,
         signal,
     });
-    const responseText = await response.text();
+    // The provider behind NEAR AI sometimes fails a request that succeeds when
+    // sent again: a dropped connection, a 5xx, or a 400 saying the upstream
+    // failed. The same request is sent again, once; the answer that counts is
+    // still checked against exactly the request text that was sent.
+    let response;
+    let responseText;
+    for (let attempt = 1; ; attempt++) {
+        let failure = null;
+        try {
+            response = await send();
+            responseText = await response.text();
+            if (!response.ok && isTransientFailure(response.status, responseText)) failure = `NEAR AI answered ${response.status}`;
+        } catch (error) {
+            if (error?.name === 'AbortError' || attempt >= MAX_MODEL_ATTEMPTS) throw error;
+            failure = String(error?.message ?? error);
+        }
+        if (!failure || attempt >= MAX_MODEL_ATTEMPTS) break;
+        onRetry(failure);
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    }
     if (!response.ok) {
         let detail = '';
         try { detail = JSON.parse(responseText)?.error?.message ?? ''; } catch { /* not JSON */ }
@@ -196,15 +225,15 @@ async function callModel({ model, history, apiKey, privacy, signal, fetchFn }) {
  */
 export async function runAgentTurn({
     session, apiKey, userMessage, messages = [], signal, fetchFn = fetch,
-    model = NEAR_AI_MODEL, privacy = null,
-    onModelCall = () => { }, onToolStart = () => { }, onToolResult = () => { },
+    model = NEAR_AI_MODEL, privacy = null, retryDelayMs,
+    onModelCall = () => { }, onToolStart = () => { }, onToolResult = () => { }, onRetry = () => { },
 }) {
     const history = messages.length ? [...messages] : [{ role: 'system', content: SYSTEM_PROMPT }];
     history.push({ role: 'user', content: userMessage });
 
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
         onModelCall(iteration + 1);
-        const message = (await callModel({ model, history, apiKey, privacy, signal, fetchFn })).choices?.[0]?.message;
+        const message = (await callModel({ model, history, apiKey, privacy, signal, fetchFn, retryDelayMs, onRetry })).choices?.[0]?.message;
         if (!message) throw new Error('NEAR AI sent no message');
         const { role, content, tool_calls: toolCalls } = message;
         history.push({ role, content: content ?? '', ...(toolCalls?.length ? { tool_calls: toolCalls } : {}) });
