@@ -1,6 +1,7 @@
 import { exists } from './storage/gitstorage.js';
 import './near/stakingpool.js';
 import './accounts/accounts-page.component.js';
+import './accesskeys/accesskeys-page.component.js';
 import './transactions/transactions-page.component.js';
 import './stakingview/staking-page.component.js';
 import './storage/storage-page.component.js';
@@ -40,7 +41,21 @@ class AppNearNumbersComponent extends HTMLElement {
                 this.shadowRoot.querySelector('nav').remove();
             }
             mainContainer.replaceChildren(pageElement);
+            markCurrentPage(page);
         }
+
+        // Say in the menu which page is open — also on the dropdown holding
+        // it, whose items are out of sight until it is opened.
+        const markCurrentPage = (page) => {
+            this.shadowRoot.querySelectorAll('nav a[data-page]').forEach((a) => {
+                const current = a.dataset.page === page;
+                a.classList.toggle('active', current);
+                if (current) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+            });
+            this.shadowRoot.querySelectorAll('nav .dropdown').forEach((dropdown) => {
+                dropdown.querySelector('.dropdown-toggle').classList.toggle('active', !!dropdown.querySelector('a.active'));
+            });
+        };
 
         if (location.href != baseurl) {
             const page = location.href.substring(baseurl.length).replace(/\/$/, '').split('?')[0];
@@ -58,11 +73,40 @@ class AppNearNumbersComponent extends HTMLElement {
         const navbarCollapseInstance = bootstrap.Collapse.getOrCreateInstance(navbarCollapse, { toggle: false });
         navbarToggler.addEventListener('click', () => navbarCollapseInstance.toggle());
 
+        // The menu's dropdowns, wired by hand for the same reason as the
+        // toggler: Bootstrap's dropdown plugin listens on document and does not
+        // see into this shadow DOM. Open on click, one at a time; close on a
+        // click anywhere else, on Escape, and after navigating.
+        const dropdowns = [...this.shadowRoot.querySelectorAll('nav .dropdown')];
+        const closeDropdowns = (except = null) => dropdowns.forEach((dropdown) => {
+            if (dropdown === except) return;
+            dropdown.querySelector('.dropdown-menu').classList.remove('show');
+            dropdown.querySelector('.dropdown-toggle').setAttribute('aria-expanded', 'false');
+        });
+        dropdowns.forEach((dropdown) => {
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            toggle.addEventListener('click', () => {
+                const open = !menu.classList.contains('show');
+                closeDropdowns(dropdown);
+                menu.classList.toggle('show', open);
+                toggle.setAttribute('aria-expanded', String(open));
+            });
+        });
+        document.addEventListener('click', (evt) => {
+            const path = evt.composedPath();
+            if (!dropdowns.some((dropdown) => path.includes(dropdown))) closeDropdowns();
+        });
+        document.addEventListener('keydown', (evt) => {
+            if (evt.key === 'Escape') closeDropdowns();
+        });
+
         this.shadowRoot.querySelectorAll('a').forEach(a => {
             if (a.dataset['page']) {
                 a.onclick = (evt) => {
                     evt.preventDefault();
                     window.goToPage(a.dataset['page']);
+                    closeDropdowns();
                     // Collapse the mobile menu after navigating.
                     navbarCollapseInstance.hide();
                 }

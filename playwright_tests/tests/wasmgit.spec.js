@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readdirSync } from "node:fs";
 import { pause500ifRecordingVideo } from "../util/videorecording.js";
+import { navigateTo } from '../util/transactions-testflow.js';
 
 // The Storage page syncs end-to-end ENCRYPTED only (plaintext /git hosting is
 // retired): Synchronize goes through the egit service worker, the master key
@@ -9,7 +10,7 @@ import { pause500ifRecordingVideo } from "../util/videorecording.js";
 test("storage page shows the encrypted-only sync UI", async ({ page }) => {
   await page.goto("http://localhost:8081");
 
-  await page.getByRole('link', { name: 'Storage' }).click();
+  await navigateTo(page, 'Storage');
   await pause500ifRecordingVideo(page);
 
   // Encrypted sync controls (locators pierce the open shadow root).
