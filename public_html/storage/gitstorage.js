@@ -157,9 +157,28 @@ export async function git_init() {
     return (await workerCommand('git', ['init', '.'])).result;
 }
 
+/**
+ * The worker's `git` command answers with git's exit code and output, whatever
+ * happened — it never fails. So a caller that needs the command to have worked
+ * must say so: this turns a non-zero exit into an error carrying what git said.
+ *
+ * It matters most for clone: libgit2 removes everything a failed clone wrote,
+ * so the sync used to finish "successfully" with an EMPTY local store — on
+ * every new device, while the store served a pack libgit2 refused.
+ */
+export function requireGitSuccess(what, outcome) {
+    if (!outcome || outcome.code === 0) return outcome;
+    const said = [outcome.stderr, outcome.stdout]
+        .map((text) => (text ?? '').trim())
+        .find((text) => text.length > 0);
+    // libgit2's progress lines are the bulk of stdout; the cause is at the end.
+    const tail = said ? said.split('\n').filter((l) => l.trim()).slice(-6).join('\n') : `exit code ${outcome.code}`;
+    throw new Error(`${what} failed:\n${tail}`);
+}
+
 export async function git_clone(remoteurl) {
     if (useMemFs) return;
-    return (await workerCommand('git', ['clone', remoteurl, '.'])).result;
+    return requireGitSuccess('git clone', (await workerCommand('git', ['clone', remoteurl, '.'])).result);
 }
 
 export async function commit_all() {
@@ -208,7 +227,7 @@ export async function sync() {
 
 export async function push() {
     if (useMemFs) return;
-    await workerCommand('git', ['push']);
+    requireGitSuccess('git push', (await workerCommand('git', ['push'])).result);
 }
 
 export async function delete_local() {
