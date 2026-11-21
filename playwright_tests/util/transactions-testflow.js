@@ -14,7 +14,7 @@ export const TEST_ACCOUNT = 'tx-page-test.near';
 export const TEST_ACCOUNT_ROW_COUNT = 3;
 
 /**
- * Follow a navbar link. At phone widths the navbar is collapsed behind the
+ * Follow a navbar link, opening its dropdown first if it is in one. At phone widths the navbar is collapsed behind the
  * hamburger button, so it has to be opened first — and the app collapses it
  * again after navigating.
  *
@@ -48,6 +48,19 @@ export async function navigateTo(page, linkName) {
         await expect(navbarToggler).toBeVisible();
         await navbarToggler.click();
         await expect(navbarCollapse).toHaveClass(/\bshow\b/);
+    }
+    // Some links sit in a dropdown (Accounts ▾, Settings ▾) and are hidden
+    // until it opens. Found by CSS, not by role: role lookups skip hidden
+    // elements, so they cannot find the item before its dropdown is open.
+    const escaped = linkName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const dropdown = navbar.locator('.dropdown').filter({
+        has: page.locator('a.dropdown-item', { hasText: new RegExp(`^\\s*${escaped}\\s*$`) }),
+    });
+    // count() does not wait: make sure the navbar is rendered first.
+    await expect(navbar.locator('.navbar-brand')).toBeVisible();
+    if (await dropdown.count() > 0) {
+        await dropdown.locator('.dropdown-toggle').click();
+        await expect(dropdown.locator('.dropdown-menu')).toHaveClass(/\bshow\b/);
     }
     // Scoped to the navbar and exact: role-name matching is substring-based
     // across the whole page, and app.spec.js already documents one collision

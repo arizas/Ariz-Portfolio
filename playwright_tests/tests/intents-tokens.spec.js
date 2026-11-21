@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { setupApiMocks } from '../util/api-mocks.js';
+import { navigateTo } from '../util/transactions-testflow.js';
 
 /**
  * Test intents tokens display in year report.
@@ -38,7 +39,7 @@ test('Intents tokens in year report - full flow', async ({ page }) => {
   await page.goto('/');
   
   // Navigate to Accounts page
-  await page.getByRole('link', { name: 'Accounts' }).click();
+  await navigateTo(page, 'Accounts');
   
   // Add the treasury account
   await page.getByRole('button', { name: 'Add account' }).click();

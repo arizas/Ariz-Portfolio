@@ -27,12 +27,22 @@ export default /*html*/ `
                 <a class="nav-item nav-link" href="/year-report" data-page="year-report">Year report</a>
                 <a class="nav-item nav-link" href="/transactions" data-page="transactions">Transactions</a>
                 <a class="nav-item nav-link" href="/staking" data-page="staking">Staking rewards</a>
-                <a class="nav-item nav-link" href="/counterparties" data-page="counterparties">Counterparties</a>
-                <a class="nav-item nav-link" href="/accounts" data-page="accounts">Accounts</a>
                 <a class="nav-item nav-link" href="/ai-assistant" data-page="ai-assistant">AI assistant</a>
-                <a class="nav-item nav-link" href="/access-keys" data-page="access-keys">Access keys</a>
-                <a class="nav-item nav-link" href="/storage" data-page="storage">Storage</a>
-                <a class="nav-item nav-link" href="/arizcredits" data-page="arizcredits">Ariz credits</a>
+                <div class="nav-item dropdown">
+                    <button class="nav-link dropdown-toggle" type="button" aria-expanded="false">Accounts</button>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="/accounts" data-page="accounts">Accounts</a></li>
+                        <li><a class="dropdown-item" href="/counterparties" data-page="counterparties">Counterparties</a></li>
+                        <li><a class="dropdown-item" href="/access-keys" data-page="access-keys">Access keys</a></li>
+                    </ul>
+                </div>
+                <div class="nav-item dropdown">
+                    <button class="nav-link dropdown-toggle" type="button" aria-expanded="false">Settings</button>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="/storage" data-page="storage">Storage</a></li>
+                        <li><a class="dropdown-item" href="/arizcredits" data-page="arizcredits">Ariz credits</a></li>
+                    </ul>
+                </div>
                 <button id="loginbutton" class="nav-item nav-button">Login</button>
             </div>
         </div>

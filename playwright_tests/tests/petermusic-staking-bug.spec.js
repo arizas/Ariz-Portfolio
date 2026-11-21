@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { setupApiMocks } from '../util/api-mocks.js';
+import { navigateTo } from '../util/transactions-testflow.js';
 
 test("should show correct staking reward for petermusic.near on Aug 30 2025", async ({ page }) => {
   test.setTimeout(180_000);
@@ -11,7 +12,7 @@ test("should show correct staking reward for petermusic.near on Aug 30 2025", as
   await page.goto("/");
 
   // Go to accounts page and add petermusic.near
-  await page.getByRole('link', { name: 'Accounts' }).click();
+  await navigateTo(page, 'Accounts');
   await page.getByRole('button', { name: 'Add account' }).click();
   await page.getByRole('textbox').fill('petermusic.near');
 

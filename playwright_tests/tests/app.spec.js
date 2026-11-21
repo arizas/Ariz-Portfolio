@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { pause500ifRecordingVideo } from "../util/videorecording.js";
 import { createIndexedDBSnapshot, restoreIndexedDBSnapshot } from "../util/indexeddb.js";
+import { navigateTo } from '../util/transactions-testflow.js';
 
 test("should open app", async ({ page }) => {
   await page.goto(
@@ -40,6 +41,63 @@ test("mobile hamburger menu toggles the navbar", async ({ page }) => {
   await expect(collapse).not.toHaveClass(/\bshow\b/);
 });
 
+test("the menu's dropdowns open, close, and mark the page that is open", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  const navbar = page.locator("app-near-account-report nav");
+  const accounts = navbar.getByRole("button", { name: "Accounts" });
+  const settings = navbar.getByRole("button", { name: "Settings" });
+  // `has` takes a locator relative to the dropdown, not one scoped from the navbar.
+  const accountsMenu = navbar.locator(".dropdown", { has: page.getByRole("button", { name: "Accounts" }) }).locator(".dropdown-menu");
+  const settingsMenu = navbar.locator(".dropdown", { has: page.getByRole("button", { name: "Settings" }) }).locator(".dropdown-menu");
+
+  // The setup pages are out of the top row: 7 entries and Login/Logout.
+  await expect(navbar.getByRole("link", { name: "Access keys", exact: true })).toBeHidden();
+  await expect(accounts).toHaveAttribute("aria-expanded", "false");
+
+  await accounts.click();
+  await expect(accountsMenu).toHaveClass(/\bshow\b/);
+  await expect(accounts).toHaveAttribute("aria-expanded", "true");
+  for (const name of ["Accounts", "Counterparties", "Access keys"]) {
+    await expect(navbar.getByRole("link", { name, exact: true })).toBeVisible();
+  }
+
+  // Only one open at a time.
+  await settings.click();
+  await expect(settingsMenu).toHaveClass(/\bshow\b/);
+  await expect(accountsMenu).not.toHaveClass(/\bshow\b/);
+
+  // A click elsewhere closes it, and so does Escape.
+  await page.locator("#mainContainer").click({ position: { x: 5, y: 5 } });
+  await expect(settingsMenu).not.toHaveClass(/\bshow\b/);
+  await settings.click();
+  await page.keyboard.press("Escape");
+  await expect(settingsMenu).not.toHaveClass(/\bshow\b/);
+
+  // Navigating from a dropdown closes it and marks the page and its dropdown.
+  await accounts.click();
+  await navbar.getByRole("link", { name: "Access keys", exact: true }).click();
+  await expect(page.locator("access-keys-page")).toBeAttached();
+  await expect(accountsMenu).not.toHaveClass(/\bshow\b/);
+  await expect(page).toHaveURL(/\/access-keys$/);
+  await expect(accounts).toHaveClass(/\bactive\b/);
+  await expect(navbar.locator('a[data-page="access-keys"]')).toHaveAttribute("aria-current", "page");
+  await expect(settings).not.toHaveClass(/\bactive\b/);
+
+  // A top-level page takes the mark back.
+  await navbar.getByRole("link", { name: "Year report", exact: true }).click();
+  await expect(accounts).not.toHaveClass(/\bactive\b/);
+  await expect(navbar.getByRole("link", { name: "Year report", exact: true })).toHaveAttribute("aria-current", "page");
+});
+
+test("on a phone, a dropdown opens inside the hamburger menu", async ({ page }) => {
+  await page.setViewportSize({ width: 480, height: 800 });
+  await page.goto("/");
+  await navigateTo(page, "Storage");
+  await expect(page.locator("storage-page")).toBeAttached();
+  await expect(page.locator("#navbarNavAltMarkup")).toBeHidden();
+});
+
 test("should open accounts page, add account, and load data", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto(
@@ -53,7 +111,7 @@ test("should open accounts page, add account, and load data", async ({ page }) =
       }
     });
   });
-  await page.getByRole('link', { name: 'Accounts' }).click();
+  await navigateTo(page, 'Accounts');
   await pause500ifRecordingVideo(page);
 
   await page.getByRole('button', { name: 'Add account' }).click();
