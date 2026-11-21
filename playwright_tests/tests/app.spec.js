@@ -98,6 +98,22 @@ test("on a phone, a dropdown opens inside the hamburger menu", async ({ page }) 
   await expect(page.locator("#navbarNavAltMarkup")).toBeHidden();
 });
 
+test("on a device with no data, every page finishes loading without errors", async ({ page }) => {
+  // A new device has no accounts.json until an account is added or the store
+  // is synchronized. Reading it used to throw, which stopped each page's setup
+  // halfway: Staking rewards, for one, never filled its currency list.
+  const errors = [];
+  page.on('pageerror', (err) => errors.push(err.message));
+  await page.goto("/");
+  for (const name of ['Portfolio', 'Year report', 'Transactions', 'Staking rewards', 'AI assistant', 'Accounts', 'Counterparties', 'Access keys', 'Storage', 'Ariz credits']) {
+    await navigateTo(page, name);
+    await page.waitForTimeout(300);
+  }
+  await navigateTo(page, 'Staking rewards');
+  await expect(page.locator('#currencyselect option').first()).toBeAttached();
+  expect(errors).toEqual([]);
+});
+
 test("should open accounts page, add account, and load data", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto(
