@@ -119,7 +119,11 @@ export async function setTokenExclusions({ excluded, kept }) {
 }
 
 
+// A new device has no accounts file until an account is added or the store is
+// synchronized. Pages read the account list while setting themselves up, so
+// that case is an empty list rather than an error that stops the page halfway.
 export async function getAccounts() {
+    if (!(await exists(accountsconfigfile))) return [];
     return JSON.parse(await readTextFile(accountsconfigfile));
 }
 
