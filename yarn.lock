@@ -2135,10 +2135,10 @@ encodeurl@~2.0.0:
   resolved "https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz"
   integrity sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==
 
-encrypted-git-storage@^0.1.7:
-  version "0.1.7"
-  resolved "https://registry.yarnpkg.com/encrypted-git-storage/-/encrypted-git-storage-0.1.7.tgz#efcdae065862305d77b749605ebac7bb67f192e4"
-  integrity sha512-38EHzT3wjbQ5Cvc6Qspe9zetEUkdlfHKWPTxLDlsyLN7SEeixdLhvgGk2qJkyqArqYfkEMOSW0O0pWG8uOfC1A==
+encrypted-git-storage@^0.1.8:
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/encrypted-git-storage/-/encrypted-git-storage-0.1.8.tgz#45d23b3decefda80bfe11e5046907d717a288708"
+  integrity sha512-OumBu0+UAwT2Z31slgztVDrLWqM/tcx+T+wI7bLvnvqZ2s+uiLE6E76lZ8ShyHkNf69eHFidGunKk5vnEIxtJg==
   dependencies:
     "@aws-sdk/client-s3" "^3.658.0"
     express "^4.21.2"
