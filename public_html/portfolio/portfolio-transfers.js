@@ -77,6 +77,12 @@ const SAME_ASSET = new Map([
 ]);
 
 const CONFIDENTIAL = 'confidential:';
+// What the native side of a shield may pay on top of the amount credited:
+// gas for one transfer, with room to spare (0.0071 and 0.0008 NEAR seen).
+const SHIELD_GAS_ALLOWANCE = 0.01;
+// How far apart the two sides of a shield may land (14 and 16 s seen; the
+// confidential side can also be stamped first, at quote time).
+const SHIELD_WINDOW_SECONDS = 300;
 const INTENTS = /^nep(141|245):/;
 
 /** Which of the portfolio's buckets a token id belongs to. */
@@ -183,6 +189,51 @@ export function separatePortfolioTransfers(movements = [], {
             });
             break;
         }
+    }
+
+    // 0b. Sent to near.com's deposit address for your account. Since November
+    //     2026 near.com no longer shields NEAR through a fresh 1Click address:
+    //     it sends it to one address it keeps for the account, and credits the
+    //     confidential bucket under a different 1Click address of its own, so
+    //     the two sides of the move share no address at all. Seen on three
+    //     real days, always the same shape: NEAR to an implicit account, and
+    //     within seconds wNEAR in the confidential bucket, the same amount
+    //     less the gas the native side paid (40.0071 left, 40 arrived, sixteen
+    //     seconds apart).
+    //
+    //     Amount and time together are the signal, and both are tight: the
+    //     credit may not exceed what was sent, may fall short only by gas, and
+    //     must land within minutes. A transfer to somebody else's implicit
+    //     account would need a confidential credit of its exact amount in the
+    //     same minutes to be mistaken for this.
+    for (const sent of movable) {
+        if (taken.has(sent) || sent.kind !== 'withdrawal') continue;
+        if (bucketOf(sent.token) !== 'native' || baseAsset(sent.token) !== 'near') continue;
+        if (!(sent.counterparties ?? []).some(isImplicitAccount)) continue;
+        let best = null;
+        for (const credited of movable) {
+            if (taken.has(credited) || credited.kind !== 'deposit') continue;
+            if (bucketOf(credited.token) !== 'confidential' || baseAsset(credited.token) !== 'near') continue;
+            const gas = sent.units - credited.units;
+            if (!(gas >= 0 && gas <= SHIELD_GAS_ALLOWANCE)) continue;
+            const apart = secondsApart(sent.at, credited.at);
+            if (apart == null || apart > SHIELD_WINDOW_SECONDS) continue;
+            if (!best || apart < best.apart) best = { credited, apart };
+        }
+        if (!best) continue;
+        taken.add(sent); taken.add(best.credited);
+        internal.push({
+            reason: 'nearcom-deposit-address',
+            date: sent.date,
+            asset: 'near',
+            symbol: sent.symbol ?? best.credited.symbol,
+            units: sent.units,
+            from: 'native',
+            to: 'confidential',
+            depositAddress: sent.counterparties.find(isImplicitAccount),
+            secondsApart: best.apart,
+            movements: [sent, best.credited],
+        });
     }
 
     // 1. The same asset, the same number of units, leaving one bucket and
@@ -395,6 +446,11 @@ export function separatePortfolioTransfers(movements = [], {
     }
 
     return { internal, external };
+}
+
+/** NEAR's implicit accounts: 64 lowercase hex characters. */
+function isImplicitAccount(account) {
+    return typeof account === 'string' && account.length === 64 && /^[a-f0-9]+$/.test(account);
 }
 
 function valueOf(m, price) {

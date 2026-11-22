@@ -480,12 +480,69 @@ describe('sending to your own confidential deposit address', () => {
     });
 
     it('still counts a transfer to some other implicit account', () => {
-        const { external } = separatePortfolioTransfers([sent({ counterparties: ['ab'.repeat(32)] }), credited()]);
+        // The credit landed hours later: not this transfer's other side.
+        const { external } = separatePortfolioTransfers([sent({ counterparties: ['ab'.repeat(32)] }), credited({ at: '1792180000000000000' })]);
         expect(external.map(m => m.symbol)).to.deep.equal(['NEAR']);
     });
 
     it('pairs each confidential credit only once', () => {
         const { external } = separatePortfolioTransfers([sent(), sent({ units: 1 }), credited()]);
         expect(external).to.have.lengthOf(1);
+    });
+});
+
+// Since November 2026 near.com shields NEAR through one deposit address it
+// keeps for the account, and credits the confidential bucket under another
+// 1Click address, so the two sides share no address. The real days:
+describe("sending NEAR to near.com's deposit address for your account", () => {
+    const NEARCOM = 'b7884184059a1f6df339f85918affd1e1df896564dc2efe78eb2c9ebfe2df15f';
+    const sent = (over) => ({ date: '2026-11-06', kind: 'withdrawal', token: '', symbol: 'NEAR',
+        units: 40.0071149895375, counterparties: [NEARCOM], swapKey: '2j4rYku2dfvBw6KRjqcbiSXKhGSUho6KiUi8LyvZwENS',
+        at: '1793957970533000000', ...over });
+    const credited = (over) => ({ date: '2026-11-06', kind: 'deposit', token: 'confidential:nep141:wrap.near',
+        symbol: 'wNEAR', units: 40, counterparties: ['intents.near'],
+        swapKey: 'confidential:744839201b1fe3539cb8f8e8670c8d471770528d2dc56cc96b04c821a4f3a494',
+        at: '1793957986450000000', ...over });
+
+    it('is a move between your own buckets, not money taken out', () => {
+        const { internal, external } = separatePortfolioTransfers([sent(), credited()]);
+        expect(external).to.have.lengthOf(0);
+        expect(internal).to.have.lengthOf(1);
+        expect(internal[0].reason).to.equal('nearcom-deposit-address');
+        expect(internal[0].depositAddress).to.equal(NEARCOM);
+        expect(internal[0].movements).to.have.lengthOf(2);
+    });
+
+    it('also on 2026-11-20, 30 NEAR fourteen seconds before the credit', () => {
+        const { external } = separatePortfolioTransfers([
+            sent({ date: '2026-11-20', units: 30.0008349895375, at: '1795184296941000000' }),
+            credited({ date: '2026-11-20', units: 30, at: '1795184311059000000' }),
+        ]);
+        expect(external).to.have.lengthOf(0);
+    });
+
+    it('is not a credit larger than what was sent', () => {
+        const { external } = separatePortfolioTransfers([sent(), credited({ units: 40.1 })]);
+        expect(external.map(m => m.symbol)).to.deep.equal(['NEAR']);
+    });
+
+    it('is not a credit short by more than gas', () => {
+        const { external } = separatePortfolioTransfers([sent({ units: 40.5 }), credited()]);
+        expect(external.map(m => m.symbol)).to.include('NEAR');
+    });
+
+    it('is not a credit hours away', () => {
+        const { external } = separatePortfolioTransfers([sent(), credited({ at: '1793975986450000000' })]);
+        expect(external.map(m => m.symbol)).to.include('NEAR');
+    });
+
+    it('is not NEAR sent to a named account', () => {
+        const { external } = separatePortfolioTransfers([sent({ counterparties: ['someone.near'] }), credited()]);
+        expect(external.map(m => m.symbol)).to.include('NEAR');
+    });
+
+    it('pairs each credit only once', () => {
+        const { external } = separatePortfolioTransfers([sent(), sent({ at: '1793957975000000000' }), credited()]);
+        expect(external.map(m => m.symbol)).to.deep.equal(['NEAR']);
     });
 });
